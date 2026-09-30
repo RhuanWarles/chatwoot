@@ -917,6 +917,12 @@ const menuItems = computed(() => {
           icon: 'i-lucide-blocks',
           to: accountScopedRoute('settings_applications'),
         },
+        {
+          name: 'AI and Voice',
+          label: t('SAAS_AI.TITLE'),
+          icon: 'i-lucide-audio-lines',
+          to: accountScopedRoute('saas_ai_settings'),
+        },
         ...(hasDataImport.value
           ? [
               {

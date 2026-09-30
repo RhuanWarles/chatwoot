@@ -1,4 +1,5 @@
 import advancedFilters from './advancedFilters.json';
+import saasAI from './en.json';
 import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
@@ -46,6 +47,7 @@ import sessionLimit from './sessionLimit.json';
 import yearInReview from './yearInReview.json';
 
 export default {
+  ...saasAI,
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,

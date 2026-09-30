@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_24_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_30_020000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1522,6 +1522,92 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_24_120000) do
     t.index ["account_id", "date", "dimension_type", "dimension_id", "metric"], name: "index_rollup_unique_key", unique: true
     t.index ["account_id", "dimension_type", "date"], name: "index_rollup_summary"
     t.index ["account_id", "metric", "date"], name: "index_rollup_timeseries"
+  end
+
+  create_table "saas_ai_settings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "text_mode", default: "platform", null: false
+    t.string "text_provider", default: "openai", null: false
+    t.string "text_model"
+    t.text "text_api_key"
+    t.boolean "inbound_enabled", default: false, null: false
+    t.boolean "outbound_enabled", default: false, null: false
+    t.integer "max_call_seconds", default: 600, null: false
+    t.string "vapi_assistant_id"
+    t.string "vapi_phone_number_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_saas_ai_settings_on_account_id", unique: true
+    t.index ["vapi_phone_number_id"], name: "index_saas_ai_settings_on_vapi_phone_number_id", unique: true
+  end
+
+  create_table "saas_text_generations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "usage_record_id"
+    t.string "request_id", null: false
+    t.string "mode", null: false
+    t.string "provider", null: false
+    t.string "model", null: false
+    t.string "status", default: "pending", null: false
+    t.text "prompt", null: false
+    t.text "response"
+    t.string "error_code"
+    t.integer "input_tokens"
+    t.integer "output_tokens"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "request_id"], name: "index_saas_text_generations_on_account_id_and_request_id", unique: true
+    t.index ["account_id"], name: "index_saas_text_generations_on_account_id"
+    t.index ["usage_record_id"], name: "index_saas_text_generations_on_usage_record_id"
+  end
+
+  create_table "saas_usage_records", force: :cascade do |t|
+    t.bigint "wallet_id", null: false
+    t.string "reference", null: false
+    t.string "kind", null: false
+    t.string "status", null: false
+    t.bigint "reserved_units", default: 0, null: false
+    t.bigint "units", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["wallet_id", "reference"], name: "index_saas_usage_records_on_wallet_id_and_reference", unique: true
+    t.index ["wallet_id", "status"], name: "index_saas_usage_records_on_wallet_id_and_status"
+  end
+
+  create_table "saas_voice_calls", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id"
+    t.bigint "usage_record_id", null: false
+    t.string "request_id", null: false
+    t.string "provider_call_id"
+    t.string "direction", null: false
+    t.string "status", default: "pending", null: false
+    t.string "customer_number", null: false
+    t.string "assistant_id", null: false
+    t.string "phone_number_id", null: false
+    t.integer "max_duration_seconds", null: false
+    t.integer "duration_seconds", default: 0, null: false
+    t.string "ended_reason"
+    t.text "summary"
+    t.text "transcript"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "request_id"], name: "index_saas_voice_calls_on_account_id_and_request_id", unique: true
+    t.index ["account_id"], name: "index_saas_voice_calls_on_account_id"
+    t.index ["contact_id"], name: "index_saas_voice_calls_on_contact_id"
+    t.index ["provider_call_id"], name: "index_saas_voice_calls_on_provider_call_id", unique: true
+    t.index ["usage_record_id"], name: "index_saas_voice_calls_on_usage_record_id", unique: true
+  end
+
+  create_table "saas_wallets", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "resource", null: false
+    t.bigint "balance_units", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "resource"], name: "index_saas_wallets_on_account_id_and_resource", unique: true
+    t.index ["account_id"], name: "index_saas_wallets_on_account_id"
   end
 
   create_table "sla_events", force: :cascade do |t|

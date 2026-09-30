@@ -63,6 +63,10 @@ class Account < ApplicationRecord
   include AccountCaptainAutoResolve
 
   has_many :account_users, dependent: :destroy_async
+  has_one :saas_ai_setting, class_name: 'Saas::AiSetting', dependent: :destroy
+  has_many :saas_wallets, class_name: 'Saas::Wallet', dependent: :destroy
+  has_many :saas_voice_calls, class_name: 'Saas::VoiceCall', dependent: :destroy
+  has_many :saas_text_generations, class_name: 'Saas::TextGeneration', dependent: :destroy
   has_many :agent_bot_inboxes, dependent: :destroy_async
   has_many :agent_bots, dependent: :destroy_async
   has_many :api_channels, dependent: :destroy_async, class_name: '::Channel::Api'

@@ -28,6 +28,7 @@ import security from './security/security.routes';
 import conversationWorkflow from './conversationWorkflow/conversationWorkflow.routes';
 import captain from './captain/captain.routes';
 import data from './data/data.routes';
+import saasAI from './saasAI/saasAI.routes';
 
 export default {
   routes: [
@@ -61,6 +62,7 @@ export default {
     ...templates.routes,
     ...integrations.routes,
     ...data.routes,
+    ...saasAI.routes,
     ...labels.routes,
     ...macros.routes,
     ...reports.routes,

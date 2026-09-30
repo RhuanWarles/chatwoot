@@ -52,6 +52,11 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
+          resource :saas_ai, only: [:show, :update], controller: 'saas_ai' do
+            post :calls
+            post :text_generations
+            get 'text_generations/:id', action: :text_generation
+          end
           if ChatwootApp.enterprise?
             resources :monitors, only: [:index, :show, :create, :update, :destroy] do
               collection do
@@ -697,6 +702,7 @@ Rails.application.routes.draw do
   get 'webhooks/twitter', to: 'api/v1/webhooks#twitter_crc'
   post 'webhooks/twitter', to: 'api/v1/webhooks#twitter_events'
   post 'webhooks/line/:line_channel_id', to: 'webhooks/line#process_payload'
+  post 'webhooks/vapi', to: 'webhooks/vapi#create'
   post 'webhooks/telegram/:bot_token', to: 'webhooks/telegram#process_payload'
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'
