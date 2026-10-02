@@ -13,6 +13,7 @@ module Crm
     belongs_to :pipeline_stage, class_name: 'Crm::PipelineStage'
     belongs_to :contact
     belongs_to :owner, class_name: 'User', optional: true
+    has_many :activities, class_name: 'Crm::Activity', dependent: :destroy
     has_many :events, class_name: 'Crm::DealEvent', dependent: :destroy
     after_create :record_creation
     after_update :record_changes

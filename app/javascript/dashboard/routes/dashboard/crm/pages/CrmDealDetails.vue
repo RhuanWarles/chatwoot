@@ -10,6 +10,8 @@ import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import AgentsAPI from 'dashboard/api/agents';
 import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
+import CrmActivities from '../components/CrmActivities.vue';
+import CrmDealConversations from '../components/CrmDealConversations.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import { brlFormatter } from '../components/currencyHelpers';
@@ -31,6 +33,10 @@ const editor = ref(null);
 const currency = ref(null);
 const draft = ref({});
 const note = ref('');
+const editingNote = ref(null);
+const noteInput = ref(null);
+const deletingNote = ref(null);
+const noteDeletionDialog = ref(null);
 const tab = ref('history');
 const page = ref(1);
 const hasMore = ref(false);
@@ -109,6 +115,8 @@ const load = async () => {
   deal.value = null;
   events.value = [];
   note.value = '';
+  editingNote.value = null;
+  noteDeletionDialog.value?.close();
   notFound.value = false;
   try {
     const result = await run(signal =>
@@ -177,8 +185,39 @@ const addNote = async () => {
   noteSaving.value = true;
   error.value = '';
   try {
-    await dealsAPI.addNote(deal.value.id, note.value.trim());
+    if (editingNote.value)
+      await dealsAPI.updateNote(
+        deal.value.id,
+        editingNote.value,
+        note.value.trim()
+      );
+    else await dealsAPI.addNote(deal.value.id, note.value.trim());
+    editingNote.value = null;
     note.value = '';
+    await loadHistory();
+  } catch {
+    error.value = t('CRM.NOTE_SAVE_ERROR');
+  } finally {
+    noteSaving.value = false;
+  }
+};
+const editNote = event => {
+  editingNote.value = event.id;
+  note.value = event.metadata.body;
+  noteInput.value?.focus();
+};
+const removeNote = async () => {
+  if (noteSaving.value) return;
+  noteSaving.value = true;
+  try {
+    const deletedId = deletingNote.value;
+    await dealsAPI.deleteNote(deal.value.id, deletedId);
+    deletingNote.value = null;
+    noteDeletionDialog.value.close();
+    if (editingNote.value === deletedId) {
+      editingNote.value = null;
+      note.value = '';
+    }
     await loadHistory();
   } catch {
     error.value = t('CRM.NOTE_SAVE_ERROR');
@@ -209,6 +248,17 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
       class="self-start"
       @click="load"
     />
+    <Dialog
+      ref="noteDeletionDialog"
+      :is-loading="noteSaving"
+      :disable-confirm-button="noteSaving"
+      :title="t('CRM.DELETE_NOTE')"
+      :confirm-button-label="t('CRM.DELETE_NOTE')"
+      @confirm="removeNote"
+      @close="deletingNote = null"
+    >
+      <p class="text-sm text-n-slate-12">{{ t('CRM.DELETE_NOTE_CONFIRM') }}</p>
+    </Dialog>
     <template v-if="deal">
       <header class="flex flex-wrap items-start justify-between gap-4 mb-5">
         <div class="min-w-0">
@@ -369,6 +419,15 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           </dl>
         </aside>
         <section class="flex flex-1 flex-col gap-4 min-w-0">
+          <CrmActivities
+            :key="`${route.params.accountId}-${deal.id}`"
+            :deal="deal"
+            @changed="loadHistory()"
+          />
+          <CrmDealConversations
+            :key="route.params.accountId"
+            :contact-id="deal.contact?.id || null"
+          />
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex gap-2">
               <Button
@@ -383,11 +442,10 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               />
             </div>
             <Button
-              :label="t('CRM.NEW_ACTIVITY')"
+              :label="t('CRM.ADD_NOTE')"
               icon="i-lucide-plus"
               variant="faded"
-              disabled
-              :title="t('CRM.ACTIVITY_COMING_SOON')"
+              @click="noteInput?.focus()"
             />
           </div>
           <form
@@ -401,11 +459,22 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
             >
             <textarea
               id="deal-note"
+              ref="noteInput"
               v-model="note"
               :disabled="noteSaving"
               :maxlength="NOTE_MAX_LENGTH"
               rows="3"
               class="w-full p-3 rounded-lg border border-n-weak bg-n-background text-sm text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
+            />
+            <Button
+              v-if="editingNote"
+              :label="t('CRM.CANCEL')"
+              variant="ghost"
+              :disabled="noteSaving"
+              @click="
+                editingNote = null;
+                note = '';
+              "
             />
             <Button
               type="submit"
@@ -445,6 +514,37 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                 class="mt-2 mb-0 text-sm whitespace-pre-wrap break-words text-n-slate-12"
               >
                 {{ event.metadata.body }}
+              </p>
+              <div
+                v-if="event.event_type === 'note_created'"
+                class="flex gap-2 mt-2"
+              >
+                <Button
+                  v-if="event.can_edit"
+                  :label="t('CRM.EDIT_NOTE')"
+                  size="sm"
+                  variant="ghost"
+                  :disabled="noteSaving"
+                  @click="editNote(event)"
+                />
+                <Button
+                  v-if="event.can_delete"
+                  :label="t('CRM.DELETE_NOTE')"
+                  size="sm"
+                  variant="ghost"
+                  color="ruby"
+                  :disabled="noteSaving"
+                  @click="
+                    deletingNote = event.id;
+                    noteDeletionDialog.open();
+                  "
+                />
+              </div>
+              <p
+                v-if="event.event_type.startsWith('activity_')"
+                class="mt-2 mb-0 text-sm text-n-slate-11"
+              >
+                {{ event.metadata.title }} · {{ date(event.metadata.due_at) }}
               </p>
               <p
                 v-else-if="eventChange(event)"

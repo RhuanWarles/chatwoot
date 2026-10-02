@@ -16,6 +16,12 @@ vi.mock('vue-router', () => ({
   useRoute: () => route,
   useRouter: () => ({ push }),
 }));
+vi.mock('../components/CrmActivities.vue', () => ({
+  default: { template: '<div />' },
+}));
+vi.mock('../components/CrmDealConversations.vue', () => ({
+  default: { template: '<div />' },
+}));
 vi.mock('dashboard/api/agents', () => ({ default: { get: vi.fn() } }));
 vi.mock('dashboard/api/crm', () => ({
   dealsAPI: {
@@ -24,6 +30,8 @@ vi.mock('dashboard/api/crm', () => ({
     update: vi.fn(),
     events: vi.fn(),
     addNote: vi.fn(),
+    updateNote: vi.fn(),
+    deleteNote: vi.fn(),
   },
   pipelinesAPI: { get: vi.fn() },
 }));
@@ -270,4 +278,74 @@ describe('Deal details', () => {
     expect(wrapper.findAllComponents(Input).length).toBeGreaterThan(0);
     expect(push).toHaveBeenCalledTimes(1);
   });
+});
+
+it('edits an authorized note while retaining the original event', async () => {
+  const event = {
+    id: 7,
+    event_type: 'note_created',
+    metadata: { body: 'Original' },
+    actor: { name: 'Agent' },
+    created_at: DEAL.created_at,
+    can_edit: true,
+    can_delete: true,
+  };
+  dealsAPI.events.mockResolvedValue({
+    data: { payload: [event], meta: { has_more: false } },
+  });
+  dealsAPI.updateNote.mockResolvedValue({ data: {} });
+  const wrapper = await mountPage();
+  await click(wrapper, pt.CRM.EDIT_NOTE);
+  expect(wrapper.find('textarea').element.value).toBe('Original');
+  await wrapper.find('textarea').setValue('Edited');
+  await wrapper.find('form').trigger('submit');
+  await flushPromises();
+  expect(dealsAPI.updateNote).toHaveBeenCalledWith(12, 7, 'Edited');
+  expect(dealsAPI.addNote).not.toHaveBeenCalled();
+});
+it('requires confirmation before deleting an authorized note', async () => {
+  const event = {
+    id: 7,
+    event_type: 'note_created',
+    metadata: { body: 'Original' },
+    actor: { name: 'Agent' },
+    created_at: DEAL.created_at,
+    can_edit: true,
+    can_delete: true,
+  };
+  dealsAPI.events.mockResolvedValue({
+    data: { payload: [event], meta: { has_more: false } },
+  });
+  dealsAPI.deleteNote.mockResolvedValue({ data: {} });
+  const wrapper = await mountPage();
+  await click(wrapper, pt.CRM.DELETE_NOTE);
+  expect(dealsAPI.deleteNote).not.toHaveBeenCalled();
+  await wrapper.find('.dialog .confirm').trigger('click');
+  await flushPromises();
+  expect(dealsAPI.deleteNote).toHaveBeenCalledWith(12, 7);
+});
+it('hides note mutations when backend denies permissions', async () => {
+  dealsAPI.events.mockResolvedValue({
+    data: {
+      payload: [
+        {
+          id: 7,
+          event_type: 'note_created',
+          metadata: { body: 'Other author' },
+          created_at: DEAL.created_at,
+          can_edit: false,
+          can_delete: false,
+        },
+      ],
+      meta: { has_more: false },
+    },
+  });
+  const wrapper = await mountPage();
+  expect(
+    wrapper
+      .findAll('button')
+      .some(button =>
+        [pt.CRM.EDIT_NOTE, pt.CRM.DELETE_NOTE].includes(button.text())
+      )
+  ).toBe(false);
 });

@@ -364,7 +364,8 @@ Rails.application.routes.draw do
               end
             end
             resources :deals, only: [:index, :show, :create, :update, :destroy] do
-              resources :events, controller: 'deal_events', only: [:index, :create]
+              resources :events, controller: 'deal_events', only: [:index, :create, :update, :destroy]
+              resources :activities, controller: 'activities', only: [:index, :create, :update]
             end
           end
 

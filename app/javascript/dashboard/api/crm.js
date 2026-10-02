@@ -28,6 +28,23 @@ class CrmAPI extends ApiClient {
     return axios.post(`${this.url}/${dealId}/events`, { event: { body } });
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  activities(dealId) {
+    return new ApiClient(`crm/deals/${dealId}/activities`, {
+      accountScoped: true,
+    });
+  }
+
+  updateNote(dealId, id, body) {
+    return axios.patch(`${this.url}/${dealId}/events/${id}`, {
+      event: { body },
+    });
+  }
+
+  deleteNote(dealId, id) {
+    return axios.delete(`${this.url}/${dealId}/events/${id}`);
+  }
+
   reorderStages(pipelineId, stageIds) {
     return axios.patch(`${this.stages(pipelineId).url}/reorder`, {
       stage_ids: stageIds,
