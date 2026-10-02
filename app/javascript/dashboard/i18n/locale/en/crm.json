@@ -26,6 +26,11 @@
     "SAVE_CHANGES": "Save changes",
     "CANCEL": "Cancel",
     "VALUE_INVALID": "Enter a valid amount, such as 2.500,00.",
-    "DEFAULT_STAGES": "New Lead,Qualification,Proposal,Negotiation,Closed"
+    "DEFAULT_STAGES": "New Lead,Qualification,Proposal,Negotiation,Closed",
+    "FILTER_ALL": "All",
+    "FILTER_OPEN": "In progress",
+    "FILTER_WON": "Won",
+    "FILTER_LOST": "Lost",
+    "DEAL_COUNT": "0 deals | {count} deal | {count} deals"
   }
 }

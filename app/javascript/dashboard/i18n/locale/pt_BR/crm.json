@@ -26,7 +26,12 @@
     "SAVE_CHANGES": "Salvar alterações",
     "CANCEL": "Cancelar",
     "VALUE_INVALID": "Informe um valor válido, como 2.500,00.",
-    "DEFAULT_STAGES": "Novo Lead,Qualificação,Proposta,Negociação,Fechado"
+    "DEFAULT_STAGES": "Novo Lead,Qualificação,Proposta,Negociação,Fechado",
+    "FILTER_ALL": "Todos",
+    "FILTER_OPEN": "Em andamento",
+    "FILTER_WON": "Ganhos",
+    "FILTER_LOST": "Perdidos",
+    "DEAL_COUNT": "0 negócios | {count} negócio | {count} negócios"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

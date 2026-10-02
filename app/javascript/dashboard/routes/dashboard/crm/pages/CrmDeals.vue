@@ -16,6 +16,19 @@ const route = useRoute();
 const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
+const selectedStatuses = ref([]);
+const statusFilters = computed(() => [
+  { status: 'open', label: t('CRM.FILTER_OPEN') },
+  { status: 'won', label: t('CRM.FILTER_WON') },
+  { status: 'lost', label: t('CRM.FILTER_LOST') },
+]);
+const toggleStatus = status => {
+  const statuses = selectedStatuses.value.includes(status)
+    ? selectedStatuses.value.filter(item => item !== status)
+    : [...selectedStatuses.value, status];
+  selectedStatuses.value =
+    statuses.length === statusFilters.value.length ? [] : statuses;
+};
 const showForm = ref(false);
 const selectedDeal = ref(null);
 const saving = ref(false);
@@ -33,8 +46,25 @@ const pipeline = computed(() =>
   pipelines.value.find(item => item.id === Number(selectedPipeline.value))
 );
 const stages = computed(() => pipeline.value?.stages || []);
-const dealsByStage = stageId =>
-  deals.value.filter(deal => deal.pipeline_stage_id === stageId);
+const visibleDeals = computed(() =>
+  deals.value.filter(
+    deal =>
+      !selectedStatuses.value.length ||
+      selectedStatuses.value.includes(deal.status)
+  )
+);
+const boardStages = computed(() =>
+  stages.value.map(stage => {
+    const stageDeals = visibleDeals.value.filter(
+      deal => deal.pipeline_stage_id === stage.id
+    );
+    const totalCents = stageDeals.reduce(
+      (sum, deal) => sum + Math.round(Number(deal.value || 0) * 100),
+      0
+    );
+    return { ...stage, deals: stageDeals, total: totalCents / 100 };
+  })
+);
 const pipelineOptions = computed(() =>
   pipelines.value.map(item => ({ value: item.id, label: item.name }))
 );
@@ -120,7 +150,7 @@ onMounted(load);
         </h1>
         <p class="text-sm text-n-slate-11">{{ t('CRM.DEALS_SUBTITLE') }}</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <ComboBox
           v-model="selectedPipeline"
           :options="pipelineOptions"
@@ -134,6 +164,33 @@ onMounted(load);
         />
       </div>
     </header>
+    <div
+      role="group"
+      :aria-label="t('CRM.STATUS')"
+      class="flex flex-wrap items-center gap-2 mb-4"
+    >
+      <span class="text-sm font-medium text-n-slate-12">{{
+        t('CRM.STATUS')
+      }}</span>
+      <Button
+        type="button"
+        :label="t('CRM.FILTER_ALL')"
+        :variant="selectedStatuses.length ? 'faded' : 'solid'"
+        :color="selectedStatuses.length ? 'slate' : 'blue'"
+        :aria-pressed="!selectedStatuses.length"
+        @click="selectedStatuses = []"
+      />
+      <Button
+        v-for="filter in statusFilters"
+        :key="filter.status"
+        type="button"
+        :label="filter.label"
+        :variant="selectedStatuses.includes(filter.status) ? 'solid' : 'faded'"
+        :color="selectedStatuses.includes(filter.status) ? 'blue' : 'slate'"
+        :aria-pressed="selectedStatuses.includes(filter.status)"
+        @click="toggleStatus(filter.status)"
+      />
+    </div>
     <section
       v-if="!pipelines.length"
       class="flex flex-col items-center justify-center flex-1 gap-3"
@@ -151,18 +208,23 @@ onMounted(load);
     </section>
     <section v-else class="flex gap-4 min-h-0 overflow-x-auto">
       <div
-        v-for="stage in stages"
+        v-for="stage in boardStages"
         :key="stage.id"
         class="flex flex-col flex-shrink-0 w-72 rounded-xl bg-n-alpha-2 p-3"
       >
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="font-medium text-n-slate-12">{{ stage.name }}</h2>
-          <span class="text-xs text-n-slate-10">{{
-            dealsByStage(stage.id).length
-          }}</span>
+        <div class="mb-3">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="font-medium text-n-slate-12">{{ stage.name }}</h2>
+            <span class="flex-shrink-0 text-xs text-n-slate-10">{{
+              t('CRM.DEAL_COUNT', stage.deals.length)
+            }}</span>
+          </div>
+          <p class="mt-1 mb-0 text-sm text-n-slate-11">
+            {{ brlFormatter.format(stage.total) }}
+          </p>
         </div>
         <Draggable
-          :model-value="dealsByStage(stage.id)"
+          :model-value="stage.deals"
           item-key="id"
           group="crm-deals"
           class="flex flex-col flex-1 gap-2 min-h-24"
