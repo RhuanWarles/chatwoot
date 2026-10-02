@@ -51,12 +51,14 @@ const filteredOptions = computed(() => {
 const selectPlaceholder = computed(() => {
   return props.placeholder || t('COMBOBOX.PLACEHOLDER');
 });
-const selectedLabel = computed(() => {
-  const selected = props.options.find(
-    option => option.value === selectedValue.value
-  );
-  return selected?.label ?? (props.displayLabel || selectPlaceholder.value);
-});
+const selectedOption = computed(() =>
+  props.options.find(option => option.value === selectedValue.value)
+);
+const selectedLabel = computed(
+  () =>
+    selectedOption.value?.label ??
+    (props.displayLabel || selectPlaceholder.value)
+);
 
 const selectOption = option => {
   if (selectedValue.value === option.value) {
@@ -114,7 +116,11 @@ watch(
         }"
         :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
         @click="toggleDropdown"
-      />
+      >
+        <slot name="selected" :option="selectedOption" :label="selectedLabel">
+          <span class="min-w-0 truncate">{{ selectedLabel }}</span>
+        </slot>
+      </Button>
 
       <ComboBoxDropdown
         ref="dropdownRef"
@@ -126,7 +132,11 @@ watch(
         :selected-values="selectedValue"
         @search="emit('search', $event)"
         @select="selectOption"
-      />
+      >
+        <template v-if="$slots.option" #option="slotProps">
+          <slot name="option" v-bind="slotProps" />
+        </template>
+      </ComboBoxDropdown>
 
       <p
         v-if="message"

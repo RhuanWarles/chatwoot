@@ -87,5 +87,10 @@
       "encryption_not_ready": "Secure API key storage is not configured yet.",
       "generic": "The request could not be completed. Please try again."
     }
+  },
+  "CRM_CONTACT_PICKER": {
+    "SEARCH_PLACEHOLDER": "Search by name, phone or email",
+    "SEARCH_ERROR": "Could not load contacts. Please try again.",
+    "UNNAMED_CONTACT": "Unnamed contact"
   }
 }
