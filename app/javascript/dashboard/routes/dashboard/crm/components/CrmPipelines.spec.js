@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import CrmPipelines from '../pages/CrmPipelines.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
@@ -13,7 +14,7 @@ vi.mock('dashboard/api/crm', () => ({
     reorderStages: vi.fn(),
   },
   stagesAPI: vi.fn(),
-  dealsAPI: { get: vi.fn() },
+  dealsAPI: { get: vi.fn(), update: vi.fn() },
 }));
 const api = { create: vi.fn(), update: vi.fn(), delete: vi.fn() };
 const pipeline = {
@@ -109,7 +110,7 @@ describe('Visual pipeline management', () => {
       pipeline: { name: 'New', active: true },
     });
     expect(api.create).toHaveBeenCalledWith({
-      pipeline_stage: { name: 'First' },
+      pipeline_stage: { name: 'First', probability: null },
     });
     expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(2, [30]);
   });
@@ -117,16 +118,16 @@ describe('Visual pipeline management', () => {
     const wrapper = await mountPage();
     await click(wrapper, pt.CRM.EDIT_PIPELINE);
     await click(wrapper, pt.CRM.ADD_STAGE);
-    expect(wrapper.findAllComponents(Input)).toHaveLength(4);
+    expect(wrapper.findAllComponents(Input)).toHaveLength(7);
     expect(wrapper.find('.confirm').attributes('disabled')).toBeDefined();
     await wrapper
-      .findAllComponents(Input)[3]
+      .findAllComponents(Input)[5]
       .find('input')
       .setValue('New stage');
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.create).toHaveBeenCalledWith({
-      pipeline_stage: { name: 'New stage' },
+      pipeline_stage: { name: 'New stage', probability: null },
     });
     expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(1, [10, 20, 30]);
   });
@@ -163,7 +164,7 @@ describe('Visual pipeline management', () => {
       pipeline: { name: 'Renamed', active: true },
     });
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Qualified' },
+      pipeline_stage: { name: 'Qualified', probability: null },
     });
   });
   it('persists dragged stage order', async () => {
@@ -203,8 +204,8 @@ describe('Visual pipeline management', () => {
     await wrapper.find('[aria-label="Excluir etapa"]').trigger('click');
     const confirmation = wrapper.findAll('.dialog')[1];
     expect(confirmation.text()).toContain('Esta etapa possui 2');
-    expect(confirmation.text()).toContain('Kanban');
-    expect(confirmation.find('.confirm').exists()).toBe(false);
+    expect(confirmation.text()).toContain(pt.CRM.MOVE_DEALS_ON_SAVE);
+    expect(confirmation.find('.confirm').attributes('disabled')).toBeDefined();
     expect(api.delete).not.toHaveBeenCalled();
   });
   it('deactivates a pipeline without deleting stages or deals', async () => {
@@ -224,4 +225,104 @@ describe('Visual pipeline management', () => {
     expect(wrapper.find('.dialog').exists()).toBe(true);
     expect(wrapper.find('.dialog').text()).toContain(pt.CRM.SAVE_ERROR);
   });
+});
+
+describe('Stage probabilities and occupied-stage moves', () => {
+  it.each([0, 30, 100])('saves probability %i', async probability => {
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.EDIT_PIPELINE);
+    await wrapper.findAll('input[type="number"]')[0].setValue(probability);
+    await wrapper.find('.confirm').trigger('click');
+    await flushPromises();
+    expect(api.update).toHaveBeenCalledWith(10, {
+      pipeline_stage: { name: 'Lead', probability },
+    });
+  });
+  it.each([-1, 101, 1.5])(
+    'blocks invalid probability %s',
+    async probability => {
+      const wrapper = await mountPage();
+      await click(wrapper, pt.CRM.EDIT_PIPELINE);
+      await wrapper.findAll('input[type="number"]')[0].setValue(probability);
+      expect(wrapper.find('.confirm').attributes('disabled')).toBeDefined();
+      expect(api.update).not.toHaveBeenCalled();
+    }
+  );
+  it('clears optional probability', async () => {
+    pipelinesAPI.get.mockResolvedValue({
+      data: [
+        { ...pipeline, stages: [{ id: 10, name: 'Lead', probability: 40 }] },
+      ],
+    });
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.EDIT_PIPELINE);
+    expect(wrapper.find('input[type="number"]').element.value).toBe('40');
+    await wrapper.find('input[type="number"]').setValue('');
+    await wrapper.find('.confirm').trigger('click');
+    await flushPromises();
+    expect(api.update).toHaveBeenCalledWith(10, {
+      pipeline_stage: { name: 'Lead', probability: null },
+    });
+  });
+  it('moves deals before deleting the occupied stage, only on save', async () => {
+    dealsAPI.get.mockResolvedValue({
+      data: [{ id: 7, pipeline_id: 1, pipeline_stage_id: 10, status: 'won' }],
+    });
+    dealsAPI.update.mockResolvedValue({ data: {} });
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.EDIT_PIPELINE);
+    await wrapper.find('[aria-label="Excluir etapa"]').trigger('click');
+    const picker = wrapper.findComponent(ComboBox);
+    expect(picker.props('options')).toHaveLength(1);
+    picker.vm.$emit('update:modelValue', picker.props('options')[0].value);
+    await flushPromises();
+    await wrapper.findAll('.dialog')[1].find('.confirm').trigger('click');
+    expect(dealsAPI.update).not.toHaveBeenCalled();
+    await wrapper.find('.confirm').trigger('click');
+    await flushPromises();
+    expect(dealsAPI.update).toHaveBeenCalledWith(7, {
+      deal: { pipeline_stage_id: 20 },
+    });
+    expect(api.delete).toHaveBeenCalledWith(10);
+    expect(dealsAPI.update.mock.invocationCallOrder[0]).toBeLessThan(
+      api.delete.mock.invocationCallOrder[0]
+    );
+  });
+  it('does not delete an occupied stage when a move fails', async () => {
+    dealsAPI.get.mockResolvedValue({
+      data: [{ id: 7, pipeline_id: 1, pipeline_stage_id: 10 }],
+    });
+    dealsAPI.update.mockRejectedValueOnce(new Error('failure'));
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.EDIT_PIPELINE);
+    await wrapper.find('[aria-label="Excluir etapa"]').trigger('click');
+    const picker = wrapper.findComponent(ComboBox);
+    picker.vm.$emit('update:modelValue', picker.props('options')[0].value);
+    await flushPromises();
+    await wrapper.findAll('.dialog')[1].find('.confirm').trigger('click');
+    await wrapper.find('.confirm').trigger('click');
+    await flushPromises();
+    expect(api.delete).not.toHaveBeenCalled();
+    expect(wrapper.find('.dialog').text()).toContain(pt.CRM.SAVE_ERROR);
+  });
+});
+
+it('creates a pipeline with multiple ordered stages', async () => {
+  api.create
+    .mockResolvedValueOnce({ data: { id: 30 } })
+    .mockResolvedValueOnce({ data: { id: 31 } })
+    .mockResolvedValueOnce({ data: { id: 32 } });
+  const wrapper = await mountPage();
+  await click(wrapper, pt.CRM.NEW_PIPELINE);
+  await click(wrapper, pt.CRM.ADD_STAGE);
+  await click(wrapper, pt.CRM.ADD_STAGE);
+  const inputs = wrapper.findAllComponents(Input);
+  await inputs[0].find('input').setValue('New funnel');
+  await inputs[1].find('input').setValue('Lead');
+  await inputs[3].find('input').setValue('Proposal');
+  await inputs[5].find('input').setValue('Negotiation');
+  await wrapper.find('.confirm').trigger('click');
+  await flushPromises();
+  expect(api.create).toHaveBeenCalledTimes(3);
+  expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(2, [30, 31, 32]);
 });

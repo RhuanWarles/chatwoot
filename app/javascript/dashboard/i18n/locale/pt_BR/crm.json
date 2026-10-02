@@ -47,7 +47,13 @@
     "REORDER_STAGE": "Reordenar etapa",
     "STAGE_NUMBER": "Etapa {number}",
     "LOAD_ERROR": "Não foi possível carregar os pipelines. Tente novamente.",
-    "SAVE_ERROR": "Não foi possível salvar. Verifique se as etapas removidas ainda possuem negócios e tente novamente."
+    "SAVE_ERROR": "Não foi possível salvar. Verifique se as etapas removidas ainda possuem negócios e tente novamente.",
+    "PROBABILITY": "Probabilidade (%)",
+    "PROBABILITY_OPTIONAL": "Opcional, de 0 a 100",
+    "MOVE_DESTINATION": "Selecionar etapa de destino",
+    "MOVE_DEALS_ON_SAVE": "Ao salvar, os negócios serão movidos para a etapa selecionada antes da exclusão.",
+    "MOVE_DESTINATION_REMOVED": "Esta etapa é o destino de uma movimentação pendente. Salve as alterações antes de excluí-la.",
+    "PROBABILITY_INVALID": "Informe uma porcentagem inteira de 0 a 100."
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

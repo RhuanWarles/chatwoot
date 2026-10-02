@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import Draggable from 'vuedraggable';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
 
@@ -13,17 +14,34 @@ const editor = ref(null);
 const confirmation = ref(null);
 const draft = ref({ name: '', active: true, stages: [] });
 const removedStages = ref([]);
-const stageCounts = ref({});
 const pendingRemoval = ref(null);
+const stageCounts = ref({});
+const pipelineDeals = ref([]);
+const destination = ref(null);
+const plannedMoves = ref([]);
+const destinationOptions = computed(() =>
+  draft.value.stages
+    .filter(stage => stage.key !== pendingRemoval.value?.key)
+    .map(stage => ({ value: stage.key, label: stage.name }))
+);
+const occupied = computed(
+  () => stageCounts.value[pendingRemoval.value?.id] || 0
+);
 const saving = ref(false);
 const error = ref('');
 const loading = ref(true);
 const toggling = ref(null);
+const validProbability = probability =>
+  probability == null ||
+  probability === '' ||
+  (Number.isInteger(probability) && probability >= 0 && probability <= 100);
 const valid = computed(
   () =>
     draft.value.name.trim() &&
     draft.value.stages.length &&
-    draft.value.stages.every(stage => stage.name.trim())
+    draft.value.stages.every(
+      stage => stage.name.trim() && validProbability(stage.probability)
+    )
 );
 const load = async () => {
   try {
@@ -37,6 +55,8 @@ const load = async () => {
 const openEditor = async pipeline => {
   error.value = '';
   removedStages.value = [];
+  plannedMoves.value = [];
+  pipelineDeals.value = [];
   draft.value = pipeline
     ? {
         ...pipeline,
@@ -48,18 +68,19 @@ const openEditor = async pipeline => {
     : {
         name: '',
         active: true,
-        stages: [{ name: '', key: crypto.randomUUID() }],
+        stages: [{ name: '', probability: null, key: crypto.randomUUID() }],
       };
   stageCounts.value = {};
   if (pipeline) {
     try {
       const { data } = await dealsAPI.get();
-      data
-        .filter(deal => deal.pipeline_id === pipeline.id)
-        .forEach(deal => {
-          stageCounts.value[deal.pipeline_stage_id] =
-            (stageCounts.value[deal.pipeline_stage_id] || 0) + 1;
-        });
+      pipelineDeals.value = data.filter(
+        deal => deal.pipeline_id === pipeline.id
+      );
+      pipelineDeals.value.forEach(deal => {
+        stageCounts.value[deal.pipeline_stage_id] =
+          (stageCounts.value[deal.pipeline_stage_id] || 0) + 1;
+      });
     } catch {
       error.value = t('CRM.LOAD_ERROR');
       return;
@@ -68,15 +89,32 @@ const openEditor = async pipeline => {
   editor.value.open();
 };
 const addStage = () => {
-  draft.value.stages.push({ name: '', key: crypto.randomUUID() });
+  draft.value.stages.push({
+    name: '',
+    probability: null,
+    key: crypto.randomUUID(),
+  });
 };
 const requestRemoval = stage => {
   pendingRemoval.value = stage;
+  destination.value = null;
   confirmation.value.open();
 };
 const confirmRemoval = () => {
   const stage = pendingRemoval.value;
-  if (stageCounts.value[stage.id]) return;
+  if (occupied.value && !destination.value) return;
+  if (plannedMoves.value.some(move => move.destination === stage.key)) {
+    error.value = t('CRM.MOVE_DESTINATION_REMOVED');
+    confirmation.value.close();
+    return;
+  }
+  if (occupied.value) {
+    plannedMoves.value.push(
+      ...pipelineDeals.value
+        .filter(deal => deal.pipeline_stage_id === stage.id)
+        .map(deal => ({ dealId: deal.id, destination: destination.value }))
+    );
+  }
   if (stage.id) removedStages.value.push(stage);
   draft.value.stages = draft.value.stages.filter(
     item => item.key !== stage.key
@@ -97,21 +135,41 @@ const save = async () => {
       draft.value.id = (await pipelinesAPI.create(payload)).data.id;
     }
     const api = stagesAPI(draft.value.id);
+    await draft.value.stages.reduce(async (previous, stage) => {
+      await previous;
+      const stagePayload = {
+        pipeline_stage: {
+          name: stage.name.trim(),
+          probability:
+            stage.probability == null || stage.probability === ''
+              ? null
+              : stage.probability,
+        },
+      };
+      if (stage.id) {
+        await api.update(stage.id, stagePayload);
+      } else {
+        stage.id = (await api.create(stagePayload)).data.id;
+      }
+    }, Promise.resolve());
+    await plannedMoves.value.slice().reduce(async (previous, move) => {
+      await previous;
+      const target = draft.value.stages.find(
+        stage => stage.key === move.destination
+      );
+      await dealsAPI.update(move.dealId, {
+        deal: { pipeline_stage_id: target.id },
+      });
+      plannedMoves.value = plannedMoves.value.filter(
+        item => item.dealId !== move.dealId
+      );
+    }, Promise.resolve());
     await removedStages.value.slice().reduce(async (previous, stage) => {
       await previous;
       await api.delete(stage.id);
       removedStages.value = removedStages.value.filter(
         item => item.id !== stage.id
       );
-    }, Promise.resolve());
-    await draft.value.stages.reduce(async (previous, stage) => {
-      await previous;
-      const stagePayload = { pipeline_stage: { name: stage.name.trim() } };
-      if (stage.id) {
-        await api.update(stage.id, stagePayload);
-      } else {
-        stage.id = (await api.create(stagePayload)).data.id;
-      }
     }, Promise.resolve());
     await pipelinesAPI.reorderStages(
       draft.value.id,
@@ -220,7 +278,7 @@ onMounted(load);
     </div>
     <Dialog
       ref="editor"
-      width="3xl"
+      width="5xl"
       overflow-y-auto
       :title="draft.id ? t('CRM.EDIT_PIPELINE') : t('CRM.NEW_PIPELINE')"
       :confirm-button-label="
@@ -253,24 +311,45 @@ onMounted(load);
             item-key="key"
             handle=".stage-handle"
             :disabled="saving"
-            class="flex flex-col gap-3"
+            class="flex gap-3 overflow-x-auto pb-3"
           >
             <template #item="{ element, index }">
               <div
-                class="flex items-center gap-2 p-3 border border-n-weak rounded-lg bg-n-background"
+                class="flex flex-col flex-shrink-0 w-64 gap-3 p-4 border border-n-weak rounded-lg bg-n-background"
               >
                 <Button
                   type="button"
                   variant="ghost"
                   color="slate"
                   icon="i-lucide-grip-vertical"
-                  class="stage-handle shrink-0 cursor-grab"
+                  class="stage-handle shrink-0 cursor-grab self-start"
                   :aria-label="t('CRM.REORDER_STAGE')"
                 />
                 <Input
                   v-model="element.name"
                   class="flex-1 min-w-0"
                   :label="t('CRM.STAGE_NUMBER', { number: index + 1 })"
+                />
+                <Input
+                  v-model="element.probability"
+                  type="number"
+                  min="0"
+                  max="100"
+                  :label="t('CRM.PROBABILITY')"
+                  :placeholder="t('CRM.PROBABILITY_OPTIONAL')"
+                  :message="
+                    validProbability(element.probability)
+                      ? ''
+                      : t('CRM.PROBABILITY_INVALID')
+                  "
+                  :message-type="
+                    validProbability(element.probability) ? 'info' : 'error'
+                  "
+                  @input="
+                    event => {
+                      if (event.target.value === '') element.probability = null;
+                    }
+                  "
                 />
                 <Button
                   type="button"
@@ -306,7 +385,7 @@ onMounted(load);
           ? t('CRM.OCCUPIED_STAGE', { count: stageCounts[pendingRemoval.id] })
           : t('CRM.DELETE_STAGE_CONFIRM')
       "
-      :show-confirm-button="!stageCounts[pendingRemoval?.id]"
+      :disable-confirm-button="Boolean(occupied && !destination)"
       :confirm-button-label="t('CRM.DELETE_STAGE')"
       :cancel-button-label="t('CRM.CANCEL')"
       @confirm="confirmRemoval"
@@ -315,8 +394,14 @@ onMounted(load);
         v-if="stageCounts[pendingRemoval?.id]"
         class="mb-0 text-sm text-n-slate-11"
       >
-        {{ t('CRM.MOVE_DEALS_FIRST') }}
+        {{ t('CRM.MOVE_DEALS_ON_SAVE') }}
       </p>
+      <ComboBox
+        v-if="occupied"
+        v-model="destination"
+        :options="destinationOptions"
+        :placeholder="t('CRM.MOVE_DESTINATION')"
+      />
     </Dialog>
   </main>
 </template>

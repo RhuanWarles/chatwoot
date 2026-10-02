@@ -3,6 +3,8 @@ class Api::V1::Accounts::Crm::PipelineStagesController < Api::V1::Accounts::Base
   before_action :authorize_management
   before_action :fetch_stage, only: [:update, :destroy]
 
+  before_action :validate_probability, only: [:create, :update]
+
   def create
     @stage = @pipeline.stages.create!(stage_params.merge(account: Current.account, position: next_position))
     render json: @stage, status: :created
@@ -23,8 +25,14 @@ class Api::V1::Accounts::Crm::PipelineStagesController < Api::V1::Accounts::Base
   end
 
   def reorder
-    params.require(:stage_ids).each_with_index do |stage_id, index|
-      @pipeline.stages.find(stage_id).update!(position: index)
+    stage_ids = params.require(:stage_ids)
+    unless stage_ids.is_a?(Array) && stage_ids.all? { |id| id.is_a?(Integer) } && stage_ids.sort == @pipeline.stages.ids.sort
+      render json: { error: 'Stage IDs must include every stage exactly once' }, status: :unprocessable_entity
+      return
+    end
+
+    @pipeline.transaction do
+      stage_ids.each_with_index { |stage_id, index| @pipeline.stages.find(stage_id).update!(position: index) }
     end
     render json: @pipeline.stages
   end
@@ -44,7 +52,14 @@ class Api::V1::Accounts::Crm::PipelineStagesController < Api::V1::Accounts::Base
   end
 
   def stage_params
-    params.require(:pipeline_stage).permit(:name, :position, :color)
+    params.require(:pipeline_stage).permit(:name, :position, :color, :probability)
+  end
+
+  def validate_probability
+    probability = params.require(:pipeline_stage)[:probability]
+    return if probability.nil? || (probability.is_a?(Integer) && probability.between?(0, 100))
+
+    render json: { error: 'Probability must be an integer between 0 and 100' }, status: :unprocessable_entity
   end
 
   def next_position

@@ -47,6 +47,12 @@
     "REORDER_STAGE": "Reorder stage",
     "STAGE_NUMBER": "Stage {number}",
     "LOAD_ERROR": "Unable to load pipelines. Please try again.",
-    "SAVE_ERROR": "Unable to save changes. Check whether removed stages still contain deals and try again."
+    "SAVE_ERROR": "Unable to save changes. Check whether removed stages still contain deals and try again.",
+    "PROBABILITY": "Probability (%)",
+    "PROBABILITY_OPTIONAL": "Optional, from 0 to 100",
+    "MOVE_DESTINATION": "Select destination stage",
+    "MOVE_DEALS_ON_SAVE": "When you save, deals will be moved to the selected stage before this stage is deleted.",
+    "MOVE_DESTINATION_REMOVED": "This stage is the destination for a pending deal move. Save those changes before deleting it.",
+    "PROBABILITY_INVALID": "Enter a whole percentage from 0 to 100."
   }
 }
