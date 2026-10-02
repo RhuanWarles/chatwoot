@@ -7,6 +7,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
+import { brlFormatter } from '../components/currencyHelpers';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
 
@@ -172,10 +173,29 @@ onMounted(load);
               class="p-3 rounded-lg bg-n-background shadow-sm cursor-grab"
               @click="selectedDeal = { ...element }"
             >
-              <p class="font-medium text-n-slate-12">{{ element.name }}</p>
+              <div class="flex items-start justify-between gap-2">
+                <p class="min-w-0 mb-0 font-medium text-n-slate-12 break-words">
+                  {{ element.name }}
+                </p>
+                <span
+                  v-if="element.status === 'won'"
+                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-1 text-label-small bg-n-teal-3 text-n-teal-11"
+                >
+                  {{ t('CRM.STATUS_WON') }}
+                </span>
+                <span
+                  v-else-if="element.status === 'lost'"
+                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-1 text-label-small bg-n-ruby-3 text-n-ruby-11"
+                >
+                  {{ t('CRM.STATUS_LOST') }}
+                </span>
+              </div>
               <p class="text-xs text-n-slate-11">{{ element.contact?.name }}</p>
-              <p v-if="element.value" class="mt-2 text-sm text-n-slate-12">
-                {{ element.value }}
+              <p
+                v-if="element.value != null && element.value !== ''"
+                class="mt-2 text-sm text-n-slate-12"
+              >
+                {{ brlFormatter.format(Number(element.value)) }}
               </p>
               <p v-if="element.owner" class="mt-1 text-xs text-n-slate-10">
                 {{ element.owner.name }}
@@ -219,15 +239,21 @@ onMounted(load);
           />
         </div>
         <CrmCurrencyInput ref="editValueInput" v-model="selectedDeal.value" />
-        <ComboBox
-          v-model="selectedDeal.status"
-          :options="[
-            { value: 'open', label: t('CRM.STATUS_OPEN') },
-            { value: 'won', label: t('CRM.STATUS_WON') },
-            { value: 'lost', label: t('CRM.STATUS_LOST') },
-          ]"
-          :placeholder="t('CRM.STATUS')"
-        /><Input
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.STATUS')
+          }}</span>
+          <ComboBox
+            v-model="selectedDeal.status"
+            :options="[
+              { value: 'open', label: t('CRM.STATUS_OPEN') },
+              { value: 'won', label: t('CRM.STATUS_WON') },
+              { value: 'lost', label: t('CRM.STATUS_LOST') },
+            ]"
+            :placeholder="t('CRM.STATUS')"
+          />
+        </div>
+        <Input
           v-model="selectedDeal.description"
           :label="t('CRM.DESCRIPTION')"
         />

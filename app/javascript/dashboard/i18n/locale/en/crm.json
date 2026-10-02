@@ -25,6 +25,7 @@
     "CREATE_DEAL": "Create deal",
     "SAVE_CHANGES": "Save changes",
     "CANCEL": "Cancel",
-    "VALUE_INVALID": "Enter a valid amount, such as 2.500,00."
+    "VALUE_INVALID": "Enter a valid amount, such as 2.500,00.",
+    "DEFAULT_STAGES": "New Lead,Qualification,Proposal,Negotiation,Closed"
   }
 }

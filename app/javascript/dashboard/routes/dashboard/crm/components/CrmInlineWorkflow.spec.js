@@ -94,7 +94,7 @@ describe('CRM inline contact workflow', () => {
     const form = wrapper.find('form');
     expect(form.text()).toContain('Etapa');
     expect(form.text()).toContain('Contato');
-    expect(form.text()).toContain('Salvar altera??es');
+    expect(form.text()).toContain('Salvar alterações');
     const input = form.find('input[inputmode="decimal"]');
     expect(input.element.value.replace(/\s/g, ' ')).toBe('R$ 2.500,00');
     await input.trigger('focus');
@@ -193,7 +193,7 @@ describe('CRM inline contact workflow', () => {
     await flushPromises();
     expect(dialog.hasAttribute('open')).toBe(true);
     expect(dialog.querySelector('input').value).toBe('Jorge');
-    expect(dialog.textContent).toContain('N?o foi poss?vel criar o contato');
+    expect(dialog.textContent).toContain('Não foi possível criar o contato');
     expect(wrapper.emitted('created')).toBeUndefined();
     wrapper.unmount();
   });
@@ -215,7 +215,7 @@ describe('CRM inline contact workflow', () => {
       .querySelector('form')
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await flushPromises();
-    expect(dialog.textContent).toContain('J? existe um contato');
+    expect(dialog.textContent).toContain('Já existe um contato');
     const select = [...dialog.querySelectorAll('button')].find(button =>
       button.textContent.includes('Selecionar contato existente')
     );
@@ -270,7 +270,7 @@ describe('CRM inline contact workflow', () => {
     await flushPromises();
     await wrapper
       .findAll('button')
-      .find(button => button.text() === 'Novo neg?cio')
+      .find(button => button.text() === 'Novo negócio')
       .trigger('click');
     await flushPromises();
     const form = wrapper.find('form');
@@ -301,7 +301,7 @@ describe('CRM inline contact workflow', () => {
     expect(dealsAPI.create).not.toHaveBeenCalled();
     expect(form.text()).toContain('Etapa');
     expect(form.text()).toContain('Contato');
-    expect(form.text()).toContain('Criar neg?cio');
+    expect(form.text()).toContain('Criar negócio');
     await form.trigger('submit');
     await flushPromises();
     expect(dealsAPI.create).toHaveBeenCalledWith({

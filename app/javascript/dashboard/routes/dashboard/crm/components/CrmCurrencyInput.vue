@@ -2,16 +2,13 @@
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Input from 'dashboard/components-next/input/Input.vue';
+import { brlFormatter as formatter } from './currencyHelpers';
 
 const props = defineProps({
   modelValue: { type: [Number, String], default: '' },
 });
 const emit = defineEmits(['update:modelValue']);
 const { t } = useI18n();
-const formatter = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 const display = ref('');
 const focused = ref(false);
 const error = ref(false);
