@@ -1,6 +1,9 @@
-import { mount, flushPromises } from '@vue/test-utils';
+import { config, mount, flushPromises } from '@vue/test-utils';
 import CrmContactPicker from './CrmContactPicker.vue';
 import contactsAPI from 'dashboard/api/contacts';
+import { formatContactPhone } from './contactHelpers';
+
+config.global.stubs.CrmInlineContactDialog = true;
 
 vi.mock('dashboard/api/contacts', () => ({
   default: { get: vi.fn(), search: vi.fn() },
@@ -37,9 +40,13 @@ describe('CrmContactPicker', () => {
     await wrapper.find('button').trigger('click');
     await flushPromises();
     const rows = wrapper.findAll('[role="option"]');
-    expect(rows[0].text()).toContain(CONTACTS[0].phone_number);
+    expect(rows[0].text()).toContain(
+      formatContactPhone(CONTACTS[0].phone_number)
+    );
     expect(rows[0].text()).toContain(CONTACTS[0].email);
-    expect(rows[1].text()).toContain(CONTACTS[1].phone_number);
+    expect(rows[1].text()).toContain(
+      formatContactPhone(CONTACTS[1].phone_number)
+    );
     expect(rows[1].text()).toContain(CONTACTS[1].email);
     expect(rows[0].find('img').attributes('src')).toBe('/first.png');
     expect(rows[1].find('img').attributes('src')).toBe('/second.png');
@@ -60,7 +67,7 @@ describe('CrmContactPicker', () => {
   });
 
   it.each([
-    [CONTACTS[0], CONTACTS[0].phone_number],
+    [CONTACTS[0], formatContactPhone(CONTACTS[0].phone_number)],
     [CONTACTS[2], CONTACTS[2].email],
     [CONTACTS[4], null],
   ])(
@@ -103,7 +110,9 @@ describe('CrmContactPicker', () => {
     await flushPromises();
     await wrapper.findAll('[role="option"]')[1].trigger('click');
     expect(wrapper.emitted('update:modelValue')[0]).toEqual([2]);
-    expect(wrapper.find('button').text()).toContain(CONTACTS[1].phone_number);
+    expect(wrapper.find('button').text()).toContain(
+      formatContactPhone(CONTACTS[1].phone_number)
+    );
     wrapper.unmount();
   });
 });

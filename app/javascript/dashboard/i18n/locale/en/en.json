@@ -91,6 +91,20 @@
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Search by name, phone or email",
     "SEARCH_ERROR": "Could not load contacts. Please try again.",
-    "UNNAMED_CONTACT": "Unnamed contact"
+    "UNNAMED_CONTACT": "Unnamed contact",
+    "NEW_CONTACT": "New contact",
+    "NAME": "Name",
+    "PHONE": "Phone",
+    "EMAIL": "Email",
+    "NO_CONTACTS": "No contacts found",
+    "CREATE_NAMED": "Create contact \"{name}\"",
+    "CREATE_SELECT": "Create and select",
+    "CREATING": "Creating contact?",
+    "SEARCHING": "Searching contacts?",
+    "CREATE_ERROR": "Could not create the contact. Please try again.",
+    "DUPLICATE": "A contact with this phone or email already exists.",
+    "SELECT_EXISTING": "Select existing contact",
+    "NAME_REQUIRED": "Enter a name.",
+    "EMAIL_INVALID": "Enter a valid email address."
   }
 }

@@ -12,6 +12,7 @@ import chatlist from './chatlist.json';
 import companies from './companies.json';
 import components from './components.json';
 import contact from './contact.json';
+import crm from './crm.json';
 import contactFilters from './contactFilters.json';
 import contentTemplates from './contentTemplates.json';
 import conversation from './conversation.json';
@@ -61,6 +62,7 @@ export default {
   ...companies,
   ...components,
   ...contact,
+  ...crm,
   ...contactFilters,
   ...contentTemplates,
   ...conversation,

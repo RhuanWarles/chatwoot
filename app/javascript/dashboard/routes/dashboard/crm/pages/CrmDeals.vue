@@ -7,6 +7,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
+import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
 
 const { t } = useI18n();
@@ -17,6 +18,8 @@ const selectedPipeline = ref('');
 const showForm = ref(false);
 const selectedDeal = ref(null);
 const saving = ref(false);
+const newValueInput = ref(null);
+const editValueInput = ref(null);
 const form = ref({
   name: '',
   contact_id: '',
@@ -60,10 +63,15 @@ const openForm = () => {
 };
 
 const createDeal = async () => {
+  if (saving.value || newValueInput.value?.isInvalid) return;
   saving.value = true;
   try {
     await dealsAPI.create({
-      deal: { ...form.value, pipeline_id: selectedPipeline.value },
+      deal: {
+        ...form.value,
+        value: form.value.value === '' ? null : form.value.value,
+        pipeline_id: selectedPipeline.value,
+      },
     });
     showForm.value = false;
     await load();
@@ -73,12 +81,15 @@ const createDeal = async () => {
 };
 
 const saveDeal = async () => {
+  if (editValueInput.value?.isInvalid) return;
   await dealsAPI.update(selectedDeal.value.id, {
     deal: {
       name: selectedDeal.value.name,
       status: selectedDeal.value.status,
       description: selectedDeal.value.description,
       contact_id: selectedDeal.value.contact_id,
+      pipeline_stage_id: selectedDeal.value.pipeline_stage_id,
+      value: selectedDeal.value.value === '' ? null : selectedDeal.value.value,
     },
   });
   selectedDeal.value = null;
@@ -185,13 +196,30 @@ onMounted(load);
         <h2 class="text-lg font-semibold text-n-slate-12">
           {{ t('CRM.DEAL_DETAILS') }}
         </h2>
-        <Input
-          v-model="selectedDeal.name"
-          :label="t('CRM.NAME')"
-        /><CrmContactPicker
-          v-model="selectedDeal.contact_id"
-          :contact="selectedDeal.contact"
-        /><ComboBox
+        <Input v-model="selectedDeal.name" :label="t('CRM.NAME')" />
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.STAGE')
+          }}</span>
+          <ComboBox
+            v-model="selectedDeal.pipeline_stage_id"
+            :options="
+              stages.map(stage => ({ value: stage.id, label: stage.name }))
+            "
+            :placeholder="t('CRM.STAGE')"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.CONTACT')
+          }}</span>
+          <CrmContactPicker
+            v-model="selectedDeal.contact_id"
+            :contact="selectedDeal.contact"
+          />
+        </div>
+        <CrmCurrencyInput ref="editValueInput" v-model="selectedDeal.value" />
+        <ComboBox
           v-model="selectedDeal.status"
           :options="[
             { value: 'open', label: t('CRM.STATUS_OPEN') },
@@ -207,9 +235,13 @@ onMounted(load);
           <Button
             type="button"
             variant="faded"
-            :label="t('DIALOG.BUTTONS.CANCEL')"
+            :label="t('CRM.CANCEL')"
             @click="selectedDeal = null"
-          /><Button type="submit" :label="t('DIALOG.BUTTONS.CONFIRM')" />
+          /><Button
+            type="submit"
+            :label="t('CRM.SAVE_CHANGES')"
+            :disabled="editValueInput?.isInvalid"
+          />
         </div>
       </form>
     </div>
@@ -224,26 +256,37 @@ onMounted(load);
         <h2 class="text-lg font-semibold text-n-slate-12">
           {{ t('CRM.NEW_DEAL') }}
         </h2>
-        <Input v-model="form.name" :label="t('CRM.NAME')" required /><ComboBox
-          v-model="form.pipeline_stage_id"
-          :options="
-            stages.map(stage => ({ value: stage.id, label: stage.name }))
-          "
-          :placeholder="t('CRM.STAGE')"
-        /><CrmContactPicker v-model="form.contact_id" /><Input
-          v-model="form.value"
-          type="number"
-          :label="t('CRM.VALUE')"
-        /><Input v-model="form.description" :label="t('CRM.DESCRIPTION')" />
+        <Input v-model="form.name" :label="t('CRM.NAME')" required />
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.STAGE')
+          }}</span>
+          <ComboBox
+            v-model="form.pipeline_stage_id"
+            :options="
+              stages.map(stage => ({ value: stage.id, label: stage.name }))
+            "
+            :placeholder="t('CRM.STAGE')"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.CONTACT')
+          }}</span>
+          <CrmContactPicker v-model="form.contact_id" />
+        </div>
+        <CrmCurrencyInput ref="newValueInput" v-model="form.value" />
+        <Input v-model="form.description" :label="t('CRM.DESCRIPTION')" />
         <div class="flex justify-end gap-2">
           <Button
             type="button"
             variant="faded"
-            :label="t('DIALOG.BUTTONS.CANCEL')"
+            :label="t('CRM.CANCEL')"
             @click="showForm = false"
           /><Button
             type="submit"
-            :label="t('DIALOG.BUTTONS.CONFIRM')"
+            :label="t('CRM.CREATE_DEAL')"
+            :disabled="newValueInput?.isInvalid"
             :is-loading="saving"
           />
         </div>

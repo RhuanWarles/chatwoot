@@ -21,6 +21,10 @@
     "STATUS": "Status",
     "STATUS_OPEN": "Open",
     "STATUS_WON": "Won",
-    "STATUS_LOST": "Lost"
+    "STATUS_LOST": "Lost",
+    "CREATE_DEAL": "Create deal",
+    "SAVE_CHANGES": "Save changes",
+    "CANCEL": "Cancel",
+    "VALUE_INVALID": "Enter a valid amount, such as 2.500,00."
   }
 }

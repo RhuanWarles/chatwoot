@@ -21,6 +21,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   searchPlaceholder: { type: String, default: '' },
   emptyState: { type: String, default: '' },
+  loading: { type: Boolean, default: false },
   message: { type: String, default: '' },
   hasError: { type: Boolean, default: false },
   useApiResults: { type: Boolean, default: false }, // useApiResults prop to determine if search is handled by API
@@ -88,6 +89,11 @@ watch(
     selectedValue.value = newValue;
   }
 );
+defineExpose({
+  close: () => {
+    open.value = false;
+  },
+});
 </script>
 
 <template>
@@ -129,10 +135,14 @@ watch(
         :options="filteredOptions"
         :search-placeholder="searchPlaceholder"
         :empty-state="emptyState"
+        :loading="loading"
         :selected-values="selectedValue"
         @search="emit('search', $event)"
         @select="selectOption"
       >
+        <template v-if="$slots.empty" #empty>
+          <slot name="empty" />
+        </template>
         <template v-if="$slots.option" #option="slotProps">
           <slot name="option" v-bind="slotProps" />
         </template>
