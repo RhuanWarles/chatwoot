@@ -31,12 +31,18 @@ const PIPELINES = [
   {
     id: 1,
     name: 'Commercial',
+    active: true,
     stages: [
       { id: 10, name: 'Lead' },
       { id: 20, name: 'Proposal' },
     ],
   },
-  { id: 2, name: 'Other', stages: [{ id: 30, name: 'Other stage' }] },
+  {
+    id: 2,
+    name: 'Other',
+    active: true,
+    stages: [{ id: 30, name: 'Other stage' }],
+  },
 ];
 const BASE_DEALS = [
   {
@@ -382,5 +388,23 @@ describe('Kanban status filters and stage totals', () => {
         .map(button => button.text())
     ).toEqual(['Ganhos']);
     wrapper.unmount();
+  });
+});
+
+describe('Inactive pipeline selection', () => {
+  it('defaults to an active pipeline and disables creation when viewing an inactive one', async () => {
+    pipelinesAPI.get.mockResolvedValue({
+      data: [{ ...PIPELINES[0], active: false }, PIPELINES[1]],
+    });
+    const wrapper = mount(CrmDeals);
+    await flushPromises();
+    const selector = wrapper.findComponent(ComboBox);
+    expect(selector.props('modelValue')).toBe(2);
+    selector.vm.$emit('update:modelValue', 1);
+    await flushPromises();
+    const button = wrapper
+      .findAll('button')
+      .find(item => item.text() === pt.CRM.NEW_DEAL);
+    expect(button.attributes('disabled')).toBeDefined();
   });
 });

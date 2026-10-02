@@ -31,6 +31,7 @@ const CONTACT = {
 const PIPELINE = {
   id: 1,
   name: 'Pipeline',
+  active: true,
   stages: [{ id: 10, name: 'Novo Lead' }],
 };
 

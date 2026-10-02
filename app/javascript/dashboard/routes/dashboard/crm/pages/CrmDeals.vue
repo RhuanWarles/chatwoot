@@ -73,7 +73,9 @@ const load = async () => {
   const response = await pipelinesAPI.get();
   pipelines.value = response.data;
   if (!selectedPipeline.value && pipelines.value.length)
-    selectedPipeline.value = pipelines.value[0].id;
+    selectedPipeline.value = (
+      pipelines.value.find(item => item.active) || pipelines.value[0]
+    ).id;
   if (selectedPipeline.value) {
     const result = await dealsAPI.get();
     deals.value = result.data.filter(
@@ -142,8 +144,10 @@ onMounted(load);
 </script>
 
 <template>
-  <main class="flex flex-col h-full min-w-0 p-6 overflow-auto bg-n-background">
-    <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+  <main
+    class="flex flex-col h-full min-h-0 min-w-0 p-4 md:p-6 overflow-hidden bg-n-background"
+  >
+    <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div>
         <h1 class="text-xl font-semibold text-n-slate-12">
           {{ t('CRM.DEALS_TITLE') }}
@@ -155,10 +159,11 @@ onMounted(load);
           v-model="selectedPipeline"
           :options="pipelineOptions"
           :placeholder="t('CRM.SELECT_PIPELINE')"
-          class="w-56"
+          class="w-56 max-w-full"
           @update:model-value="load"
         /><Button
           :label="t('CRM.NEW_DEAL')"
+          :disabled="!pipeline?.active"
           icon="i-lucide-plus"
           @click="openForm"
         />
@@ -206,11 +211,11 @@ onMounted(load);
         {{ t('CRM.CREATE_PIPELINE') }}
       </RouterLink>
     </section>
-    <section v-else class="flex gap-4 min-h-0 overflow-x-auto">
+    <section v-else class="flex flex-1 gap-3 min-h-0 overflow-auto pb-2">
       <div
         v-for="stage in boardStages"
         :key="stage.id"
-        class="flex flex-col flex-shrink-0 w-72 rounded-xl bg-n-alpha-2 p-3"
+        class="flex flex-col flex-1 flex-shrink-0 w-72 min-w-[18rem] min-h-full h-fit rounded-xl bg-n-alpha-2 p-3"
       >
         <div class="mb-3">
           <div class="flex items-center justify-between gap-2">
@@ -232,7 +237,7 @@ onMounted(load);
         >
           <template #item="{ element }">
             <article
-              class="p-3 rounded-lg bg-n-background shadow-sm cursor-grab"
+              class="p-3 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
               @click="selectedDeal = { ...element }"
             >
               <div class="flex items-start justify-between gap-2">
@@ -252,10 +257,12 @@ onMounted(load);
                   {{ t('CRM.STATUS_LOST') }}
                 </span>
               </div>
-              <p class="text-xs text-n-slate-11">{{ element.contact?.name }}</p>
+              <p class="mt-1 mb-0 text-xs text-n-slate-11 break-words">
+                {{ element.contact?.name }}
+              </p>
               <p
                 v-if="element.value != null && element.value !== ''"
-                class="mt-2 text-sm text-n-slate-12"
+                class="mt-2 mb-0 text-sm font-medium text-n-slate-12"
               >
                 {{ brlFormatter.format(Number(element.value)) }}
               </p>
