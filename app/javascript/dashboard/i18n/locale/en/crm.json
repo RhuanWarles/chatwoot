@@ -1,0 +1,26 @@
+{
+  "CRM": {
+    "MENU": "CRM",
+    "DEALS_TITLE": "Deals",
+    "DEALS_SUBTITLE": "Manage your sales pipeline",
+    "PIPELINES_TITLE": "Pipelines",
+    "SELECT_PIPELINE": "Select pipeline",
+    "NEW_DEAL": "New deal",
+    "DEAL_DETAILS": "Deal details",
+    "NO_PIPELINE": "You do not have a pipeline yet.",
+    "CREATE_PIPELINE": "Create first pipeline",
+    "PIPELINE_NAME": "Pipeline name",
+    "STAGES": "Stages (comma separated)",
+    "DEACTIVATE": "Deactivate",
+    "ACTIVATE": "Activate",
+    "NAME": "Deal name",
+    "STAGE": "Stage",
+    "CONTACT": "Contact",
+    "VALUE": "Value",
+    "DESCRIPTION": "Description",
+    "STATUS": "Status",
+    "STATUS_OPEN": "Open",
+    "STATUS_WON": "Won",
+    "STATUS_LOST": "Lost"
+  }
+}

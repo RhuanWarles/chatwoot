@@ -76,6 +76,9 @@ class Account < ApplicationRecord
   has_many :automation_rule_pending_executions, dependent: :delete_all
   has_many :macros, dependent: :destroy_async
   has_many :campaigns, dependent: :destroy_async
+  has_many :crm_pipelines, class_name: 'Crm::Pipeline', dependent: :destroy_async
+  has_many :crm_pipeline_stages, class_name: 'Crm::PipelineStage', dependent: :destroy_async
+  has_many :crm_deals, class_name: 'Crm::Deal', dependent: :destroy_async
   has_many :canned_responses, dependent: :destroy_async
   has_many :categories, dependent: :destroy_async, class_name: '::Category'
   has_many :contacts, dependent: :destroy_async

@@ -357,6 +357,15 @@ Rails.application.routes.draw do
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
+          namespace :crm do
+            resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
+              resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
+                collection { patch :reorder }
+              end
+            end
+            resources :deals, only: [:index, :show, :create, :update, :destroy]
+          end
+
           resources :notifications, only: [:index, :update, :destroy] do
             collection do
               post :read_all

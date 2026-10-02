@@ -669,6 +669,15 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'CRM',
+      label: t('CRM.MENU'),
+      icon: 'i-lucide-kanban-square',
+      children: [
+        { name: 'Deals', label: t('CRM.DEALS_TITLE'), to: accountScopedRoute('crm_deals'), activeOn: ['crm_deals'] },
+        { name: 'Pipelines', label: t('CRM.PIPELINES_TITLE'), to: accountScopedRoute('crm_pipelines'), activeOn: ['crm_pipelines'] },
+      ],
+    },
+    {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),
       icon: 'i-lucide-building-2',
