@@ -145,7 +145,7 @@ onMounted(load);
 
 <template>
   <main
-    class="flex flex-col h-full min-h-0 min-w-0 p-4 md:p-6 overflow-hidden bg-n-background"
+    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-4 md:p-6 overflow-hidden bg-n-background"
   >
     <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div>

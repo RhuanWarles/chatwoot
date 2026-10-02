@@ -144,7 +144,7 @@ onMounted(load);
 
 <template>
   <main
-    class="flex flex-col h-full min-w-0 p-4 md:p-6 overflow-auto bg-n-background"
+    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-4 md:p-6 overflow-auto bg-n-background"
   >
     <header class="flex flex-wrap items-center justify-between gap-3 mb-5">
       <h1 class="text-xl font-semibold text-n-slate-12">
@@ -167,7 +167,7 @@ onMounted(load);
       <p class="text-sm text-n-slate-11">{{ t('CRM.FIRST_PIPELINE_HELP') }}</p>
       <Button :label="t('CRM.CREATE_PIPELINE')" @click="openEditor()" />
     </div>
-    <div class="grid gap-4 xl:grid-cols-2">
+    <div class="grid gap-4">
       <article
         v-for="pipeline in pipelines"
         :key="pipeline.id"
