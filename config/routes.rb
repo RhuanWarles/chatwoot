@@ -363,7 +363,9 @@ Rails.application.routes.draw do
                 collection { patch :reorder }
               end
             end
-            resources :deals, only: [:index, :show, :create, :update, :destroy]
+            resources :deals, only: [:index, :show, :create, :update, :destroy] do
+              resources :events, controller: 'deal_events', only: [:index, :create]
+            end
           end
 
           resources :notifications, only: [:index, :update, :destroy] do

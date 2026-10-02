@@ -50,13 +50,15 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
   end
 
   def deal_json(deal)
-    deal.as_json(
+    json = deal.as_json(
       include: {
-        contact: { only: [:id, :name, :email, :phone_number] },
+        contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },
         pipeline: { only: [:id, :name] },
         pipeline_stage: { only: [:id, :name, :position, :color] }
       }
     )
+    json['contact']['thumbnail'] = deal.contact.avatar_url if deal.contact
+    json
   end
 end

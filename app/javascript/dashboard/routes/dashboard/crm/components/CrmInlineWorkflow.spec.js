@@ -18,6 +18,7 @@ vi.mock('dashboard/api/crm', () => ({
 }));
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { accountId: '1' } }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 const createContact = vi.fn();
@@ -91,7 +92,7 @@ describe('CRM inline contact workflow', () => {
     });
     const wrapper = mount(CrmDeals);
     await flushPromises();
-    await wrapper.find('article').trigger('click');
+    await wrapper.find('article button[aria-label]').trigger('click');
     const form = wrapper.find('form');
     expect(form.text()).toContain('Etapa');
     expect(form.text()).toContain('Contato');

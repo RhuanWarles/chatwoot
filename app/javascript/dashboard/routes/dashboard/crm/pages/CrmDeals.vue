@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -13,6 +13,7 @@ import CrmContactPicker from '../components/CrmContactPicker.vue';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
@@ -238,12 +239,29 @@ onMounted(load);
           <template #item="{ element }">
             <article
               class="p-3 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
-              @click="selectedDeal = { ...element }"
+              @click="
+                router.push({
+                  name: 'crm_deal_details',
+                  params: {
+                    accountId: route.params.accountId,
+                    dealId: element.id,
+                  },
+                })
+              "
             >
               <div class="flex items-start justify-between gap-2">
                 <p class="min-w-0 mb-0 font-medium text-n-slate-12 break-words">
                   {{ element.name }}
                 </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  color="slate"
+                  size="xs"
+                  icon="i-lucide-pencil"
+                  :aria-label="t('CRM.QUICK_EDIT')"
+                  @click.stop="selectedDeal = { ...element }"
+                />
                 <span
                   v-if="element.status === 'won'"
                   class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-1 text-label-small bg-n-teal-3 text-n-teal-11"

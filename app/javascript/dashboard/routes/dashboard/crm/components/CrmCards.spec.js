@@ -11,6 +11,7 @@ vi.mock('dashboard/api/crm', () => ({
 }));
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { accountId: '1' } }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 config.global.plugins = [
@@ -87,7 +88,7 @@ describe('CRM cards and translations', () => {
   it('renders a visible Status label above the edit select', async () => {
     const wrapper = mount(CrmDeals);
     await flushPromises();
-    await wrapper.find('article').trigger('click');
+    await wrapper.find('article button[aria-label]').trigger('click');
     const labels = wrapper.find('form').findAll('span.text-sm.font-medium');
     expect(labels.some(label => label.text() === 'Status')).toBe(true);
     wrapper.unmount();

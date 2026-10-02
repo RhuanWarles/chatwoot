@@ -12,6 +12,7 @@ vi.mock('dashboard/api/crm', () => ({
 }));
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { accountId: '1' } }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 config.global.plugins = [
   createI18n({ legacy: false, locale: 'pt_BR', messages: { pt_BR: pt } }),
@@ -320,7 +321,7 @@ describe('Kanban status filters and stage totals', () => {
   it('refreshes totals after an amount edit without a page reload', async () => {
     const wrapper = mount(CrmDeals);
     await flushPromises();
-    await wrapper.find('article').trigger('click');
+    await wrapper.find('article button[aria-label]').trigger('click');
     const input = wrapper.find('form input[inputmode="decimal"]');
     await input.trigger('focus');
     await input.setValue('6000,25');
@@ -336,7 +337,7 @@ describe('Kanban status filters and stage totals', () => {
     const wrapper = mount(CrmDeals);
     await flushPromises();
     await wrapper.find('[role="group"]').findAll('button')[1].trigger('click');
-    await wrapper.find('article').trigger('click');
+    await wrapper.find('article button[aria-label]').trigger('click');
     wrapper
       .findAllComponents(ComboBox)
       .at(-1)
