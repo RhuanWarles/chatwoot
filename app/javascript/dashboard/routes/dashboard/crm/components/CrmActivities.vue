@@ -24,6 +24,11 @@ const error = ref('');
 const saving = ref(false);
 const editor = ref(null);
 const editingId = ref(null);
+const cancellationDialog = ref(null);
+const cancellingActivity = ref(null);
+const cancellationReason = ref('');
+const cancellationError = ref('');
+const cancelling = ref(false);
 const linkedGoogle = ref(false);
 const draft = ref({});
 const { run, isPending: loading } = useAbortableRequest();
@@ -44,13 +49,13 @@ const ownerOptions = computed(() => [
 const pending = computed(() =>
   activities.value.filter(
     activity =>
-      activity.status === 'pending' ||
+      ['pending', 'cancelled'].includes(activity.status) ||
       ['pending', 'failed'].includes(activity.sync_status)
   )
 );
-const date = value =>
+const date = (value, cancellation = false) =>
   new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
-    dateStyle: 'medium',
+    dateStyle: cancellation ? 'short' : 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
 const load = async () => {
@@ -149,6 +154,35 @@ const save = () => {
       : {}),
   });
 };
+const openCancellation = activity => {
+  cancellingActivity.value = activity;
+  cancellationReason.value = '';
+  cancellationError.value = '';
+  cancellationDialog.value.open();
+};
+const cancelActivity = async () => {
+  if (cancelling.value || saving.value || !cancellationReason.value.trim())
+    return;
+  cancelling.value = true;
+  cancellationError.value = '';
+  try {
+    await dealsAPI
+      .activities(props.deal.id)
+      .update(cancellingActivity.value.id, {
+        activity: {
+          status: 'cancelled',
+          cancellation_reason: cancellationReason.value.trim(),
+        },
+      });
+    cancellationDialog.value.close();
+    await load();
+    emit('changed');
+  } catch {
+    cancellationError.value = t('CRM.ACTIVITY_CANCEL_ERROR');
+  } finally {
+    cancelling.value = false;
+  }
+};
 const retry = async activity => {
   saving.value = true;
   error.value = '';
@@ -181,12 +215,12 @@ watch(() => props.deal.id, load, { immediate: true });
   <section class="flex flex-col gap-3 p-4 border border-n-weak rounded-xl">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="mb-0 text-base font-semibold text-n-slate-12">
-        {{ t('CRM.UPCOMING_ACTIVITIES') }}
+        {{ t('CRM.ACTIVITIES') }}
       </h2>
       <Button
         :label="t('CRM.NEW_ACTIVITY')"
         icon="i-lucide-plus"
-        :disabled="saving"
+        :disabled="saving || cancelling"
         @click="open()"
       />
     </div>
@@ -210,7 +244,10 @@ watch(() => props.deal.id, load, { immediate: true });
           {{ date(activity.due_at) }}
         </p>
         <span
-          v-if="new Date(activity.due_at).getTime() < Date.now()"
+          v-if="
+            activity.status === 'pending' &&
+            new Date(activity.due_at).getTime() < Date.now()
+          "
           class="text-xs text-n-ruby-11"
           >{{ t('CRM.ACTIVITY_OVERDUE') }}</span
         >
@@ -224,6 +261,39 @@ watch(() => props.deal.id, load, { immediate: true });
         >
           {{ activity.description }}
         </p>
+        <dl
+          v-if="activity.status === 'cancelled'"
+          class="mt-3 mb-0 flex flex-col gap-1 text-sm"
+        >
+          <dt class="text-n-slate-11">{{ t('CRM.STATUS') }}</dt>
+          <dd class="m-0 text-n-slate-12">
+            {{ t('CRM.ACTIVITY_CANCELLED_STATUS') }}
+          </dd>
+          <template v-if="activity.cancellation_reason">
+            <dt class="mt-2 text-n-slate-11">
+              {{ t('CRM.ACTIVITY_CANCELLATION_REASON') }}
+            </dt>
+            <dd class="m-0 whitespace-pre-wrap break-words text-n-slate-12">
+              {{ activity.cancellation_reason }}
+            </dd>
+          </template>
+          <template v-if="activity.cancelled_by">
+            <dt class="mt-2 text-n-slate-11">
+              {{ t('CRM.ACTIVITY_CANCELLED_BY') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ activity.cancelled_by.name }}
+            </dd>
+          </template>
+          <template v-if="activity.cancelled_at">
+            <dt class="mt-2 text-n-slate-11">
+              {{ t('CRM.ACTIVITY_CANCELLED_AT') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ date(activity.cancelled_at, true) }}
+            </dd>
+          </template>
+        </dl>
       </div>
       <div class="flex flex-col gap-2">
         <p
@@ -269,7 +339,7 @@ watch(() => props.deal.id, load, { immediate: true });
           :label="t('CRM.RETRY')"
           size="sm"
           variant="faded"
-          :disabled="saving"
+          :disabled="saving || cancelling"
           @click="retry(activity)"
         />
         <p
@@ -282,14 +352,14 @@ watch(() => props.deal.id, load, { immediate: true });
           <Button
             :label="t('CRM.ACTIVITY_COMPLETE')"
             size="sm"
-            :disabled="saving || activity.can_sync === false"
+            :disabled="saving || cancelling || activity.can_sync === false"
             @click="mutate(activity.id, { status: 'completed' })"
           />
           <Button
             :label="t('CRM.EDIT_ACTIVITY')"
             size="sm"
             variant="faded"
-            :disabled="saving || activity.can_sync === false"
+            :disabled="saving || cancelling || activity.can_sync === false"
             @click="open(activity)"
           />
           <Button
@@ -297,22 +367,81 @@ watch(() => props.deal.id, load, { immediate: true });
             size="sm"
             color="ruby"
             variant="ghost"
-            :disabled="saving || activity.can_sync === false"
-            @click="mutate(activity.id, { status: 'cancelled' })"
+            :disabled="saving || cancelling || activity.can_sync === false"
+            @click="openCancellation(activity)"
           />
         </div>
       </div>
     </article>
+    <Dialog
+      ref="cancellationDialog"
+      :title="t('CRM.ACTIVITY_CANCEL')"
+      :show-confirm-button="false"
+      :show-cancel-button="false"
+      @confirm="cancelActivity"
+    >
+      <div class="flex flex-col gap-2">
+        <label
+          for="crm-activity-cancellation-reason"
+          class="text-sm text-n-slate-12"
+        >
+          {{ t('CRM.ACTIVITY_CANCELLATION_REASON_REQUIRED') }}
+        </label>
+        <textarea
+          id="crm-activity-cancellation-reason"
+          v-model="cancellationReason"
+          required
+          rows="4"
+          :disabled="cancelling"
+          class="w-full p-3 rounded-lg border border-n-weak bg-n-background text-sm text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
+        />
+        <p
+          v-if="cancellationError"
+          role="alert"
+          class="mb-0 text-sm text-n-ruby-11"
+        >
+          {{ cancellationError }}
+        </p>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <Button
+            :label="t('CRM.CANCEL')"
+            variant="ghost"
+            :disabled="cancelling"
+            type="button"
+            @click="cancellationDialog.close()"
+          />
+          <Button
+            :label="
+              t(
+                cancelling
+                  ? 'CRM.ACTIVITY_CANCELLING'
+                  : 'CRM.ACTIVITY_CONFIRM_CANCELLATION'
+              )
+            "
+            type="button"
+            color="ruby"
+            :is-loading="cancelling"
+            :disabled="cancelling || saving || !cancellationReason.trim()"
+            @click="cancelActivity"
+          />
+        </div>
+      </template>
+    </Dialog>
     <Dialog
       ref="editor"
       :title="t(editingId ? 'CRM.EDIT_ACTIVITY' : 'CRM.NEW_ACTIVITY')"
       width="2xl"
       :show-confirm-button="false"
       :show-cancel-button="false"
-      :overflow-y-auto="true"
+      overflow-y-auto
     >
       <form class="flex flex-col gap-4" @submit.prevent="save">
-        <fieldset :disabled="saving" class="flex flex-col gap-4 min-w-0">
+        <fieldset
+          :disabled="saving || cancelling"
+          class="flex flex-col gap-4 min-w-0"
+        >
           <div class="flex flex-col gap-2 text-sm text-n-slate-12">
             <span>{{ t('CRM.ACTIVITY_TYPE') }}</span
             ><ComboBox
@@ -441,7 +570,7 @@ watch(() => props.deal.id, load, { immediate: true });
           <Button
             :label="t('CRM.CANCEL')"
             variant="ghost"
-            :disabled="saving"
+            :disabled="saving || cancelling"
             @click="editor.close()"
           />
           <Button

@@ -72,9 +72,9 @@ const money = value =>
   value == null || value === ''
     ? t('CRM.NOT_SET')
     : brlFormatter.format(Number(value));
-const date = value =>
+const date = (value, cancellation = false) =>
   new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
-    dateStyle: 'medium',
+    dateStyle: cancellation ? 'short' : 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
 const eventTitle = event => t(`CRM.EVENT_${event.event_type.toUpperCase()}`);
@@ -503,11 +503,25 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                 <time
                   :datetime="event.created_at"
                   class="text-xs text-n-slate-11"
-                  >{{ date(event.created_at) }}</time
+                  >{{
+                    date(
+                      event.metadata.cancelled_at || event.created_at,
+                      event.event_type === 'activity_cancelled'
+                    )
+                  }}</time
                 >
               </div>
               <p class="mt-1 mb-0 text-xs text-n-slate-11">
-                {{ event.actor?.name || t('CRM.SYSTEM_ACTOR') }}
+                {{
+                  event.event_type === 'activity_cancelled'
+                    ? t('CRM.ACTIVITY_CANCELLED_BY_VALUE', {
+                        name:
+                          event.metadata.cancelled_by_name ||
+                          event.actor?.name ||
+                          t('CRM.SYSTEM_ACTOR'),
+                      })
+                    : event.actor?.name || t('CRM.SYSTEM_ACTOR')
+                }}
               </p>
               <p
                 v-if="event.event_type === 'note_created'"
@@ -548,6 +562,16 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                 class="mt-2 mb-0 text-sm text-n-slate-11"
               >
                 {{ event.metadata.title }} · {{ date(event.metadata.due_at) }}
+              </p>
+              <p
+                v-if="
+                  event.event_type === 'activity_cancelled' &&
+                  event.metadata.cancellation_reason
+                "
+                class="mt-2 mb-0 text-sm whitespace-pre-wrap break-words text-n-slate-12"
+              >
+                {{ t('CRM.ACTIVITY_CANCELLATION_REASON') }}:
+                {{ event.metadata.cancellation_reason }}
               </p>
               <a
                 v-if="event.metadata.meeting_url"

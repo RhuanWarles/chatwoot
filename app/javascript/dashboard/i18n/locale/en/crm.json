@@ -150,6 +150,16 @@
     "EVENT_MEETING_SCHEDULED": "Meeting scheduled",
     "EVENT_MEETING_RESCHEDULED": "Meeting rescheduled",
     "CALENDAR_RECONNECT": "Reconnect Google Calendar",
-    "MEETING_INVITATION_HINT": "Participants will receive invitations and updates through Google Calendar."
+    "MEETING_INVITATION_HINT": "Participants will receive invitations and updates through Google Calendar.",
+    "ACTIVITIES": "Activities",
+    "ACTIVITY_CANCELLATION_REASON": "Cancellation reason",
+    "ACTIVITY_CANCELLATION_REASON_REQUIRED": "Cancellation reason *",
+    "ACTIVITY_CONFIRM_CANCELLATION": "Confirm cancellation",
+    "ACTIVITY_CANCELLING": "Cancelling...",
+    "ACTIVITY_CANCEL_ERROR": "Could not cancel the activity.",
+    "ACTIVITY_CANCELLED_STATUS": "Cancelled",
+    "ACTIVITY_CANCELLED_BY": "Cancelled by",
+    "ACTIVITY_CANCELLED_AT": "Cancelled at",
+    "ACTIVITY_CANCELLED_BY_VALUE": "Cancelled by {name}"
   }
 }

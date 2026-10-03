@@ -2,13 +2,14 @@ class Api::V1::Accounts::Crm::ActivitiesController < Api::V1::Accounts::BaseCont
   rescue_from ActionController::BadRequest do |error|
     render json: { error: error.message }, status: :unprocessable_entity
   end
-  PARAMETER_KEYS = %w[activity_type title description due_at owner_id status duration_minutes create_meet].freeze
+  PARAMETER_KEYS = %w[activity_type title description due_at owner_id status duration_minutes create_meet cancellation_reason].freeze
   CALENDAR_FIELDS = %w[title description due_at duration_minutes participants create_meet].freeze
   before_action :fetch_deal
 
   def index
     authorize(@deal, :show?)
-    render json: @deal.activities.where(account_id: Current.account.id).includes(:owner, :google_calendar_connection).order(:due_at, :id)
+    render json: @deal.activities.where(account_id: Current.account.id)
+                      .includes(:owner, :cancelled_by, :google_calendar_connection).order(:due_at, :id)
                       .map { |activity| activity_json(activity) }
   end
 
@@ -24,9 +25,11 @@ class Api::V1::Accounts::Crm::ActivitiesController < Api::V1::Accounts::BaseCont
     authorize(@deal, :update?)
     @activity = scoped_activity
     check_calendar_owner
-    @activity.assign_attributes(activity_params)
-    configure_calendar
-    @activity.save!
+    @activity.with_lock do
+      @activity.assign_attributes(activity_params)
+      configure_calendar
+      @activity.save!
+    end
     render json: activity_json(@activity)
   end
 
@@ -95,6 +98,10 @@ class Api::V1::Accounts::Crm::ActivitiesController < Api::V1::Accounts::BaseCont
     activity = params.require(:activity)
     raise ActionController::BadRequest, 'Invalid activity parameters' unless activity.is_a?(ActionController::Parameters)
 
+    if activity.key?(:cancellation_reason) && !(activity[:cancellation_reason].is_a?(String) && activity[:cancellation_reason].strip.present?)
+      raise ActionController::BadRequest, 'Informe o motivo do cancelamento.'
+    end
+
     valid = activity.to_unsafe_h.slice(*PARAMETER_KEYS, 'participants', 'create_calendar').all? do |key, value|
       case key
       when 'owner_id' then value.nil? || value.is_a?(Integer)
@@ -102,6 +109,7 @@ class Api::V1::Accounts::Crm::ActivitiesController < Api::V1::Accounts::BaseCont
       when 'status' then Crm::Activity::STATUSES.include?(value)
       when 'due_at' then value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\z/)
       when 'title' then value.is_a?(String) && value.strip.present? && value.length <= 255
+      when 'cancellation_reason' then value.is_a?(String) && value.strip.present?
       when 'description' then value.nil? || value.is_a?(String)
       when 'duration_minutes' then value.is_a?(Integer) && Crm::Activity::DURATION_RANGE.cover?(value)
       when 'participants' then Crm::Activity.valid_participants?(value)
@@ -110,11 +118,21 @@ class Api::V1::Accounts::Crm::ActivitiesController < Api::V1::Accounts::BaseCont
     end
     raise ActionController::BadRequest, 'Invalid activity parameters' unless valid
 
+    if activity.key?(:cancellation_reason) &&
+       !(activity[:status] == 'cancelled' && (@activity.nil? || @activity.status != 'cancelled'))
+      raise ActionController::BadRequest, 'O motivo deve ser informado ao cancelar a atividade.'
+    end
+    if activity[:status] == 'cancelled' && (@activity.nil? || @activity.status != 'cancelled') &&
+       !activity[:cancellation_reason].is_a?(String)
+      raise ActionController::BadRequest, 'Informe o motivo do cancelamento.'
+    end
+
     activity.permit(*PARAMETER_KEYS, participants: [])
   end
 
   def activity_json(activity)
-    activity.as_json(except: [:google_account_uid, :google_meet_request_id], include: { owner: { only: [:id, :name] } })
+    activity.as_json(except: [:google_account_uid, :google_meet_request_id],
+                     include: { owner: { only: [:id, :name] }, cancelled_by: { only: [:id, :name] } })
             .merge(can_sync: activity.external_provider != 'google' || activity.owner_id == Current.user.id)
   end
 end

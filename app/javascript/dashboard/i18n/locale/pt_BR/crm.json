@@ -150,7 +150,17 @@
     "EVENT_MEETING_SCHEDULED": "Reunião agendada",
     "EVENT_MEETING_RESCHEDULED": "Reunião reagendada",
     "CALENDAR_RECONNECT": "Reconectar Google Calendar",
-    "MEETING_INVITATION_HINT": "Os participantes receberão convites e atualizações pelo Google Calendar."
+    "MEETING_INVITATION_HINT": "Os participantes receberão convites e atualizações pelo Google Calendar.",
+    "ACTIVITIES": "Atividades",
+    "ACTIVITY_CANCELLATION_REASON": "Motivo do cancelamento",
+    "ACTIVITY_CANCELLATION_REASON_REQUIRED": "Motivo do cancelamento *",
+    "ACTIVITY_CONFIRM_CANCELLATION": "Confirmar cancelamento",
+    "ACTIVITY_CANCELLING": "Cancelando...",
+    "ACTIVITY_CANCEL_ERROR": "Não foi possível cancelar a atividade.",
+    "ACTIVITY_CANCELLED_STATUS": "Cancelada",
+    "ACTIVITY_CANCELLED_BY": "Cancelado por",
+    "ACTIVITY_CANCELLED_AT": "Cancelado em",
+    "ACTIVITY_CANCELLED_BY_VALUE": "Cancelado por {name}"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

@@ -39,7 +39,7 @@ const DialogStub = {
       this.visible = false;
     },
   },
-  template: '<div v-if="visible"><slot /></div>',
+  template: '<div v-if="visible"><slot /><slot name="footer" /></div>',
 };
 const LinkStub = { props: ['to'], template: '<a><slot /></a>' };
 const ACTIVITY = {
@@ -127,17 +127,17 @@ it('edits an activity without changing status', async () => {
   });
   expect(api.update.mock.calls[0][1].activity).not.toHaveProperty('status');
 });
-it.each([
-  ['ACTIVITY_COMPLETE', 'completed'],
-  ['ACTIVITY_CANCEL', 'cancelled'],
-])('changes status using %s', async (key, status) => {
-  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
-  await flushPromises();
-  await button(wrapper, key).trigger('click');
-  await flushPromises();
-  expect(api.update).toHaveBeenCalledWith(3, { activity: { status } });
-  expect(wrapper.emitted('changed')).toHaveLength(1);
-});
+it.each([['ACTIVITY_COMPLETE', 'completed']])(
+  'changes status using %s',
+  async (key, status) => {
+    const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+    await flushPromises();
+    await button(wrapper, key).trigger('click');
+    await flushPromises();
+    expect(api.update).toHaveBeenCalledWith(3, { activity: { status } });
+    expect(wrapper.emitted('changed')).toHaveLength(1);
+  }
+);
 it('preserves activities on failed update', async () => {
   api.update.mockRejectedValueOnce(new Error('failed'));
   const wrapper = setup(CrmActivities, { deal: { id: 12 } });
@@ -259,4 +259,113 @@ it('shows Google event and Meet links without exposing credentials', async () =>
   );
   expect(button(wrapper, 'EDIT_ACTIVITY').attributes('disabled')).toBeDefined();
   expect(wrapper.text()).toContain(pt.CRM.CALENDAR_OWNER_ONLY);
+});
+
+it.each(['', '   '])(
+  'requires a nonblank cancellation reason: %s',
+  async reason => {
+    const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+    await flushPromises();
+    await button(wrapper, 'ACTIVITY_CANCEL').trigger('click');
+    expect(api.update).not.toHaveBeenCalled();
+    expect(
+      button(wrapper, 'ACTIVITY_CONFIRM_CANCELLATION').attributes('type')
+    ).toBe('button');
+    expect(button(wrapper, 'CANCEL').attributes('type')).toBe('button');
+    await wrapper.find('#crm-activity-cancellation-reason').setValue(reason);
+    expect(
+      button(wrapper, 'ACTIVITY_CONFIRM_CANCELLATION').attributes('disabled')
+    ).toBeDefined();
+    wrapper.unmount();
+  }
+);
+it('cancels the selected activity with a trimmed reason and refreshes history', async () => {
+  api.get.mockResolvedValue({
+    data: [ACTIVITY, { ...ACTIVITY, id: 4, title: 'Second activity' }],
+  });
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  const cancelButtons = wrapper
+    .findAll('button')
+    .filter(item => item.text() === pt.CRM.ACTIVITY_CANCEL);
+  await cancelButtons[1].trigger('click');
+  await wrapper
+    .find('#crm-activity-cancellation-reason')
+    .setValue('  Client requested rescheduling.  ');
+  await button(wrapper, 'ACTIVITY_CONFIRM_CANCELLATION').trigger('click');
+  await flushPromises();
+  expect(api.update).toHaveBeenCalledWith(4, {
+    activity: {
+      status: 'cancelled',
+      cancellation_reason: 'Client requested rescheduling.',
+    },
+  });
+  expect(wrapper.emitted('changed')).toHaveLength(1);
+  await cancelButtons[0].trigger('click');
+  expect(wrapper.find('#crm-activity-cancellation-reason').element.value).toBe(
+    ''
+  );
+  wrapper.unmount();
+});
+it('preserves the reason and modal on cancellation failure', async () => {
+  api.update.mockRejectedValueOnce(new Error('failed'));
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  await button(wrapper, 'ACTIVITY_CANCEL').trigger('click');
+  await wrapper
+    .find('#crm-activity-cancellation-reason')
+    .setValue('Client requested cancellation.');
+  await button(wrapper, 'ACTIVITY_CONFIRM_CANCELLATION').trigger('click');
+  await flushPromises();
+  expect(wrapper.find('#crm-activity-cancellation-reason').element.value).toBe(
+    'Client requested cancellation.'
+  );
+  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCEL_ERROR);
+  expect(wrapper.emitted('changed')).toBeUndefined();
+  wrapper.unmount();
+});
+it('blocks duplicate requests while cancellation is pending', async () => {
+  let resolve;
+  api.update.mockImplementationOnce(
+    () =>
+      new Promise(done => {
+        resolve = done;
+      })
+  );
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  await button(wrapper, 'ACTIVITY_CANCEL').trigger('click');
+  await wrapper
+    .find('#crm-activity-cancellation-reason')
+    .setValue('Cancelled by client.');
+  await button(wrapper, 'ACTIVITY_CONFIRM_CANCELLATION').trigger('click');
+  expect(
+    button(wrapper, 'ACTIVITY_CANCELLING').attributes('disabled')
+  ).toBeDefined();
+  expect(api.update).toHaveBeenCalledTimes(1);
+  resolve({ data: ACTIVITY });
+  await flushPromises();
+  wrapper.unmount();
+});
+it('shows structured details of cancelled activities', async () => {
+  api.get.mockResolvedValue({
+    data: [
+      {
+        ...ACTIVITY,
+        status: 'cancelled',
+        cancellation_reason: 'Return next month.',
+        cancelled_at: '2026-10-03T02:20:00Z',
+        cancelled_by: { id: 5, name: 'Rhuan' },
+      },
+    ],
+  });
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  expect(wrapper.text()).toContain('Return next month.');
+  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCELLED_STATUS);
+  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCELLED_BY);
+  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCELLED_AT);
+  expect(button(wrapper, 'ACTIVITY_CANCEL')).toBeUndefined();
+  expect(wrapper.text()).not.toContain(pt.CRM.ACTIVITY_OVERDUE);
+  wrapper.unmount();
 });

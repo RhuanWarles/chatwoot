@@ -349,3 +349,33 @@ it('hides note mutations when backend denies permissions', async () => {
       )
   ).toBe(false);
 });
+
+it('shows cancellation reason and actor in the Deal timeline', async () => {
+  dealsAPI.events.mockResolvedValue({
+    data: {
+      payload: [
+        {
+          id: 9,
+          event_type: 'activity_cancelled',
+          metadata: {
+            title: 'Client follow-up',
+            due_at: '2026-10-04T12:00:00Z',
+            cancellation_reason: 'Client requested next month.',
+            cancelled_at: '2026-10-03T02:20:00Z',
+            cancelled_by_name: 'Rhuan',
+          },
+          actor: { name: 'Rhuan' },
+          created_at: '2026-10-03T02:20:00Z',
+        },
+      ],
+      meta: { has_more: false },
+    },
+  });
+  const wrapper = await mountPage();
+  expect(wrapper.text()).toContain(pt.CRM.EVENT_ACTIVITY_CANCELLED);
+  expect(wrapper.text()).toContain('Client follow-up');
+  expect(wrapper.text()).toContain('Client requested next month.');
+  expect(wrapper.text()).toContain('Cancelado por Rhuan');
+  expect(wrapper.text()).toContain('03/10/2026');
+  wrapper.unmount();
+});

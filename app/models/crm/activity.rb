@@ -6,6 +6,7 @@ class Crm::Activity < ApplicationRecord
   MAX_PARTICIPANTS = 50
   ACTIVITY_FIELDS = %w[activity_type title description due_at owner_id status duration_minutes participants create_meet].freeze
   belongs_to :google_calendar_connection, class_name: 'Crm::GoogleCalendarConnection', optional: true
+  belongs_to :cancelled_by, class_name: 'User', optional: true
   belongs_to :account
   belongs_to :deal, class_name: 'Crm::Deal'
   belongs_to :contact, optional: true
@@ -15,8 +16,11 @@ class Crm::Activity < ApplicationRecord
   validates :title, presence: true, length: { maximum: 255 }
   validates :due_at, presence: true
   validates :duration_minutes, numericality: { only_integer: true, in: DURATION_RANGE }
+  validates :cancellation_reason, presence: { message: 'Informe o motivo do cancelamento.' },
+                                  if: :cancellation_reason_required?
   validate :valid_calendar_fields
   validate :associations_belong_to_account
+  before_save :set_cancellation_details
   before_save :set_completion_time
   after_create :record_creation
   after_update :record_change
@@ -28,6 +32,19 @@ class Crm::Activity < ApplicationRecord
   end
 
   private
+
+  def cancellation_reason_required?
+    (status == 'cancelled' && (new_record? || will_save_change_to_status?)) ||
+      will_save_change_to_cancellation_reason? || cancellation_reason.present?
+  end
+
+  def set_cancellation_details
+    return unless status == 'cancelled' && (new_record? || will_save_change_to_status?)
+
+    self.cancellation_reason = cancellation_reason.strip
+    self.cancelled_at = Time.current
+    self.cancelled_by = Current.user
+  end
 
   def valid_calendar_fields
     unless self.class.valid_participants?(participants)
@@ -48,6 +65,7 @@ class Crm::Activity < ApplicationRecord
   end
 
   def associations_belong_to_account
+    errors.add(:cancelled_by, 'must belong to the same account') if cancelled_by_id && !account.users.exists?(id: cancelled_by_id)
     errors.add(:deal, 'must belong to the same account') if deal && deal.account_id != account_id
     errors.add(:contact, 'must belong to the same account') if contact && contact.account_id != account_id
     errors.add(:owner, 'must belong to the same account') if owner_id && !account.users.exists?(id: owner_id)
@@ -59,6 +77,7 @@ class Crm::Activity < ApplicationRecord
 
   def record_creation
     record_event('activity_created')
+    record_event('activity_cancelled') if status == 'cancelled'
   end
 
   def record_change
@@ -73,7 +92,12 @@ class Crm::Activity < ApplicationRecord
   end
 
   def record_event(event_type)
+    metadata = { activity_id: id, title: title, due_at: due_at.iso8601, activity_type: activity_type }
+    if event_type == 'activity_cancelled'
+      metadata.merge!(cancellation_reason: cancellation_reason, cancelled_at: cancelled_at.iso8601,
+                      cancelled_by_id: cancelled_by_id, cancelled_by_name: cancelled_by&.name)
+    end
     deal.events.create!(account_id: account_id, actor: Current.user, event_type: event_type,
-                        metadata: { activity_id: id, title: title, due_at: due_at.iso8601, activity_type: activity_type })
+                        metadata: metadata)
   end
 end
