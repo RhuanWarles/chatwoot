@@ -203,6 +203,14 @@
     "SIDEBAR_DETAILS": "Details",
     "SIDEBAR_MORE": "Show more",
     "SIDEBAR_LESS": "Show less",
-    "CF_EDIT_FIELD": "Edit {name}"
+    "CF_EDIT_FIELD": "Edit {name}",
+    "DEAL_SEARCH_PLACEHOLDER": "Search deals, contacts, phone or email",
+    "DEAL_SEARCH_SUBMIT": "Search",
+    "DEAL_SEARCH_CLEAR": "Clear search",
+    "DEAL_SEARCH_EMPTY": "No deals found for this search.",
+    "DEAL_SEARCH_LOADING": "Searching deals...",
+    "DEAL_SEARCH_ERROR": "Unable to search deals.",
+    "DEAL_SEARCH_CONTEXT": "Deal \u00b7 {pipeline} \u00b7 {stage}",
+    "DEAL_SEARCH_CONTACT": "Contact: {name}"
   }
 }

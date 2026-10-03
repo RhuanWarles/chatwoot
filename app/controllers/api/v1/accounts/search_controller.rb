@@ -19,6 +19,10 @@ class Api::V1::Accounts::SearchController < Api::V1::Accounts::BaseController
     @result = search('Article')
   end
 
+  def deals
+    @result = search('Deal')
+  end
+
   private
 
   def search(search_type)

@@ -5,7 +5,9 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
   def index
     deals = policy_scope(Crm::Deal).includes(:contact, :owner, :pipeline_stage, custom_field_values: :custom_field)
     deals = deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
-    render json: deals.order(created_at: :desc).as_json(
+    deals = Crm::DealSearchService.new(scope: deals, account: Current.account, query: params[:q]).perform
+    deals = deals.order(created_at: :desc) if params[:q].blank?
+    render json: deals.as_json(
       include: {
         contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },

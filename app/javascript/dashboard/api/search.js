@@ -49,6 +49,12 @@ class SearchAPI extends ApiClient {
     });
   }
 
+  deals({ q, page = 1, since, until }) {
+    return axios.get(`${this.url}/deals`, {
+      params: { q, page, since, until },
+    });
+  }
+
   articles({ q, page = 1, since, until }) {
     return axios.get(`${this.url}/articles`, {
       params: {

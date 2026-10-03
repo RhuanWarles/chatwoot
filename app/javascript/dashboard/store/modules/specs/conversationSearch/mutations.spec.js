@@ -156,12 +156,18 @@ describe('#mutations', () => {
         conversationRecords: [{ id: 1 }],
         messageRecords: [{ id: 1 }],
         articleRecords: [{ id: 1 }],
+        dealRecords: [{ id: 2 }],
+        dealSearchVersion: 0,
+        uiFlags: { deal: { isFetching: true, hasMore: true } },
       };
       mutations[types.CLEAR_SEARCH_RESULTS](state);
       expect(state.contactRecords).toEqual([]);
       expect(state.conversationRecords).toEqual([]);
       expect(state.messageRecords).toEqual([]);
       expect(state.articleRecords).toEqual([]);
+      expect(state.dealRecords).toEqual([]);
+      expect(state.dealSearchVersion).toBe(1);
+      expect(state.uiFlags.deal.hasMore).toBe(false);
     });
   });
 });

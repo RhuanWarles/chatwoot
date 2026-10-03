@@ -25,6 +25,7 @@ import SearchResultConversationsList from './SearchResultConversationsList.vue';
 import SearchResultMessagesList from './SearchResultMessagesList.vue';
 import SearchResultContactsList from './SearchResultContactsList.vue';
 import SearchResultArticlesList from './SearchResultArticlesList.vue';
+import SearchResultDealsList from './SearchResultDealsList.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -39,6 +40,7 @@ const pages = ref({
   conversations: 1,
   messages: 1,
   articles: 1,
+  deals: 1,
 });
 
 const contactRecords = useMapGetter('conversationSearch/getContactRecords');
@@ -47,6 +49,7 @@ const conversationRecords = useMapGetter(
 );
 const messageRecords = useMapGetter('conversationSearch/getMessageRecords');
 const articleRecords = useMapGetter('conversationSearch/getArticleRecords');
+const dealRecords = useMapGetter('conversationSearch/getDealRecords');
 const uiFlags = useMapGetter('conversationSearch/getUIFlags');
 
 const addTypeToRecords = (records, type) =>
@@ -65,6 +68,7 @@ const mappedArticles = computed(() =>
   addTypeToRecords(articleRecords, 'article')
 );
 
+const mappedDeals = computed(() => addTypeToRecords(dealRecords, 'deal'));
 const isSelectedTabAll = computed(() => selectedTab.value === 'all');
 
 const searchResultSectionClass = computed(() => ({
@@ -75,6 +79,7 @@ const searchResultSectionClass = computed(() => ({
 const sliceRecordsIfAllTab = items =>
   isSelectedTabAll.value ? items.value.slice(0, 5) : items.value;
 
+const deals = computed(() => sliceRecordsIfAllTab(mappedDeals));
 const contacts = computed(() => sliceRecordsIfAllTab(mappedContacts));
 const conversations = computed(() => sliceRecordsIfAllTab(mappedConversations));
 const messages = computed(() => sliceRecordsIfAllTab(mappedMessages));
@@ -87,6 +92,7 @@ const filterContacts = filterByTab('contacts');
 const filterConversations = filterByTab('conversations');
 const filterMessages = filterByTab('messages');
 const filterArticles = filterByTab('articles');
+const filterDeals = filterByTab('deals');
 
 const { shouldShow, isFeatureFlagEnabled } = usePolicy();
 
@@ -111,6 +117,10 @@ const TABS_CONFIG = {
   messages: {
     permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
     count: () => mappedMessages.value.length,
+  },
+  deals: {
+    permissions: [...ROLES, CONTACT_PERMISSIONS],
+    count: () => mappedDeals.value.length,
   },
   articles: {
     permissions: [...ROLES, PORTAL_PERMISSIONS],
@@ -146,7 +156,7 @@ const totalSearchResultsCount = computed(() => {
   const permissionCounts = [
     {
       permissions: [...ROLES, CONTACT_PERMISSIONS],
-      count: () => contacts.value.length,
+      count: () => contacts.value.length + deals.value.length,
     },
     {
       permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
@@ -183,13 +193,15 @@ const activeTabIndex = computed(() => {
 });
 
 const isFetchingAny = computed(() => {
-  const { contact, message, conversation, article, isFetching } = uiFlags.value;
+  const { contact, message, conversation, article, deal, isFetching } =
+    uiFlags.value;
   return (
     isFetching ||
     contact.isFetching ||
     message.isFetching ||
     conversation.isFetching ||
-    article.isFetching
+    article.isFetching ||
+    deal.isFetching
   );
 });
 
@@ -218,6 +230,7 @@ const showLoadMore = computed(() => {
     conversations: mappedConversations.value,
     messages: mappedMessages.value,
     articles: mappedArticles.value,
+    deals: mappedDeals.value,
   }[selectedTab.value];
 
   // hasMore comes from the raw API page size; stored record counts shrink
@@ -227,6 +240,7 @@ const showLoadMore = computed(() => {
     conversations: uiFlags.value.conversation.hasMore,
     messages: uiFlags.value.message.hasMore,
     articles: uiFlags.value.article.hasMore,
+    deals: uiFlags.value.deal.hasMore,
   }[selectedTab.value];
 
   return records?.length > 0 && Boolean(hasMore);
@@ -239,6 +253,7 @@ const showViewMore = computed(() => ({
     mappedConversations.value?.length > 5 && isSelectedTabAll.value,
   messages: mappedMessages.value?.length > 5 && isSelectedTabAll.value,
   articles: mappedArticles.value?.length > 5 && isSelectedTabAll.value,
+  deals: mappedDeals.value.length > 5 && isSelectedTabAll.value,
 }));
 
 const filters = ref({
@@ -248,7 +263,13 @@ const filters = ref({
 });
 
 const clearSearchResult = () => {
-  pages.value = { contacts: 1, conversations: 1, messages: 1, articles: 1 };
+  pages.value = {
+    contacts: 1,
+    conversations: 1,
+    messages: 1,
+    articles: 1,
+    deals: 1,
+  };
   store.dispatch('conversationSearch/clearSearchResults');
 };
 
@@ -322,6 +343,7 @@ const loadMore = async () => {
     conversations: 'conversationSearch/conversationSearch',
     messages: 'conversationSearch/messageSearch',
     articles: 'conversationSearch/articleSearch',
+    deals: 'conversationSearch/dealSearch',
   };
 
   if (uiFlags.value.isFetching || selectedTab.value === 'all') return;
@@ -497,6 +519,27 @@ onUnmounted(() => {
                 sm
                 outline
                 @click="selectedTab = 'articles'"
+              />
+            </Policy>
+
+            <Policy
+              :permissions="[...ROLES, CONTACT_PERMISSIONS]"
+              class="flex flex-col justify-center"
+            >
+              <SearchResultDealsList
+                v-if="filterDeals"
+                :is-fetching="uiFlags.deal.isFetching"
+                :deals="deals"
+                :query="query"
+                :show-title="isSelectedTabAll"
+                :class="searchResultSectionClass"
+              />
+              <NextButton
+                v-if="showViewMore.deals"
+                :label="t('SEARCH.VIEW_MORE')"
+                icon="i-lucide-eye"
+                variant="ghost"
+                @click="onTabChange('deals')"
               />
             </Policy>
 

@@ -242,3 +242,60 @@ describe('#actions', () => {
     });
   });
 });
+
+describe('Deal search', () => {
+  it('dispatches alongside every existing search type', async () => {
+    await actions.fullSearch({ commit, dispatch }, { q: 'Deal', page: 1 });
+    expect(dispatch).toHaveBeenCalledWith('dealSearch', { q: 'Deal', page: 1 });
+    expect(dispatch).toHaveBeenCalledWith('contactSearch', {
+      q: 'Deal',
+      page: 1,
+    });
+    expect(dispatch).toHaveBeenCalledWith('messageSearch', {
+      q: 'Deal',
+      page: 1,
+    });
+    expect(dispatch).toHaveBeenCalledWith('conversationSearch', {
+      q: 'Deal',
+      page: 1,
+    });
+    expect(dispatch).toHaveBeenCalledWith('articleSearch', {
+      q: 'Deal',
+      page: 1,
+    });
+  });
+  it('stores a paginated Deal response and reports whether more pages are available', async () => {
+    commit.mockClear();
+    const records = Array.from({ length: 15 }, (_, i) => ({ id: i + 1 }));
+    axios.get.mockResolvedValue({ data: { payload: { deals: records } } });
+    expect(
+      await actions.dealSearch(
+        { commit, state: { dealSearchVersion: 0 } },
+        { q: 'Deal', page: 2 }
+      )
+    ).toBe(true);
+    expect(commit).toHaveBeenCalledWith(types.DEAL_SEARCH_SET, records);
+    expect(commit).toHaveBeenCalledWith(types.DEAL_SEARCH_SET_UI_FLAG, {
+      hasMore: true,
+    });
+  });
+  it('does not append a response from a previous search or account', async () => {
+    commit.mockClear();
+    const state = { dealSearchVersion: 0 };
+    let finish;
+    axios.get.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          finish = resolve;
+        })
+    );
+    const pending = actions.dealSearch({ commit, state }, { q: 'Old' });
+    state.dealSearchVersion = 1;
+    finish({ data: { payload: { deals: [{ id: 1 }] } } });
+    expect(await pending).toBe(false);
+    expect(commit).not.toHaveBeenCalledWith(
+      types.DEAL_SEARCH_SET,
+      expect.anything()
+    );
+  });
+});

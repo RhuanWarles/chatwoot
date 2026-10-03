@@ -19,4 +19,9 @@ json.payload do
       json.partial! 'article', formats: [:json], article: article
     end
   end
+  json.deals do
+    json.array! @result[:deals] do |deal|
+      json.partial! 'deal', formats: [:json], deal: deal
+    end
+  end
 end

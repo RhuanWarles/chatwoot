@@ -13,10 +13,15 @@ class SearchService
       { conversations: filter_conversations }
     when 'Contact'
       { contacts: filter_contacts }
+    when 'Deal'
+      { deals: filter_deals }
     when 'Article'
       { articles: filter_articles }
     else
-      { contacts: filter_contacts, messages: filter_messages, conversations: filter_conversations, articles: filter_articles }
+      {
+        contacts: filter_contacts, messages: filter_messages, conversations: filter_conversations,
+        articles: filter_articles, deals: filter_deals
+      }
     end
   end
 
@@ -173,6 +178,14 @@ class SearchService
     @contacts = contacts_query.resolved_contacts(
       use_crm_v2: current_account.feature_enabled?('crm_v2')
     ).order_on_last_activity_at('desc').page(params[:page]).per(15)
+  end
+
+  def filter_deals
+    context = { user: current_user, account: current_account, account_user: account_user }
+    deals = Pundit.policy_scope!(context, Crm::Deal)
+    deals = Crm::DealSearchService.new(scope: deals, account: current_account, query: search_query).perform
+    deals = apply_time_filter(deals, 'crm_deals.created_at') if current_account.feature_enabled?('advanced_search')
+    deals.includes(:pipeline, :pipeline_stage, contact: :company).page(params[:page]).per(15)
   end
 
   def filter_articles

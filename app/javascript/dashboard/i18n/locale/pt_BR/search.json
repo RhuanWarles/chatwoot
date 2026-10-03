@@ -5,13 +5,15 @@
       "CONTACTS": "Contatos",
       "CONVERSATIONS": "Conversas",
       "MESSAGES": "Mensagens",
-      "ARTICLES": "Artigos"
+      "ARTICLES": "Artigos",
+      "DEALS": "Neg\u00f3cios"
     },
     "SECTION": {
       "CONTACTS": "Contatos",
       "CONVERSATIONS": "Conversas",
       "MESSAGES": "Messagem",
-      "ARTICLES": "Artigos"
+      "ARTICLES": "Artigos",
+      "DEALS": "Neg\u00f3cios"
     },
     "VIEW_MORE": "Ver mais",
     "LOAD_MORE": "Carregar mais",
@@ -24,8 +26,8 @@
     "RECENT_SEARCHES": "Pesquisas recentes",
     "CLEAR_ALL": "Limpar tudo",
     "MOST_RECENT": "Mais recentes",
-    "EMPTY_STATE_DEFAULT": "Procurar por ID de conversa, e-mail, número de telefone, mensagens para melhores resultados de busca.",
-    "BOT_LABEL": "Robôs",
+    "EMPTY_STATE_DEFAULT": "Procurar por ID de conversa, e-mail, n\u00famero de telefone, mensagens para melhores resultados de busca.",
+    "BOT_LABEL": "Rob\u00f4s",
     "READ_MORE": "Saiba mais",
     "READ_LESS": "Ler menos",
     "WROTE": "escreveu:",
@@ -33,24 +35,24 @@
     "EMAIL": "E-mail",
     "EMAIL_SUBJECT": "Assunto",
     "PRIVATE": "Nota privada",
-    "TRANSCRIPT": "Transcrição",
+    "TRANSCRIPT": "Transcri\u00e7\u00e3o",
     "CREATED_AT": "criado {time}",
     "UPDATED_AT": "atualizado {time}",
     "SORT_BY": {
-      "RELEVANCE": "Relevância"
+      "RELEVANCE": "Relev\u00e2ncia"
     },
     "DATE_RANGE": {
-      "LAST_7_DAYS": "Últimos 7 dias",
-      "LAST_30_DAYS": "Últimos 30 dias",
-      "LAST_60_DAYS": "Últimos 60 dias",
-      "LAST_90_DAYS": "Últimos 90 dias",
+      "LAST_7_DAYS": "\u00daltimos 7 dias",
+      "LAST_30_DAYS": "\u00daltimos 30 dias",
+      "LAST_60_DAYS": "\u00daltimos 60 dias",
+      "LAST_90_DAYS": "\u00daltimos 90 dias",
       "CUSTOM_RANGE": "Intervalo personalizado:",
       "CREATED_BETWEEN": "Criado entre",
       "AND": "e",
       "APPLY": "Aplicar",
       "BEFORE_DATE": "Antes de {date}",
       "AFTER_DATE": "Depois de {date}",
-      "TIME_RANGE": "Filtrar por horário",
+      "TIME_RANGE": "Filtrar por hor\u00e1rio",
       "CLEAR_FILTER": "Limpar filtros"
     },
     "FILTERS": {

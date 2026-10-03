@@ -203,7 +203,15 @@
     "SIDEBAR_DETAILS": "Detalhes",
     "SIDEBAR_MORE": "Ver mais",
     "SIDEBAR_LESS": "Ver menos",
-    "CF_EDIT_FIELD": "Editar {name}"
+    "CF_EDIT_FIELD": "Editar {name}",
+    "DEAL_SEARCH_PLACEHOLDER": "Buscar neg\u00f3cios, contatos, telefone ou e-mail",
+    "DEAL_SEARCH_SUBMIT": "Buscar",
+    "DEAL_SEARCH_CLEAR": "Limpar busca",
+    "DEAL_SEARCH_EMPTY": "Nenhum neg\u00f3cio encontrado para esta busca.",
+    "DEAL_SEARCH_LOADING": "Buscando neg\u00f3cios...",
+    "DEAL_SEARCH_ERROR": "N\u00e3o foi poss\u00edvel buscar os neg\u00f3cios.",
+    "DEAL_SEARCH_CONTEXT": "Neg\u00f3cio \u00b7 {pipeline} \u00b7 {stage}",
+    "DEAL_SEARCH_CONTACT": "Contato: {name}"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

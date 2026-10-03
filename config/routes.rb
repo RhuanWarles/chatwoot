@@ -231,6 +231,7 @@ Rails.application.routes.draw do
               get :messages
               get :contacts
               get :articles
+              get :deals
             end
           end
 

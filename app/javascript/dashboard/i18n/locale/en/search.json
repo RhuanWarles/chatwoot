@@ -5,13 +5,15 @@
       "CONTACTS": "Contacts",
       "CONVERSATIONS": "Conversations",
       "MESSAGES": "Messages",
-      "ARTICLES": "Articles"
+      "ARTICLES": "Articles",
+      "DEALS": "Deals"
     },
     "SECTION": {
       "CONTACTS": "Contacts",
       "CONVERSATIONS": "Conversations",
       "MESSAGES": "Messages",
-      "ARTICLES": "Articles"
+      "ARTICLES": "Articles",
+      "DEALS": "Deals"
     },
     "VIEW_MORE": "View more",
     "LOAD_MORE": "Load more",

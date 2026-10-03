@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -17,6 +18,37 @@ const router = useRouter();
 const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
+const searchDraft = ref('');
+const searchQuery = ref('');
+const searchError = ref('');
+const { run: runDeals, isPending: searching } = useAbortableRequest();
+const loadDeals = async () => {
+  if (!selectedPipeline.value) return;
+  searchError.value = '';
+  try {
+    const result = await runDeals(signal =>
+      dealsAPI.get({
+        signal,
+        params: { pipeline_id: selectedPipeline.value, q: searchQuery.value },
+      })
+    );
+    if (result)
+      deals.value = result.data.filter(
+        deal => deal.pipeline_id === Number(selectedPipeline.value)
+      );
+  } catch {
+    searchError.value = t('CRM.DEAL_SEARCH_ERROR');
+  }
+};
+const search = () => {
+  searchQuery.value = searchDraft.value.trim();
+  loadDeals();
+};
+const clearSearch = () => {
+  searchDraft.value = '';
+  searchQuery.value = '';
+  loadDeals();
+};
 const selectedStatuses = ref([]);
 const filterDraft = ref(null);
 const showFilterPanel = ref(false);
@@ -175,10 +207,7 @@ const load = async () => {
       pipelines.value.find(item => item.active) || pipelines.value[0]
     ).id;
   if (selectedPipeline.value) {
-    const result = await dealsAPI.get();
-    deals.value = result.data.filter(
-      deal => deal.pipeline_id === Number(selectedPipeline.value)
-    );
+    await loadDeals();
   }
 };
 
@@ -252,7 +281,34 @@ onMounted(load);
         </h1>
         <p class="text-sm text-n-slate-11">{{ t('CRM.DEALS_SUBTITLE') }}</p>
       </div>
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3 min-w-0 max-w-full">
+        <form
+          class="flex items-center gap-2 w-full sm:w-auto"
+          @submit.prevent="search"
+        >
+          <Input
+            v-model="searchDraft"
+            type="search"
+            :placeholder="t('CRM.DEAL_SEARCH_PLACEHOLDER')"
+            :aria-label="t('CRM.DEAL_SEARCH_PLACEHOLDER')"
+            class="w-full sm:w-80"
+          />
+          <Button
+            type="submit"
+            variant="ghost"
+            icon="i-lucide-search"
+            :aria-label="t('CRM.DEAL_SEARCH_SUBMIT')"
+            :disabled="searching"
+          />
+          <Button
+            v-if="searchDraft || searchQuery"
+            type="button"
+            variant="ghost"
+            icon="i-lucide-x"
+            :aria-label="t('CRM.DEAL_SEARCH_CLEAR')"
+            @click="clearSearch"
+          />
+        </form>
         <ComboBox
           v-model="selectedPipeline"
           :options="pipelineOptions"
@@ -267,6 +323,24 @@ onMounted(load);
         />
       </div>
     </header>
+    <p v-if="searchError" role="alert" class="text-sm text-n-ruby-11">
+      {{ searchError }}
+    </p>
+    <p v-if="searching" class="text-sm text-n-slate-11">
+      {{ t('CRM.DEAL_SEARCH_LOADING') }}
+    </p>
+    <div
+      v-if="searchQuery && !searching && !visibleDeals.length && !searchError"
+      class="flex flex-wrap items-center gap-2 mb-3 text-sm text-n-slate-11"
+    >
+      <span>{{ t('CRM.DEAL_SEARCH_EMPTY') }}</span>
+      <Button
+        :label="t('CRM.DEAL_SEARCH_CLEAR')"
+        variant="ghost"
+        size="sm"
+        @click="clearSearch"
+      />
+    </div>
     <div
       role="group"
       :aria-label="t('CRM.STATUS')"

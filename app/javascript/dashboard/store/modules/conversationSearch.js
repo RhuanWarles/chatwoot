@@ -18,6 +18,8 @@ export const initialState = {
   conversationRecords: [],
   messageRecords: [],
   articleRecords: [],
+  dealRecords: [],
+  dealSearchVersion: 0,
   uiFlags: {
     isFetching: false,
     isSearchCompleted: false,
@@ -25,6 +27,7 @@ export const initialState = {
     conversation: { isFetching: false },
     message: { isFetching: false },
     article: { isFetching: false },
+    deal: { isFetching: false },
   },
 };
 
@@ -43,6 +46,9 @@ export const getters = {
   },
   getArticleRecords(state) {
     return state.articleRecords;
+  },
+  getDealRecords(state) {
+    return state.dealRecords;
   },
   getUIFlags(state) {
     return state.uiFlags;
@@ -84,6 +90,7 @@ export const actions = {
         dispatch('conversationSearch', { q, ...filters }),
         dispatch('messageSearch', { q, ...filters }),
         dispatch('articleSearch', { q, ...filters }),
+        dispatch('dealSearch', { q, ...filters }),
       ]);
     } catch (error) {
       // Ignore error
@@ -164,6 +171,25 @@ export const actions = {
       commit(types.ARTICLE_SEARCH_SET_UI_FLAG, { isFetching: false });
     }
   },
+  async dealSearch({ commit, state }, payload) {
+    const { page = 1, ...searchParams } = payload;
+    const version = state.dealSearchVersion;
+    commit(types.DEAL_SEARCH_SET_UI_FLAG, { isFetching: true });
+    try {
+      const { data } = await SearchAPI.deals({ ...searchParams, page });
+      if (version !== state.dealSearchVersion) return false;
+      commit(types.DEAL_SEARCH_SET, data.payload.deals);
+      commit(types.DEAL_SEARCH_SET_UI_FLAG, {
+        hasMore: data.payload.deals.length === PER_PAGE,
+      });
+      return true;
+    } catch {
+      return false;
+    } finally {
+      if (version === state.dealSearchVersion)
+        commit(types.DEAL_SEARCH_SET_UI_FLAG, { isFetching: false });
+    }
+  },
   async clearSearchResults({ commit }) {
     commit(types.CLEAR_SEARCH_RESULTS);
   },
@@ -188,6 +214,12 @@ export const mutations = {
   [types.ARTICLE_SEARCH_SET](state, records) {
     state.articleRecords = appendUniqueRecords(state.articleRecords, records);
   },
+  [types.DEAL_SEARCH_SET](state, records) {
+    state.dealRecords = appendUniqueRecords(state.dealRecords, records);
+  },
+  [types.DEAL_SEARCH_SET_UI_FLAG](state, uiFlags) {
+    state.uiFlags.deal = { ...state.uiFlags.deal, ...uiFlags };
+  },
   [types.SEARCH_CONVERSATIONS_SET_UI_FLAG](state, uiFlags) {
     state.uiFlags = { ...state.uiFlags, ...uiFlags };
   },
@@ -211,6 +243,9 @@ export const mutations = {
     state.conversationRecords = [];
     state.messageRecords = [];
     state.articleRecords = [];
+    state.dealRecords = [];
+    state.dealSearchVersion += 1;
+    state.uiFlags.deal = { isFetching: false, hasMore: false };
   },
 };
 

@@ -41,8 +41,11 @@ const onTabChange = selectedTab => {
 </script>
 
 <template>
-  <div class="flex items-center justify-between mt-7 mb-4">
+  <div
+    class="flex items-center justify-between w-full max-w-full mt-7 mb-4 overflow-x-auto"
+  >
     <TabBar
+      class="shrink-0"
       :tabs="tabBarTabs"
       :initial-active-tab="activeTab"
       @tab-changed="onTabChange"
