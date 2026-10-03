@@ -112,6 +112,10 @@ const ownerOptions = computed(() => [
   ).values(),
   { value: 'none', label: t('CRM.FILTER_UNASSIGNED') },
 ]);
+const cloneAdvancedFilters = filters => ({
+  ...filters,
+  stageIds: [...filters.stageIds],
+});
 const clearAdvancedFilters = () => {
   const target = filterDraft.value || advancedFilters.value;
   Object.assign(target, {
@@ -135,11 +139,11 @@ const selectedFilterContact = computed(() => {
   );
 });
 const openAdvancedFilters = () => {
-  filterDraft.value = structuredClone(advancedFilters.value);
+  filterDraft.value = cloneAdvancedFilters(advancedFilters.value);
   showFilterPanel.value = true;
 };
 const applyAdvancedFilters = () => {
-  advancedFilters.value = structuredClone(filterDraft.value);
+  advancedFilters.value = cloneAdvancedFilters(filterDraft.value);
   filterDraft.value = null;
   showFilterPanel.value = false;
 };
