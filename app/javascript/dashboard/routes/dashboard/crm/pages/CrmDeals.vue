@@ -21,6 +21,7 @@ const selectedPipeline = ref('');
 const selectedStatuses = ref([]);
 const filterPanel = ref(null);
 const filterDraft = ref(null);
+const showFilterPanel = ref(false);
 const advancedFilters = ref({
   ownerId: '',
   createdFrom: '',
@@ -137,6 +138,7 @@ const selectedFilterContact = computed(() => {
 });
 const openAdvancedFilters = async () => {
   filterDraft.value = structuredClone(advancedFilters.value);
+  showFilterPanel.value = true;
   await nextTick();
   filterPanel.value?.open();
 };
@@ -147,6 +149,7 @@ const applyAdvancedFilters = () => {
 };
 const closeAdvancedFilters = () => {
   filterDraft.value = null;
+  showFilterPanel.value = false;
 };
 const boardStages = computed(() =>
   stages.value.map(stage => {
@@ -302,6 +305,7 @@ onMounted(load);
       </button>
     </div>
     <SidePanel
+      v-if="showFilterPanel"
       ref="filterPanel"
       :title="t('CRM.ADVANCED_FILTERS')"
       width="lg"
