@@ -292,12 +292,14 @@ onMounted(load);
       />
     </div>
     <div class="flex justify-end mb-4">
-      <Button
+      <button
         type="button"
-        variant="faded"
-        :label="`${t('CRM.ADVANCED_FILTERS')}${filterCount ? ` (${filterCount})` : ''}`"
+        class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-n-slate-9/10 text-n-slate-12 hover:bg-n-slate-9/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
         @click="openAdvancedFilters"
-      />
+      >
+        {{ t('CRM.ADVANCED_FILTERS')
+        }}{{ filterCount ? '(' + filterCount + ')' : '' }}
+      </button>
     </div>
     <SidePanel
       ref="filterPanel"
