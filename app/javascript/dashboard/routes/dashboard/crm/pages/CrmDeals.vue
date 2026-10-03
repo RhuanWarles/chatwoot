@@ -21,6 +21,15 @@ const router = useRouter();
 const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
+const kanbanBoard = ref(null);
+const DRAG_SCROLL_OPTIONS = {
+  forceFallback: true,
+  fallbackOnBody: true,
+  forceAutoScrollFallback: true,
+  bubbleScroll: false,
+  scrollSensitivity: 80,
+  scrollSpeed: 6,
+};
 const searchDraft = ref('');
 const searchQuery = ref('');
 const searchError = ref('');
@@ -638,7 +647,8 @@ onUnmounted(() => {
     </section>
     <section
       v-else
-      class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-auto pb-2"
+      ref="kanbanBoard"
+      class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-auto pb-2 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <div
         v-for="stage in boardStages"
@@ -665,6 +675,8 @@ onUnmounted(() => {
           :model-value="stage.deals"
           item-key="id"
           group="crm-deals"
+          :scroll="kanbanBoard"
+          v-bind="DRAG_SCROLL_OPTIONS"
           class="flex flex-col flex-1 gap-2 min-h-24"
           @change="event => event.added && moveDeal(event.added.element, stage)"
         >
