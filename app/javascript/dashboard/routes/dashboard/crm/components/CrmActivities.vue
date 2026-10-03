@@ -28,6 +28,9 @@ const cancellationDialog = ref(null);
 const cancellingActivity = ref(null);
 const cancellationReason = ref('');
 const cancellationError = ref('');
+const activityDetailDialog = ref(null);
+const selectedActivity = ref(null);
+const activityHistory = ref([]);
 const cancelling = ref(false);
 const linkedGoogle = ref(false);
 const draft = ref({});
@@ -53,11 +56,14 @@ const pending = computed(() =>
       ['pending', 'failed'].includes(activity.sync_status)
   )
 );
-const date = (value, cancellation = false) =>
-  new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
+const date = (value, cancellation = false) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
     dateStyle: cancellation ? 'short' : 'medium',
     timeStyle: 'short',
-  }).format(new Date(value));
+  }).format(parsed);
+};
 const load = async () => {
   error.value = '';
   try {
@@ -154,6 +160,24 @@ const save = () => {
       : {}),
   });
 };
+const openDetails = async activity => {
+  selectedActivity.value = activity;
+  activityHistory.value = [];
+  activityDetailDialog.value.open();
+  try {
+    const result = await dealsAPI.events(props.deal.id);
+    activityHistory.value = result.data.payload.filter(
+      event => event.metadata?.activity_id === activity.id
+    );
+  } catch {
+    activityHistory.value = [];
+  }
+};
+const editFromDetails = () => {
+  const activity = selectedActivity.value;
+  activityDetailDialog.value.close();
+  open(activity);
+};
 const openCancellation = activity => {
   cancellingActivity.value = activity;
   cancellationReason.value = '';
@@ -233,15 +257,32 @@ watch(() => props.deal.id, load, { immediate: true });
     <article
       v-for="activity in pending"
       :key="activity.id"
-      class="flex flex-wrap items-start justify-between gap-3 p-3 rounded-lg bg-n-alpha-2"
+      class="flex flex-wrap items-start justify-between gap-3 p-3 rounded-lg bg-n-alpha-2 cursor-pointer hover:bg-n-alpha-3"
+      @click="openDetails(activity)"
     >
       <div class="min-w-0">
-        <p class="mb-1 text-sm font-medium break-words text-n-slate-12">
-          {{ activity.title }}
-        </p>
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <p class="mb-0 text-sm font-medium break-words text-n-slate-12">
+            {{ activity.title }}
+          </p>
+          <span
+            class="px-2 py-0.5 text-xs rounded-md bg-n-alpha-3 text-n-slate-11"
+            >{{
+              t(`CRM.ACTIVITY_STATUS_${activity.status.toUpperCase()}`)
+            }}</span
+          >
+        </div>
         <p class="mb-1 text-sm text-n-slate-11">
           {{ t(`CRM.ACTIVITY_TYPE_${activity.activity_type.toUpperCase()}`) }} ·
-          {{ date(activity.due_at) }}
+          {{ date(activity.due_at)
+          }}<span v-if="activity.activity_type === 'meeting'">
+            ?
+            {{
+              t('CRM.MEETING_DURATION_VALUE', {
+                minutes: activity.duration_minutes,
+              })
+            }}</span
+          >
         </p>
         <span
           v-if="
@@ -255,12 +296,7 @@ watch(() => props.deal.id, load, { immediate: true });
           {{ t('CRM.OWNER') }}:
           {{ activity.owner?.name || t('CRM.UNASSIGNED') }}
         </p>
-        <p
-          v-if="activity.description"
-          class="mt-2 mb-0 text-sm whitespace-pre-wrap break-words text-n-slate-12"
-        >
-          {{ activity.description }}
-        </p>
+
         <dl
           v-if="activity.status === 'cancelled'"
           class="mt-3 mb-0 flex flex-col gap-1 text-sm"
@@ -373,6 +409,145 @@ watch(() => props.deal.id, load, { immediate: true });
         </div>
       </div>
     </article>
+    <Dialog
+      ref="activityDetailDialog"
+      width="3xl"
+      overflow-y-auto
+      :title="selectedActivity?.title || t('CRM.ACTIVITY_DETAILS')"
+      :show-confirm-button="false"
+      :show-cancel-button="false"
+    >
+      <div v-if="selectedActivity" class="flex flex-col gap-5">
+        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-n-slate-11">{{ t('CRM.ACTIVITY_TYPE') }}</dt>
+            <dd class="m-0 text-n-slate-12">
+              {{
+                t(
+                  `CRM.ACTIVITY_TYPE_${selectedActivity.activity_type.toUpperCase()}`
+                )
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">{{ t('CRM.STATUS') }}</dt>
+            <dd class="m-0 text-n-slate-12">
+              {{
+                t(
+                  `CRM.ACTIVITY_STATUS_${selectedActivity.status.toUpperCase()}`
+                )
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">{{ t('CRM.ACTIVITY_DATE') }}</dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ date(selectedActivity.due_at) }}
+            </dd>
+          </div>
+          <div v-if="selectedActivity.activity_type === 'meeting'">
+            <dt class="text-n-slate-11">{{ t('CRM.MEETING_DURATION') }}</dt>
+            <dd class="m-0 text-n-slate-12">
+              {{
+                t('CRM.MEETING_DURATION_VALUE', {
+                  minutes: selectedActivity.duration_minutes,
+                })
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">{{ t('CRM.OWNER') }}</dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ selectedActivity.owner?.name || t('CRM.UNASSIGNED') }}
+            </dd>
+          </div>
+        </dl>
+        <div v-if="selectedActivity.description">
+          <h3 class="mb-1 text-sm font-medium text-n-slate-11">
+            {{ t('CRM.DESCRIPTION') }}
+          </h3>
+          <p
+            class="mb-0 text-sm whitespace-pre-wrap break-words text-n-slate-12"
+          >
+            {{ selectedActivity.description }}
+          </p>
+        </div>
+        <dl
+          v-if="selectedActivity.status === 'cancelled'"
+          class="flex flex-col gap-2 p-3 rounded-lg bg-n-alpha-2 text-sm"
+        >
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('CRM.ACTIVITY_CANCELLATION_REASON') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ selectedActivity.cancellation_reason }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('CRM.ACTIVITY_CANCELLED_BY') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ selectedActivity.cancelled_by?.name || t('CRM.SYSTEM_ACTOR') }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('CRM.ACTIVITY_CANCELLED_AT') }}
+            </dt>
+            <dd class="m-0 text-n-slate-12">
+              {{ date(selectedActivity.cancelled_at, true) }}
+            </dd>
+          </div>
+        </dl>
+        <section>
+          <h3 class="mb-3 text-sm font-semibold text-n-slate-12">
+            {{ t('CRM.ACTIVITY_HISTORY') }}
+          </h3>
+          <ol class="flex flex-col gap-3 p-0 m-0 list-none">
+            <li
+              v-for="event in activityHistory"
+              :key="event.id"
+              class="pl-3 border-s-2 border-n-weak"
+            >
+              <p class="mb-1 text-xs text-n-slate-11">
+                {{ date(event.created_at, true) }}
+              </p>
+              <p class="mb-1 text-sm font-medium text-n-slate-12">
+                {{ t(`CRM.EVENT_${event.event_type.toUpperCase()}`) }}
+              </p>
+              <p
+                v-if="event.metadata?.cancellation_reason"
+                class="mb-0 text-sm text-n-slate-11"
+              >
+                {{ t('CRM.ACTIVITY_CANCELLATION_REASON') }}:
+                {{ event.metadata.cancellation_reason }}
+              </p>
+              <p class="mb-0 text-xs text-n-slate-11">
+                {{ event.actor?.name || t('CRM.SYSTEM_ACTOR') }}
+              </p>
+            </li>
+            <li v-if="!activityHistory.length" class="text-sm text-n-slate-11">
+              {{ t('CRM.NO_EVENTS') }}
+            </li>
+          </ol>
+        </section>
+        <div class="flex justify-end gap-2">
+          <Button
+            :label="t('CRM.CANCEL')"
+            variant="ghost"
+            type="button"
+            @click="activityDetailDialog.close()"
+          /><Button
+            v-if="selectedActivity.status !== 'cancelled'"
+            :label="t('CRM.EDIT_ACTIVITY')"
+            type="button"
+            @click="editFromDetails"
+          />
+        </div>
+      </div>
+    </Dialog>
     <Dialog
       ref="cancellationDialog"
       :title="t('CRM.ACTIVITY_CANCEL')"

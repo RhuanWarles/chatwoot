@@ -171,6 +171,11 @@
     "FILTER_MIN_VALUE": "Minimum value",
     "FILTER_MAX_VALUE": "Maximum value",
     "FILTER_STAGE": "Stage",
-    "FILTER_COMPANY": "Company"
+    "FILTER_COMPANY": "Company",
+    "ACTIVITY_DETAILS": "Activity details",
+    "ACTIVITY_HISTORY": "Activity history",
+    "ACTIVITY_STATUS_PENDING": "Pending",
+    "ACTIVITY_STATUS_COMPLETED": "Completed",
+    "ACTIVITY_STATUS_CANCELLED": "Cancelled"
   }
 }
