@@ -644,7 +644,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               >
               <p
                 v-else-if="eventChange(event)"
-                class="mt-2 mb-0 text-sm text-n-slate-11"
+                class="mt-2 mb-0 min-w-0 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-n-slate-11"
               >
                 {{ eventChange(event) }}
               </p>
