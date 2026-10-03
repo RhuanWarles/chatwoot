@@ -351,7 +351,7 @@ onUnmounted(() => {
 
 <template>
   <main
-    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-4 md:p-6 overflow-hidden bg-n-background"
+    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-3 md:p-4 overflow-hidden bg-n-background"
   >
     <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div>
@@ -636,22 +636,30 @@ onUnmounted(() => {
         {{ t('CRM.CREATE_PIPELINE') }}
       </RouterLink>
     </section>
-    <section v-else class="flex flex-1 gap-3 min-h-0 overflow-auto pb-2">
+    <section
+      v-else
+      class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-auto pb-2"
+    >
       <div
         v-for="stage in boardStages"
         :key="stage.id"
-        class="flex flex-col flex-1 flex-shrink-0 w-72 min-w-[18rem] min-h-full h-fit rounded-xl bg-n-alpha-2 p-3"
+        class="flex flex-col flex-1 basis-0 min-w-56 min-h-full h-fit rounded-xl bg-n-alpha-2 p-2.5"
       >
-        <div class="mb-3">
-          <div class="flex items-center justify-between gap-2">
-            <h2 class="font-medium text-n-slate-12">{{ stage.name }}</h2>
-            <span class="flex-shrink-0 text-xs text-n-slate-10">{{
-              t('CRM.DEAL_COUNT', stage.deals.length)
-            }}</span>
+        <div class="mb-2 min-w-0">
+          <h2
+            :title="stage.name"
+            class="mb-1 truncate font-medium text-n-slate-12"
+          >
+            {{ stage.name }}
+          </h2>
+          <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span class="text-sm text-n-slate-11">
+              {{ brlFormatter.format(stage.total) }}
+            </span>
+            <span class="text-xs text-n-slate-10">
+              {{ t('CRM.DEAL_COUNT', stage.deals.length) }}
+            </span>
           </div>
-          <p class="mt-1 mb-0 text-sm text-n-slate-11">
-            {{ brlFormatter.format(stage.total) }}
-          </p>
         </div>
         <Draggable
           :model-value="stage.deals"
@@ -662,7 +670,7 @@ onUnmounted(() => {
         >
           <template #item="{ element }">
             <article
-              class="p-3 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
+              class="min-w-0 p-2.5 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
               @click="
                 router.push({
                   name: 'crm_deal_details',
@@ -674,7 +682,10 @@ onUnmounted(() => {
               "
             >
               <div class="flex items-start justify-between gap-2">
-                <p class="min-w-0 mb-0 font-medium text-n-slate-12 break-words">
+                <p
+                  :title="element.name"
+                  class="flex-1 min-w-0 mb-0 font-medium text-n-slate-12 line-clamp-2 [overflow-wrap:anywhere]"
+                >
                   {{ element.name }}
                 </p>
                 <Button
@@ -686,29 +697,40 @@ onUnmounted(() => {
                   :aria-label="t('CRM.QUICK_EDIT')"
                   @click.stop="selectedDeal = { ...element }"
                 />
+              </div>
+              <p
+                :title="element.contact?.name"
+                class="mt-1 mb-0 text-xs text-n-slate-11 truncate"
+              >
+                {{ element.contact?.name }}
+              </p>
+              <div
+                class="flex flex-wrap items-center justify-between gap-1 mt-2"
+              >
+                <p
+                  v-if="element.value != null && element.value !== ''"
+                  class="mb-0 text-sm font-medium text-n-slate-12"
+                >
+                  {{ brlFormatter.format(Number(element.value)) }}
+                </p>
                 <span
                   v-if="element.status === 'won'"
-                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-1 text-label-small bg-n-teal-3 text-n-teal-11"
+                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-0.5 text-label-small bg-n-teal-3 text-n-teal-11"
                 >
                   {{ t('CRM.STATUS_WON') }}
                 </span>
                 <span
                   v-else-if="element.status === 'lost'"
-                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-1 text-label-small bg-n-ruby-3 text-n-ruby-11"
+                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-0.5 text-label-small bg-n-ruby-3 text-n-ruby-11"
                 >
                   {{ t('CRM.STATUS_LOST') }}
                 </span>
               </div>
-              <p class="mt-1 mb-0 text-xs text-n-slate-11 break-words">
-                {{ element.contact?.name }}
-              </p>
               <p
-                v-if="element.value != null && element.value !== ''"
-                class="mt-2 mb-0 text-sm font-medium text-n-slate-12"
+                v-if="element.owner"
+                :title="element.owner.name"
+                class="mt-1 mb-0 text-xs text-n-slate-10 truncate"
               >
-                {{ brlFormatter.format(Number(element.value)) }}
-              </p>
-              <p v-if="element.owner" class="mt-1 text-xs text-n-slate-10">
                 {{ element.owner.name }}
               </p>
             </article>
