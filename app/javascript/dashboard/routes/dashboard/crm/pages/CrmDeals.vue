@@ -46,6 +46,14 @@ const scrollKanban = offsetX => {
       : pointerX <= left + DRAG_SCROLL_EDGE;
   if (inside && nearEdge) board.scrollLeft += offsetX;
 };
+const onKanbanWheel = event => {
+  const board = kanbanBoard.value;
+  if (!board || board.scrollWidth <= board.clientWidth) return;
+  const horizontalDelta = event.deltaX || event.deltaY;
+  if (!horizontalDelta) return;
+  event.preventDefault();
+  board.scrollLeft += horizontalDelta;
+};
 const DRAG_SCROLL_OPTIONS = {
   forceFallback: true,
   fallbackOnBody: true,
@@ -675,6 +683,7 @@ onUnmounted(() => {
       v-else
       ref="kanbanBoard"
       class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-auto pb-2 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      @wheel="onKanbanWheel"
     >
       <div
         v-for="stage in boardStages"
