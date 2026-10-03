@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
@@ -10,7 +10,6 @@ import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
 import { brlFormatter } from '../components/currencyHelpers';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
-import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -19,7 +18,6 @@ const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
 const selectedStatuses = ref([]);
-const filterPanel = ref(null);
 const filterDraft = ref(null);
 const showFilterPanel = ref(false);
 const advancedFilters = ref({
@@ -136,16 +134,14 @@ const selectedFilterContact = computed(() => {
       ?.contact || null
   );
 });
-const openAdvancedFilters = async () => {
+const openAdvancedFilters = () => {
   filterDraft.value = structuredClone(advancedFilters.value);
   showFilterPanel.value = true;
-  await nextTick();
-  filterPanel.value?.open();
 };
 const applyAdvancedFilters = () => {
   advancedFilters.value = structuredClone(filterDraft.value);
-  filterPanel.value?.close();
   filterDraft.value = null;
+  showFilterPanel.value = false;
 };
 const closeAdvancedFilters = () => {
   filterDraft.value = null;
@@ -304,120 +300,144 @@ onMounted(load);
         }}{{ filterCount ? '(' + filterCount + ')' : '' }}
       </button>
     </div>
-    <SidePanel
+    <div
       v-if="showFilterPanel"
-      ref="filterPanel"
-      :title="t('CRM.ADVANCED_FILTERS')"
-      width="lg"
-      @close="closeAdvancedFilters"
+      class="fixed inset-0 z-50 flex justify-end bg-n-alpha-black1"
+      role="presentation"
+      @click.self="closeAdvancedFilters"
     >
-      <div v-if="filterDraft" class="flex flex-col gap-5">
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-n-slate-12">{{
-            t('CRM.OWNER')
-          }}</label
-          ><ComboBox
-            v-model="filterDraft.ownerId"
-            :options="ownerOptions"
-            :placeholder="t('CRM.FILTER_ALL')"
-          />
-        </div>
-        <div class="flex flex-col gap-2">
-          <p class="mb-0 text-sm font-medium text-n-slate-12">
-            {{ t('CRM.FILTER_STAGE') }}
-          </p>
-          <div class="flex flex-col gap-2 p-3 rounded-lg bg-n-alpha-2">
-            <label
-              v-for="stage in stages"
-              :key="stage.id"
-              class="flex items-center gap-2 text-sm text-n-slate-12"
-              ><input
-                v-model="filterDraft.stageIds"
-                type="checkbox"
-                :value="stage.id"
-              />{{ stage.name }}</label
-            >
-          </div>
-        </div>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="text-sm font-medium text-n-slate-12">
-            {{ t('CRM.FILTER_CREATED_FROM').replace(' de', '') }}
-          </legend>
-          <div class="grid grid-cols-2 gap-2">
-            <Input
-              v-model="filterDraft.createdFrom"
-              type="date"
-              :label="t('CRM.FILTER_CREATED_FROM')"
-            /><Input
-              v-model="filterDraft.createdTo"
-              type="date"
-              :label="t('CRM.FILTER_CREATED_TO')"
-            />
-          </div>
-        </fieldset>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="text-sm font-medium text-n-slate-12">
-            {{ t('CRM.FILTER_UPDATED_FROM').replace(' de', '') }}
-          </legend>
-          <div class="grid grid-cols-2 gap-2">
-            <Input
-              v-model="filterDraft.updatedFrom"
-              type="date"
-              :label="t('CRM.FILTER_UPDATED_FROM')"
-            /><Input
-              v-model="filterDraft.updatedTo"
-              type="date"
-              :label="t('CRM.FILTER_UPDATED_TO')"
-            />
-          </div>
-        </fieldset>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="text-sm font-medium text-n-slate-12">
-            {{ t('CRM.VALUE') }}
-          </legend>
-          <div class="grid grid-cols-2 gap-2">
-            <CrmCurrencyInput
-              v-model="filterDraft.minValue"
-              :label="t('CRM.FILTER_MIN_VALUE')"
-            /><CrmCurrencyInput
-              v-model="filterDraft.maxValue"
-              :label="t('CRM.FILTER_MAX_VALUE')"
-            />
-          </div>
-        </fieldset>
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-n-slate-12">{{
-            t('CRM.FILTER_COMPANY')
-          }}</label
-          ><Input
-            v-model="filterDraft.company"
-            :label="t('CRM.FILTER_COMPANY')"
-          />
-        </div>
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-n-slate-12">{{
-            t('CRM.CONTACT')
-          }}</label
-          ><CrmContactPicker
-            v-model="filterDraft.contactId"
-            :contact="selectedFilterContact"
-          />
-        </div>
-      </div>
-      <template #footer
-        ><div class="flex justify-between gap-2">
-          <Button
+      <aside
+        class="flex flex-col w-full max-w-lg my-3 me-3 overflow-hidden rounded-xl shadow-lg outline outline-1 outline-n-container bg-n-solid-1"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('CRM.ADVANCED_FILTERS')"
+      >
+        <header
+          class="flex items-center justify-between flex-shrink-0 gap-4 px-6 py-5 border-b border-n-weak"
+        >
+          <h3 class="text-base font-medium text-n-slate-12">
+            {{ t('CRM.ADVANCED_FILTERS') }}
+          </h3>
+          <button
             type="button"
-            variant="ghost"
-            :label="t('CRM.CLEAR_FILTERS')"
-            @click="clearAdvancedFilters"
-          /><Button
-            type="button"
-            :label="t('CRM.APPLY_FILTERS')"
-            @click="applyAdvancedFilters"
-          /></div
-      ></template>
-    </SidePanel>
+            class="p-2 rounded-lg text-n-slate-11 hover:bg-n-alpha-2"
+            :aria-label="t('GENERAL.CLOSE')"
+            @click="closeAdvancedFilters"
+          >
+            {{ t('GENERAL.CLOSE') }}
+          </button>
+        </header>
+        <div class="flex-1 min-h-0 px-6 py-5 overflow-y-auto">
+          <div v-if="filterDraft" class="flex flex-col gap-5">
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-n-slate-12">{{
+                t('CRM.OWNER')
+              }}</label
+              ><ComboBox
+                v-model="filterDraft.ownerId"
+                :options="ownerOptions"
+                :placeholder="t('CRM.FILTER_ALL')"
+              />
+            </div>
+            <div class="flex flex-col gap-2">
+              <p class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('CRM.FILTER_STAGE') }}
+              </p>
+              <div class="flex flex-col gap-2 p-3 rounded-lg bg-n-alpha-2">
+                <label
+                  v-for="stage in stages"
+                  :key="stage.id"
+                  class="flex items-center gap-2 text-sm text-n-slate-12"
+                  ><input
+                    v-model="filterDraft.stageIds"
+                    type="checkbox"
+                    :value="stage.id"
+                  />{{ stage.name }}</label
+                >
+              </div>
+            </div>
+            <fieldset class="flex flex-col gap-2">
+              <legend class="text-sm font-medium text-n-slate-12">
+                {{ t('CRM.FILTER_CREATED_FROM').replace(' de', '') }}
+              </legend>
+              <div class="grid grid-cols-2 gap-2">
+                <Input
+                  v-model="filterDraft.createdFrom"
+                  type="date"
+                  :label="t('CRM.FILTER_CREATED_FROM')"
+                /><Input
+                  v-model="filterDraft.createdTo"
+                  type="date"
+                  :label="t('CRM.FILTER_CREATED_TO')"
+                />
+              </div>
+            </fieldset>
+            <fieldset class="flex flex-col gap-2">
+              <legend class="text-sm font-medium text-n-slate-12">
+                {{ t('CRM.FILTER_UPDATED_FROM').replace(' de', '') }}
+              </legend>
+              <div class="grid grid-cols-2 gap-2">
+                <Input
+                  v-model="filterDraft.updatedFrom"
+                  type="date"
+                  :label="t('CRM.FILTER_UPDATED_FROM')"
+                /><Input
+                  v-model="filterDraft.updatedTo"
+                  type="date"
+                  :label="t('CRM.FILTER_UPDATED_TO')"
+                />
+              </div>
+            </fieldset>
+            <fieldset class="flex flex-col gap-2">
+              <legend class="text-sm font-medium text-n-slate-12">
+                {{ t('CRM.VALUE') }}
+              </legend>
+              <div class="grid grid-cols-2 gap-2">
+                <CrmCurrencyInput
+                  v-model="filterDraft.minValue"
+                  :label="t('CRM.FILTER_MIN_VALUE')"
+                /><CrmCurrencyInput
+                  v-model="filterDraft.maxValue"
+                  :label="t('CRM.FILTER_MAX_VALUE')"
+                />
+              </div>
+            </fieldset>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-n-slate-12">{{
+                t('CRM.FILTER_COMPANY')
+              }}</label
+              ><Input
+                v-model="filterDraft.company"
+                :label="t('CRM.FILTER_COMPANY')"
+              />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-n-slate-12">{{
+                t('CRM.CONTACT')
+              }}</label
+              ><CrmContactPicker
+                v-model="filterDraft.contactId"
+                :contact="selectedFilterContact"
+              />
+            </div>
+          </div>
+        </div>
+        <footer class="flex-shrink-0 px-6 py-4 border-t border-n-weak">
+          <div class="flex justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              :label="t('CRM.CLEAR_FILTERS')"
+              @click="clearAdvancedFilters"
+            /><Button
+              type="button"
+              :label="t('CRM.APPLY_FILTERS')"
+              @click="applyAdvancedFilters"
+            />
+          </div>
+        </footer>
+      </aside>
+    </div>
     <section
       v-if="!pipelines.length"
       class="flex flex-col items-center justify-center flex-1 gap-3"
