@@ -5,7 +5,11 @@ import Component from './CrmDealCustomFields.vue';
 import messages from 'dashboard/i18n/locale/pt_BR/crm.json';
 
 vi.mock('dashboard/api/crm', () => ({
-  dealsAPI: { customFields: vi.fn(), updateCustomFields: vi.fn() },
+  dealsAPI: {
+    customFields: vi.fn(),
+    updateCustomFields: vi.fn(),
+    update: vi.fn(),
+  },
 }));
 const Button = {
   props: ['label', 'disabled', 'isLoading'],
@@ -47,10 +51,10 @@ const definitions = [
   active: true,
   position: index,
 }));
-const create = async (fields = definitions) => {
+const create = async (fields = definitions, deal = null) => {
   dealsAPI.customFields.mockResolvedValue({ data: fields });
   const wrapper = mount(Component, {
-    props: { dealId: 12 },
+    props: { dealId: 12, deal },
     global: {
       plugins: [
         createI18n({
@@ -153,4 +157,98 @@ it('cancels without requests and can reopen with saved values', async () => {
   await click(wrapper, messages.CRM.EDIT);
   expect(wrapper.find('input[type=text]').element.value).toBe('');
   expect(dealsAPI.updateCustomFields).not.toHaveBeenCalled();
+});
+
+it('collapses and expands Details without discarding an edit draft', async () => {
+  const wrapper = await create();
+  const toggle = wrapper.find('[aria-controls]');
+  await toggle.trigger('click');
+  expect(toggle.attributes('aria-expanded')).toBe('false');
+  await toggle.trigger('click');
+  expect(toggle.attributes('aria-expanded')).toBe('true');
+  await click(wrapper, messages.CRM.EDIT);
+  await wrapper.find('input[type=text]').setValue('Draft');
+  await toggle.trigger('click');
+  await toggle.trigger('click');
+  expect(wrapper.find('input[type=text]').element.value).toBe('Draft');
+});
+
+it('keeps native and custom details in one list and edits only changed native fields', async () => {
+  const deal = { id: 12, name: 'Original', description: 'Description' };
+  const wrapper = await create(definitions, deal);
+  expect(wrapper.findAll('dl')).toHaveLength(1);
+  expect(
+    wrapper
+      .findAll('dt')
+      .slice(0, 2)
+      .map(item => item.text())
+  ).toEqual([messages.CRM.NAME, messages.CRM.DESCRIPTION]);
+  expect(wrapper.text()).not.toContain(messages.CRM.CUSTOM_FIELDS_TITLE);
+  dealsAPI.update.mockResolvedValue({ data: { ...deal, name: 'Changed' } });
+  await click(wrapper, messages.CRM.EDIT);
+  await wrapper.find('#deal-details-name').setValue('Changed');
+  await wrapper.find('form').trigger('submit');
+  await flushPromises();
+  expect(dealsAPI.update).toHaveBeenCalledWith(12, {
+    deal: { name: 'Changed' },
+  });
+  expect(dealsAPI.updateCustomFields).not.toHaveBeenCalled();
+  expect(wrapper.emitted('dealUpdated')[0][0].name).toBe('Changed');
+});
+
+it('preserves native fields on cancel and renders Details even without custom fields', async () => {
+  const wrapper = await create([], { name: 'Original', description: '' });
+  await click(wrapper, messages.CRM.EDIT);
+  await wrapper.find('#deal-details-name').setValue('Draft');
+  await click(wrapper, messages.CRM.CF_CANCEL);
+  await click(wrapper, messages.CRM.EDIT);
+  expect(wrapper.find('#deal-details-name').element.value).toBe('Original');
+  expect(dealsAPI.update).not.toHaveBeenCalled();
+});
+
+it('preserves the entire draft when saving native details fails', async () => {
+  const wrapper = await create(definitions, {
+    name: 'Original',
+    description: '',
+  });
+  dealsAPI.update.mockRejectedValue(new Error('Failed'));
+  await click(wrapper, messages.CRM.EDIT);
+  await wrapper.find('#deal-details-name').setValue('Changed');
+  await wrapper.find('#cf-1').setValue('City');
+  await wrapper.find('form').trigger('submit');
+  await flushPromises();
+  expect(wrapper.find('#deal-details-name').element.value).toBe('Changed');
+  expect(wrapper.find('#cf-1').element.value).toBe('City');
+  expect(wrapper.find('[role=alert]').exists()).toBe(true);
+  expect(dealsAPI.updateCustomFields).not.toHaveBeenCalled();
+});
+
+it('renders many fields in a single compact column and wraps multiselect chips', async () => {
+  const many = Array.from({ length: 50 }, (_, index) => ({
+    ...definitions[8],
+    id: index + 1,
+    key: 'field-' + index,
+    name: 'Field ' + index,
+    value: ['Meta', 'Google'],
+  }));
+  const wrapper = await create(many);
+  expect(wrapper.findAll('dt')).toHaveLength(50);
+  expect(wrapper.find('dl').classes()).toContain('flex-col');
+  expect(wrapper.find('dd > div').classes()).toContain('flex-wrap');
+  expect(wrapper.text()).not.toContain('["Meta"');
+});
+
+it('allows an empty boolean to become an explicit false without overwriting other fields', async () => {
+  const wrapper = await create([{ ...definitions[6], value: null }]);
+  dealsAPI.updateCustomFields.mockResolvedValue({
+    data: [{ ...definitions[6], value: false }],
+  });
+  await click(wrapper, messages.CRM.EDIT);
+  await wrapper.find('input[type=checkbox]').setValue(true);
+  await wrapper.find('input[type=checkbox]').setValue(false);
+  await wrapper.find('form').trigger('submit');
+  await flushPromises();
+  expect(dealsAPI.updateCustomFields).toHaveBeenCalledWith(12, {
+    boolean: false,
+  });
 });

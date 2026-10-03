@@ -198,7 +198,11 @@
     "CF_LOADING": "Carregando campos personalizados...",
     "CF_CANCEL": "Cancelar",
     "CF_SAVE": "Salvar altera\u00e7\u00f5es",
-    "EVENT_CUSTOM_FIELD_CHANGED": "Campo personalizado alterado"
+    "EVENT_CUSTOM_FIELD_CHANGED": "Campo personalizado alterado",
+    "SIDEBAR_SUMMARY": "Resumo",
+    "SIDEBAR_DETAILS": "Detalhes",
+    "SIDEBAR_MORE": "Ver mais",
+    "SIDEBAR_LESS": "Ver menos"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

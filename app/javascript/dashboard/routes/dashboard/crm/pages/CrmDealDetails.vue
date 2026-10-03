@@ -22,6 +22,7 @@ const NOTE_MAX_LENGTH = 10000;
 const { t, locale } = useI18n();
 const route = useRoute();
 const deal = ref(null);
+const summaryExpanded = ref(true);
 const pipelines = ref([]);
 const agents = ref([]);
 const events = ref([]);
@@ -331,122 +332,157 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
       </header>
       <div class="flex flex-col lg:flex-row gap-5 min-w-0">
         <aside
-          class="flex flex-col gap-4 p-4 border border-n-weak rounded-xl lg:w-80 lg:shrink-0 bg-n-alpha-2"
+          class="flex flex-col self-start w-full min-w-0 p-4 border border-n-weak rounded-xl lg:w-80 xl:w-96 lg:shrink-0 bg-n-alpha-2"
         >
-          <h2 class="mb-0 font-semibold text-n-slate-12">
-            {{ t('CRM.DEAL_INFORMATION') }}
-          </h2>
-          <div v-if="deal.contact" class="flex flex-col gap-2">
-            <RouterLink
-              :to="{
-                name: 'contacts_edit',
-                params: {
-                  accountId: route.params.accountId,
-                  contactId: deal.contact.id,
-                },
-              }"
-              class="flex items-center gap-3 min-w-0 text-n-brand"
-            >
-              <Avatar
-                :name="
-                  deal.contact.name || t('CRM_CONTACT_PICKER.UNNAMED_CONTACT')
-                "
-                :src="deal.contact.thumbnail || ''"
-                :size="40"
-              />
-              <span class="break-words">{{
-                deal.contact.name || t('CRM_CONTACT_PICKER.UNNAMED_CONTACT')
-              }}</span>
-            </RouterLink>
-            <a
-              v-if="deal.contact.phone_number"
-              :href="`tel:${deal.contact.phone_number}`"
-              class="text-sm text-n-slate-11 break-words"
-              >{{ formatContactPhone(deal.contact.phone_number) }}</a
-            >
-            <a
-              v-if="deal.contact.email"
-              :href="`mailto:${deal.contact.email}`"
-              class="text-sm text-n-slate-11 break-words"
-              >{{ deal.contact.email }}</a
-            >
-            <p
-              v-if="
-                deal.contact.company?.name ||
-                deal.contact.additional_attributes?.company_name
+          <button
+            type="button"
+            class="flex items-center gap-2 py-1 mb-3 text-start text-sm font-semibold text-n-slate-12"
+            :aria-expanded="summaryExpanded"
+            aria-controls="deal-summary"
+            @click="summaryExpanded = !summaryExpanded"
+          >
+            <span
+              class="size-4 shrink-0"
+              :class="
+                summaryExpanded
+                  ? 'i-lucide-chevron-down'
+                  : 'i-lucide-chevron-right'
               "
-              class="mb-0 text-sm text-n-slate-11"
-            >
-              {{ t('CRM.COMPANY') }}:
-              {{
-                deal.contact.company?.name ||
-                deal.contact.additional_attributes.company_name
-              }}
-            </p>
-            <RouterLink
-              :to="{
-                name: 'contacts_edit',
-                params: {
-                  accountId: route.params.accountId,
-                  contactId: deal.contact.id,
-                },
-              }"
-              class="text-sm text-n-brand"
-            >
-              {{ t('CRM.VIEW_CONTACT') }}
-            </RouterLink>
+              aria-hidden="true"
+            />
+            {{ t('CRM.SIDEBAR_SUMMARY') }}
+          </button>
+          <div
+            v-show="summaryExpanded"
+            id="deal-summary"
+            class="flex flex-col gap-3 pb-4"
+          >
+            <div v-if="deal.contact" class="flex flex-col gap-2">
+              <RouterLink
+                :to="{
+                  name: 'contacts_edit',
+                  params: {
+                    accountId: route.params.accountId,
+                    contactId: deal.contact.id,
+                  },
+                }"
+                class="flex items-center gap-3 min-w-0 text-n-brand"
+              >
+                <Avatar
+                  :name="
+                    deal.contact.name || t('CRM_CONTACT_PICKER.UNNAMED_CONTACT')
+                  "
+                  :src="deal.contact.thumbnail || ''"
+                  :size="40"
+                />
+                <span class="break-words">{{
+                  deal.contact.name || t('CRM_CONTACT_PICKER.UNNAMED_CONTACT')
+                }}</span>
+              </RouterLink>
+              <a
+                v-if="deal.contact.phone_number"
+                :href="`tel:${deal.contact.phone_number}`"
+                class="text-sm text-n-slate-11 break-words"
+                >{{ formatContactPhone(deal.contact.phone_number) }}</a
+              >
+              <a
+                v-if="deal.contact.email"
+                :href="`mailto:${deal.contact.email}`"
+                class="text-sm text-n-slate-11 break-words"
+                >{{ deal.contact.email }}</a
+              >
+              <p
+                v-if="
+                  deal.contact.company?.name ||
+                  deal.contact.additional_attributes?.company_name
+                "
+                class="mb-0 text-sm text-n-slate-11"
+              >
+                {{ t('CRM.COMPANY') }}:
+                {{
+                  deal.contact.company?.name ||
+                  deal.contact.additional_attributes.company_name
+                }}
+              </p>
+              <RouterLink
+                :to="{
+                  name: 'contacts_edit',
+                  params: {
+                    accountId: route.params.accountId,
+                    contactId: deal.contact.id,
+                  },
+                }"
+                class="text-sm text-n-brand"
+              >
+                {{ t('CRM.VIEW_CONTACT') }}
+              </RouterLink>
+            </div>
+            <dl class="flex flex-col gap-3 m-0 text-sm">
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.PIPELINES_TITLE') }}</dt>
+                <dd class="m-0 text-n-slate-12">{{ deal.pipeline.name }}</dd>
+              </div>
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.STAGE') }}</dt>
+                <dd class="m-0 text-n-slate-12">
+                  {{ deal.pipeline_stage.name }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.VALUE') }}</dt>
+                <dd class="m-0 font-medium text-n-slate-12">
+                  {{ money(deal.value) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.OWNER') }}</dt>
+                <dd class="m-0 text-n-slate-12">
+                  {{ deal.owner?.name || t('CRM.UNASSIGNED') }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.STATUS') }}</dt>
+                <dd class="m-0 text-n-slate-12">
+                  <span
+                    class="inline-flex px-2 py-0.5 rounded-md text-xs"
+                    :class="
+                      deal.status === 'won'
+                        ? 'bg-n-teal-3 text-n-teal-11'
+                        : deal.status === 'lost'
+                          ? 'bg-n-ruby-3 text-n-ruby-11'
+                          : 'bg-n-blue-3 text-n-blue-11'
+                    "
+                    >{{ statusLabel(deal.status) }}</span
+                  >
+                </dd>
+              </div>
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.CREATED_AT') }}</dt>
+                <dd class="m-0 text-n-slate-12">{{ date(deal.created_at) }}</dd>
+              </div>
+              <div>
+                <dt class="text-n-slate-11">{{ t('CRM.UPDATED_AT') }}</dt>
+                <dd class="m-0 text-n-slate-12">{{ date(deal.updated_at) }}</dd>
+              </div>
+              <div v-if="deal.description">
+                <dt class="text-n-slate-11">{{ t('CRM.DESCRIPTION') }}</dt>
+                <dd
+                  class="m-0 line-clamp-3 whitespace-pre-wrap break-words text-n-slate-12"
+                >
+                  {{ deal.description }}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <dl class="flex flex-col gap-3 text-sm">
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.PIPELINES_TITLE') }}</dt>
-              <dd class="m-0 text-n-slate-12">{{ deal.pipeline.name }}</dd>
-            </div>
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.STAGE') }}</dt>
-              <dd class="m-0 text-n-slate-12">
-                {{ deal.pipeline_stage.name }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.VALUE') }}</dt>
-              <dd class="m-0 font-medium text-n-slate-12">
-                {{ money(deal.value) }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.OWNER') }}</dt>
-              <dd class="m-0 text-n-slate-12">
-                {{ deal.owner?.name || t('CRM.UNASSIGNED') }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.STATUS') }}</dt>
-              <dd class="m-0 text-n-slate-12">
-                {{ statusLabel(deal.status) }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.CREATED_AT') }}</dt>
-              <dd class="m-0 text-n-slate-12">{{ date(deal.created_at) }}</dd>
-            </div>
-            <div>
-              <dt class="text-n-slate-11">{{ t('CRM.UPDATED_AT') }}</dt>
-              <dd class="m-0 text-n-slate-12">{{ date(deal.updated_at) }}</dd>
-            </div>
-            <div v-if="deal.description">
-              <dt class="text-n-slate-11">{{ t('CRM.DESCRIPTION') }}</dt>
-              <dd class="m-0 whitespace-pre-wrap break-words text-n-slate-12">
-                {{ deal.description }}
-              </dd>
-            </div>
-          </dl>
-        </aside>
-        <section class="flex flex-1 flex-col gap-4 min-w-0">
           <CrmDealCustomFields
             :key="route.params.accountId"
             :deal-id="deal.id"
+            :deal="deal"
+            @deal-updated="deal = $event"
             @changed="loadHistory()"
           />
+        </aside>
+        <section class="flex flex-1 flex-col gap-4 min-w-0">
           <CrmActivities
             :key="`${route.params.accountId}-${deal.id}`"
             :deal="deal"

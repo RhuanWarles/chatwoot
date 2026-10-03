@@ -25,6 +25,8 @@ vi.mock('../components/CrmDealConversations.vue', () => ({
 vi.mock('dashboard/api/agents', () => ({ default: { get: vi.fn() } }));
 vi.mock('dashboard/api/crm', () => ({
   dealsAPI: {
+    customFields: vi.fn(),
+    updateCustomFields: vi.fn(),
     show: vi.fn(),
     get: vi.fn(),
     update: vi.fn(),
@@ -107,6 +109,7 @@ const click = async (wrapper, label) => {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  dealsAPI.customFields.mockResolvedValue({ data: [] });
   dealsAPI.show.mockResolvedValue({ data: structuredClone(DEAL) });
   dealsAPI.get.mockResolvedValue({ data: [structuredClone(DEAL)] });
   dealsAPI.events.mockResolvedValue({
@@ -378,4 +381,28 @@ it('shows cancellation reason and actor in the Deal timeline', async () => {
   expect(wrapper.text()).toContain('Cancelado por Rhuan');
   expect(wrapper.text()).toContain('03/10/2026');
   wrapper.unmount();
+});
+
+it('keeps Details in the sidebar and independently collapses Summary', async () => {
+  const wrapper = await mountPage();
+  expect(wrapper.find('aside [aria-controls="deal-details-12"]').exists()).toBe(
+    true
+  );
+  const toggle = wrapper.find('[aria-controls="deal-summary"]');
+  expect(toggle.attributes('aria-expanded')).toBe('true');
+  await toggle.trigger('click');
+  expect(toggle.attributes('aria-expanded')).toBe('false');
+  expect(wrapper.find('#deal-summary').isVisible()).toBe(false);
+  expect(
+    wrapper
+      .find('[aria-controls="deal-details-12"]')
+      .attributes('aria-expanded')
+  ).toBe('true');
+  await toggle.trigger('click');
+  expect(toggle.attributes('aria-expanded')).toBe('true');
+  expect(wrapper.find('#deal-summary').attributes('style') || '').not.toContain(
+    'display: none'
+  );
+  expect(wrapper.find('main').classes()).toContain('overflow-auto');
+  expect(wrapper.find('aside').classes()).toContain('self-start');
 });

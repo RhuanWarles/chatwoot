@@ -198,6 +198,10 @@
     "CF_LOADING": "Loading custom fields...",
     "CF_CANCEL": "Cancel",
     "CF_SAVE": "Save changes",
-    "EVENT_CUSTOM_FIELD_CHANGED": "Custom field changed"
+    "EVENT_CUSTOM_FIELD_CHANGED": "Custom field changed",
+    "SIDEBAR_SUMMARY": "Summary",
+    "SIDEBAR_DETAILS": "Details",
+    "SIDEBAR_MORE": "Show more",
+    "SIDEBAR_LESS": "Show less"
   }
 }
