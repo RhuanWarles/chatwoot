@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
@@ -135,13 +135,14 @@ const selectedFilterContact = computed(() => {
       ?.contact || null
   );
 });
-const openAdvancedFilters = () => {
+const openAdvancedFilters = async () => {
   filterDraft.value = structuredClone(advancedFilters.value);
-  filterPanel.value.open();
+  await nextTick();
+  filterPanel.value?.open();
 };
 const applyAdvancedFilters = () => {
   advancedFilters.value = structuredClone(filterDraft.value);
-  filterPanel.value.close();
+  filterPanel.value?.close();
   filterDraft.value = null;
 };
 const closeAdvancedFilters = () => {
