@@ -389,14 +389,14 @@ watch(() => props.deal.id, load, { immediate: true });
             :label="t('CRM.ACTIVITY_COMPLETE')"
             size="sm"
             :disabled="saving || cancelling || activity.can_sync === false"
-            @click="mutate(activity.id, { status: 'completed' })"
+            @click.stop="mutate(activity.id, { status: 'completed' })"
           />
           <Button
             :label="t('CRM.EDIT_ACTIVITY')"
             size="sm"
             variant="faded"
             :disabled="saving || cancelling || activity.can_sync === false"
-            @click="open(activity)"
+            @click.stop="open(activity)"
           />
           <Button
             :label="t('CRM.ACTIVITY_CANCEL')"
@@ -404,7 +404,7 @@ watch(() => props.deal.id, load, { immediate: true });
             color="ruby"
             variant="ghost"
             :disabled="saving || cancelling || activity.can_sync === false"
-            @click="openCancellation(activity)"
+            @click.stop="openCancellation(activity)"
           />
         </div>
       </div>
