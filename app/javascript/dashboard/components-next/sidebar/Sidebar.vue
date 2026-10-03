@@ -1030,7 +1030,7 @@ const menuItems = computed(() => {
       <div
         class="flex gap-2 items-center min-w-0"
         :class="{
-          'justify-center px-1': isEffectivelyCollapsed,
+          'justify-between px-1': isEffectivelyCollapsed,
           'px-2': !isEffectivelyCollapsed,
         }"
       >
@@ -1050,6 +1050,33 @@ const menuItems = computed(() => {
             @show-create-account-modal="emit('showCreateAccountModal')"
           />
         </template>
+        <Button
+          type="button"
+          variant="ghost"
+          color="slate"
+          size="sm"
+          :icon="
+            isEffectivelyCollapsed
+              ? 'i-lucide-panel-left-open'
+              : 'i-lucide-panel-left-close'
+          "
+          :aria-label="
+            t(
+              isEffectivelyCollapsed
+                ? 'GENERAL.EXPAND_SIDEBAR'
+                : 'GENERAL.COLLAPSE_SIDEBAR'
+            )
+          "
+          :title="
+            t(
+              isEffectivelyCollapsed
+                ? 'GENERAL.EXPAND_SIDEBAR'
+                : 'GENERAL.COLLAPSE_SIDEBAR'
+            )
+          "
+          class="flex-shrink-0"
+          @click="isEffectivelyCollapsed ? snapToExpanded() : snapToCollapsed()"
+        />
       </div>
       <div
         class="flex gap-2"

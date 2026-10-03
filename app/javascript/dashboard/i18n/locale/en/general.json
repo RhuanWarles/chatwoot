@@ -10,7 +10,9 @@
     "BETA_DESCRIPTION": "This feature is in beta and may change as we improve it.",
     "ACCEPT": "Accept",
     "DISCARD": "Discard",
-    "PREFERRED": "Preferred"
+    "PREFERRED": "Preferred",
+    "COLLAPSE_SIDEBAR": "Collapse sidebar",
+    "EXPAND_SIDEBAR": "Expand sidebar"
   },
   "CHOICE_TOGGLE": {
     "YES": "Yes",
