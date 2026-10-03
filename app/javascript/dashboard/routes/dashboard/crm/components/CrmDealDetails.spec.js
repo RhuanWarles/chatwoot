@@ -261,6 +261,7 @@ describe('Deal details', () => {
           }),
         ],
         stubs: {
+          Popover: { template: '<span><slot /></span>' },
           RouterLink: RouterLinkStub,
           CrmContactPicker: true,
           Draggable: {

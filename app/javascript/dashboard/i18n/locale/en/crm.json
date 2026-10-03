@@ -211,6 +211,11 @@
     "DEAL_SEARCH_LOADING": "Searching deals...",
     "DEAL_SEARCH_ERROR": "Unable to search deals.",
     "DEAL_SEARCH_CONTEXT": "Deal \u00b7 {pipeline} \u00b7 {stage}",
-    "DEAL_SEARCH_CONTACT": "Contact: {name}"
+    "DEAL_SEARCH_CONTACT": "Contact: {name}",
+    "DEAL_SEARCH_RESULTS": "Results",
+    "DEAL_SEARCH_CONTACTS": "Related contacts",
+    "DEAL_SEARCH_COMPANIES": "Related companies",
+    "DEAL_SEARCH_VIEW_ALL": "View all results in the Kanban",
+    "DEAL_SEARCH_EMPTY_QUERY": "No deals found for \"{query}\"."
   }
 }
