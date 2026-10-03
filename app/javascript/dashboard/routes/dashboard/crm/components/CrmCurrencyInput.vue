@@ -6,6 +6,7 @@ import { brlFormatter as formatter } from './currencyHelpers';
 
 const props = defineProps({
   modelValue: { type: [Number, String], default: '' },
+  label: { type: String, default: '' },
 });
 const emit = defineEmits(['update:modelValue']);
 const { t } = useI18n();
@@ -64,7 +65,7 @@ defineExpose({ isInvalid: error });
 <template>
   <Input
     :model-value="display"
-    :label="t('CRM.VALUE')"
+    :label="label || t('CRM.VALUE')"
     :placeholder="formatter.format(0)"
     inputmode="decimal"
     :message="error ? t('CRM.VALUE_INVALID') : ''"

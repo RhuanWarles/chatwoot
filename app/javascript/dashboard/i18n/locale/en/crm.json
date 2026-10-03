@@ -176,6 +176,7 @@
     "ACTIVITY_HISTORY": "Activity history",
     "ACTIVITY_STATUS_PENDING": "Pending",
     "ACTIVITY_STATUS_COMPLETED": "Completed",
-    "ACTIVITY_STATUS_CANCELLED": "Cancelled"
+    "ACTIVITY_STATUS_CANCELLED": "Cancelled",
+    "APPLY_FILTERS": "Apply filters"
   }
 }

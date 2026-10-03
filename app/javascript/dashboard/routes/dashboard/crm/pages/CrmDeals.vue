@@ -10,6 +10,7 @@ import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
 import { brlFormatter } from '../components/currencyHelpers';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
+import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -18,7 +19,8 @@ const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
 const selectedStatuses = ref([]);
-const showAdvancedFilters = ref(false);
+const filterPanel = ref(null);
+const filterDraft = ref(null);
 const advancedFilters = ref({
   ownerId: '',
   createdFrom: '',
@@ -112,7 +114,8 @@ const ownerOptions = computed(() => [
   { value: 'none', label: t('CRM.FILTER_UNASSIGNED') },
 ]);
 const clearAdvancedFilters = () => {
-  advancedFilters.value = {
+  const target = filterDraft.value || advancedFilters.value;
+  Object.assign(target, {
     ownerId: '',
     createdFrom: '',
     createdTo: '',
@@ -123,14 +126,27 @@ const clearAdvancedFilters = () => {
     maxValue: '',
     contactId: '',
     company: '',
-  };
+  });
 };
-const selectedFilterContact = computed(
-  () =>
-    deals.value.find(
-      deal => deal.contact_id === Number(advancedFilters.value.contactId)
-    )?.contact || null
-);
+const selectedFilterContact = computed(() => {
+  const filters = filterDraft.value || advancedFilters.value;
+  return (
+    deals.value.find(deal => deal.contact_id === Number(filters.contactId))
+      ?.contact || null
+  );
+});
+const openAdvancedFilters = () => {
+  filterDraft.value = structuredClone(advancedFilters.value);
+  filterPanel.value.open();
+};
+const applyAdvancedFilters = () => {
+  advancedFilters.value = structuredClone(filterDraft.value);
+  filterPanel.value.close();
+  filterDraft.value = null;
+};
+const closeAdvancedFilters = () => {
+  filterDraft.value = null;
+};
 const boardStages = computed(() =>
   stages.value.map(stage => {
     const stageDeals = visibleDeals.value.filter(
@@ -279,94 +295,122 @@ onMounted(load);
         type="button"
         variant="faded"
         :label="`${t('CRM.ADVANCED_FILTERS')}${filterCount ? ` (${filterCount})` : ''}`"
-        @click="showAdvancedFilters = !showAdvancedFilters"
+        @click="openAdvancedFilters"
       />
     </div>
-    <div
-      v-if="showAdvancedFilters"
-      class="flex flex-col gap-4 p-4 mb-4 border border-n-weak rounded-xl bg-n-alpha-2"
+    <SidePanel
+      ref="filterPanel"
+      :title="t('CRM.ADVANCED_FILTERS')"
+      width="lg"
+      @close="closeAdvancedFilters"
     >
-      <div class="flex items-center justify-between">
-        <h2 class="mb-0 text-base font-semibold text-n-slate-12">
-          {{ t('CRM.ADVANCED_FILTERS') }}
-        </h2>
-        <Button
-          type="button"
-          variant="ghost"
-          :label="t('CRM.CLEAR_FILTERS')"
-          @click="clearAdvancedFilters"
-        />
-      </div>
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <ComboBox
-          v-model="advancedFilters.ownerId"
-          :options="ownerOptions"
-          :placeholder="t('CRM.OWNER')"
-        />
-        <Input
-          v-model="advancedFilters.company"
-          :label="t('CRM.FILTER_COMPANY')"
-        />
-        <div class="grid grid-cols-2 gap-2">
-          <Input
-            v-model="advancedFilters.createdFrom"
-            type="date"
-            :label="t('CRM.FILTER_CREATED_FROM')"
-          /><Input
-            v-model="advancedFilters.createdTo"
-            type="date"
-            :label="t('CRM.FILTER_CREATED_TO')"
+      <div v-if="filterDraft" class="flex flex-col gap-5">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.OWNER')
+          }}</label
+          ><ComboBox
+            v-model="filterDraft.ownerId"
+            :options="ownerOptions"
+            :placeholder="t('CRM.FILTER_ALL')"
           />
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <Input
-            v-model="advancedFilters.updatedFrom"
-            type="date"
-            :label="t('CRM.FILTER_UPDATED_FROM')"
-          /><Input
-            v-model="advancedFilters.updatedTo"
-            type="date"
-            :label="t('CRM.FILTER_UPDATED_TO')"
+        <div class="flex flex-col gap-2">
+          <p class="mb-0 text-sm font-medium text-n-slate-12">
+            {{ t('CRM.FILTER_STAGE') }}
+          </p>
+          <div class="flex flex-col gap-2 p-3 rounded-lg bg-n-alpha-2">
+            <label
+              v-for="stage in stages"
+              :key="stage.id"
+              class="flex items-center gap-2 text-sm text-n-slate-12"
+              ><input
+                v-model="filterDraft.stageIds"
+                type="checkbox"
+                :value="stage.id"
+              />{{ stage.name }}</label
+            >
+          </div>
+        </div>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="text-sm font-medium text-n-slate-12">
+            {{ t('CRM.FILTER_CREATED_FROM').replace(' de', '') }}
+          </legend>
+          <div class="grid grid-cols-2 gap-2">
+            <Input
+              v-model="filterDraft.createdFrom"
+              type="date"
+              :label="t('CRM.FILTER_CREATED_FROM')"
+            /><Input
+              v-model="filterDraft.createdTo"
+              type="date"
+              :label="t('CRM.FILTER_CREATED_TO')"
+            />
+          </div>
+        </fieldset>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="text-sm font-medium text-n-slate-12">
+            {{ t('CRM.FILTER_UPDATED_FROM').replace(' de', '') }}
+          </legend>
+          <div class="grid grid-cols-2 gap-2">
+            <Input
+              v-model="filterDraft.updatedFrom"
+              type="date"
+              :label="t('CRM.FILTER_UPDATED_FROM')"
+            /><Input
+              v-model="filterDraft.updatedTo"
+              type="date"
+              :label="t('CRM.FILTER_UPDATED_TO')"
+            />
+          </div>
+        </fieldset>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="text-sm font-medium text-n-slate-12">
+            {{ t('CRM.VALUE') }}
+          </legend>
+          <div class="grid grid-cols-2 gap-2">
+            <CrmCurrencyInput
+              v-model="filterDraft.minValue"
+              :label="t('CRM.FILTER_MIN_VALUE')"
+            /><CrmCurrencyInput
+              v-model="filterDraft.maxValue"
+              :label="t('CRM.FILTER_MAX_VALUE')"
+            />
+          </div>
+        </fieldset>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.FILTER_COMPANY')
+          }}</label
+          ><Input
+            v-model="filterDraft.company"
+            :label="t('CRM.FILTER_COMPANY')"
           />
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <Input
-            v-model="advancedFilters.minValue"
-            type="number"
-            min="0"
-            step="0.01"
-            :label="t('CRM.FILTER_MIN_VALUE')"
-          /><Input
-            v-model="advancedFilters.maxValue"
-            type="number"
-            min="0"
-            step="0.01"
-            :label="t('CRM.FILTER_MAX_VALUE')"
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.CONTACT')
+          }}</label
+          ><CrmContactPicker
+            v-model="filterDraft.contactId"
+            :contact="selectedFilterContact"
           />
         </div>
       </div>
-      <CrmContactPicker
-        v-model="advancedFilters.contactId"
-        :contact="selectedFilterContact"
-      />
-      <div>
-        <p class="mb-2 text-sm font-medium text-n-slate-12">
-          {{ t('CRM.FILTER_STAGE') }}
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <label
-            v-for="stage in stages"
-            :key="stage.id"
-            class="flex items-center gap-2 text-sm text-n-slate-12"
-            ><input
-              v-model="advancedFilters.stageIds"
-              type="checkbox"
-              :value="stage.id"
-            />{{ stage.name }}</label
-          >
-        </div>
-      </div>
-    </div>
+      <template #footer
+        ><div class="flex justify-between gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            :label="t('CRM.CLEAR_FILTERS')"
+            @click="clearAdvancedFilters"
+          /><Button
+            type="button"
+            :label="t('CRM.APPLY_FILTERS')"
+            @click="applyAdvancedFilters"
+          /></div
+      ></template>
+    </SidePanel>
     <section
       v-if="!pipelines.length"
       class="flex flex-col items-center justify-center flex-1 gap-3"

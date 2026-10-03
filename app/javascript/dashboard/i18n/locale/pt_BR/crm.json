@@ -173,10 +173,11 @@
     "FILTER_STAGE": "Etapa",
     "FILTER_COMPANY": "Empresa",
     "ACTIVITY_DETAILS": "Detalhes da atividade",
-    "ACTIVITY_HISTORY": "Hist\u00f3rico da atividade",
+    "ACTIVITY_HISTORY": "Histórico da atividade",
     "ACTIVITY_STATUS_PENDING": "Pendente",
-    "ACTIVITY_STATUS_COMPLETED": "Concl\u00edda",
-    "ACTIVITY_STATUS_CANCELLED": "Cancelada"
+    "ACTIVITY_STATUS_COMPLETED": "Conclída",
+    "ACTIVITY_STATUS_CANCELLED": "Cancelada",
+    "APPLY_FILTERS": "Aplicar filtros"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",
