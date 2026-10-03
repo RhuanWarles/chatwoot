@@ -22,6 +22,6 @@ class CreateCrmCustomFields < ActiveRecord::Migration[7.0]
       t.timestamps
     end
     add_index :crm_deal_custom_field_values, [:deal_id, :custom_field_id], unique: true, name: 'idx_crm_deal_custom_values_unique'
-    add_index :crm_deal_custom_field_values, [:account_id, :custom_field_id]
+    add_index :crm_deal_custom_field_values, [:account_id, :custom_field_id], name: 'idx_crm_deal_custom_account_field'
   end
 end
