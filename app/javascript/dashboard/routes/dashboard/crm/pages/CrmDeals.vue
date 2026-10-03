@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { debounce } from '@chatwoot/utils';
+import { useEventListener } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
@@ -22,12 +23,36 @@ const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
 const kanbanBoard = ref(null);
+const isDragging = ref(false);
+const DRAG_SCROLL_EDGE = 80;
+let pointerX = 0;
+let pointerY = 0;
+useEventListener(document, 'pointermove', event => {
+  pointerX = event.clientX;
+  pointerY = event.clientY;
+});
+const scrollKanban = offsetX => {
+  if (!isDragging.value) return;
+  const board = kanbanBoard.value;
+  const { left, right, top, bottom } = board.getBoundingClientRect();
+  const inside =
+    pointerX >= left &&
+    pointerX <= right &&
+    pointerY >= top &&
+    pointerY <= bottom;
+  const nearEdge =
+    offsetX > 0
+      ? pointerX >= right - DRAG_SCROLL_EDGE
+      : pointerX <= left + DRAG_SCROLL_EDGE;
+  if (inside && nearEdge) board.scrollLeft += offsetX;
+};
 const DRAG_SCROLL_OPTIONS = {
   forceFallback: true,
   fallbackOnBody: true,
   forceAutoScrollFallback: true,
   bubbleScroll: false,
-  scrollSensitivity: 80,
+  scrollSensitivity: DRAG_SCROLL_EDGE,
+  scrollFn: scrollKanban,
   scrollSpeed: 6,
 };
 const searchDraft = ref('');
@@ -354,6 +379,7 @@ const moveDeal = async (deal, stage) => {
 
 onMounted(load);
 onUnmounted(() => {
+  isDragging.value = false;
   searchVersion += 1;
 });
 </script>
@@ -677,6 +703,8 @@ onUnmounted(() => {
           group="crm-deals"
           :scroll="kanbanBoard"
           v-bind="DRAG_SCROLL_OPTIONS"
+          @start="isDragging = true"
+          @end="isDragging = false"
           class="flex flex-col flex-1 gap-2 min-h-24"
           @change="event => event.added && moveDeal(event.added.element, stage)"
         >
