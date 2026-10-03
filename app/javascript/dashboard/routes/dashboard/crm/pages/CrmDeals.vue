@@ -23,6 +23,9 @@ const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
 const kanbanBoard = ref(null);
+const topKanbanScroll = ref(null);
+const hasKanbanOverflow = ref(false);
+let syncingKanbanScroll = false;
 const isDragging = ref(false);
 const DRAG_SCROLL_EDGE = 80;
 let pointerX = 0;
@@ -46,13 +49,26 @@ const scrollKanban = offsetX => {
       : pointerX <= left + DRAG_SCROLL_EDGE;
   if (inside && nearEdge) board.scrollLeft += offsetX;
 };
-const onKanbanWheel = event => {
+const updateKanbanOverflow = async () => {
+  await nextTick();
   const board = kanbanBoard.value;
-  if (!board || board.scrollWidth <= board.clientWidth) return;
-  const horizontalDelta = event.deltaX || event.deltaY;
-  if (!horizontalDelta) return;
-  event.preventDefault();
-  board.scrollLeft += horizontalDelta;
+  hasKanbanOverflow.value = Boolean(
+    board && board.scrollWidth > board.clientWidth
+  );
+};
+const syncKanbanScroll = (source, target) => {
+  if (syncingKanbanScroll || !target) return;
+  syncingKanbanScroll = true;
+  target.scrollLeft = source.scrollLeft;
+  requestAnimationFrame(() => {
+    syncingKanbanScroll = false;
+  });
+};
+const onTopKanbanScroll = event => {
+  syncKanbanScroll(event.currentTarget, kanbanBoard.value);
+};
+const onBoardKanbanScroll = event => {
+  syncKanbanScroll(event.currentTarget, topKanbanScroll.value);
 };
 const DRAG_SCROLL_OPTIONS = {
   forceFallback: true,
@@ -385,6 +401,8 @@ const moveDeal = async (deal, stage) => {
   }
 };
 
+watch(boardStages, updateKanbanOverflow, { deep: true });
+useEventListener(window, 'resize', updateKanbanOverflow);
 onMounted(load);
 onUnmounted(() => {
   isDragging.value = false;
@@ -679,11 +697,24 @@ onUnmounted(() => {
         {{ t('CRM.CREATE_PIPELINE') }}
       </RouterLink>
     </section>
+    <div
+      v-if="hasKanbanOverflow"
+      ref="topKanbanScroll"
+      class="flex-shrink-0 w-full mb-1 overflow-x-auto overflow-y-hidden"
+      @scroll="onTopKanbanScroll"
+    >
+      <div class="flex w-max min-w-full gap-2 h-3">
+        <div
+          v-for="stage in boardStages"
+          :key="'scroll-' + stage.id"
+          class="flex-1 basis-0 min-w-56"
+        />
+      </div>
+    </div>
     <section
-      v-else
       ref="kanbanBoard"
       class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-auto pb-2 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      @wheel="onKanbanWheel"
+      @scroll="onBoardKanbanScroll"
     >
       <div
         v-for="stage in boardStages"
