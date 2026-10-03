@@ -13,6 +13,10 @@ class CrmAPI extends ApiClient {
     });
   }
 
+  get(options = {}) {
+    return axios.get(this.url, options);
+  }
+
   show(id, options = {}) {
     return axios.get(`${this.url}/${id}`, options);
   }
@@ -30,9 +34,13 @@ class CrmAPI extends ApiClient {
 
   // eslint-disable-next-line class-methods-use-this
   activities(dealId) {
-    return new ApiClient(`crm/deals/${dealId}/activities`, {
-      accountScoped: true,
-    });
+    return new CrmAPI(`deals/${dealId}/activities`);
+  }
+
+  retryActivity(dealId, activityId) {
+    return axios.post(
+      `${this.url}/${dealId}/activities/${activityId}/retry_sync`
+    );
   }
 
   updateNote(dealId, id, body) {

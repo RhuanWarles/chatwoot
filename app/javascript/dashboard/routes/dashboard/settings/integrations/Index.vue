@@ -3,6 +3,7 @@ import { useStoreGetters, useStore } from 'dashboard/composables/store';
 import { computed, onMounted, ref } from 'vue';
 import { useBranding } from 'shared/composables/useBranding';
 import { picoSearch } from '@chatwoot/pico-search';
+import GoogleCalendarConnection from './GoogleCalendarConnection.vue';
 import IntegrationItem from './IntegrationItem.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
@@ -49,7 +50,11 @@ onMounted(() => {
     <template #body>
       <div class="flex-grow flex-shrink overflow-auto">
         <span
-          v-if="!filteredIntegrationList.length && searchQuery"
+          v-if="
+            !filteredIntegrationList.length &&
+            searchQuery &&
+            !'google calendar'.includes(searchQuery.toLowerCase())
+          "
           class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
         >
           {{ $t('INTEGRATION_SETTINGS.NO_RESULTS') }}
@@ -58,6 +63,12 @@ onMounted(() => {
           v-else
           class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
         >
+          <GoogleCalendarConnection
+            v-if="
+              !searchQuery ||
+              'google calendar'.includes(searchQuery.toLowerCase())
+            "
+          />
           <IntegrationItem
             v-for="item in filteredIntegrationList"
             :id="item.id"

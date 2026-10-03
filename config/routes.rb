@@ -358,6 +358,7 @@ Rails.application.routes.draw do
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
           namespace :crm do
+            resource :google_calendar, only: [:show, :create, :destroy], controller: 'google_calendar'
             resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
               resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
                 collection { patch :reorder }
@@ -365,7 +366,9 @@ Rails.application.routes.draw do
             end
             resources :deals, only: [:index, :show, :create, :update, :destroy] do
               resources :events, controller: 'deal_events', only: [:index, :create, :update, :destroy]
-              resources :activities, controller: 'activities', only: [:index, :create, :update]
+              resources :activities, controller: 'activities', only: [:index, :create, :update] do
+                post :retry_sync, on: :member
+              end
             end
           end
 
@@ -749,6 +752,7 @@ Rails.application.routes.draw do
   end
 
   get 'microsoft/callback', to: 'microsoft/callbacks#show'
+  get 'crm/google_calendar/callback', to: 'crm/google_calendar_callbacks#show'
   get 'google/callback', to: 'google/callbacks#show'
   get 'instagram/callback', to: 'instagram/callbacks#show'
   get 'tiktok/callback', to: 'tiktok/callbacks#show'

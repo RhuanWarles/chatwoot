@@ -541,11 +541,22 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                 />
               </div>
               <p
-                v-if="event.event_type.startsWith('activity_')"
+                v-if="
+                  event.event_type.startsWith('activity_') ||
+                  event.event_type.startsWith('meeting_')
+                "
                 class="mt-2 mb-0 text-sm text-n-slate-11"
               >
                 {{ event.metadata.title }} · {{ date(event.metadata.due_at) }}
               </p>
+              <a
+                v-if="event.metadata.meeting_url"
+                :href="event.metadata.meeting_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-2 text-sm text-n-brand"
+                >{{ t('CRM.MEETING_JOIN') }}</a
+              >
               <p
                 v-else-if="eventChange(event)"
                 class="mt-2 mb-0 text-sm text-n-slate-11"

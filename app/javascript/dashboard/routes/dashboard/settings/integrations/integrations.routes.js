@@ -3,6 +3,7 @@ import { frontendURL } from '../../../../helper/URLHelper';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import IntegrationHooks from './IntegrationHooks.vue';
 import Index from './Index.vue';
+import GoogleCalendar from './GoogleCalendar.vue';
 import Webhook from './Webhooks/Index.vue';
 import DashboardApps from './DashboardApps/Index.vue';
 import Slack from './Slack.vue';
@@ -25,6 +26,12 @@ export default {
             featureFlag: FEATURE_FLAGS.INTEGRATIONS,
             permissions: ['administrator'],
           },
+        },
+        {
+          path: 'google_calendar',
+          component: GoogleCalendar,
+          name: 'settings_integrations_google_calendar',
+          meta: { permissions: ['administrator', 'agent'] },
         },
         {
           path: 'dashboard_apps',

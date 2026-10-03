@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useIntervalFn } from '@vueuse/core';
+import CalendarAPI from 'dashboard/api/crmCalendar';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -12,15 +15,21 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 const props = defineProps({ deal: { type: Object, required: true } });
 const emit = defineEmits(['changed']);
 const { t, locale } = useI18n();
+const route = useRoute();
+const calendar = ref(null);
+const participantEmail = ref('');
 const activities = ref([]);
 const agents = ref([]);
 const error = ref('');
 const saving = ref(false);
 const editor = ref(null);
 const editingId = ref(null);
+const linkedGoogle = ref(false);
 const draft = ref({});
 const { run, isPending: loading } = useAbortableRequest();
 const MILLISECONDS_PER_MINUTE = 60000;
+const DEFAULT_DURATION_MINUTES = 30;
+const SYNC_POLL_INTERVAL_MS = 5000;
 const TYPES = ['task', 'call', 'meeting', 'follow_up'];
 const typeOptions = computed(() =>
   TYPES.map(value => ({
@@ -33,7 +42,11 @@ const ownerOptions = computed(() => [
   ...agents.value.map(agent => ({ value: agent.id, label: agent.name })),
 ]);
 const pending = computed(() =>
-  activities.value.filter(activity => activity.status === 'pending')
+  activities.value.filter(
+    activity =>
+      activity.status === 'pending' ||
+      ['pending', 'failed'].includes(activity.sync_status)
+  )
 );
 const date = value =>
   new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
@@ -43,8 +56,21 @@ const date = value =>
 const load = async () => {
   error.value = '';
   try {
-    const result = await run(() => dealsAPI.activities(props.deal.id).get());
-    if (result) activities.value = result.data;
+    const result = await run(signal =>
+      dealsAPI.activities(props.deal.id).get({ signal })
+    );
+    if (result) {
+      const changed = result.data.some(item =>
+        activities.value.some(
+          previous =>
+            previous.id === item.id &&
+            previous.sync_status === 'pending' &&
+            item.sync_status !== 'pending'
+        )
+      );
+      activities.value = result.data;
+      if (changed) emit('changed');
+    }
   } catch {
     error.value = t('CRM.ACTIVITY_LOAD_ERROR');
   }
@@ -52,8 +78,12 @@ const load = async () => {
 const open = async (activity = null) => {
   error.value = '';
   try {
-    agents.value = (await AgentsAPI.get()).data;
+    const results = await Promise.all([AgentsAPI.get(), CalendarAPI.get()]);
+    agents.value = results[0].data;
+    calendar.value = results[1].data;
     editingId.value = activity?.id || null;
+    linkedGoogle.value = activity?.external_provider === 'google';
+    participantEmail.value = '';
     let local = '';
     if (activity) {
       const due = new Date(activity.due_at);
@@ -61,6 +91,9 @@ const open = async (activity = null) => {
         due.getTime() - due.getTimezoneOffset() * MILLISECONDS_PER_MINUTE
       ).toISOString();
     }
+    const defaultParticipants = props.deal.contact?.email
+      ? [props.deal.contact.email]
+      : [];
     draft.value = {
       activity_type: activity?.activity_type || 'task',
       title: activity?.title || '',
@@ -68,6 +101,12 @@ const open = async (activity = null) => {
       time: local.slice(11, 16),
       owner_id: activity?.owner_id ?? props.deal.owner_id ?? '',
       description: activity?.description || '',
+      duration_minutes: activity?.duration_minutes || DEFAULT_DURATION_MINUTES,
+      participants: activity
+        ? [...(activity.participants || [])]
+        : defaultParticipants,
+      create_calendar: activity?.external_provider === 'google',
+      create_meet: activity?.create_meet || false,
     };
     editor.value.open();
   } catch {
@@ -100,8 +139,41 @@ const save = () => {
     description: draft.value.description,
     owner_id: draft.value.owner_id === '' ? null : draft.value.owner_id,
     due_at: new Date(`${draft.value.date}T${draft.value.time}`).toISOString(),
+    ...(draft.value.activity_type === 'meeting'
+      ? {
+          duration_minutes: Number(draft.value.duration_minutes),
+          participants: draft.value.participants,
+          create_calendar: draft.value.create_calendar,
+          create_meet: draft.value.create_meet && draft.value.create_calendar,
+        }
+      : {}),
   });
 };
+const retry = async activity => {
+  saving.value = true;
+  error.value = '';
+  try {
+    await dealsAPI.retryActivity(props.deal.id, activity.id);
+    await load();
+  } catch {
+    error.value = t('CRM.CALENDAR_SYNC_FAILED');
+  } finally {
+    saving.value = false;
+  }
+};
+const addParticipant = () => {
+  const email = participantEmail.value.trim();
+  if (email && !draft.value.participants.includes(email))
+    draft.value.participants.push(email);
+  participantEmail.value = '';
+};
+const { pause, resume } = useIntervalFn(load, SYNC_POLL_INTERVAL_MS, {
+  immediate: false,
+});
+watch(
+  () => activities.value.some(activity => activity.sync_status === 'pending'),
+  isPending => (isPending ? resume() : pause())
+);
 watch(() => props.deal.id, load, { immediate: true });
 </script>
 
@@ -153,28 +225,82 @@ watch(() => props.deal.id, load, { immediate: true });
           {{ activity.description }}
         </p>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-col gap-2">
+        <p
+          v-if="activity.activity_type === 'meeting'"
+          class="mb-0 text-xs text-n-slate-11"
+        >
+          {{
+            t('CRM.MEETING_DURATION_VALUE', {
+              minutes: activity.duration_minutes,
+            })
+          }}
+        </p>
+        <p
+          v-if="activity.sync_status"
+          role="status"
+          class="mb-0 text-xs"
+          :class="
+            activity.sync_status === 'failed'
+              ? 'text-n-ruby-11'
+              : 'text-n-slate-11'
+          "
+        >
+          {{ t(`CRM.CALENDAR_SYNC_${activity.sync_status.toUpperCase()}`) }}
+        </p>
+        <a
+          v-if="activity.meeting_url"
+          :href="activity.meeting_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-sm text-n-brand"
+          >{{ t('CRM.MEETING_JOIN') }}</a
+        >
+        <a
+          v-if="activity.google_event_url"
+          :href="activity.google_event_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-sm text-n-brand"
+          >{{ t('CRM.CALENDAR_OPEN_EVENT') }}</a
+        >
         <Button
-          :label="t('CRM.ACTIVITY_COMPLETE')"
-          size="sm"
-          :disabled="saving"
-          @click="mutate(activity.id, { status: 'completed' })"
-        />
-        <Button
-          :label="t('CRM.EDIT_ACTIVITY')"
+          v-if="activity.sync_status === 'failed' && activity.can_sync"
+          :label="t('CRM.RETRY')"
           size="sm"
           variant="faded"
           :disabled="saving"
-          @click="open(activity)"
+          @click="retry(activity)"
         />
-        <Button
-          :label="t('CRM.ACTIVITY_CANCEL')"
-          size="sm"
-          color="ruby"
-          variant="ghost"
-          :disabled="saving"
-          @click="mutate(activity.id, { status: 'cancelled' })"
-        />
+        <p
+          v-if="activity.can_sync === false"
+          class="mb-0 text-xs text-n-slate-11"
+        >
+          {{ t('CRM.CALENDAR_OWNER_ONLY') }}
+        </p>
+        <div v-if="activity.status === 'pending'" class="flex flex-wrap gap-2">
+          <Button
+            :label="t('CRM.ACTIVITY_COMPLETE')"
+            size="sm"
+            :disabled="saving || activity.can_sync === false"
+            @click="mutate(activity.id, { status: 'completed' })"
+          />
+          <Button
+            :label="t('CRM.EDIT_ACTIVITY')"
+            size="sm"
+            variant="faded"
+            :disabled="saving || activity.can_sync === false"
+            @click="open(activity)"
+          />
+          <Button
+            :label="t('CRM.ACTIVITY_CANCEL')"
+            size="sm"
+            color="ruby"
+            variant="ghost"
+            :disabled="saving || activity.can_sync === false"
+            @click="mutate(activity.id, { status: 'cancelled' })"
+          />
+        </div>
       </div>
     </article>
     <Dialog
@@ -183,12 +309,17 @@ watch(() => props.deal.id, load, { immediate: true });
       width="2xl"
       :show-confirm-button="false"
       :show-cancel-button="false"
+      :overflow-y-auto="true"
     >
       <form class="flex flex-col gap-4" @submit.prevent="save">
         <fieldset :disabled="saving" class="flex flex-col gap-4 min-w-0">
           <div class="flex flex-col gap-2 text-sm text-n-slate-12">
             <span>{{ t('CRM.ACTIVITY_TYPE') }}</span
-            ><ComboBox v-model="draft.activity_type" :options="typeOptions" />
+            ><ComboBox
+              v-model="draft.activity_type"
+              :options="typeOptions"
+              :disabled="linkedGoogle"
+            />
           </div>
           <Input
             v-model="draft.title"
@@ -212,8 +343,98 @@ watch(() => props.deal.id, load, { immediate: true });
           </div>
           <div class="flex flex-col gap-2 text-sm text-n-slate-12">
             <span>{{ t('CRM.OWNER') }}</span
-            ><ComboBox v-model="draft.owner_id" :options="ownerOptions" />
+            ><ComboBox
+              v-model="draft.owner_id"
+              :disabled="draft.create_calendar"
+              :options="ownerOptions"
+            />
           </div>
+          <template v-if="draft.activity_type === 'meeting'">
+            <Input
+              v-model="draft.duration_minutes"
+              type="number"
+              :label="t('CRM.MEETING_DURATION')"
+              min="1"
+              max="1440"
+              required
+            />
+            <div class="flex flex-col gap-2">
+              <label
+                for="crm-meeting-participant"
+                class="text-sm text-n-slate-12"
+                >{{ t('CRM.MEETING_PARTICIPANTS') }}</label
+              >
+              <div class="flex items-end gap-2">
+                <Input
+                  id="crm-meeting-participant"
+                  v-model="participantEmail"
+                  type="email"
+                  class="flex-1"
+                  @keydown.enter.prevent="addParticipant"
+                />
+                <Button
+                  :label="t('CRM.MEETING_ADD_PARTICIPANT')"
+                  variant="faded"
+                  @click="addParticipant"
+                />
+              </div>
+              <div
+                v-for="email in draft.participants"
+                :key="email"
+                class="flex items-center justify-between gap-2 text-sm text-n-slate-12"
+              >
+                <span class="break-all">{{ email }}</span
+                ><Button
+                  :label="t('CRM.MEETING_REMOVE_PARTICIPANT')"
+                  size="sm"
+                  variant="ghost"
+                  @click="
+                    draft.participants = draft.participants.filter(
+                      item => item !== email
+                    )
+                  "
+                />
+              </div>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-n-slate-12"
+              ><input
+                v-model="draft.create_calendar"
+                type="checkbox"
+                :disabled="linkedGoogle || !calendar?.connected"
+                @change="
+                  draft.create_calendar && (draft.owner_id = calendar.user_id)
+                "
+              />{{ t('CRM.MEETING_CREATE_CALENDAR') }}</label
+            >
+            <label class="flex items-center gap-2 text-sm text-n-slate-12"
+              ><input
+                v-model="draft.create_meet"
+                type="checkbox"
+                :disabled="!draft.create_calendar"
+              />{{ t('CRM.MEETING_CREATE_MEET') }}</label
+            >
+            <p
+              v-if="draft.create_calendar"
+              class="mb-0 text-xs text-n-slate-11"
+            >
+              {{ t('CRM.CALENDAR_OWNER_ONLY') }}
+            </p>
+            <p
+              v-if="draft.create_calendar"
+              class="mb-0 text-xs text-n-slate-11"
+            >
+              {{ t('CRM.MEETING_INVITATION_HINT') }}
+            </p>
+            <RouterLink
+              :to="{
+                name: 'settings_integrations_google_calendar',
+                params: { accountId: route.params.accountId },
+              }"
+              class="text-sm text-n-brand"
+            >
+              {{ t('CRM.CALENDAR_MANAGE') }}
+            </RouterLink>
+          </template>
           <Input v-model="draft.description" :label="t('CRM.DESCRIPTION')" />
         </fieldset>
         <div class="flex justify-end gap-2">

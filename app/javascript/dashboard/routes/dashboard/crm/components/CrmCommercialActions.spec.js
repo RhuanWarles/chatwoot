@@ -1,13 +1,27 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import CrmActivities from './CrmActivities.vue';
 import CrmDealConversations from './CrmDealConversations.vue';
 import { dealsAPI } from 'dashboard/api/crm';
+import CalendarAPI from 'dashboard/api/crmCalendar';
 import AgentsAPI from 'dashboard/api/agents';
 import ContactAPI from 'dashboard/api/contacts';
 import InboxesAPI from 'dashboard/api/inboxes';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
-vi.mock('dashboard/api/crm', () => ({ dealsAPI: { activities: vi.fn() } }));
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '1' } }),
+}));
+vi.mock('dashboard/api/crmCalendar', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({
+      data: { connected: false, configured: false, user_id: 5 },
+    }),
+  },
+}));
+vi.mock('dashboard/api/crm', () => ({
+  dealsAPI: { activities: vi.fn(), retryActivity: vi.fn() },
+}));
 vi.mock('dashboard/api/agents', () => ({ default: { get: vi.fn() } }));
 vi.mock('dashboard/api/contacts', () => ({
   default: { getConversations: vi.fn() },
@@ -52,6 +66,9 @@ const button = (wrapper, key) =>
   wrapper.findAll('button').find(item => item.text() === pt.CRM[key]);
 beforeEach(() => {
   vi.clearAllMocks();
+  CalendarAPI.get.mockResolvedValue({
+    data: { connected: false, configured: false, user_id: 5 },
+  });
   dealsAPI.activities.mockReturnValue(api);
   api.get.mockResolvedValue({ data: [ACTIVITY] });
   api.create.mockResolvedValue({ data: ACTIVITY });
@@ -146,4 +163,100 @@ it('does not fetch conversations without a contact', async () => {
   await flushPromises();
   expect(ContactAPI.getConversations).not.toHaveBeenCalled();
   expect(wrapper.text()).toContain(pt.CRM.NO_CONTACT_CONVERSATIONS);
+});
+it('creates a local meeting with contact participant and duration', async () => {
+  const wrapper = setup(CrmActivities, {
+    deal: { id: 12, contact: { email: 'contact@example.com' } },
+  });
+  await flushPromises();
+  await button(wrapper, 'NEW_ACTIVITY').trigger('click');
+  await flushPromises();
+  wrapper
+    .findAllComponents(ComboBox)[0]
+    .vm.$emit('update:modelValue', 'meeting');
+  await flushPromises();
+  expect(wrapper.text()).toContain('contact@example.com');
+  await wrapper.find('input[type="text"]').setValue('Local meeting');
+  await wrapper.find('input[type="date"]').setValue('2026-10-03');
+  await wrapper.find('input[type="time"]').setValue('10:30');
+  await wrapper.find('input[type="number"]').setValue('45');
+  await wrapper.find('form').trigger('submit');
+  await flushPromises();
+  expect(api.create).toHaveBeenCalledWith({
+    activity: expect.objectContaining({
+      activity_type: 'meeting',
+      duration_minutes: 45,
+      participants: ['contact@example.com'],
+      create_calendar: false,
+      create_meet: false,
+    }),
+  });
+});
+it('requests Calendar and Meet only for the current connected user', async () => {
+  CalendarAPI.get.mockResolvedValue({
+    data: { connected: true, configured: true, user_id: 5 },
+  });
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  await button(wrapper, 'NEW_ACTIVITY').trigger('click');
+  await flushPromises();
+  wrapper
+    .findAllComponents(ComboBox)[0]
+    .vm.$emit('update:modelValue', 'meeting');
+  await flushPromises();
+  await wrapper.findAll('input[type="checkbox"]')[0].setValue(true);
+  await wrapper.findAll('input[type="checkbox"]')[1].setValue(true);
+  await wrapper.find('input[type="text"]').setValue('Google meeting');
+  await wrapper.find('input[type="date"]').setValue('2026-10-03');
+  await wrapper.find('input[type="time"]').setValue('10:30');
+  await wrapper.find('form').trigger('submit');
+  await flushPromises();
+  expect(api.create).toHaveBeenCalledWith({
+    activity: expect.objectContaining({
+      create_calendar: true,
+      create_meet: true,
+      owner_id: 5,
+    }),
+  });
+});
+it('shows failed cancelled meetings and retries the same activity', async () => {
+  dealsAPI.retryActivity.mockResolvedValue({ data: {} });
+  api.get.mockResolvedValue({
+    data: [
+      {
+        ...ACTIVITY,
+        activity_type: 'meeting',
+        status: 'cancelled',
+        sync_status: 'failed',
+        can_sync: true,
+      },
+    ],
+  });
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  expect(wrapper.text()).toContain(pt.CRM.CALENDAR_SYNC_FAILED);
+  await button(wrapper, 'RETRY').trigger('click');
+  await flushPromises();
+  expect(dealsAPI.retryActivity).toHaveBeenCalledWith(12, 3);
+});
+it('shows Google event and Meet links without exposing credentials', async () => {
+  api.get.mockResolvedValue({
+    data: [
+      {
+        ...ACTIVITY,
+        external_provider: 'google',
+        sync_status: 'synced',
+        meeting_url: 'https://meet.google.com/abc-defg-hij',
+        google_event_url: 'https://calendar.google.com/calendar/event?eid=test',
+        can_sync: false,
+      },
+    ],
+  });
+  const wrapper = setup(CrmActivities, { deal: { id: 12 } });
+  await flushPromises();
+  expect(wrapper.find('a[href^="https://meet.google.com"]').exists()).toBe(
+    true
+  );
+  expect(button(wrapper, 'EDIT_ACTIVITY').attributes('disabled')).toBeDefined();
+  expect(wrapper.text()).toContain(pt.CRM.CALENDAR_OWNER_ONLY);
 });
