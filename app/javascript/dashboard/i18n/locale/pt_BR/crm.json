@@ -202,7 +202,8 @@
     "SIDEBAR_SUMMARY": "Resumo",
     "SIDEBAR_DETAILS": "Detalhes",
     "SIDEBAR_MORE": "Ver mais",
-    "SIDEBAR_LESS": "Ver menos"
+    "SIDEBAR_LESS": "Ver menos",
+    "CF_EDIT_FIELD": "Editar {name}"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

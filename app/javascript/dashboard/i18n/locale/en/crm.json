@@ -202,6 +202,7 @@
     "SIDEBAR_SUMMARY": "Summary",
     "SIDEBAR_DETAILS": "Details",
     "SIDEBAR_MORE": "Show more",
-    "SIDEBAR_LESS": "Show less"
+    "SIDEBAR_LESS": "Show less",
+    "CF_EDIT_FIELD": "Edit {name}"
   }
 }

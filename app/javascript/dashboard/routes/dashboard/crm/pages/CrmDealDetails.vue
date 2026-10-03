@@ -477,15 +477,12 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           <CrmDealCustomFields
             :key="route.params.accountId"
             :deal-id="deal.id"
-            :deal="deal"
-            @deal-updated="deal = $event"
             @changed="loadHistory()"
           />
         </aside>
         <section class="flex flex-1 flex-col gap-4 min-w-0">
           <CrmActivities
             :key="`${route.params.accountId}-${deal.id}`"
-            :deal="deal"
             @changed="loadHistory()"
           />
           <CrmDealConversations
