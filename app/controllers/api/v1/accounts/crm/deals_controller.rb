@@ -7,7 +7,7 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
     deals = deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
     render json: deals.order(created_at: :desc).as_json(
       include: {
-        contact: { only: [:id, :name, :email, :phone_number] },
+        contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },
         pipeline_stage: { only: [:id, :name, :position, :color] }
       }

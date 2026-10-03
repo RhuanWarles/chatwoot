@@ -160,7 +160,18 @@
     "ACTIVITY_CANCELLED_STATUS": "Cancelada",
     "ACTIVITY_CANCELLED_BY": "Cancelado por",
     "ACTIVITY_CANCELLED_AT": "Cancelado em",
-    "ACTIVITY_CANCELLED_BY_VALUE": "Cancelado por {name}"
+    "ACTIVITY_CANCELLED_BY_VALUE": "Cancelado por {name}",
+    "ADVANCED_FILTERS": "Filtros",
+    "CLEAR_FILTERS": "Limpar filtros",
+    "FILTER_UNASSIGNED": "Sem respons\u00e1vel",
+    "FILTER_CREATED_FROM": "Criado de",
+    "FILTER_CREATED_TO": "Criado at\u00e9",
+    "FILTER_UPDATED_FROM": "Atualizado de",
+    "FILTER_UPDATED_TO": "Atualizado at\u00e9",
+    "FILTER_MIN_VALUE": "Valor m\u00ednimo",
+    "FILTER_MAX_VALUE": "Valor m\u00e1ximo",
+    "FILTER_STAGE": "Etapa",
+    "FILTER_COMPANY": "Empresa"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

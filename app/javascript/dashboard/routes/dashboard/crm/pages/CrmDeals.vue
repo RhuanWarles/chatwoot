@@ -18,6 +18,19 @@ const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
 const selectedStatuses = ref([]);
+const showAdvancedFilters = ref(false);
+const advancedFilters = ref({
+  ownerId: '',
+  createdFrom: '',
+  createdTo: '',
+  updatedFrom: '',
+  updatedTo: '',
+  stageIds: [],
+  minValue: '',
+  maxValue: '',
+  contactId: '',
+  company: '',
+});
 const statusFilters = computed(() => [
   { status: 'open', label: t('CRM.FILTER_OPEN') },
   { status: 'won', label: t('CRM.FILTER_WON') },
@@ -48,11 +61,75 @@ const pipeline = computed(() =>
 );
 const stages = computed(() => pipeline.value?.stages || []);
 const visibleDeals = computed(() =>
-  deals.value.filter(
-    deal =>
-      !selectedStatuses.value.length ||
-      selectedStatuses.value.includes(deal.status)
+  deals.value.filter(deal => {
+    const f = advancedFilters.value;
+    const created = new Date(deal.created_at);
+    const updated = new Date(deal.updated_at);
+    const ownerMatches =
+      !f.ownerId ||
+      (f.ownerId === 'none'
+        ? !deal.owner_id
+        : deal.owner_id === Number(f.ownerId));
+    const company =
+      deal.contact?.company?.name ||
+      deal.contact?.additional_attributes?.company_name ||
+      '';
+    const range = (value, from, to) =>
+      (!from || value >= new Date(`${from}T00:00:00`)) &&
+      (!to || value <= new Date(`${to}T23:59:59.999`));
+    return (
+      (!selectedStatuses.value.length ||
+        selectedStatuses.value.includes(deal.status)) &&
+      ownerMatches &&
+      (!f.stageIds.length || f.stageIds.includes(deal.pipeline_stage_id)) &&
+      (!f.contactId || deal.contact_id === Number(f.contactId)) &&
+      (!f.company || company.toLowerCase().includes(f.company.toLowerCase())) &&
+      range(created, f.createdFrom, f.createdTo) &&
+      range(updated, f.updatedFrom, f.updatedTo) &&
+      (f.minValue === '' || Number(deal.value || 0) >= Number(f.minValue)) &&
+      (f.maxValue === '' || Number(deal.value || 0) <= Number(f.maxValue))
+    );
+  })
+);
+const filterCount = computed(() =>
+  Object.entries(advancedFilters.value).reduce(
+    (count, [, value]) =>
+      count +
+      (Array.isArray(value) ? Number(value.length > 0) : Number(value !== '')),
+    0
   )
+);
+const ownerOptions = computed(() => [
+  { value: '', label: t('CRM.FILTER_ALL') },
+  ...new Map(
+    deals.value
+      .filter(deal => deal.owner)
+      .map(deal => [
+        deal.owner.id,
+        { value: deal.owner.id, label: deal.owner.name },
+      ])
+  ).values(),
+  { value: 'none', label: t('CRM.FILTER_UNASSIGNED') },
+]);
+const clearAdvancedFilters = () => {
+  advancedFilters.value = {
+    ownerId: '',
+    createdFrom: '',
+    createdTo: '',
+    updatedFrom: '',
+    updatedTo: '',
+    stageIds: [],
+    minValue: '',
+    maxValue: '',
+    contactId: '',
+    company: '',
+  };
+};
+const selectedFilterContact = computed(
+  () =>
+    deals.value.find(
+      deal => deal.contact_id === Number(advancedFilters.value.contactId)
+    )?.contact || null
 );
 const boardStages = computed(() =>
   stages.value.map(stage => {
@@ -196,6 +273,99 @@ onMounted(load);
         :aria-pressed="selectedStatuses.includes(filter.status)"
         @click="toggleStatus(filter.status)"
       />
+    </div>
+    <div class="flex justify-end mb-4">
+      <Button
+        type="button"
+        variant="faded"
+        :label="`${t('CRM.ADVANCED_FILTERS')}${filterCount ? ` (${filterCount})` : ''}`"
+        @click="showAdvancedFilters = !showAdvancedFilters"
+      />
+    </div>
+    <div
+      v-if="showAdvancedFilters"
+      class="flex flex-col gap-4 p-4 mb-4 border border-n-weak rounded-xl bg-n-alpha-2"
+    >
+      <div class="flex items-center justify-between">
+        <h2 class="mb-0 text-base font-semibold text-n-slate-12">
+          {{ t('CRM.ADVANCED_FILTERS') }}
+        </h2>
+        <Button
+          type="button"
+          variant="ghost"
+          :label="t('CRM.CLEAR_FILTERS')"
+          @click="clearAdvancedFilters"
+        />
+      </div>
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <ComboBox
+          v-model="advancedFilters.ownerId"
+          :options="ownerOptions"
+          :placeholder="t('CRM.OWNER')"
+        />
+        <Input
+          v-model="advancedFilters.company"
+          :label="t('CRM.FILTER_COMPANY')"
+        />
+        <div class="grid grid-cols-2 gap-2">
+          <Input
+            v-model="advancedFilters.createdFrom"
+            type="date"
+            :label="t('CRM.FILTER_CREATED_FROM')"
+          /><Input
+            v-model="advancedFilters.createdTo"
+            type="date"
+            :label="t('CRM.FILTER_CREATED_TO')"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <Input
+            v-model="advancedFilters.updatedFrom"
+            type="date"
+            :label="t('CRM.FILTER_UPDATED_FROM')"
+          /><Input
+            v-model="advancedFilters.updatedTo"
+            type="date"
+            :label="t('CRM.FILTER_UPDATED_TO')"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <Input
+            v-model="advancedFilters.minValue"
+            type="number"
+            min="0"
+            step="0.01"
+            :label="t('CRM.FILTER_MIN_VALUE')"
+          /><Input
+            v-model="advancedFilters.maxValue"
+            type="number"
+            min="0"
+            step="0.01"
+            :label="t('CRM.FILTER_MAX_VALUE')"
+          />
+        </div>
+      </div>
+      <CrmContactPicker
+        v-model="advancedFilters.contactId"
+        :contact="selectedFilterContact"
+      />
+      <div>
+        <p class="mb-2 text-sm font-medium text-n-slate-12">
+          {{ t('CRM.FILTER_STAGE') }}
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <label
+            v-for="stage in stages"
+            :key="stage.id"
+            class="flex items-center gap-2 text-sm text-n-slate-12"
+            ><input
+              v-model="advancedFilters.stageIds"
+              type="checkbox"
+              :value="stage.id"
+            />{{ stage.name }}</label
+          >
+        </div>
+      </div>
     </div>
     <section
       v-if="!pipelines.length"

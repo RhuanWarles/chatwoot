@@ -160,6 +160,17 @@
     "ACTIVITY_CANCELLED_STATUS": "Cancelled",
     "ACTIVITY_CANCELLED_BY": "Cancelled by",
     "ACTIVITY_CANCELLED_AT": "Cancelled at",
-    "ACTIVITY_CANCELLED_BY_VALUE": "Cancelled by {name}"
+    "ACTIVITY_CANCELLED_BY_VALUE": "Cancelled by {name}",
+    "ADVANCED_FILTERS": "Filters",
+    "CLEAR_FILTERS": "Clear filters",
+    "FILTER_UNASSIGNED": "Unassigned",
+    "FILTER_CREATED_FROM": "Created from",
+    "FILTER_CREATED_TO": "Created to",
+    "FILTER_UPDATED_FROM": "Updated from",
+    "FILTER_UPDATED_TO": "Updated to",
+    "FILTER_MIN_VALUE": "Minimum value",
+    "FILTER_MAX_VALUE": "Maximum value",
+    "FILTER_STAGE": "Stage",
+    "FILTER_COMPANY": "Company"
   }
 }
