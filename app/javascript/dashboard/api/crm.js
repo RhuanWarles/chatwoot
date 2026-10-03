@@ -62,5 +62,7 @@ class CrmAPI extends ApiClient {
 
 export const pipelinesAPI = new CrmAPI('pipelines');
 export const dealsAPI = new CrmAPI('deals');
+export const customFieldsAPI = new CrmAPI('custom_fields');
+
 export const stagesAPI = pipelineId =>
   new CrmAPI(`pipelines/${pipelineId}/stages`);

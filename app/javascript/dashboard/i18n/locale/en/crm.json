@@ -177,6 +177,22 @@
     "ACTIVITY_STATUS_PENDING": "Pending",
     "ACTIVITY_STATUS_COMPLETED": "Completed",
     "ACTIVITY_STATUS_CANCELLED": "Cancelled",
-    "APPLY_FILTERS": "Apply filters"
+    "APPLY_FILTERS": "Apply filters",
+    "CUSTOM_FIELDS_TITLE": "Custom fields",
+    "CUSTOM_FIELDS_SUBTITLE": "Fields available for Deals",
+    "NEW_CUSTOM_FIELD": "New custom field",
+    "EDIT_CUSTOM_FIELD": "Edit custom field",
+    "CUSTOM_FIELD_NAME": "Name",
+    "CUSTOM_FIELD_TYPE": "Type",
+    "CUSTOM_FIELD_REQUIRED": "Required",
+    "CUSTOM_FIELD_OPTIONS": "Options",
+    "CUSTOM_FIELD_OPTION": "Option",
+    "ADD_OPTION": "Add option",
+    "NO_CUSTOM_FIELDS": "No custom fields configured",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "EDIT": "Edit",
+    "ACTIVATE": "Activate",
+    "DEACTIVATE": "Deactivate"
   }
 }

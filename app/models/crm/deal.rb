@@ -14,6 +14,7 @@ module Crm
     belongs_to :contact
     belongs_to :owner, class_name: 'User', optional: true
     has_many :activities, class_name: 'Crm::Activity', dependent: :destroy
+    has_many :custom_field_values, class_name: 'Crm::DealCustomFieldValue', dependent: :destroy
     has_many :events, class_name: 'Crm::DealEvent', dependent: :destroy
     after_create :record_creation
     after_update :record_changes

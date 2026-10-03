@@ -359,6 +359,7 @@ Rails.application.routes.draw do
 
           namespace :crm do
             resource :google_calendar, only: [:show, :create, :destroy], controller: 'google_calendar'
+            resources :custom_fields
             resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
               resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
                 collection { patch :reorder }

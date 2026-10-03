@@ -3,13 +3,14 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
   before_action :authorize_deal, except: [:index]
 
   def index
-    deals = policy_scope(Crm::Deal).includes(:contact, :owner, :pipeline_stage)
+    deals = policy_scope(Crm::Deal).includes(:contact, :owner, :pipeline_stage, custom_field_values: :custom_field)
     deals = deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
     render json: deals.order(created_at: :desc).as_json(
       include: {
         contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },
-        pipeline_stage: { only: [:id, :name, :position, :color] }
+        pipeline_stage: { only: [:id, :name, :position, :color] },
+        custom_field_values: { only: [:id, :custom_field_id, :value], include: { custom_field: { only: [:id, :name, :key, :field_type, :required, :active, :position, :options] } } }
       }
     )
   end
@@ -20,11 +21,13 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def create
     @deal = Current.account.crm_deals.create!(deal_params)
+    save_custom_field_values(@deal)
     render json: deal_json(@deal), status: :created
   end
 
   def update
     @deal.update!(deal_params)
+    save_custom_field_values(@deal)
     render json: deal_json(@deal)
   end
 
@@ -45,8 +48,19 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def deal_params
     params.require(:deal).permit(
-      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :value, :status, :description
+      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :value, :status, :description, custom_field_values: [:custom_field_id, :value]
     )
+  end
+
+  def save_custom_field_values(deal)
+    return if params[:deal][:custom_field_values].blank?
+    params[:deal][:custom_field_values].each do |item|
+      field = Current.account.crm_custom_fields.find(item[:custom_field_id])
+      value = deal.custom_field_values.find_or_initialize_by(custom_field_id: field.id)
+      value.account = Current.account
+      value.value = item[:value].is_a?(Array) ? item[:value].to_json : item[:value].to_s
+      value.save!
+    end
   end
 
   def deal_json(deal)
@@ -55,7 +69,8 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
         contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },
         pipeline: { only: [:id, :name] },
-        pipeline_stage: { only: [:id, :name, :position, :color] }
+        pipeline_stage: { only: [:id, :name, :position, :color] },
+        custom_field_values: { only: [:id, :custom_field_id, :value], include: { custom_field: { only: [:id, :name, :key, :field_type, :required, :active, :position, :options] } } }
       }
     )
     json['contact']['thumbnail'] = deal.contact.avatar_url if deal.contact
