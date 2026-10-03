@@ -21,13 +21,11 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def create
     @deal = Current.account.crm_deals.create!(deal_params)
-    save_custom_field_values(@deal)
     render json: deal_json(@deal), status: :created
   end
 
   def update
     @deal.update!(deal_params)
-    save_custom_field_values(@deal)
     render json: deal_json(@deal)
   end
 
@@ -48,19 +46,8 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def deal_params
     params.require(:deal).permit(
-      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :value, :status, :description, custom_field_values: [:custom_field_id, :value]
+      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :value, :status, :description
     )
-  end
-
-  def save_custom_field_values(deal)
-    return if params[:deal][:custom_field_values].blank?
-    params[:deal][:custom_field_values].each do |item|
-      field = Current.account.crm_custom_fields.find(item[:custom_field_id])
-      value = deal.custom_field_values.find_or_initialize_by(custom_field_id: field.id)
-      value.account = Current.account
-      value.value = item[:value].is_a?(Array) ? item[:value].to_json : item[:value].to_s
-      value.save!
-    end
   end
 
   def deal_json(deal)

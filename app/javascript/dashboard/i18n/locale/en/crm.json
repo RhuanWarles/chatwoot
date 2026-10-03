@@ -189,10 +189,15 @@
     "CUSTOM_FIELD_OPTION": "Option",
     "ADD_OPTION": "Add option",
     "NO_CUSTOM_FIELDS": "No custom fields configured",
-    "ACTIVE": "Active",
-    "INACTIVE": "Inactive",
     "EDIT": "Edit",
-    "ACTIVATE": "Activate",
-    "DEACTIVATE": "Deactivate"
+    "CF_YES": "Yes",
+    "CF_NO": "No",
+    "CF_LOAD_ERROR": "Unable to load custom fields.",
+    "CF_SAVE_ERROR": "Unable to save custom fields.",
+    "CF_INVALID": "Complete required fields and enter valid values.",
+    "CF_LOADING": "Loading custom fields...",
+    "CF_CANCEL": "Cancel",
+    "CF_SAVE": "Save changes",
+    "EVENT_CUSTOM_FIELD_CHANGED": "Custom field changed"
   }
 }

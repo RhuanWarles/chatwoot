@@ -3,34 +3,50 @@ class Crm::DealCustomFieldValue < ApplicationRecord
   belongs_to :account
   belongs_to :deal, class_name: 'Crm::Deal'
   belongs_to :custom_field, class_name: 'Crm::CustomField'
-  validates :custom_field, :deal, presence: true
   validate :same_account
   validate :valid_value
+
+  def typed_value
+    return nil if value.nil? || value == ''
+    case custom_field.field_type
+    when 'number', 'currency' then Float(value)
+    when 'boolean' then value == 'true'
+    when 'multiselect' then JSON.parse(value)
+    else value
+    end
+  end
+
+  def typed_value=(input)
+    self.value = input.nil? ? nil : (input.is_a?(Array) ? input.to_json : input.to_s)
+  end
 
   private
 
   def same_account
-    errors.add(:deal, 'must belong to the same account') if deal && deal.account_id != account_id
-    errors.add(:custom_field, 'must belong to the same account') if custom_field && custom_field.account_id != account_id
+    errors.add(:deal, 'Conta invalida') if deal && deal.account_id != account_id
+    errors.add(:custom_field, 'Conta invalida') if custom_field && custom_field.account_id != account_id
   end
 
   def valid_value
-    return if value.blank? && !custom_field&.required
-    case custom_field&.field_type
-    when 'number', 'currency'
-      errors.add(:value, 'must be numeric') unless value.to_s.match?(/\A-?\d+(\.\d+)?\z/)
-    when 'date'
-      errors.add(:value, 'must be a valid date') unless Date.iso8601(value.to_s)
-    when 'datetime'
-      errors.add(:value, 'must be a valid datetime') unless Time.iso8601(value.to_s)
-    when 'boolean'
-      errors.add(:value, 'must be boolean') unless %w[true false 0 1].include?(value.to_s)
-    when 'select', 'multiselect'
-      allowed = Array(custom_field.options).map { |option| option.is_a?(Hash) ? option['value'] || option[:value] : option.to_s }
-      values = custom_field.field_type == 'multiselect' ? Array(value).map(&:to_s) : [value.to_s]
-      errors.add(:value, 'contains an invalid option') unless values.all? { |item| allowed.include?(item) }
+    return unless custom_field
+    empty = value.nil? || value.strip.empty? || (custom_field.field_type == 'multiselect' && value == '[]')
+    if empty
+      errors.add(:value, 'Preencha o campo obrigatorio') if custom_field.required
+      return
     end
-  rescue ArgumentError
-    errors.add(:value, 'has an invalid format')
+    valid = case custom_field.field_type
+            when 'number', 'currency' then value.match?(/\A-?\d+(\.\d+)?\z/) && Float(value).finite?
+            when 'date' then value.match?(/\A\d{4}-\d{2}-\d{2}\z/) && Date.iso8601(value)
+            when 'datetime' then Time.iso8601(value)
+            when 'boolean' then %w[true false].include?(value)
+            when 'select' then custom_field.options.include?(value)
+            when 'multiselect'
+              items = JSON.parse(value)
+              items.is_a?(Array) && items.all? { |item| item.is_a?(String) && custom_field.options.include?(item) }
+            else true
+            end
+    errors.add(:value, 'Valor invalido para o tipo ou opcoes do campo') unless valid
+  rescue ArgumentError, JSON::ParserError
+    errors.add(:value, 'Formato invalido')
   end
 end

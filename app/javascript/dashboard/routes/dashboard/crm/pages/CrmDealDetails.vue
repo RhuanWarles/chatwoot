@@ -11,6 +11,7 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import AgentsAPI from 'dashboard/api/agents';
 import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
 import CrmActivities from '../components/CrmActivities.vue';
+import CrmDealCustomFields from '../components/CrmDealCustomFields.vue';
 import CrmDealConversations from '../components/CrmDealConversations.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
@@ -68,19 +69,6 @@ const visibleEvents = computed(() =>
     ? events.value.filter(event => event.event_type === 'note_created')
     : events.value
 );
-const customFieldDisplay = item => {
-  if (item.value == null || item.value === '') return t('CRM.NOT_SET');
-  if (item.custom_field?.field_type === 'multiselect') {
-    try {
-      return JSON.parse(item.value).join(', ');
-    } catch {
-      return item.value;
-    }
-  }
-  if (item.custom_field?.field_type === 'boolean')
-    return item.value === 'true' ? t('CRM.YES') : t('CRM.NO');
-  return item.value;
-};
 const money = value =>
   value == null || value === ''
     ? t('CRM.NOT_SET')
@@ -93,6 +81,28 @@ const date = (value, cancellation = false) =>
 const eventTitle = event => t(`CRM.EVENT_${event.event_type.toUpperCase()}`);
 const eventChange = event => {
   const metadata = event.metadata;
+  if (event.event_type === 'custom_field_changed') {
+    const format = value => {
+      if (
+        value == null ||
+        value === '' ||
+        (Array.isArray(value) && !value.length)
+      )
+        return t('CRM.NOT_SET');
+      if (Array.isArray(value)) return value.join(', ');
+      if (typeof value === 'boolean')
+        return value ? t('CRM.CF_YES') : t('CRM.CF_NO');
+      if (metadata.field_type === 'currency') return money(value);
+      return String(value);
+    };
+    return (
+      metadata.field_name +
+      ': ' +
+      format(metadata.from) +
+      ' \u2192 ' +
+      format(metadata.to)
+    );
+  }
   if (
     event.event_type === 'stage_changed' ||
     event.event_type === 'owner_changed'
@@ -430,24 +440,13 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               </dd>
             </div>
           </dl>
-          <div
-            v-if="deal.custom_field_values?.length"
-            class="flex flex-col gap-3 pt-4 mt-4 border-t border-n-weak"
-          >
-            <h2 class="mb-0 text-sm font-medium text-n-slate-12">
-              {{ t('CRM.CUSTOM_FIELDS_TITLE') }}
-            </h2>
-            <dl class="flex flex-col gap-3 text-sm">
-              <div v-for="item in deal.custom_field_values" :key="item.id">
-                <dt class="text-n-slate-11">{{ item.custom_field.name }}</dt>
-                <dd class="m-0 text-n-slate-12">
-                  {{ customFieldDisplay(item) }}
-                </dd>
-              </div>
-            </dl>
-          </div>
         </aside>
         <section class="flex flex-1 flex-col gap-4 min-w-0">
+          <CrmDealCustomFields
+            :key="route.params.accountId"
+            :deal-id="deal.id"
+            @changed="loadHistory()"
+          />
           <CrmActivities
             :key="`${route.params.accountId}-${deal.id}`"
             :deal="deal"

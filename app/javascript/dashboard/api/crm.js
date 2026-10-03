@@ -28,6 +28,14 @@ class CrmAPI extends ApiClient {
     });
   }
 
+  customFields(dealId) {
+    return axios.get(`${this.url}/${dealId}/custom_fields`);
+  }
+
+  updateCustomFields(dealId, values) {
+    return axios.patch(`${this.url}/${dealId}/custom_fields`, { values });
+  }
+
   addNote(dealId, body) {
     return axios.post(`${this.url}/${dealId}/events`, { event: { body } });
   }

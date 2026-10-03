@@ -366,6 +366,7 @@ Rails.application.routes.draw do
               end
             end
             resources :deals, only: [:index, :show, :create, :update, :destroy] do
+              resource :custom_fields, only: [:show, :update], controller: 'deal_custom_fields'
               resources :events, controller: 'deal_events', only: [:index, :create, :update, :destroy]
               resources :activities, controller: 'activities', only: [:index, :create, :update] do
                 post :retry_sync, on: :member
