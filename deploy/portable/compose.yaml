@@ -1,0 +1,130 @@
+x-chatwoot: &chatwoot
+  image: ${CHATWOOT_IMAGE:-chatwoot-crm:local}
+  build:
+    context: ../..
+    dockerfile: docker/Dockerfile
+  env_file: .env
+  environment: &chatwoot-env
+    RAILS_ENV: production
+    NODE_ENV: production
+    INSTALLATION_ENV: docker
+    RAILS_LOG_TO_STDOUT: enabled
+    RAILS_SERVE_STATIC_FILES: "true"
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    POSTGRES_DATABASE: chatwoot
+    POSTGRES_USERNAME: postgres
+    REDIS_URL: redis://redis:6379
+    ACTIVE_STORAGE_SERVICE: local
+  volumes:
+    - storage_data:/app/storage
+  restart: unless-stopped
+
+services:
+  rails:
+    <<: *chatwoot
+    entrypoint: /app/docker/entrypoints/rails.sh
+    command: [bundle, exec, rails, s, -p, "3000", -b, 0.0.0.0]
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks:
+      default:
+        aliases: [chatwoot]
+  sidekiq:
+    <<: *chatwoot
+    command: [bundle, exec, sidekiq, -C, config/sidekiq.yml]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chatwoot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks:
+      default:
+        aliases: [chatwoot-db]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d chatwoot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Defina REDIS_PASSWORD}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: [CMD-SHELL, 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  evolution:
+    profiles: [evolution]
+    image: ${EVOLUTION_IMAGE:-evoapicloud/evolution-api:v2.3.7}
+    restart: unless-stopped
+    ports: ["127.0.0.1:8085:8080"]
+    environment:
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution:8080}
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?Defina EVOLUTION_API_KEY}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_POSTGRES_PASSWORD}@evolution-postgres:5432/evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://:${EVOLUTION_REDIS_PASSWORD}@evolution-redis:6379/0
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_LOCAL_ENABLED: "false"
+      CHATWOOT_ENABLED: "true"
+      CHATWOOT_IMPORT_DATABASE_CONNECTION_URI: postgresql://postgres:${POSTGRES_PASSWORD}@chatwoot-db:5432/chatwoot?sslmode=disable
+    volumes: [evolution_instances:/evolution/instances]
+    depends_on:
+      evolution-postgres: {condition: service_healthy}
+      evolution-redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+  evolution-postgres:
+    profiles: [evolution]
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${EVOLUTION_POSTGRES_PASSWORD:?Defina EVOLUTION_POSTGRES_PASSWORD}
+    volumes: [evolution_postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U evolution -d evolution"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  evolution-redis:
+    profiles: [evolution]
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${EVOLUTION_REDIS_PASSWORD:?Defina EVOLUTION_REDIS_PASSWORD}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    volumes: [evolution_redis_data:/data]
+    healthcheck:
+      test: [CMD-SHELL, 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:
+  redis_data:
+  storage_data:
+  evolution_instances:
+  evolution_postgres_data:
+  evolution_redis_data:
