@@ -1,6 +1,6 @@
 # Standalone Stack: local PostgreSQL and Redis with persistent named volumes.
 x-app: &app
-  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.0.0}
+  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.0.4}
   restart: unless-stopped
   environment: &app-env
     RAILS_ENV: production
