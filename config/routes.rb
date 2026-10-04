@@ -52,6 +52,7 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
+          resources :ai_agents, only: [:index, :show, :create, :update, :destroy]
           resource :saas_ai, only: [:show, :update], controller: 'saas_ai' do
             post :calls
             post :text_generations

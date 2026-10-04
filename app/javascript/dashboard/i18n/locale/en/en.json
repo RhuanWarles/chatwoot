@@ -110,5 +110,45 @@
   "SIDEBAR": {
     "COLLAPSE_SIDEBAR": "Collapse sidebar",
     "EXPAND_SIDEBAR": "Expand sidebar"
+  },
+  "AI_AGENTS": {
+    "TITLE": "AI Agents",
+    "SUBTITLE": "Configure account text agents and their inboxes.",
+    "CONFIG_ONLY": "Configuration only. Agents do not respond to conversations in this phase.",
+    "NEW": "New agent",
+    "EDIT": "Edit agent",
+    "SAVE": "Save agent",
+    "CANCEL": "Cancel",
+    "DELETE": "Delete agent",
+    "DELETE_CONFIRM": "Delete {name}? Its inbox links will also be removed.",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "ACTIVATE": "Activate",
+    "DEACTIVATE": "Deactivate",
+    "EMPTY": "No AI agents configured.",
+    "LOADING": "Loading AI agents...",
+    "RETRY": "Try again",
+    "NAME": "Name",
+    "DESCRIPTION": "Description",
+    "PROVIDER": "Provider",
+    "MODEL": "Model identifier",
+    "TEMPERATURE": "Temperature (0-1)",
+    "PROMPT": "System prompt",
+    "INBOXES": "Linked inboxes",
+    "NO_INBOXES": "No inboxes",
+    "INBOX_HELP": "Each inbox can have at most one active text agent.",
+    "OCCUPIED": "Already linked to an active agent",
+    "HANDOFF": "Allow handoff to a human",
+    "HANDOFF_HELP": "Saved for a future phase. No automatic transfer is performed yet.",
+    "UPDATED": "Last updated",
+    "LOAD_ERROR": "Could not load agents and inboxes.",
+    "SAVE_ERROR": "Could not save the agent. Check its fields and inboxes.",
+    "DELETE_ERROR": "Could not delete the agent.",
+    "INBOX_CONFLICT": "An inbox is already linked to another active agent. Deactivate it or remove the conflicting inbox.",
+    "PROVIDERS": {
+      "openai": "OpenAI",
+      "anthropic": "Anthropic",
+      "gemini": "Gemini"
+    }
   }
 }

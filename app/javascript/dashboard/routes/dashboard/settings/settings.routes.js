@@ -29,6 +29,7 @@ import conversationWorkflow from './conversationWorkflow/conversationWorkflow.ro
 import captain from './captain/captain.routes';
 import data from './data/data.routes';
 import saasAI from './saasAI/saasAI.routes';
+import aiAgents from './aiAgents/aiAgents.routes';
 
 export default {
   routes: [
@@ -63,6 +64,7 @@ export default {
     ...integrations.routes,
     ...data.routes,
     ...saasAI.routes,
+    ...aiAgents.routes,
     ...labels.routes,
     ...macros.routes,
     ...reports.routes,
