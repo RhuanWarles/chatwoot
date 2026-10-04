@@ -201,16 +201,18 @@ describe('Deal details', () => {
   });
   it('adds a note and refreshes history', async () => {
     const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.ADD_NOTE);
     await wrapper.find('textarea').setValue('New note');
     await wrapper.find('form').trigger('submit');
     await flushPromises();
     expect(dealsAPI.addNote).toHaveBeenCalledWith(12, 'New note');
-    expect(wrapper.find('textarea').element.value).toBe('');
+    expect(wrapper.find('textarea').exists()).toBe(false);
     expect(dealsAPI.events).toHaveBeenCalledTimes(2);
   });
   it('keeps note content when save fails', async () => {
     dealsAPI.addNote.mockRejectedValueOnce(new Error('failure'));
     const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.ADD_NOTE);
     await wrapper.find('textarea').setValue('Keep note');
     await wrapper.find('form').trigger('submit');
     await flushPromises();
@@ -404,6 +406,6 @@ it('keeps Details in the sidebar and independently collapses Summary', async () 
   expect(wrapper.find('#deal-summary').attributes('style') || '').not.toContain(
     'display: none'
   );
-  expect(wrapper.find('main').classes()).toContain('overflow-auto');
-  expect(wrapper.find('aside').classes()).toContain('self-start');
+  expect(wrapper.find('main').classes()).toContain('lg:overflow-hidden');
+  expect(wrapper.find('aside').classes()).toContain('lg:overflow-y-auto');
 });

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -40,6 +40,21 @@ const noteInput = ref(null);
 const deletingNote = ref(null);
 const noteDeletionDialog = ref(null);
 const tab = ref('history');
+const noteEditorOpen = ref(false);
+const historyTabs = [
+  { value: 'history', label: 'CRM.FILTER_ALL' },
+  { value: 'activities', label: 'CRM.ACTIVITIES' },
+  { value: 'notes', label: 'CRM.NOTES' },
+  { value: 'changes', label: 'CRM.HISTORY_CHANGES' },
+];
+const isActivityEvent = event =>
+  event.event_type.startsWith('activity_') ||
+  event.event_type.startsWith('meeting_');
+const openNoteEditor = async () => {
+  noteEditorOpen.value = true;
+  await nextTick();
+  noteInput.value?.focus();
+};
 const page = ref(1);
 const hasMore = ref(false);
 const {
@@ -66,9 +81,13 @@ const ownerOptions = computed(() => [
   ...agents.value.map(agent => ({ value: agent.id, label: agent.name })),
 ]);
 const visibleEvents = computed(() =>
-  tab.value === 'notes'
-    ? events.value.filter(event => event.event_type === 'note_created')
-    : events.value
+  events.value.filter(event => {
+    if (tab.value === 'notes') return event.event_type === 'note_created';
+    if (tab.value === 'activities') return isActivityEvent(event);
+    if (tab.value === 'changes')
+      return !isActivityEvent(event) && event.event_type !== 'note_created';
+    return true;
+  })
 );
 const money = value =>
   value == null || value === ''
@@ -218,6 +237,7 @@ const addNote = async () => {
     else await dealsAPI.addNote(deal.value.id, note.value.trim());
     editingNote.value = null;
     note.value = '';
+    noteEditorOpen.value = false;
     await loadHistory();
   } catch {
     error.value = t('CRM.NOTE_SAVE_ERROR');
@@ -228,7 +248,7 @@ const addNote = async () => {
 const editNote = event => {
   editingNote.value = event.id;
   note.value = event.metadata.body;
-  noteInput.value?.focus();
+  openNoteEditor();
 };
 const removeNote = async () => {
   if (noteSaving.value) return;
@@ -256,7 +276,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
 
 <template>
   <main
-    class="flex flex-1 flex-col w-full h-full min-w-0 min-h-0 p-4 md:p-6 overflow-auto bg-n-background"
+    class="flex flex-1 flex-col w-full h-full min-w-0 min-h-0 p-4 md:p-6 overflow-y-auto lg:overflow-hidden bg-n-background"
   >
     <RouterLink
       :to="{ name: 'crm_deals', params: { accountId: route.params.accountId } }"
@@ -284,7 +304,9 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
       <p class="text-sm text-n-slate-12">{{ t('CRM.DELETE_NOTE_CONFIRM') }}</p>
     </Dialog>
     <template v-if="deal">
-      <header class="flex flex-wrap items-start justify-between gap-4 mb-5">
+      <header
+        class="flex flex-wrap items-start justify-between gap-4 mb-5 shrink-0"
+      >
         <div class="min-w-0">
           <h1 class="text-xl font-semibold text-n-slate-12 break-words">
             {{ deal.name }}
@@ -330,9 +352,11 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           />
         </div>
       </header>
-      <div class="flex flex-col lg:flex-row gap-5 min-w-0">
+      <div
+        class="flex flex-col lg:flex-row gap-5 min-w-0 lg:flex-1 lg:min-h-0 lg:overflow-hidden"
+      >
         <aside
-          class="flex flex-col self-start w-full min-w-0 p-4 border border-n-weak rounded-xl lg:w-80 xl:w-96 lg:shrink-0 bg-n-alpha-2"
+          class="flex flex-col w-full min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain p-4 border border-n-weak rounded-xl lg:w-72 xl:w-80 lg:shrink-0 bg-n-alpha-2"
         >
           <button
             type="button"
@@ -467,7 +491,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               <div v-if="deal.description">
                 <dt class="text-n-slate-11">{{ t('CRM.DESCRIPTION') }}</dt>
                 <dd
-                  class="m-0 line-clamp-3 whitespace-pre-wrap break-words text-n-slate-12"
+                  class="m-0 line-clamp-3 whitespace-pre-wrap [overflow-wrap:anywhere] text-n-slate-12"
                 >
                   {{ deal.description }}
                 </dd>
@@ -477,12 +501,16 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           <CrmDealCustomFields
             :key="route.params.accountId"
             :deal-id="deal.id"
+            :deal="deal"
             @changed="loadHistory()"
           />
         </aside>
-        <section class="flex flex-1 flex-col gap-4 min-w-0">
+        <section
+          class="flex flex-1 flex-col gap-4 min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pe-2"
+        >
           <CrmActivities
             :key="`${route.params.accountId}-${deal.id}`"
+            :deal="deal"
             @changed="loadHistory()"
           />
           <CrmDealConversations
@@ -490,27 +518,34 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
             :contact-id="deal.contact?.id || null"
           />
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex gap-2">
-              <Button
-                :label="t('CRM.HISTORY')"
-                :variant="tab === 'history' ? 'solid' : 'faded'"
-                @click="tab = 'history'"
-              />
-              <Button
-                :label="t('CRM.NOTES')"
-                :variant="tab === 'notes' ? 'solid' : 'faded'"
-                @click="tab = 'notes'"
-              />
-            </div>
+            <h2 class="m-0 text-base font-semibold text-n-slate-12">
+              {{ t('CRM.HISTORY') }}
+            </h2>
             <Button
               :label="t('CRM.ADD_NOTE')"
               icon="i-lucide-plus"
               variant="faded"
-              @click="noteInput?.focus()"
+              @click="openNoteEditor"
+            />
+          </div>
+          <div
+            class="flex flex-wrap gap-2"
+            role="group"
+            :aria-label="t('CRM.HISTORY')"
+          >
+            <Button
+              v-for="item in historyTabs"
+              :key="item.value"
+              :label="t(item.label)"
+              size="sm"
+              :variant="tab === item.value ? 'solid' : 'ghost'"
+              :aria-pressed="tab === item.value"
+              @click="tab = item.value"
             />
           </div>
           <form
-            class="flex flex-col gap-2 p-4 border border-n-weak rounded-xl"
+            v-if="noteEditorOpen || editingNote"
+            class="flex flex-col gap-2 p-3 border border-n-weak rounded-xl"
             @submit.prevent="addNote"
           >
             <label
@@ -528,13 +563,13 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               class="w-full p-3 rounded-lg border border-n-weak bg-n-background text-sm text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
             />
             <Button
-              v-if="editingNote"
               :label="t('CRM.CANCEL')"
               variant="ghost"
               :disabled="noteSaving"
               @click="
                 editingNote = null;
                 note = '';
+                noteEditorOpen = false;
               "
             />
             <Button
@@ -551,12 +586,24 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           >
             {{ t('CRM.NO_EVENTS') }}
           </p>
-          <ol class="flex flex-col gap-3 p-0 m-0 list-none">
+          <ol
+            class="flex flex-col p-0 m-0 ms-2 list-none border-s border-n-weak"
+          >
             <li
               v-for="event in visibleEvents"
               :key="event.id"
-              class="p-4 border border-n-weak rounded-xl bg-n-alpha-2"
+              class="relative min-w-0 ms-4 mb-2 p-3 rounded-lg"
+              :class="
+                event.event_type === 'note_created' ||
+                event.event_type === 'activity_cancelled'
+                  ? 'bg-n-alpha-2 border border-n-weak'
+                  : ''
+              "
             >
+              <span
+                class="absolute -start-6 top-4 size-3 rounded-full border-2 border-n-background bg-n-slate-8"
+                aria-hidden="true"
+              />
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="mb-0 text-sm font-medium text-n-slate-12">
                   {{ eventTitle(event) }}
@@ -586,7 +633,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               </p>
               <p
                 v-if="event.event_type === 'note_created'"
-                class="mt-2 mb-0 text-sm whitespace-pre-wrap break-words text-n-slate-12"
+                class="mt-2 mb-0 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-n-slate-12"
               >
                 {{ event.metadata.body }}
               </p>
@@ -629,7 +676,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                   event.event_type === 'activity_cancelled' &&
                   event.metadata.cancellation_reason
                 "
-                class="mt-2 mb-0 text-sm whitespace-pre-wrap break-words text-n-slate-12"
+                class="mt-2 mb-0 text-sm whitespace-pre-wrap [overflow-wrap:anywhere] text-n-slate-12"
               >
                 {{ t('CRM.ACTIVITY_CANCELLATION_REASON') }}:
                 {{ event.metadata.cancellation_reason }}
