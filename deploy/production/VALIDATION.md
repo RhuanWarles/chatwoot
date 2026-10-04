@@ -36,3 +36,15 @@ Isso incorpora à futura release os ajustes que já rodavam na produção, mas n
 - Confirmar pull pelo Portainer e registrar digest. A imagem `ghcr.io/rhuanwarles/chatwoot:v1.0.0` ainda não existe como resultado desta preparação.
 
 Não foram criados commit ou tag de release, feitos push, publicação no GHCR, atualização da Stack de produção ou rollback.
+
+## Publicação posterior — v1.0.4, 04/10/2026
+
+- Publicação autorizada pelo usuário e concluída via GitHub Actions: https://github.com/RhuanWarles/chatwoot/actions/runs/37186559952.
+- Build completo linux/amd64 concluído com sucesso a partir de `518b1f6cdfda5ebbc18e158e8581f41fce355839`.
+- Imagem: `ghcr.io/rhuanwarles/chatwoot:v1.0.4`.
+- Digest: `sha256:7e0a5429021a9f66fa62eec5ac84d0090d931bd17bda877b6b9ee0cc555609fa`.
+- Consulta anônima do manifesto: HTTP 200, confirmando acesso público para pull.
+- A tag v1.0.0 era herdada do upstream e não continha o workflow do CRM; foi preservada. v1.0.4 identifica a imagem do código atual.
+- Stacks e exemplo de ENV atualizados para v1.0.4. Código e documentação enviados à branch feat/saas-ai-usage.
+- Não houve execução local do projeto nem redeploy/migrations na VPS.
+- Inicialização e homologação funcional da imagem em ambiente isolado continuam pendentes; sucesso do build não comprova funcionamento das integrações.

@@ -10,7 +10,7 @@ Este pacote reutiliza `docker/Dockerfile`. A mesma imagem executa Web e Sidekiq.
 - `../../docker/Dockerfile`: Ruby 3.4.4, Node 24, pnpm 10.2.0, gems e assets compilados.
 - `../../.github/workflows/crm-image.yml`: build linux/amd64; publicação exclusivamente ao enviar tag `vX.Y.Z`.
 
-Imagem proposta: **`ghcr.io/rhuanwarles/chatwoot:v1.0.4`**. Ela ainda não foi publicada. Não usar a imagem oficial pura ou `latest` como referência de release. Para ARM, preparar/testar build adicional antes de usar; o workflow inicial publica apenas amd64.
+Imagem proposta: **`ghcr.io/rhuanwarles/chatwoot:v1.0.4`**. Publicada pelo GitHub Actions em 04/10/2026, com acesso público de pull confirmado. Digest: `sha256:7e0a5429021a9f66fa62eec5ac84d0090d931bd17bda877b6b9ee0cc555609fa`. Não usar a imagem oficial pura ou `latest` como referência de release. Para ARM, preparar/testar build adicional antes de usar; o workflow inicial publica apenas amd64.
 
 `v1.0.4` versiona este CRM/fork, não substitui a versão upstream registrada em `VERSION_CW`/`package.json`.
 
