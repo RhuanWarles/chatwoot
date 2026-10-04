@@ -50,11 +50,9 @@ const ownerOptions = computed(() => [
   ...agents.value.map(agent => ({ value: agent.id, label: agent.name })),
 ]);
 const pending = computed(() =>
-  activities.value.filter(
-    activity =>
-      ['pending', 'cancelled'].includes(activity.status) ||
-      ['pending', 'failed'].includes(activity.sync_status)
-  )
+  activities.value
+    .filter(activity => activity.status === 'pending')
+    .sort((first, second) => new Date(first.due_at) - new Date(second.due_at))
 );
 const date = (value, cancellation = false) => {
   const parsed = new Date(value);
@@ -236,10 +234,10 @@ watch(() => props.deal.id, load, { immediate: true });
 </script>
 
 <template>
-  <section class="flex flex-col gap-3 p-4 border border-n-weak rounded-xl">
+  <section class="flex flex-col gap-2 p-3 border border-n-weak rounded-xl">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="mb-0 text-base font-semibold text-n-slate-12">
-        {{ t('CRM.ACTIVITIES') }}
+        {{ t('CRM.UPCOMING_ACTIVITIES') }}
       </h2>
       <Button
         :label="t('CRM.NEW_ACTIVITY')"
@@ -257,7 +255,7 @@ watch(() => props.deal.id, load, { immediate: true });
     <article
       v-for="activity in pending"
       :key="activity.id"
-      class="flex flex-wrap items-start justify-between gap-3 p-3 rounded-lg bg-n-alpha-2 cursor-pointer hover:bg-n-alpha-3"
+      class="flex flex-wrap items-start justify-between gap-2 p-2 rounded-lg bg-n-alpha-2 cursor-pointer hover:bg-n-alpha-3"
       @click="openDetails(activity)"
     >
       <div class="min-w-0">
