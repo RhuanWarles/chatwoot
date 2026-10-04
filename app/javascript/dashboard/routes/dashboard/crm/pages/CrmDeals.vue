@@ -25,6 +25,9 @@ const selectedPipeline = ref('');
 const kanbanBoard = ref(null);
 const topKanbanScroll = ref(null);
 const hasKanbanOverflow = ref(false);
+const now = ref(Date.now());
+let activityClock;
+const ACTIVITY_NEAR_WINDOW_MS = 2 * 60 * 60 * 1000;
 let syncingKanbanScroll = false;
 const isDragging = ref(false);
 const DRAG_SCROLL_EDGE = 80;
@@ -345,6 +348,29 @@ const load = async () => {
   }
 };
 
+const activityIsOverdue = activity => new Date(activity.due_at).getTime() < now.value;
+const activityIsNear = activity => {
+  const dueAt = new Date(activity.due_at).getTime();
+  return dueAt >= now.value && dueAt - now.value <= ACTIVITY_NEAR_WINDOW_MS;
+};
+const activityDate = activity =>
+  new Intl.DateTimeFormat(undefined, {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(activity.due_at));
+const activityTooltip = activity =>
+  [activity.title, activityDate(activity), activity.owner?.name]
+    .filter(Boolean)
+    .join(' · ');
+const openDealDetails = deal => {
+  router.push({
+    name: 'crm_deal_details',
+    params: { accountId: route.params.accountId, dealId: deal.id },
+  });
+};
+
 const openForm = () => {
   form.value = {
     name: '',
@@ -403,8 +429,14 @@ const moveDeal = async (deal, stage) => {
 
 watch(boardStages, updateKanbanOverflow, { deep: true });
 useEventListener(window, 'resize', updateKanbanOverflow);
-onMounted(load);
+onMounted(() => {
+  load();
+  activityClock = window.setInterval(() => {
+    now.value = Date.now();
+  }, 60 * 1000);
+});
 onUnmounted(() => {
+  if (activityClock) window.clearInterval(activityClock);
   isDragging.value = false;
   searchVersion += 1;
 });
@@ -813,6 +845,38 @@ onUnmounted(() => {
               >
                 {{ element.owner.name }}
               </p>
+              <button
+                v-if="element.next_activity"
+                type="button"
+                class="flex items-center w-full min-w-0 gap-1.5 mt-2 pt-2 border-t border-n-weak text-left"
+                :title="activityTooltip(element.next_activity)"
+                :aria-label="activityTooltip(element.next_activity)"
+                @click.stop="openDealDetails(element)"
+              >
+                <span
+                  class="flex-shrink-0"
+                  :class="activityIsOverdue(element.next_activity)
+                    ? 'i-lucide-circle-alert text-n-ruby-11'
+                    : activityIsNear(element.next_activity)
+                      ? 'i-lucide-clock-3 text-n-blue-11'
+                      : 'i-lucide-calendar-clock text-n-slate-11'"
+                />
+                <span class="min-w-0 truncate text-xs text-n-slate-11">
+                  {{ element.next_activity.title }}
+                </span>
+                <span
+                  class="flex-shrink-0 text-xs"
+                  :class="activityIsOverdue(element.next_activity)
+                    ? 'text-n-ruby-11'
+                    : activityIsNear(element.next_activity)
+                      ? 'text-n-blue-11'
+                      : 'text-n-slate-10'"
+                >
+                  {{ activityIsOverdue(element.next_activity)
+                    ? t('CRM.ACTIVITY_OVERDUE')
+                    : activityDate(element.next_activity) }}
+                </span>
+              </button>
             </article>
           </template>
         </Draggable>
