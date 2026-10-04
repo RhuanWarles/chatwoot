@@ -48,3 +48,26 @@ Não foram criados commit ou tag de release, feitos push, publicação no GHCR, 
 - Stacks e exemplo de ENV atualizados para v1.0.4. Código e documentação enviados à branch feat/saas-ai-usage.
 - Não houve execução local do projeto nem redeploy/migrations na VPS.
 - Inicialização e homologação funcional da imagem em ambiente isolado continuam pendentes; sucesso do build não comprova funcionamento das integrações.
+
+## Auditoria posterior — 04/10/2026
+
+Relatório completo em [AUDITORIA.md](AUDITORIA.md).
+
+- Encontrado bloqueio de partida: ambos os YAMLs injetavam `DATABASE_URL` vazia; Active Record 7.2.3.1 lança `Database URL cannot be empty`. Reprodução isolada confirmou erro; ausência da variável usa os campos POSTGRES normalmente.
+- Removida DATABASE_URL das Stacks e do exemplo ENV; guia documenta URI não vazia como configuração explícita para banco externo. Correção local ainda não enviada ao GitHub nesta auditoria.
+- Camada /app da imagem pública inspecionada diretamente: digest validado; 197 migrations iguais ao repositório, oito do CRM; scripts executáveis; modelos/páginas CRM iguais ao código auditado.
+- Manifest Vite presente, 74 arquivos JS/CSS e nenhum asset referenciado ausente.
+- Ambos os YAMLs corrigidos passam em docker compose config; omissão de FRONTEND_URL impede interpolação.
+- Teste isolado ActionDispatch::SSL 7.2.3.1 confirmou HTTP 301 sem header e 200 com X-Forwarded-Proto=https.
+- pg_isready executado somente em leitura no PostgreSQL local existente. Probe autenticada Redis validada num container temporário com a imagem local disponível.
+- Não houve pull completo da imagem, subida integral, migrations reais, push ou alteração de produção. Docker ainda armazena dados no C:, com aproximadamente 490 MB livres. Testes de mecanismos usaram imagens locais existentes, sem substituir a homologação da v1.0.4 publicada.
+
+## Preparação automática da Stack — 04/10/2026
+
+- Serviço prepare adicionado às duas Stacks, com mesma imagem/ENV/storage e restart no.
+- Bundled: PostgreSQL/Redis healthy antes de prepare; prepare exit 0 antes de Web/worker.
+- App-only: dependência em prepare, sem inventar banco/Redis internos; dependências externas devem estar disponíveis previamente.
+- EntryPoint vazio em prepare: executa somente o task Rails, sem setup/bundle install do entrypoint Web.
+- docker compose config --format json passou para ambos com valores fictícios em Compose v5.3.0; imagem compartilhada e completion gate verificados. git diff --check passou.
+- Não houve partida local do projeto, migrations reais, teste de falha/redeploy em runtime, push ou deploy remoto. Respeitada a instrução de não executar o projeto na máquina do usuário.
+- Compatibilidade na versão específica do Portainer-alvo permanece pendente. Uma mudança para nova tag recria prepare; dependências não param containers antigos durante update, nem serializam stacks concorrentes. Procedimento de parada pelo Portainer documentado.

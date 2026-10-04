@@ -1,5 +1,7 @@
 # Release CRM v1.0.4: GHCR e Portainer
 
+Veja a [auditoria técnica](AUDITORIA.md) antes do primeiro deploy: inclui correção de `DATABASE_URL` vazia, geração de chaves, variáveis exatas, comandos de preparação/update e limites dos testes realizados.
+
 Este pacote reutiliza `docker/Dockerfile`. A mesma imagem executa Web e Sidekiq. Os arquivos abaixo destinam-se a **Portainer com Docker Standalone / Compose v2**, não a Docker Swarm. O código da VPS foi incorporado como snapshot sem novas regras de produto. A instalação existente não foi redeployada.
 
 ## Arquivos e requisitos
@@ -69,7 +71,7 @@ Para pull privado, use PAT com permissão de leitura de packages e autorização
 
 Copie `.env.example` para `.env` **apenas para uso CLI**, ou carregue seus valores na tela Environment da Stack no Portainer. Substitua todos os `REPLACE_*`. Gere segredos próprios para instalação nova; para migrar a existente, reutilize as chaves originais.
 
-Obrigatórios: `FRONTEND_URL`, `SECRET_KEY_BASE`, três `ACTIVE_RECORD_ENCRYPTION_*`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`. Confira host/porta/database/usuário de PostgreSQL e `REDIS_URL`; mantenha os mesmos valores em Web e worker. `DATABASE_URL` fica vazio por padrão, podendo configurar TLS e parâmetros de banco gerenciado. Não deixar URI antiga apontando para outro banco. Variáveis individuais permanecem exigidas para configuração explícita.
+Obrigatórios: `FRONTEND_URL`, `SECRET_KEY_BASE`, três `ACTIVE_RECORD_ENCRYPTION_*`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`. Confira host/porta/database/usuário de PostgreSQL e `REDIS_URL`; mantenha os mesmos valores em Web e worker. As Stacks não definem `DATABASE_URL`: no Rails 7.2, uma string vazia causa `Database URL cannot be empty`. Para banco gerenciado que exija URI/TLS, adicione explicitamente uma `DATABASE_URL` não vazia ao bloco `environment: &app-env` do `stack.yaml`, por exemplo `DATABASE_URL: ${DATABASE_URL:?Set a non-empty DATABASE_URL}`. A URI prevalece sobre os campos individuais; codifique caracteres especiais de usuário/senha na URL. Somente cadastrar a variável na tela do Portainer não a injeta em um YAML que não a referencia.
 
 Configurar manualmente conforme uso: SMTP/remetente; OAuth Google; storage S3 e credenciais/região; HTTPS/proxy. Configurações OAuth salvas em Super Admin prevalecem sobre ENV. Guia funcional: [README-DEPLOY](../../README-DEPLOY.md), [Calendar](../../docs/crm/google-calendar.md).
 
@@ -79,51 +81,21 @@ Volumes têm nomes explícitos configuráveis: `STORAGE_VOLUME`, `POSTGRES_VOLUM
 
 O modo `local` exige backup de storage; S3 exige backup/política do bucket. O volume de PostgreSQL persiste o banco e Redis usa AOF. Não publicar portas PostgreSQL/Redis. A Evolution continua separada: seu banco, sessões, volumes e integração não são recriados por esta release.
 
-## 5. Deploy CLI e migrations, instalação nova
+## 5. Deploy automático e atualização
 
-```sh
-cd deploy/production
-cp .env.example .env
-# Edite os segredos antes de continuar.
-chmod 600 .env
-docker compose --env-file .env -f stack.bundled.yaml config --quiet
-docker compose --env-file .env -f stack.bundled.yaml pull
-docker compose --env-file .env -f stack.bundled.yaml up -d postgres redis
-docker compose --env-file .env -f stack.bundled.yaml run --rm --no-deps web \
-  bundle exec rails db:chatwoot_prepare
-docker compose --env-file .env -f stack.bundled.yaml up -d web worker
-```
+A stack bundled executa automaticamente: PostgreSQL/Redis healthy → prepare → Web/worker. `prepare` usa a mesma imagem, ENV e storage, `restart: 'no'`, `entrypoint: []` e apenas `bundle exec rails db:chatwoot_prepare`. O entrypoint da imagem não é necessário: as gems estão incluídas e a dependência garante PostgreSQL disponível. Web/worker mantêm seus comandos/entrypoint atuais e não executam migrations.
 
-Antes de preparar, aguarde PostgreSQL/Redis saudáveis. Execute `db:chatwoot_prepare` **uma vez**, com a imagem da versão e o ENV corretos. O comando específico do projeto carrega schema/seeds na primeira instalação e aplica migrations; em banco existente aplica migrations. Web, worker e healthchecks não executam migrations automaticamente. Nunca rodar preparação simultaneamente em vários containers.
+No Portainer Docker Standalone: Add stack → Web editor → colar YAML → preencher Environment → Deploy the stack → aguardar. Não há comando manual de preparação. Configure domínio/proxy/TLS previamente. `prepare` em **Exited (0)** significa sucesso. Se falhar, seus logs contêm o erro e novos Web/worker não iniciam. Corrija a causa e redeploye pelo Portainer; não ignore o erro.
 
-Para banco externo, use `stack.yaml`; providencie previamente banco, extensão pgvector conforme permissões do provedor, Redis e conectividade. `POSTGRES_HOST=postgres` não resolve fora da Stack sem uma rede compartilhada/alias. Para serviços Docker externos, conecte ambos os serviços à network externa correta por uma alteração explícita da Stack; para gerenciados use DNS, TLS e firewall adequados. Teste DNS/autenticação a partir dos containers.
+Na app-only, provisionar PostgreSQL e Redis externos disponíveis antes do Deploy, com DNS, autenticação e rede corretos. Não há serviços locais nem healthchecks externos: a preparação falha se não conseguir acessar PostgreSQL. A saúde de Redis externo deve ser garantida pelo operador; o task não é uma probe completa de Redis.
 
-## 6. Portainer: sequência sem build no servidor
+Para atualizar: faça backup, suspenda tráfego e pare **Web e worker pelo Portainer**, mantendo banco/Redis. Troque `CHATWOOT_IMAGE` para uma nova tag publicada em Environment e clique Update the stack, solicitando pull da imagem. A mudança da imagem compartilhada recria `prepare`, que executa novamente antes da partida da aplicação. Preserve Stack, volumes e chaves. Uma atualização da mesma tag não comprova troca de imagem; use tags novas.
 
-1. Se a imagem for privada, cadastre GHCR em **Registries** com credencial de pull.
-2. Escolha Docker Standalone, crie Stack com nome estável e cole **um arquivo completo**: `stack.bundled.yaml` ou `stack.yaml`. Ambos usam imagens, não `build`, bind de source nem `env_file`.
-3. Preencha Environment; no modo interno mantenha hosts `postgres`/`redis`, no externo ajuste os destinos. Fixe imagem em `:v1.0.4` ou `@sha256:...`.
-4. Para instalação nova, a primeira subida Web pode aguardar/falhar até preparar o banco. Pare Web e worker pelo Portainer enquanto prepara. Dependencies/volumes devem permanecer ativos.
-5. Em terminal do Docker host, encontre o nome exato do container Web e execute uma única vez a imagem-alvo com a configuração da Stack. Se o Web estiver rodando, pode usar `docker exec CONTAINER_WEB bundle exec rails db:chatwoot_prepare` com worker parado e sem tráfego. A alternativa preferida é usar o mesmo YAML/ENV no host e `docker compose run --rm --no-deps web ...` como acima, mantendo o nome de projeto/Stack, imagem, volumes e redes iguais.
-6. Suba/reinicie Web e worker e verifique logs/healthchecks. Configure proxy, TLS e domínio fora desta Stack. Não executar migrations via start automático de todos os serviços.
+**Limitação:** `depends_on` controla a partida via Compose; não interrompe containers antigos já em execução durante migrations nem controla reinícios isolados do Docker. Por isso a parada de Web/worker pelo Portainer é necessária em atualizações, especialmente migrations incompatíveis. Não existem migrations no entrypoint para contornar essa limitação. Uma única Stack deve gerenciar o banco; stacks concorrentes não são serializadas por esse YAML.
 
-O healthcheck `/health` verifica resposta HTTP do Rails, não valida migrations, Redis nem prontidão completa do negócio. PostgreSQL e Redis têm probes próprios. A Stack não inventa probe de Sidekiq; confira processo e execução de jobs em operação. Sem Compose v2/Standalone, prepare um manifesto específico, não reutilize estes arquivos diretamente em Swarm.
+Compose moderno suporta `service_completed_successfully`: https://docs.docker.com/compose/how-tos/startup-order/. O Portainer oferece Web editor/Environment para Docker Standalone: https://docs.portainer.io/user/docker/stacks/add. A versão específica do Portainer-alvo não foi testada; se rejeitar a condição, atualize para uma versão com suporte antes de usar. Não utilizar no Swarm.
 
-## 7. Atualizar e fazer rollback
-
-Antes de atualizar: backup testado do banco/storage, chaves preservadas, changelog/migrations revisados e digest anterior registrado. Troque `CHATWOOT_IMAGE` para a versão nova **em ambos os serviços**; faça pull. Programe janela conforme compatibilidade de schema, pare worker e tráfego, prepare o banco uma vez com a imagem-alvo e redeploye Web/worker. Não renomeie volumes/Stack.
-
-No CLI:
-
-```sh
-# Após atualizar CHATWOOT_IMAGE no .env e fazer backup:
-docker compose --env-file .env -f stack.bundled.yaml pull web worker
-docker compose --env-file .env -f stack.bundled.yaml stop web worker
-docker compose --env-file .env -f stack.bundled.yaml run --rm --no-deps web bundle exec rails db:chatwoot_prepare
-docker compose --env-file .env -f stack.bundled.yaml up -d web worker
-```
-
-Rollback: altere a imagem de ambos de `:v1.1.0` para `:v1.0.4` (ou digest anterior), pull e redeploy. **Imagem antiga não desfaz migrations.** Só voltar se o schema for compatível; caso contrário planeje restauração do backup, com impacto nos dados novos. Nenhuma migration é revertida automaticamente. Nunca usar `down -v`, reset ou prune de volumes.
+Rollback: voltar a imagem não desfaz migrations. Só use uma imagem anterior compatível com o schema; caso contrário, planeje restauração de backup. Nunca remover volumes para atualizar ou reverter.
 
 ## Validação desta preparação
 

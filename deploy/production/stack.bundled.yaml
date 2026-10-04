@@ -21,7 +21,6 @@ x-app: &app
     POSTGRES_DATABASE: ${POSTGRES_DATABASE:-chatwoot}
     POSTGRES_USERNAME: ${POSTGRES_USERNAME:-postgres}
     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-    DATABASE_URL: ${DATABASE_URL:-}
     REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
@@ -44,9 +43,18 @@ x-app: &app
     - storage_data:/app/storage
 
 services:
+  prepare:
+    <<: *app
+    restart: 'no'
+    entrypoint: []
+    command: [bundle, exec, rails, 'db:chatwoot_prepare']
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
   web:
     <<: *app
     depends_on:
+      prepare: {condition: service_completed_successfully}
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     entrypoint: /app/docker/entrypoints/rails.sh
@@ -65,6 +73,7 @@ services:
   worker:
     <<: *app
     depends_on:
+      prepare: {condition: service_completed_successfully}
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     command: [bundle, exec, sidekiq, -C, config/sidekiq.yml]
