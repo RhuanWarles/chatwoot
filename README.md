@@ -1,3 +1,5 @@
+> [Guia de instalação deste fork — Chatwoot com CRM](README_INSTALACAO.md) — Docker, domínio/HTTPS, SMTP, Evolution, Google Calendar/Meet, backups e migração.
+
 <img src="./.github/screenshots/header.png#gh-light-mode-only" width="100%" alt="Header light mode"/>
 <img src="./.github/screenshots/header-dark.png#gh-dark-mode-only" width="100%" alt="Header dark mode"/>
 
