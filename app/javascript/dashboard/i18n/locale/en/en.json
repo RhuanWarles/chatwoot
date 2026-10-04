@@ -148,7 +148,15 @@
     "PROVIDERS": {
       "openai": "OpenAI",
       "anthropic": "Anthropic",
-      "gemini": "Gemini"
-    }
+      "gemini": "Gemini",
+      "openrouter": "OpenRouter",
+      "groq": "Groq"
+    },
+    "MODEL_SUGGESTION": "Suggested model",
+    "MODEL_PLACEHOLDER": "Select a suggested model",
+    "MODEL_SEARCH": "Search models",
+    "MODEL_EMPTY": "No suggested models",
+    "MODEL_CUSTOM_PLACEHOLDER": "Or enter a custom model identifier",
+    "MODEL_HELP": "Choose a suggestion or enter any compatible model identifier."
   }
 }

@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import { suggestedModelsForProvider } from './models';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { agentPayload, newAgent, validAgent } from './form';
 
@@ -22,6 +23,7 @@ const editor = ref(null);
 const deletion = ref(null);
 const deleting = ref(null);
 const draft = ref(newAgent());
+const previousProvider = ref(draft.value.provider);
 const editingId = ref(null);
 const inboxes = computed(() => store.getters['inboxes/getInboxes']);
 const canSave = computed(() => validAgent(draft.value));
@@ -29,6 +31,8 @@ const providerLabels = computed(() => ({
   openai: t('AI_AGENTS.PROVIDERS.openai'),
   anthropic: t('AI_AGENTS.PROVIDERS.anthropic'),
   gemini: t('AI_AGENTS.PROVIDERS.gemini'),
+  openrouter: t('AI_AGENTS.PROVIDERS.openrouter'),
+  groq: t('AI_AGENTS.PROVIDERS.groq'),
 }));
 const providerOptions = computed(() =>
   providers.value.map(value => ({
@@ -36,6 +40,25 @@ const providerOptions = computed(() =>
     label: providerLabels.value[value],
   }))
 );
+const modelOptions = computed(() =>
+  suggestedModelsForProvider(draft.value.provider).map(value => ({
+    value,
+    label: value,
+  }))
+);
+
+watch(
+  () => draft.value.provider,
+  provider => {
+    if (provider === previousProvider.value) return;
+    previousProvider.value = provider;
+    const suggestions = suggestedModelsForProvider(provider);
+    if (draft.value.model && !suggestions.includes(draft.value.model)) {
+      draft.value.model = '';
+    }
+  }
+);
+
 const unavailableInbox = inbox =>
   draft.value.active &&
   agents.value.some(
@@ -74,6 +97,7 @@ const openEditor = agent => {
         inbox_ids: agent.inboxes.map(inbox => inbox.id),
       })
     : newAgent();
+  previousProvider.value = draft.value.provider;
   editorError.value = '';
   editor.value.open();
 };
@@ -272,11 +296,28 @@ onMounted(load);
               :disabled="busy"
             />
           </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm text-n-slate-12">
+              {{ t('AI_AGENTS.MODEL_SUGGESTION') }}
+            </label>
+            <ComboBox
+              v-model="draft.model"
+              :options="modelOptions"
+              :placeholder="t('AI_AGENTS.MODEL_PLACEHOLDER')"
+              :search-placeholder="t('AI_AGENTS.MODEL_SEARCH')"
+              :empty-state="t('AI_AGENTS.MODEL_EMPTY')"
+              :disabled="busy"
+            />
+          </div>
           <Input
             v-model="draft.model"
             :label="t('AI_AGENTS.MODEL')"
+            :placeholder="t('AI_AGENTS.MODEL_CUSTOM_PLACEHOLDER')"
             :disabled="busy"
           />
+          <p class="text-xs text-n-slate-11 sm:col-span-2">
+            {{ t('AI_AGENTS.MODEL_HELP') }}
+          </p>
         </div>
         <label class="flex flex-col gap-2 text-sm text-n-slate-12"
           >{{ t('AI_AGENTS.TEMPERATURE')
