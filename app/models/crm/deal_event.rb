@@ -1,7 +1,7 @@
 class Crm::DealEvent < ApplicationRecord
   self.table_name = 'crm_deal_events'
   EVENT_TYPES = %w[
-    custom_field_changed deal_created stage_changed status_changed value_changed owner_changed note_created
+    custom_field_changed deal_created pipeline_changed stage_changed status_changed value_changed owner_changed note_created
     activity_created activity_updated activity_completed activity_cancelled meeting_scheduled meeting_rescheduled
   ].freeze
   belongs_to :account

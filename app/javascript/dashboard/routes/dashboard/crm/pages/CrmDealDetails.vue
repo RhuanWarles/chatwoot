@@ -33,6 +33,23 @@ const saving = ref(false);
 const noteSaving = ref(false);
 const editor = ref(null);
 const currency = ref(null);
+const summaryField = ref(null);
+const summaryDraft = ref({});
+const summaryCurrency = ref(null);
+const summaryLoading = ref(false);
+const summaryFields = [
+  { key: 'pipeline_id', label: 'CRM.PIPELINES_TITLE' },
+  { key: 'pipeline_stage_id', label: 'CRM.STAGE' },
+  { key: 'value', label: 'CRM.VALUE' },
+  { key: 'owner_id', label: 'CRM.OWNER' },
+  { key: 'status', label: 'CRM.STATUS' },
+  { key: 'description', label: 'CRM.DESCRIPTION' },
+];
+const summaryStages = computed(
+  () =>
+    pipelines.value.find(item => item.id === summaryDraft.value.pipeline_id)
+      ?.stages || []
+);
 const draft = ref({});
 const note = ref('');
 const editingNote = ref(null);
@@ -124,6 +141,7 @@ const eventChange = event => {
     );
   }
   if (
+    event.event_type === 'pipeline_changed' ||
     event.event_type === 'stage_changed' ||
     event.event_type === 'owner_changed'
   )
@@ -151,8 +169,84 @@ const loadHistory = async (append = false) => {
     error.value = t('CRM.DETAIL_LOAD_ERROR');
   }
 };
+const summaryValue = key => {
+  if (key === 'pipeline_id') return deal.value.pipeline.name;
+  if (key === 'pipeline_stage_id') return deal.value.pipeline_stage.name;
+  if (key === 'value') return money(deal.value.value);
+  if (key === 'owner_id') return deal.value.owner?.name || t('CRM.UNASSIGNED');
+  if (key === 'status') return statusLabel(deal.value.status);
+  return deal.value.description || t('CRM.NOT_SET');
+};
+const editSummary = async key => {
+  if (saving.value || summaryLoading.value) return;
+  summaryLoading.value = true;
+  error.value = '';
+  try {
+    if (['pipeline_id', 'pipeline_stage_id', 'owner_id'].includes(key)) {
+      const results = await Promise.all([pipelinesAPI.get(), AgentsAPI.get()]);
+      pipelines.value = results[0].data;
+      agents.value = results[1].data;
+    }
+    summaryDraft.value = {
+      pipeline_id: deal.value.pipeline_id,
+      pipeline_stage_id: deal.value.pipeline_stage_id,
+      value: deal.value.value ?? '',
+      owner_id: deal.value.owner_id ?? '',
+      status: deal.value.status,
+      description: deal.value.description || '',
+    };
+    summaryField.value = key;
+  } catch {
+    error.value = t('CRM.DETAIL_LOAD_ERROR');
+  } finally {
+    summaryLoading.value = false;
+  }
+};
+const saveSummary = async () => {
+  const key = summaryField.value;
+  if (!key || saving.value || summaryCurrency.value?.[0]?.isInvalid) return;
+  if (
+    key === 'pipeline_stage_id' &&
+    !summaryStages.value.some(
+      stage => stage.id === summaryDraft.value.pipeline_stage_id
+    )
+  )
+    return;
+  let value = summaryDraft.value[key];
+  if (['value', 'owner_id'].includes(key) && value === '') value = null;
+  const payload = { [key]: value };
+  if (key === 'pipeline_id' && value !== deal.value.pipeline_id) {
+    const firstStage = [...summaryStages.value].sort(
+      (a, b) => a.position - b.position || a.id - b.id
+    )[0];
+    if (!firstStage) {
+      error.value = t('CRM.PIPELINE_NO_STAGES');
+      return;
+    }
+    payload.pipeline_stage_id = firstStage.id;
+  }
+  const changed = Object.entries(payload).some(
+    ([field, next]) => (deal.value[field] ?? null) !== next
+  );
+  if (!changed) {
+    summaryField.value = null;
+    return;
+  }
+  saving.value = true;
+  error.value = '';
+  try {
+    deal.value = (await dealsAPI.update(deal.value.id, { deal: payload })).data;
+    summaryField.value = null;
+    await loadHistory();
+  } catch {
+    error.value = t('CRM.DETAIL_SAVE_ERROR');
+  } finally {
+    saving.value = false;
+  }
+};
 const load = async () => {
   editor.value?.close();
+  summaryField.value = null;
   abortHistory();
   error.value = '';
   deal.value = null;
@@ -181,6 +275,7 @@ const load = async () => {
   }
 };
 const openEditor = async () => {
+  summaryField.value = null;
   error.value = '';
   try {
     const results = await Promise.all([pipelinesAPI.get(), AgentsAPI.get()]);
@@ -442,42 +537,112 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               </RouterLink>
             </div>
             <dl class="flex flex-col gap-3 m-0 text-sm">
-              <div>
-                <dt class="text-n-slate-11">{{ t('CRM.PIPELINES_TITLE') }}</dt>
-                <dd class="m-0 text-n-slate-12">{{ deal.pipeline.name }}</dd>
-              </div>
-              <div>
-                <dt class="text-n-slate-11">{{ t('CRM.STAGE') }}</dt>
-                <dd class="m-0 text-n-slate-12">
-                  {{ deal.pipeline_stage.name }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-n-slate-11">{{ t('CRM.VALUE') }}</dt>
-                <dd class="m-0 font-medium text-n-slate-12">
-                  {{ money(deal.value) }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-n-slate-11">{{ t('CRM.OWNER') }}</dt>
-                <dd class="m-0 text-n-slate-12">
-                  {{ deal.owner?.name || t('CRM.UNASSIGNED') }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-n-slate-11">{{ t('CRM.STATUS') }}</dt>
-                <dd class="m-0 text-n-slate-12">
-                  <span
-                    class="inline-flex px-2 py-0.5 rounded-md text-xs"
-                    :class="
-                      deal.status === 'won'
-                        ? 'bg-n-teal-3 text-n-teal-11'
-                        : deal.status === 'lost'
-                          ? 'bg-n-ruby-3 text-n-ruby-11'
-                          : 'bg-n-blue-3 text-n-blue-11'
-                    "
-                    >{{ statusLabel(deal.status) }}</span
+              <div
+                v-for="field in summaryFields"
+                :key="field.key"
+                class="min-w-0"
+              >
+                <dt class="text-n-slate-11">{{ t(field.label) }}</dt>
+                <dd class="m-0 min-w-0 text-n-slate-12">
+                  <form
+                    v-if="summaryField === field.key"
+                    class="flex flex-col gap-2 mt-1"
+                    @submit.prevent="saveSummary"
+                    @keydown.esc.stop="!saving && (summaryField = null)"
                   >
+                    <fieldset
+                      :disabled="saving"
+                      class="flex flex-col gap-2 min-w-0"
+                    >
+                      <ComboBox
+                        v-if="field.key === 'pipeline_id'"
+                        v-model="summaryDraft.pipeline_id"
+                        :options="
+                          pipelines.map(item => ({
+                            value: item.id,
+                            label: item.name,
+                          }))
+                        "
+                        :placeholder="t('CRM.SELECT_PIPELINE')"
+                      />
+                      <ComboBox
+                        v-if="field.key === 'pipeline_stage_id'"
+                        v-model="summaryDraft.pipeline_stage_id"
+                        :options="
+                          summaryStages.map(item => ({
+                            value: item.id,
+                            label: item.name,
+                          }))
+                        "
+                        :placeholder="t('CRM.STAGE')"
+                      />
+                      <CrmCurrencyInput
+                        v-if="field.key === 'value'"
+                        ref="summaryCurrency"
+                        v-model="summaryDraft.value"
+                      />
+                      <ComboBox
+                        v-if="field.key === 'owner_id'"
+                        v-model="summaryDraft.owner_id"
+                        :options="ownerOptions"
+                        :placeholder="t('CRM.OWNER')"
+                      />
+                      <ComboBox
+                        v-if="field.key === 'status'"
+                        v-model="summaryDraft.status"
+                        :options="statusOptions"
+                        :placeholder="t('CRM.STATUS')"
+                      />
+                      <textarea
+                        v-if="field.key === 'description'"
+                        v-model="summaryDraft.description"
+                        :aria-label="t('CRM.DESCRIPTION')"
+                        rows="4"
+                        class="w-full min-w-0 p-2 rounded-lg border border-n-weak bg-n-background text-sm text-n-slate-12 focus:outline-none focus:ring-1 focus:ring-n-brand"
+                      />
+                      <div class="flex flex-wrap gap-2">
+                        <Button
+                          type="submit"
+                          :label="t('CRM.SAVE_CHANGES')"
+                          size="sm"
+                          :is-loading="saving"
+                          :disabled="
+                            (field.key === 'value' &&
+                              summaryCurrency?.[0]?.isInvalid) ||
+                            (field.key === 'pipeline_stage_id' &&
+                              !summaryStages.some(
+                                stage =>
+                                  stage.id === summaryDraft.pipeline_stage_id
+                              ))
+                          "
+                        />
+                        <Button
+                          :label="t('CRM.CANCEL')"
+                          size="sm"
+                          variant="ghost"
+                          :disabled="saving"
+                          @click="summaryField = null"
+                        />
+                      </div>
+                    </fieldset>
+                  </form>
+                  <button
+                    v-else
+                    type="button"
+                    class="group flex items-start justify-between gap-2 w-full min-w-0 py-1 px-2 rounded-md text-start cursor-pointer hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-n-brand"
+                    :disabled="saving || summaryLoading"
+                    @click="editSummary(field.key)"
+                  >
+                    <span
+                      class="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]"
+                      :class="field.key === 'description' ? 'line-clamp-3' : ''"
+                      >{{ summaryValue(field.key) }}</span
+                    >
+                    <span
+                      class="i-lucide-pencil size-3 shrink-0 mt-1 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+                      aria-hidden="true"
+                    />
+                  </button>
                 </dd>
               </div>
               <div>
@@ -487,14 +652,6 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
               <div>
                 <dt class="text-n-slate-11">{{ t('CRM.UPDATED_AT') }}</dt>
                 <dd class="m-0 text-n-slate-12">{{ date(deal.updated_at) }}</dd>
-              </div>
-              <div v-if="deal.description">
-                <dt class="text-n-slate-11">{{ t('CRM.DESCRIPTION') }}</dt>
-                <dd
-                  class="m-0 line-clamp-3 whitespace-pre-wrap [overflow-wrap:anywhere] text-n-slate-12"
-                >
-                  {{ deal.description }}
-                </dd>
               </div>
             </dl>
           </div>

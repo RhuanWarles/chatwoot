@@ -106,5 +106,9 @@
     "SELECT_EXISTING": "Select existing contact",
     "NAME_REQUIRED": "Enter a name.",
     "EMAIL_INVALID": "Enter a valid email address."
+  },
+  "SIDEBAR": {
+    "COLLAPSE_SIDEBAR": "Collapse sidebar",
+    "EXPAND_SIDEBAR": "Expand sidebar"
   }
 }

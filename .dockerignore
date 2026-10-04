@@ -17,3 +17,12 @@ vendor/bundle
 *~
 
 .pnpm-store
+.git
+.worktrees
+.codex
+backups
+*.dump
+*.bundle
+public/vite*
+deploy/**/.env
+deploy/**/.env.*

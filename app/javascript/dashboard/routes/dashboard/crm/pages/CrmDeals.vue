@@ -847,6 +847,7 @@ onUnmounted(() => {
               </p>
               <button
                 v-if="element.next_activity"
+                data-activity-indicator="true"
                 type="button"
                 class="flex items-center w-full min-w-0 gap-1.5 mt-2 pt-2 border-t border-n-weak text-left"
                 :title="activityTooltip(element.next_activity)"

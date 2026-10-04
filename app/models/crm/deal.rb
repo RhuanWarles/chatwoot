@@ -4,7 +4,7 @@ module Crm
 
     STATUSES = %w[open won lost].freeze
     TRACKED_CHANGES = {
-      'pipeline_stage_id' => 'stage_changed', 'status' => 'status_changed',
+      'pipeline_id' => 'pipeline_changed', 'pipeline_stage_id' => 'stage_changed', 'status' => 'status_changed',
       'value' => 'value_changed', 'owner_id' => 'owner_changed'
     }.freeze
 
@@ -36,7 +36,9 @@ module Crm
 
         before, after = saved_change_to_attribute(attribute)
         metadata = { 'from' => before, 'to' => after }
-        if attribute == 'pipeline_stage_id'
+        if attribute == 'pipeline_id'
+          metadata.merge!('from_name' => Crm::Pipeline.find_by(id: before)&.name, 'to_name' => pipeline.name)
+        elsif attribute == 'pipeline_stage_id'
           metadata.merge!('from_name' => Crm::PipelineStage.find_by(id: before)&.name, 'to_name' => pipeline_stage.name)
         elsif attribute == 'owner_id'
           metadata.merge!('from_name' => User.find_by(id: before)&.name, 'to_name' => owner&.name)

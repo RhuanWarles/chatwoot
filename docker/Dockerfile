@@ -1,5 +1,5 @@
 # pre-build stage
-FROM node:24-alpine as node
+FROM node:24-alpine AS node
 FROM ruby:3.4.4-alpine3.21 AS pre-builder
 
 ARG NODE_VERSION="24.13.0"
@@ -10,17 +10,17 @@ ENV PNPM_VERSION=${PNPM_VERSION}
 # ARG default to production settings
 # For development docker-compose file overrides ARGS
 ARG BUNDLE_WITHOUT="development:test"
-ENV BUNDLE_WITHOUT ${BUNDLE_WITHOUT}
+ENV BUNDLE_WITHOUT=${BUNDLE_WITHOUT}
 ENV BUNDLER_VERSION=2.5.16
 
 ARG RAILS_SERVE_STATIC_FILES=true
-ENV RAILS_SERVE_STATIC_FILES ${RAILS_SERVE_STATIC_FILES}
+ENV RAILS_SERVE_STATIC_FILES=${RAILS_SERVE_STATIC_FILES}
 
 ARG RAILS_ENV=production
-ENV RAILS_ENV ${RAILS_ENV}
+ENV RAILS_ENV=${RAILS_ENV}
 
 ARG NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider"
-ENV NODE_OPTIONS ${NODE_OPTIONS}
+ENV NODE_OPTIONS=${NODE_OPTIONS}
 
 ENV BUNDLE_PATH="/gems"
 
@@ -72,9 +72,14 @@ RUN if [ "$RAILS_ENV" = "production" ]; then \
   fi
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm i
+RUN pnpm install --frozen-lockfile
 
 COPY . /app
+
+# Archives/checkouts created on Windows must still have executable Unix scripts.
+RUN find /app/docker/entrypoints /app/bin -type f -exec sed -i 's/\r$//' {} + \
+  && find /app/docker/entrypoints -type f -name '*.sh' -exec chmod +x {} + \
+  && chmod +x /app/bin/rails /app/bin/rake
 
 # creating a log directory so that image wont fail when RAILS_LOG_TO_STDOUT is false
 # https://github.com/chatwoot/chatwoot/issues/701
@@ -87,16 +92,22 @@ RUN if [ "$RAILS_ENV" = "production" ]; then \
   fi
 
 # Generate .git_sha file with current commit hash
-RUN git rev-parse HEAD > /app/.git_sha
+ARG SOURCE_REVISION=unknown
+RUN printf '%s\n' "$SOURCE_REVISION" > /app/.git_sha
 
 # Remove unnecessary files
 RUN rm -rf /gems/ruby/3.4.0/cache/*.gem \
   && find /gems/ruby/3.4.0/gems/ \( -name "*.c" -o -name "*.o" \) -delete \
   && rm -rf .git \
-  && rm .gitignore
+  && rm -f .gitignore
 
 # final build stage
 FROM ruby:3.4.4-alpine3.21
+
+ARG SOURCE_REVISION=unknown
+ARG CRM_VERSION=development
+LABEL org.opencontainers.image.revision=$SOURCE_REVISION \
+      org.opencontainers.image.version=$CRM_VERSION
 
 ARG NODE_VERSION="24.13.0"
 ARG PNPM_VERSION="10.2.0"
@@ -104,20 +115,20 @@ ENV NODE_VERSION=${NODE_VERSION}
 ENV PNPM_VERSION=${PNPM_VERSION}
 
 ARG BUNDLE_WITHOUT="development:test"
-ENV BUNDLE_WITHOUT ${BUNDLE_WITHOUT}
+ENV BUNDLE_WITHOUT=${BUNDLE_WITHOUT}
 ENV BUNDLER_VERSION=2.5.16
 
 ARG EXECJS_RUNTIME="Disabled"
-ENV EXECJS_RUNTIME ${EXECJS_RUNTIME}
+ENV EXECJS_RUNTIME=${EXECJS_RUNTIME}
 
 ARG RAILS_SERVE_STATIC_FILES=true
-ENV RAILS_SERVE_STATIC_FILES ${RAILS_SERVE_STATIC_FILES}
+ENV RAILS_SERVE_STATIC_FILES=${RAILS_SERVE_STATIC_FILES}
 
 ARG BUNDLE_FORCE_RUBY_PLATFORM=1
-ENV BUNDLE_FORCE_RUBY_PLATFORM ${BUNDLE_FORCE_RUBY_PLATFORM}
+ENV BUNDLE_FORCE_RUBY_PLATFORM=${BUNDLE_FORCE_RUBY_PLATFORM}
 
 ARG RAILS_ENV=production
-ENV RAILS_ENV ${RAILS_ENV}
+ENV RAILS_ENV=${RAILS_ENV}
 ENV BUNDLE_PATH="/gems"
 
 RUN apk update && apk add --no-cache \

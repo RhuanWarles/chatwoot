@@ -1,10 +1,5 @@
 {
   "CRM": {
-    "DEFAULT_STAGE_NEW_LEAD": "Novo Lead",
-    "DEFAULT_STAGE_QUALIFICATION": "Qualificação",
-    "DEFAULT_STAGE_PROPOSAL": "Proposta",
-    "DEFAULT_STAGE_NEGOTIATION": "Negociação",
-    "DEFAULT_STAGE_CLOSED": "Fechado",
     "MENU": "CRM",
     "DEALS_TITLE": "Negócios",
     "DEALS_SUBTITLE": "Gerencie seu pipeline comercial",
@@ -236,7 +231,14 @@
     "CHANNEL_LINE": "LINE",
     "CHANNEL_SMS": "SMS",
     "CHANNEL_TWITTERPROFILE": "X",
-    "CHANNEL_TIKTOK": "TikTok"
+    "CHANNEL_TIKTOK": "TikTok",
+    "PIPELINE_NO_STAGES": "Este pipeline não possui etapas disponíveis.",
+    "EVENT_PIPELINE_CHANGED": "Pipeline alterado",
+    "DEFAULT_STAGE_NEW_LEAD": "Novo Lead",
+    "DEFAULT_STAGE_QUALIFICATION": "Qualificação",
+    "DEFAULT_STAGE_PROPOSAL": "Proposta",
+    "DEFAULT_STAGE_NEGOTIATION": "Negociação",
+    "DEFAULT_STAGE_CLOSED": "Fechado"
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

@@ -105,3 +105,10 @@ CLAUDE.local.md
 local/
 Procfile.worktree
 .nodeterm/project.json
+
+# Deployment secrets and database backups (templates remain versioned).
+deploy/**/.env
+deploy/**/.env.*
+!deploy/**/.env.example
+backups/
+*.dump
