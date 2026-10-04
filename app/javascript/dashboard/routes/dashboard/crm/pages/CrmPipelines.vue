@@ -9,6 +9,13 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
 
 const { t } = useI18n();
+const DEFAULT_STAGE_KEYS = [
+  'CRM.DEFAULT_STAGE_NEW_LEAD',
+  'CRM.DEFAULT_STAGE_QUALIFICATION',
+  'CRM.DEFAULT_STAGE_PROPOSAL',
+  'CRM.DEFAULT_STAGE_NEGOTIATION',
+  'CRM.DEFAULT_STAGE_CLOSED',
+];
 const pipelines = ref([]);
 const editor = ref(null);
 const confirmation = ref(null);
@@ -68,7 +75,11 @@ const openEditor = async pipeline => {
     : {
         name: '',
         active: true,
-        stages: [{ name: '', probability: null, key: crypto.randomUUID() }],
+        stages: DEFAULT_STAGE_KEYS.map(label => ({
+          name: t(label),
+          probability: null,
+          key: crypto.randomUUID(),
+        })),
       };
   stageCounts.value = {};
   if (pipeline) {

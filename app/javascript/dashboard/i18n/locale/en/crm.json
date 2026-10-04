@@ -1,5 +1,10 @@
 {
   "CRM": {
+    "DEFAULT_STAGE_NEW_LEAD": "New Lead",
+    "DEFAULT_STAGE_QUALIFICATION": "Qualification",
+    "DEFAULT_STAGE_PROPOSAL": "Proposal",
+    "DEFAULT_STAGE_NEGOTIATION": "Negotiation",
+    "DEFAULT_STAGE_CLOSED": "Closed",
     "MENU": "CRM",
     "DEALS_TITLE": "Deals",
     "DEALS_SUBTITLE": "Manage your sales pipeline",
