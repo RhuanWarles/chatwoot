@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getInboxIconByType } from 'dashboard/helper/inbox';
 import InboxesAPI from 'dashboard/api/inboxes';
 import ContactAPI from 'dashboard/api/contacts';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
@@ -10,6 +11,22 @@ const { t, locale } = useI18n();
 const conversations = ref([]);
 const inboxes = ref([]);
 const error = ref('');
+const sortedConversations = computed(() =>
+  [...conversations.value].sort(
+    (a, b) => b.last_activity_at - a.last_activity_at
+  )
+);
+const inboxFor = conversation =>
+  inboxes.value.find(item => item.id === conversation.inbox_id);
+const channelFor = conversation => {
+  const inbox = inboxFor(conversation);
+  const type = inbox?.channel_type || conversation.meta?.channel;
+  if (type === 'Channel::TwilioSms')
+    return inbox?.medium === 'whatsapp' ? 'WHATSAPP' : 'SMS';
+  return type?.replace('Channel::', '').toUpperCase() || 'API';
+};
+const lastMessage = conversation => conversation.last_non_activity_message;
+
 const { run, abort, isPending: loading } = useAbortableRequest();
 const date = value =>
   new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
@@ -27,7 +44,7 @@ watch(
       const result = await run(() =>
         Promise.all([ContactAPI.getConversations(id), InboxesAPI.get()])
       );
-      if (result) {
+      if (result && props.contactId === id) {
         conversations.value = result[0].data.payload;
         inboxes.value = result[1].data.payload;
       }
@@ -56,8 +73,11 @@ watch(
     >
       {{ t('CRM.NO_CONVERSATIONS') }}
     </p>
+    <p v-if="loading" role="status" class="mb-0 text-sm text-n-slate-11">
+      {{ t('CRM.CONVERSATIONS_LOADING') }}
+    </p>
     <RouterLink
-      v-for="conversation in conversations"
+      v-for="conversation in sortedConversations"
       :key="conversation.id"
       :to="{
         name: 'inbox_conversation',
@@ -66,24 +86,82 @@ watch(
           conversation_id: conversation.id,
         },
       }"
-      class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-n-alpha-2 hover:bg-n-alpha-3"
+      class="flex flex-col min-w-0 gap-1.5 p-3 rounded-lg border hover:bg-n-alpha-3 focus-visible:ring-2 focus-visible:ring-n-brand"
+      :class="
+        conversation.status === 'open'
+          ? 'border-n-brand/30 bg-n-blue-2'
+          : 'border-n-weak bg-n-alpha-2'
+      "
     >
-      <div class="min-w-0">
-        <p class="mb-1 text-sm font-medium text-n-slate-12">
-          {{
-            inboxes.find(inbox => inbox.id === conversation.inbox_id)?.name ||
-            t('CRM.CONVERSATION')
-          }}
-          · #{{ conversation.id }}
+      <div class="flex items-center gap-2 min-w-0">
+        <span
+          class="flex-shrink-0 text-n-slate-11"
+          :class="
+            getInboxIconByType(
+              inboxFor(conversation)?.channel_type ||
+                conversation.meta?.channel,
+              inboxFor(conversation)?.medium
+            )
+          "
+        />
+        <p
+          class="flex-1 min-w-0 mb-0 text-sm font-medium text-n-slate-12 truncate"
+        >
+          {{ t(`CRM.CHANNEL_${channelFor(conversation)}`) }}
+          <span v-if="inboxFor(conversation)?.name">
+            · {{ inboxFor(conversation).name }}</span
+          >
         </p>
-        <p class="mb-0 text-xs text-n-slate-11">
+        <span
+          class="text-xs flex-shrink-0"
+          :class="
+            conversation.status === 'open'
+              ? 'text-n-teal-11'
+              : 'text-n-slate-11'
+          "
+        >
           {{
             t(`CRM.CONVERSATION_STATUS_${conversation.status.toUpperCase()}`)
           }}
-          · {{ date(conversation.last_activity_at) }}
-        </p>
+        </span>
+        <span
+          v-if="conversation.unread_count"
+          class="rounded-full px-1.5 text-xs bg-n-blue-3 text-n-blue-11"
+          :title="
+            t('CRM.CONVERSATIONS_UNREAD', { count: conversation.unread_count })
+          "
+        >
+          {{ conversation.unread_count }}
+        </span>
       </div>
-      <span class="text-sm text-n-brand">{{ t('CRM.OPEN_CONVERSATION') }}</span>
+      <p
+        v-if="lastMessage(conversation)?.content"
+        class="mb-0 text-sm text-n-slate-11 line-clamp-2 [overflow-wrap:anywhere]"
+      >
+        {{ lastMessage(conversation).content }}
+      </p>
+      <p
+        v-else-if="lastMessage(conversation)?.attachments?.length"
+        class="mb-0 text-sm text-n-slate-11"
+      >
+        {{ t('CRM.CONVERSATIONS_ATTACHMENT') }}
+      </p>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="mb-0 text-xs text-n-slate-10">
+          {{
+            date(
+              lastMessage(conversation)?.created_at ||
+                conversation.last_activity_at
+            )
+          }}
+          <span v-if="conversation.meta?.assignee?.name">
+            · {{ t('CRM.OWNER') }}: {{ conversation.meta.assignee.name }}</span
+          >
+        </p>
+        <span class="text-xs text-n-brand">{{
+          t('CRM.OPEN_CONVERSATION')
+        }}</span>
+      </div>
     </RouterLink>
   </section>
 </template>

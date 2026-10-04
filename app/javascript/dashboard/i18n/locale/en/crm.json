@@ -112,8 +112,8 @@
     "MESSAGES": "Messages",
     "CONVERSATION": "Conversation",
     "CONVERSATIONS_LOAD_ERROR": "Unable to load conversations",
-    "NO_CONTACT_CONVERSATIONS": "Associate a contact to view conversations",
-    "NO_CONVERSATIONS": "No accessible conversations for this contact",
+    "NO_CONTACT_CONVERSATIONS": "This deal has no associated contact.",
+    "NO_CONVERSATIONS": "No conversations found for this contact.",
     "OPEN_CONVERSATION": "Open conversation",
     "CONVERSATION_STATUS_OPEN": "Open",
     "CONVERSATION_STATUS_RESOLVED": "Resolved",
@@ -217,6 +217,20 @@
     "DEAL_SEARCH_COMPANIES": "Related companies",
     "DEAL_SEARCH_VIEW_ALL": "View all results in the Kanban",
     "DEAL_SEARCH_EMPTY_QUERY": "No deals found for \"{query}\".",
-    "HISTORY_CHANGES": "Changes"
+    "HISTORY_CHANGES": "Changes",
+    "CONVERSATIONS_LOADING": "Loading conversations...",
+    "CONVERSATIONS_UNREAD": "{count} unread messages",
+    "CONVERSATIONS_ATTACHMENT": "Message with attachment",
+    "CHANNEL_WEBWIDGET": "Webchat",
+    "CHANNEL_EMAIL": "Email",
+    "CHANNEL_API": "API",
+    "CHANNEL_WHATSAPP": "WhatsApp",
+    "CHANNEL_INSTAGRAM": "Instagram",
+    "CHANNEL_FACEBOOKPAGE": "Facebook",
+    "CHANNEL_TELEGRAM": "Telegram",
+    "CHANNEL_LINE": "LINE",
+    "CHANNEL_SMS": "SMS",
+    "CHANNEL_TWITTERPROFILE": "X",
+    "CHANNEL_TIKTOK": "TikTok"
   }
 }
