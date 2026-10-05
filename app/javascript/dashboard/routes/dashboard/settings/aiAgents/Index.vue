@@ -10,7 +10,7 @@ import { suggestedModelsForProvider } from './models';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { agentPayload, newAgent, validAgent } from './form';
 
-const { t, d } = useI18n();
+const { t, locale } = useI18n();
 const store = useStore();
 const agents = ref([]);
 const providers = ref([]);
@@ -46,6 +46,12 @@ const modelOptions = computed(() =>
     label: value,
   }))
 );
+
+const formatUpdatedAt = timestamp =>
+  new Intl.DateTimeFormat(locale.value, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(timestamp));
 
 watch(
   () => draft.value.provider,
@@ -223,10 +229,7 @@ onMounted(load);
           <p class="text-xs text-n-slate-11">
             {{ t('AI_AGENTS.UPDATED') }}:
             {{
-              d(new Date(agent.updated_at), {
-                dateStyle: 'short',
-                timeStyle: 'short',
-              })
+              formatUpdatedAt(agent.updated_at)
             }}
           </p>
         </div>
