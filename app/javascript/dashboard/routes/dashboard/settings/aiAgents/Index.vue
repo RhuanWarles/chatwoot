@@ -47,11 +47,18 @@ const modelOptions = computed(() =>
   }))
 );
 
-const formatUpdatedAt = timestamp =>
-  new Intl.DateTimeFormat(locale.value, {
+const formatUpdatedAt = timestamp => {
+  if (!timestamp) return '';
+  return new Intl.DateTimeFormat(locale.value || undefined, {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(timestamp));
+};
+
+const normalizeAgent = agent => ({
+  ...agent,
+  inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
+});
 
 watch(
   () => draft.value.provider,
@@ -71,7 +78,7 @@ const unavailableInbox = inbox =>
     agent =>
       agent.id !== editingId.value &&
       agent.active &&
-      agent.inboxes.some(item => item.id === inbox.id)
+      (agent.inboxes || []).some(item => item.id === inbox.id)
   );
 
 const load = async () => {
@@ -86,7 +93,9 @@ const load = async () => {
       loadError.value = t('AI_AGENTS.LOAD_ERROR');
       return;
     }
-    agents.value = response.data.agents;
+    agents.value = Array.isArray(response.data.agents)
+      ? response.data.agents.map(normalizeAgent)
+      : [];
     providers.value = response.data.providers;
   } catch {
     loadError.value = t('AI_AGENTS.LOAD_ERROR');
@@ -100,7 +109,7 @@ const openEditor = agent => {
     ? agentPayload({
         ...agent,
         description: agent.description ?? '',
-        inbox_ids: agent.inboxes.map(inbox => inbox.id),
+        inbox_ids: (agent.inboxes || []).map(inbox => inbox.id),
       })
     : newAgent();
   previousProvider.value = draft.value.provider;
@@ -121,7 +130,7 @@ const save = async () => {
       ? await aiAgentsAPI.update(editingId.value, payload)
       : await aiAgentsAPI.create(payload);
     agents.value = agents.value.filter(agent => agent.id !== response.data.id);
-    agents.value.push(response.data);
+    agents.value.push(normalizeAgent(response.data));
     editor.value.close();
   } catch (error) {
     editorError.value = errorText(error);
@@ -222,7 +231,7 @@ onMounted(load);
           <p class="text-sm text-n-slate-11">
             {{ t('AI_AGENTS.INBOXES') }}:
             {{
-              agent.inboxes.map(inbox => inbox.name).join(', ') ||
+              (agent.inboxes || []).map(inbox => inbox.name).join(', ') ||
               t('AI_AGENTS.NO_INBOXES')
             }}
           </p>
