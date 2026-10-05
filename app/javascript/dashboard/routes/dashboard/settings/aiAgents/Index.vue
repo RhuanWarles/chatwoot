@@ -49,7 +49,7 @@ const modelOptions = computed(() =>
 
 const formatUpdatedAt = timestamp => {
   if (!timestamp) return '';
-  return new Intl.DateTimeFormat(locale.value || undefined, {
+  return new Intl.DateTimeFormat(locale.value?.replace('_', '-') || undefined, {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(timestamp));
