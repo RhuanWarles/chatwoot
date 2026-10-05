@@ -57,7 +57,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
   def configure_agent
     input = params.require(:ai_agent)
     unless input.is_a?(ActionController::Parameters) && (input.keys - VALIDATORS.keys).empty? &&
-           input.all? { |key, value| VALIDATORS.fetch(key).call(value) }
+           input.each_pair.all? { |key, value| VALIDATORS.fetch(key).call(value) }
       raise CustomExceptions::SaasError, 'invalid_settings'
     end
 
