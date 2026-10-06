@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { debounce } from '@chatwoot/utils';
-import { useEventListener } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
@@ -23,63 +22,16 @@ const pipelines = ref([]);
 const deals = ref([]);
 const selectedPipeline = ref('');
 const kanbanBoard = ref(null);
-const topKanbanScroll = ref(null);
-const hasKanbanOverflow = ref(false);
 const now = ref(Date.now());
 let activityClock;
 const ACTIVITY_NEAR_WINDOW_MS = 2 * 60 * 60 * 1000;
-let syncingKanbanScroll = false;
-const isDragging = ref(false);
 const DRAG_SCROLL_EDGE = 80;
-let pointerX = 0;
-let pointerY = 0;
-useEventListener(document, 'pointermove', event => {
-  pointerX = event.clientX;
-  pointerY = event.clientY;
-});
-const scrollKanban = offsetX => {
-  if (!isDragging.value) return;
-  const board = kanbanBoard.value;
-  const { left, right, top, bottom } = board.getBoundingClientRect();
-  const inside =
-    pointerX >= left &&
-    pointerX <= right &&
-    pointerY >= top &&
-    pointerY <= bottom;
-  const nearEdge =
-    offsetX > 0
-      ? pointerX >= right - DRAG_SCROLL_EDGE
-      : pointerX <= left + DRAG_SCROLL_EDGE;
-  if (inside && nearEdge) board.scrollLeft += offsetX;
-};
-const updateKanbanOverflow = async () => {
-  await nextTick();
-  const board = kanbanBoard.value;
-  hasKanbanOverflow.value = Boolean(
-    board && board.scrollWidth > board.clientWidth
-  );
-};
-const syncKanbanScroll = (source, target) => {
-  if (syncingKanbanScroll || !target) return;
-  syncingKanbanScroll = true;
-  target.scrollLeft = source.scrollLeft;
-  requestAnimationFrame(() => {
-    syncingKanbanScroll = false;
-  });
-};
-const onTopKanbanScroll = event => {
-  syncKanbanScroll(event.currentTarget, kanbanBoard.value);
-};
-const onBoardKanbanScroll = event => {
-  syncKanbanScroll(event.currentTarget, topKanbanScroll.value);
-};
 const DRAG_SCROLL_OPTIONS = {
   forceFallback: true,
   fallbackOnBody: true,
   forceAutoScrollFallback: true,
-  bubbleScroll: false,
+  bubbleScroll: true,
   scrollSensitivity: DRAG_SCROLL_EDGE,
-  scrollFn: scrollKanban,
   scrollSpeed: 6,
 };
 const searchDraft = ref('');
@@ -451,8 +403,6 @@ const moveDeal = async (deal, stage) => {
   }
 };
 
-watch(boardStages, updateKanbanOverflow, { deep: true });
-useEventListener(window, 'resize', updateKanbanOverflow);
 onMounted(() => {
   load();
   activityClock = window.setInterval(() => {
@@ -461,7 +411,6 @@ onMounted(() => {
 });
 onUnmounted(() => {
   if (activityClock) window.clearInterval(activityClock);
-  isDragging.value = false;
   searchVersion += 1;
 });
 </script>
@@ -753,31 +702,16 @@ onUnmounted(() => {
         {{ t('CRM.CREATE_PIPELINE') }}
       </RouterLink>
     </section>
-    <div
-      v-if="hasKanbanOverflow"
-      ref="topKanbanScroll"
-      class="flex-shrink-0 w-full mb-1 overflow-x-auto overflow-y-hidden"
-      @scroll="onTopKanbanScroll"
-    >
-      <div class="flex w-max min-w-full gap-2 h-3">
-        <div
-          v-for="stage in boardStages"
-          :key="'scroll-' + stage.id"
-          class="flex-1 basis-0 min-w-56"
-        />
-      </div>
-    </div>
     <section
       ref="kanbanBoard"
-      class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-auto pb-2 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      @scroll="onBoardKanbanScroll"
+      class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-x-auto overflow-y-hidden pb-2 select-none"
     >
       <div
         v-for="stage in boardStages"
         :key="stage.id"
-        class="flex flex-col flex-1 basis-0 min-w-56 min-h-full h-fit rounded-xl bg-n-alpha-2 p-2.5"
+        class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-xl bg-n-alpha-2 p-2.5"
       >
-        <div class="mb-2 min-w-0">
+        <div class="sticky top-0 z-10 flex-shrink-0 mb-2 min-w-0">
           <h2
             :title="stage.name"
             class="mb-1 truncate font-medium text-n-slate-12"
@@ -797,16 +731,14 @@ onUnmounted(() => {
           :model-value="stage.deals"
           item-key="id"
           group="crm-deals"
-          :scroll="kanbanBoard"
+          scroll
           v-bind="DRAG_SCROLL_OPTIONS"
-          @start="isDragging = true"
-          @end="isDragging = false"
-          class="flex flex-col flex-1 gap-2 min-h-24"
+          class="flex flex-col flex-1 gap-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
           @change="event => event.added && moveDeal(event.added.element, stage)"
         >
           <template #item="{ element }">
             <article
-              class="min-w-0 p-2.5 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
+              class="flex-shrink-0 min-w-0 p-2.5 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
               @click="
                 router.push({
                   name: 'crm_deal_details',
