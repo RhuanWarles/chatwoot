@@ -374,7 +374,11 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
     class="flex flex-1 flex-col w-full h-full min-w-0 min-h-0 p-4 md:p-6 overflow-y-auto lg:overflow-hidden bg-n-background"
   >
     <RouterLink
-      :to="{ name: 'crm_deals', params: { accountId: route.params.accountId } }"
+      :to="{
+        name: 'crm_deals',
+        params: { accountId: route.params.accountId },
+        query: deal?.pipeline_id ? { pipeline_id: deal.pipeline_id } : {},
+      }"
       class="self-start mb-4 text-sm text-n-brand"
     >
       {{ t('CRM.BACK_TO_KANBAN') }}

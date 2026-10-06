@@ -5,8 +5,8 @@ import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { accountId: '1' } }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRoute: () => ({ params: { accountId: '1' }, query: {} }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock('dashboard/api/crm', () => ({
   dealsAPI: { get: vi.fn() },

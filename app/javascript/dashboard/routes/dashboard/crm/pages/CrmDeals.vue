@@ -337,16 +337,40 @@ const pipelineOptions = computed(() =>
 const load = async () => {
   const response = await pipelinesAPI.get();
   pipelines.value = response.data;
-  if (!selectedPipeline.value && pipelines.value.length)
-    selectedPipeline.value = (
-      pipelines.value.find(item => item.active) || pipelines.value[0]
-    ).id;
+  const requestedPipeline = pipelines.value.find(
+    item => String(item.id) === route.query.pipeline_id
+  );
+  selectedPipeline.value =
+    (
+      requestedPipeline ||
+      pipelines.value.find(item => item.active) ||
+      pipelines.value[0]
+    )?.id || '';
   if (selectedPipeline.value) {
+    if (route.query.pipeline_id !== String(selectedPipeline.value)) {
+      await router.replace({
+        query: { ...route.query, pipeline_id: String(selectedPipeline.value) },
+      });
+    }
     waitingForSearch.value = false;
     searchQuery.value = searchDraft.value.trim();
     await loadDeals();
   }
 };
+
+const selectPipeline = async () => {
+  await router.replace({
+    query: { ...route.query, pipeline_id: String(selectedPipeline.value) },
+  });
+  await load();
+};
+
+watch(
+  () => route.query.pipeline_id,
+  pipelineId => {
+    if (pipelineId !== String(selectedPipeline.value)) load();
+  }
+);
 
 const activityIsOverdue = activity => new Date(activity.due_at).getTime() < now.value;
 const activityIsNear = activity => {
@@ -512,7 +536,7 @@ onUnmounted(() => {
           :options="pipelineOptions"
           :placeholder="t('CRM.SELECT_PIPELINE')"
           class="w-56 max-w-full"
-          @update:model-value="load"
+          @update:model-value="selectPipeline"
         /><Button
           :label="t('CRM.NEW_DEAL')"
           :disabled="!pipeline?.active"

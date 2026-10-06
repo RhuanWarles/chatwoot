@@ -9,12 +9,12 @@ import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
 
 const { route, push } = vi.hoisted(() => ({
-  route: { params: { accountId: '1', dealId: '12' } },
+  route: { params: { accountId: '1', dealId: '12' }, query: {} },
   push: vi.fn(),
 }));
 vi.mock('vue-router', () => ({
   useRoute: () => route,
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace: vi.fn() }),
 }));
 vi.mock('../components/CrmActivities.vue', () => ({
   default: { template: '<div />' },
@@ -245,11 +245,12 @@ describe('Deal details', () => {
     expect(wrapper.find('script').exists()).toBe(false);
     expect(wrapper.text()).toContain('<script>alert(1)</script>');
   });
-  it('links back to account Kanban', async () => {
+  it('links back to the deal pipeline in the account Kanban', async () => {
     const wrapper = await mountPage();
     expect(wrapper.findComponent(RouterLinkStub).props('to')).toEqual({
       name: 'crm_deals',
       params: { accountId: '1' },
+      query: { pipeline_id: DEAL.pipeline_id },
     });
   });
   it('opens the detail route on card click and keeps a separate quick edit', async () => {

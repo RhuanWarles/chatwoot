@@ -17,8 +17,8 @@ vi.mock('dashboard/api/crm', () => ({
   dealsAPI: { get: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { accountId: '1' } }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRoute: () => ({ params: { accountId: '1' }, query: {} }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 const createContact = vi.fn();
