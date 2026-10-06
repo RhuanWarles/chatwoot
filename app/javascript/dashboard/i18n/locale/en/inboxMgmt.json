@@ -1094,6 +1094,8 @@
       "USE_INBOX_AVATAR_FOR_BOT": "Use inbox name and avatar for the bot"
     },
     "SETTINGS_POPUP": {
+    "EVOLUTION_INSTANCE_NAME": "Evolution instance name",
+    "EVOLUTION_INSTANCE_NAME_HELP": "Instance used to load WhatsApp group participants. Do not enter API keys here.",
       "MESSENGER_HEADING": "Messenger Script",
       "MESSENGER_SUB_HEAD": "Place this button inside your body tag",
       "ALLOWED_DOMAINS": {

@@ -146,6 +146,9 @@ defineExpose({
         <template v-if="$slots.option" #option="slotProps">
           <slot name="option" v-bind="slotProps" />
         </template>
+        <template v-if="$slots.footer" #footer>
+          <slot name="footer" :close="() => (open = false)" />
+        </template>
       </ComboBoxDropdown>
 
       <p

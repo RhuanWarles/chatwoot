@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -14,8 +15,11 @@ import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
 import { brlFormatter } from '../components/currencyHelpers';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
+import CrmPipelineEditor from '../components/CrmPipelineEditor.vue';
 
 const { t } = useI18n();
+const { isAdmin } = useAdmin();
+const pipelineEditor = ref(null);
 const route = useRoute();
 const router = useRouter();
 const pipelines = ref([]);
@@ -298,6 +302,15 @@ const load = async () => {
       pipelines.value.find(item => item.active) ||
       pipelines.value[0]
     )?.id || '';
+  const stageIds = new Set(stages.value.map(stage => stage.id));
+  advancedFilters.value.stageIds = advancedFilters.value.stageIds.filter(id =>
+    stageIds.has(id)
+  );
+  if (filterDraft.value) {
+    filterDraft.value.stageIds = filterDraft.value.stageIds.filter(id =>
+      stageIds.has(id)
+    );
+  }
   if (selectedPipeline.value) {
     if (route.query.pipeline_id !== String(selectedPipeline.value)) {
       await router.replace({
@@ -315,6 +328,11 @@ const selectPipeline = async () => {
     query: { ...route.query, pipeline_id: String(selectedPipeline.value) },
   });
   await load();
+};
+
+const pipelineSaved = async pipelineId => {
+  selectedPipeline.value = pipelineId;
+  await selectPipeline();
 };
 
 watch(
@@ -486,7 +504,30 @@ onUnmounted(() => {
           :placeholder="t('CRM.SELECT_PIPELINE')"
           class="w-56 max-w-full"
           @update:model-value="selectPipeline"
-        /><Button
+        >
+          <template v-if="isAdmin" #footer="{ close }">
+            <Button
+              variant="ghost"
+              color="slate"
+              icon="i-lucide-plus"
+              :label="t('CRM.NEW_PIPELINE')"
+              class="w-full justify-start"
+              @click="
+                close();
+                pipelineEditor.open();
+              "
+            />
+          </template>
+        </ComboBox>
+        <Button
+          v-if="isAdmin && pipeline"
+          variant="faded"
+          color="slate"
+          icon="i-lucide-pencil"
+          :label="t('CRM.EDIT_PIPELINE')"
+          @click="pipelineEditor.open(pipeline)"
+        />
+        <Button
           :label="t('CRM.NEW_DEAL')"
           :disabled="!pipeline?.active"
           icon="i-lucide-plus"
@@ -692,15 +733,11 @@ onUnmounted(() => {
       class="flex flex-col items-center justify-center flex-1 gap-3"
     >
       <p class="text-n-slate-11">{{ t('CRM.NO_PIPELINE') }}</p>
-      <RouterLink
-        class="text-n-brand"
-        :to="{
-          name: 'crm_pipelines',
-          params: { accountId: route.params.accountId },
-        }"
-      >
-        {{ t('CRM.CREATE_PIPELINE') }}
-      </RouterLink>
+      <Button
+        v-if="isAdmin"
+        :label="t('CRM.CREATE_PIPELINE')"
+        @click="pipelineEditor.open()"
+      />
     </section>
     <section
       ref="kanbanBoard"
@@ -952,5 +989,10 @@ onUnmounted(() => {
         </div>
       </form>
     </div>
+    <CrmPipelineEditor
+      ref="pipelineEditor"
+      @saved="pipelineSaved"
+      @closed="pipelineSaved(selectedPipeline)"
+    />
   </main>
 </template>

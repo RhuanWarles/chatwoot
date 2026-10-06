@@ -1,5 +1,9 @@
 {
   "CONVERSATION": {
+    "GROUP_PARTICIPANTS": {
+      "SEARCH": "Buscar participantes",
+      "EMPTY": "Nenhum participante encontrado"
+    },
     "REFERRAL": {
       "AD_LABEL": "Ad",
       "POST_LABEL": "Post",

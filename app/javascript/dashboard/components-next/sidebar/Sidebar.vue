@@ -680,12 +680,6 @@ const menuItems = computed(() => {
           activeOn: ['crm_deals', 'crm_deal_details'],
         },
         {
-          name: 'Pipelines',
-          label: t('CRM.PIPELINES_TITLE'),
-          to: accountScopedRoute('crm_pipelines'),
-          activeOn: ['crm_pipelines'],
-        },
-        {
           name: 'Custom Fields',
           label: t('CRM.CUSTOM_FIELDS_TITLE'),
           to: accountScopedRoute('crm_custom_fields'),

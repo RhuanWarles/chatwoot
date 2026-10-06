@@ -48,6 +48,8 @@ export default {
       isSyncingTemplates: false,
       allowedDomains: '',
       isUpdatingAllowedDomains: false,
+      isUpdatingEvolutionInstance: false,
+      evolutionInstanceName: '',
       isSettingDefaults: false,
       isReconfiguring: false,
     };
@@ -92,6 +94,8 @@ export default {
         this.inbox.selected_feature_flags || []
       ).includes('allow_mobile_webview');
       this.allowedDomains = this.inbox.allowed_domains || '';
+      this.evolutionInstanceName =
+        this.inbox.additional_attributes?.evolution_instance_name || '';
       this.$nextTick(() => {
         this.isSettingDefaults = false;
       });
@@ -154,6 +158,25 @@ export default {
         useAlert(this.$t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
       } finally {
         this.isUpdatingAllowedDomains = false;
+      }
+    },
+    async updateEvolutionInstance() {
+      this.isUpdatingEvolutionInstance = true;
+      try {
+        const additionalAttributes = {
+          ...(this.inbox.additional_attributes || {}),
+          evolution_instance_name: this.evolutionInstanceName.trim(),
+        };
+        await this.$store.dispatch('inboxes/updateInbox', {
+          id: this.inbox.id,
+          formData: false,
+          channel: { additional_attributes: additionalAttributes },
+        });
+        useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
+      } catch (error) {
+        useAlert(this.$t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
+      } finally {
+        this.isUpdatingEvolutionInstance = false;
       }
     },
     async updateWhatsAppInboxAPIKey() {
@@ -326,6 +349,20 @@ export default {
     </SettingsAccordion>
   </div>
   <div v-else-if="isAPIInbox">
+    <SettingsFieldSection
+      :label="$t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_INSTANCE_NAME')"
+      :help-text="$t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_INSTANCE_NAME_HELP')"
+    >
+      <div class="flex items-center gap-2">
+        <input v-model="evolutionInstanceName" type="text" class="flex-1" />
+        <NextButton
+          :is-loading="isUpdatingEvolutionInstance"
+          :disabled="isUpdatingEvolutionInstance"
+          :label="$t('INBOX_MGMT.SETTINGS_POPUP.UPDATE')"
+          @click="updateEvolutionInstance"
+        />
+      </div>
+    </SettingsFieldSection>
     <SettingsFieldSection
       :label="$t('INBOX_MGMT.SETTINGS_POPUP.INBOX_IDENTIFIER')"
       :help-text="$t('INBOX_MGMT.SETTINGS_POPUP.INBOX_IDENTIFIER_SUB_TEXT')"

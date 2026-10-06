@@ -982,6 +982,8 @@
       "USE_INBOX_AVATAR_FOR_BOT": "Use o nome da caixa de entrada e avatar do bot"
     },
     "SETTINGS_POPUP": {
+    "EVOLUTION_INSTANCE_NAME": "Nome da instância Evolution",
+    "EVOLUTION_INSTANCE_NAME_HELP": "Instância usada para carregar participantes dos grupos WhatsApp. Não coloque chaves de API aqui.",
       "MESSENGER_HEADING": "Código Menssageiro <scripit>",
       "MESSENGER_SUB_HEAD": "Favor, insira essse código <script> dentro da tag Body de sua página html",
       "ALLOWED_DOMAINS": {

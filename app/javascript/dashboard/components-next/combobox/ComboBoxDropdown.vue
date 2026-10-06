@@ -121,5 +121,8 @@ defineExpose({
         <slot name="empty">{{ emptyState || t('COMBOBOX.EMPTY_STATE') }}</slot>
       </li>
     </ul>
+    <div v-if="$slots.footer" class="p-1 border-t border-n-strong">
+      <slot name="footer" />
+    </div>
   </div>
 </template>

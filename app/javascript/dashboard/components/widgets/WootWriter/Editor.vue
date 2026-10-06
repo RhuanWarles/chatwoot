@@ -16,6 +16,7 @@ import KeyboardEmojiSelector from './keyboardEmojiSelector.vue';
 import TagAgents from '../conversation/TagAgents.vue';
 import VariableList from '../conversation/VariableList.vue';
 import MacroList from '../conversation/MacroList.vue';
+import GroupParticipants from '../conversation/GroupParticipants.vue';
 import TagTools from '../conversation/TagTools.vue';
 import CopilotMenuBar from './CopilotMenuBar.vue';
 
@@ -206,6 +207,8 @@ const showToolsMenu = ref(false);
 const showMacroMenu = ref(false);
 const toolSearchKey = ref('');
 const mentionSearchKey = ref('');
+const showGroupParticipants = ref(false);
+const selectedGroupParticipants = ref([]);
 const cannedSearchKey = ref('');
 const variableSearchKey = ref('');
 const emojiSearchKey = ref('');
@@ -272,6 +275,10 @@ const shouldShowUserMentions = computed(() => {
   return showUserMentions.value && props.isPrivate;
 });
 
+const shouldShowGroupParticipants = computed(
+  () => showGroupParticipants.value && !props.isPrivate && props.conversationId
+);
+
 // The picker owns the search field, so it takes focus while open. Dismissing it hands
 // focus back; selecting one does so through the insert itself. The suggestion stays
 // active in the document, so the picker only reopens once the trigger is typed afresh.
@@ -281,6 +288,7 @@ const dismissPicker = showMenu => {
 };
 
 const dismissUserMentions = () => dismissPicker(showUserMentions);
+const dismissGroupParticipants = () => dismissPicker(showGroupParticipants);
 const dismissCannedResponses = () => dismissPicker(showCannedMenu);
 const dismissVariables = () => dismissPicker(showVariables);
 const dismissEmojiMenu = () => dismissPicker(showEmojiMenu);
@@ -354,7 +362,13 @@ const plugins = computed(() => {
       trigger: '@',
       showMenu: showUserMentions,
       searchTerm: mentionSearchKey,
-      isAllowed: () => props.isPrivate || !props.enableCaptainTools,
+      isAllowed: () => props.isPrivate,
+    }),
+    createSuggestionPlugin({
+      trigger: '@',
+      showMenu: showGroupParticipants,
+      searchTerm: mentionSearchKey,
+      isAllowed: () => !props.isPrivate,
     }),
     createSuggestionPlugin({
       trigger: '/',
@@ -789,6 +803,22 @@ function insertSpecialContent(type, content) {
   useTrack(event_map[type]);
 }
 
+function insertGroupParticipant(participant) {
+  if (!editorView || !range.value) return;
+  const displayName =
+    participant.display_name || participant.phone || participant.lid;
+  const { from, to } = range.value;
+  const node = editorView.state.schema.text(`@${displayName}`);
+  insertNodeIntoEditor(node, from, to);
+  selectedGroupParticipants.value.push({
+    lid: participant.lid,
+    jid: participant.jid,
+    phone: participant.phone,
+    display_name: displayName,
+  });
+  dismissGroupParticipants();
+}
+
 function handleLineBreakWhenCmdAndEnterToSendEnabled(event) {
   if (
     hasPressedCommandAndEnter(event) &&
@@ -966,6 +996,15 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       @close="dismissUserMentions"
       @remove-trigger="removeSuggestionTrigger"
       @select-agent="content => insertSpecialContent('mention', content)"
+    />
+    <GroupParticipants
+      v-if="shouldShowGroupParticipants"
+      :conversation-id="conversationId"
+      :caret-position="caretPosition"
+      :search-key="mentionSearchKey"
+      @close="dismissGroupParticipants"
+      @remove-trigger="removeSuggestionTrigger"
+      @select="insertGroupParticipant"
     />
     <CannedResponse
       v-if="shouldShowCannedResponses"
