@@ -60,12 +60,13 @@ const handleImageError = () => {
         {{ $t('COMPONENTS.MEDIA.IMAGE_UNAVAILABLE') }}
       </p>
     </div>
-    <div v-else-if="isLoaded" class="relative group rounded-lg overflow-hidden">
+    <div
+      v-else-if="isLoaded"
+      class="relative group flex justify-center w-80 max-w-full rounded-lg overflow-hidden"
+    >
       <img
-        class="skip-context-menu"
+        class="block w-auto h-auto max-w-full max-h-80 object-contain rounded-lg skip-context-menu"
         :src="attachment.dataUrl"
-        :width="attachment.width"
-        :height="attachment.height"
       />
       <div
         class="inset-0 p-2 pointer-events-none absolute bg-gradient-to-tl from-n-slate-12/30 dark:from-n-slate-1/50 via-transparent to-transparent hidden group-hover:flex"
