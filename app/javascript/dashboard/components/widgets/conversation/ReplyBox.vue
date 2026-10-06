@@ -187,6 +187,7 @@ export default {
       newConversationModalActive: false,
       showArticleSearchPopover: false,
       hasRecordedAudio: false,
+      audioRecordingSession: 0,
       copilotAcceptedMessages: {},
       isQuoteRemoved: false,
     };
@@ -318,6 +319,11 @@ export default {
     },
     isReplyButtonDisabled() {
       if (this.isEditorDisabled) return true;
+      if (
+        this.isRecordingAudio &&
+        !this.attachedFiles.some(file => file.isVoiceMessage)
+      )
+        return true;
       if (this.isATwitterInbox) return true;
       if (this.hasAttachments || this.hasRecordedAudio) return false;
 
@@ -1063,6 +1069,7 @@ export default {
     },
     toggleAudioRecorderPlayPause() {
       if (!this.$refs.audioRecorderInput) return;
+      if (this.recordingAudioState === 'processing') return;
       if (!this.recordingAudioState) {
         this.$refs.audioRecorderInput.stopRecording();
       } else {
@@ -1098,6 +1105,8 @@ export default {
       const autoRecordedFile = {
         ...file,
         isVoiceMessage: true,
+        recordingSession: this.audioRecordingSession,
+        conversationId: this.currentChat.id,
       };
       return file && this.onFileUpload(autoRecordedFile);
     },
@@ -1121,6 +1130,23 @@ export default {
     },
     attachFile({ blob, file }) {
       if (!this.showFileUpload && !this.isOnPrivateNote) return;
+
+      if (file?.isVoiceMessage) {
+        if (
+          !this.isRecordingAudio ||
+          file.recordingSession !== this.audioRecordingSession ||
+          file.conversationId !== this.currentChat.id
+        )
+          return;
+        this.attachedFiles.push({
+          currentChatId: this.currentChat.id,
+          resource: blob || file,
+          isPrivate: this.isPrivate,
+          blobSignedId: blob ? blob.signed_id : undefined,
+          isVoiceMessage: true,
+        });
+        return;
+      }
 
       const reader = new FileReader();
       reader.readAsDataURL(file.file);
@@ -1302,6 +1328,7 @@ export default {
       this.showArticleSearchPopover = !this.showArticleSearchPopover;
     },
     resetAudioRecorderInput() {
+      this.audioRecordingSession += 1;
       this.recordingAudioDurationText = '00:00';
       this.isRecordingAudio = false;
       this.recordingAudioState = '';
@@ -1389,6 +1416,7 @@ export default {
           @recorder-progress-changed="onRecordProgressChanged"
           @finish-record="onFinishRecorder"
           @record-error="onRecordError"
+          @processing="recordingAudioState = 'processing'"
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
         />

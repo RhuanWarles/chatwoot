@@ -321,6 +321,8 @@ export default {
         faded
         sm
         :label="recordingAudioDurationText"
+        :disabled="recordingAudioState === 'processing'"
+        :is-loading="recordingAudioState === 'processing'"
         @click="toggleAudioRecorderPlayPause"
       />
       <NextButton

@@ -1,10 +1,11 @@
 <script setup>
 import getUuid from 'widget/helpers/uuid';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, shallowRef, onMounted, onUnmounted } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import RecordPlugin from 'wavesurfer.js/dist/plugins/record.js';
 import { format, intervalToDuration } from 'date-fns';
 import { convertAudio } from './utils/audioConversionUtils';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 
 const props = defineProps({
   audioRecordFormat: {
@@ -19,13 +20,15 @@ const emit = defineEmits([
   'pause',
   'play',
   'recordError',
+  'processing',
 ]);
 
 const waveformContainer = ref(null);
-const wavesurfer = ref(null);
-const record = ref(null);
+const wavesurfer = shallowRef(null);
+const record = shallowRef(null);
+const { run: convertRecording } = useAbortableRequest();
+let disposed = false;
 const isRecording = ref(false);
-const isPlaying = ref(false);
 const hasRecording = ref(false);
 const recordedAudioUrl = ref(null);
 
@@ -78,26 +81,30 @@ const initWaveSurfer = () => {
 
   record.value = wavesurfer.value.plugins[0];
 
-  wavesurfer.value.on('finish', () => {
-    isPlaying.value = false;
-  });
-
   record.value.on('record-end', async blob => {
+    if (disposed) return;
+    record.value.stopMic();
+    emit('processing');
     try {
-      const audioBlob = await convertAudio(blob, props.audioRecordFormat);
+      const audioBlob = await convertRecording(signal =>
+        convertAudio(blob, props.audioRecordFormat, 128, { signal })
+      );
+      if (disposed || !audioBlob) return;
       // Use the converted blob's actual type, which may differ from the
       // requested format when the browser can't produce it (e.g. Safari falls
       // back to MP3 instead of OGG). This keeps the filename, content type, and
       // voice-note flag consistent with the real bytes.
-      const audioType = audioBlob.type || props.audioRecordFormat;
-      const ext = AUDIO_EXTENSION_MAP[audioType] || 'mp3';
+      const audioType = audioBlob.type;
+      const ext = AUDIO_EXTENSION_MAP[audioType.split(';')[0].trim()];
+      if (!ext) throw new Error('Unsupported audio recording format');
       const fileName = `${getUuid()}.${ext}`;
       const file = new File([audioBlob], fileName, {
         type: audioType,
       });
       if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value);
       recordedAudioUrl.value = URL.createObjectURL(audioBlob);
-      wavesurfer.value.load(recordedAudioUrl.value);
+      await wavesurfer.value.load(recordedAudioUrl.value);
+      if (disposed) return;
       emit('finishRecord', {
         name: file.name,
         type: file.type,
@@ -107,6 +114,7 @@ const initWaveSurfer = () => {
       hasRecording.value = true;
       isRecording.value = false;
     } catch (error) {
+      if (disposed) return;
       isRecording.value = false;
       hasRecording.value = false;
       emit('recordError', { error });
@@ -125,24 +133,38 @@ const stopRecording = () => {
   }
 };
 
-const startRecording = () => {
-  record.value.startRecording();
-  isRecording.value = true;
+const startRecording = async () => {
+  try {
+    await record.value.startRecording();
+    if (disposed) {
+      record.value.destroy();
+      return;
+    }
+    isRecording.value = true;
+  } catch (error) {
+    if (disposed) return;
+    record.value.stopMic();
+    emit('recordError', { error });
+  }
 };
 
 const playPause = () => {
   if (hasRecording.value) {
-    wavesurfer.value.playPause();
-    isPlaying.value = !isPlaying.value;
+    wavesurfer.value.playPause().catch(error => emit('recordError', { error }));
   }
 };
 
 onMounted(() => {
+  if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) {
+    emit('recordError', { error: new Error('Audio recording is unavailable') });
+    return;
+  }
   initWaveSurfer();
   startRecording();
 });
 
 onUnmounted(() => {
+  disposed = true;
   if (recordedAudioUrl.value) {
     URL.revokeObjectURL(recordedAudioUrl.value);
     recordedAudioUrl.value = null;
