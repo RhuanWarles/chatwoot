@@ -14,7 +14,7 @@ class Api::V1::Accounts::Conversations::GroupParticipantsController < Api::V1::A
   private
 
   def conversation
-    @conversation = Current.account.conversations.find(params[:conversation_id])
+    @conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
   end
 
   def group_conversation?
