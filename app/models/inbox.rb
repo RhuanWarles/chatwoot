@@ -40,6 +40,8 @@
 #
 
 class Inbox < ApplicationRecord
+  has_many :saas_ai_agent_inboxes, class_name: 'Saas::AiAgentInbox', dependent: :destroy
+  has_many :saas_ai_agents, through: :saas_ai_agent_inboxes, source: :ai_agent
   include Reportable
   include Avatarable
   include OutOfOffisable
