@@ -63,7 +63,8 @@ module Evolution
       )
       raise HTTParty::Error, "Evolution returned #{response.code}" unless response.success?
 
-      response.parsed_response.dig('data', 'participants') || []
+      payload = response.parsed_response
+      payload.dig('data', 'participants') || payload['participants'] || []
     end
 
     def normalize_participants(participants)
