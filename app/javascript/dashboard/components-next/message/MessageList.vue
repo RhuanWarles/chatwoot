@@ -6,6 +6,7 @@ import { MESSAGE_TYPES } from './constants.js';
 import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import MessageApi from 'dashboard/api/inbox/message.js';
+import { provideGroupMentionParticipants } from 'dashboard/composables/useGroupMentionParticipants';
 
 /**
  * Props definition for the component
@@ -57,6 +58,14 @@ const allMessages = computed(() => {
 });
 
 const currentChat = useMapGetter('getSelectedChat');
+const contactGetter = useMapGetter('contacts/getContact');
+const accountId = useMapGetter('getCurrentAccountId');
+const groupContact = computed(() => ({
+  identifier:
+    contactGetter.value(currentChat.value.meta?.sender?.id).identifier ||
+    currentChat.value.meta?.sender?.identifier,
+}));
+provideGroupMentionParticipants(currentChat, groupContact, accountId);
 
 const timeline = computed(() => {
   const messages = allMessages.value.map(message => ({
