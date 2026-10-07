@@ -68,3 +68,22 @@ ENV, redes, mounts, sessões e bancos. Não editar status manualmente para masca
 o problema. Validar grupo/individual, áudio gravado/local, envio lento, websocket
 atrasado e refresh; correlacionar exatamente duas Messages com os IDs WhatsApp.
 O teste real e a confirmação visual continuam pendentes até esse deploy.
+
+## Deploy autorizado — 07/10/2026
+
+Aplicado na VPS por rebuild das imagens existentes, sem gerar ou publicar stack:
+
+- Chatwoot: revisão `613efa8817`, web e Sidekiq online; HTTP público e assets 200.
+- Evolution: mantida v2.3.7; patch verificado no source map da imagem compilada.
+- Instâncias Rhuan e rwhub preservadas e conectadas, com os mesmos IDs.
+- ENV, mounts, networks, portas e política de restart comparados com o snapshot,
+  sem mudanças. PostgreSQL e volume de sessões preservados.
+- SDK da Evolution consultou a API do Chatwoot com as credenciais existentes.
+- Larissa continua cadastrada e ativa. Sem erros relevantes de inicialização.
+- Imagens anteriores: `chatwoot-saas-ai:before-audio-ack` e
+  `evolution-api:before-audio-ack`. Container anterior da Evolution mantido parado
+  como `evolution-api-before-audio-ack`, para rollback.
+
+Nenhuma mensagem de teste foi disparada pelo agente. A validação de um novo
+envio real, incluindo ordem visual e status após refresh, depende do teste do
+usuário. Nenhum status antigo foi alterado manualmente.
