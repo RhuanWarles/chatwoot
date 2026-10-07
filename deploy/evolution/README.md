@@ -134,4 +134,31 @@ inbound será avaliada depois da confirmação real do outbound.
   `git apply --check` passaram.
 - A suíte RSpec adicionada ainda precisa ser executada em ambiente de testes com
   banco próprio. O teste real de entrega, renderização e notificação no WhatsApp
-  permanece pendente. Não houve push, deploy, restart nem instalação de stack.
+  permanece pendente.
+
+## Deploy autorizado na instalação existente
+
+Em 7 de outubro de 2026, o código `a1028e2d74` foi aplicado por rebuild direto
+na VPS, sem gerar/publicar stack ou release e sem push ao GitHub.
+
+- Chatwoot: imagem local `chatwoot-saas-ai:production`, com Rails e Sidekiq
+  atualizados. O checkout antigo com alterações locais foi preservado; o build
+  usou `/home/deploy/chatwoot-group-mentions`.
+- Evolution: imagem local `evolution-api:group-mentions`, mantendo versão 2.3.7.
+  O build usou o código recuperado do source map da imagem instalada e arquivos
+  auxiliares da mesma revisão upstream.
+- Antes da troca, o candidato parado foi inspecionado: ENV, entrypoint, comando,
+  usuário, volume de sessões, portas, restart policy e ambas as redes conferidos.
+- Após a troca, `Rhuan` e `rwhub` mantiveram os mesmos IDs e estado `open`.
+  A integração Chatwoot continuou habilitada, com `conversationPending=false`.
+- Chatwoot respondeu HTTP 200; as 13 verificações de backend passaram novamente
+  no runtime atualizado, sem escrita de mensagens nem envio ao WhatsApp.
+- Rollback preservado: imagem `chatwoot-saas-ai:before-group-mentions` e container
+  parado `evolution-api-before-group-mentions`, com restart automático desativado.
+  O snapshot privado da configuração da Evolution está em
+  `/home/deploy/evolution-group-mentions/container-before.json`; ele contém
+  credenciais e não deve ser publicado.
+
+O aceite no dispositivo continua dependendo do envio pelo composer e da
+confirmação de menção clicável/notificação pelo destinatário. As verificações
+de disponibilidade e metadata não substituem esse teste.
