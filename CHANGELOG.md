@@ -1,6 +1,6 @@
 # Changelog do CRM
 
-## v1.0.10 — preparada para publicação
+## v1.0.10 — publicada em 07/10/2026
 
 - Menções reais de participantes de grupo: identidade estruturada no composer,
   rascunhos e `content_attributes.whatsapp_mentions`, com validação por grupo/account.
@@ -12,6 +12,8 @@
 - Inclui o patch do adaptador nativo da Evolution 2.3.7 em `deploy/evolution/`.
   A imagem oficial da Evolution sem esse patch não envia a metadata de menção.
 - Não altera a implantação atual da VPS. Evolution continua como serviço externo.
+- Imagem pública `ghcr.io/rhuanwarles/chatwoot:v1.0.10` publicada para linux/amd64;
+  digest e evidências em `deploy/production/VALIDATION.md`.
 
 ## v1.0.0 — preparada, ainda não publicada
 

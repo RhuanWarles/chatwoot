@@ -12,8 +12,10 @@ Este pacote reutiliza `docker/Dockerfile`. A mesma imagem executa Web e Sidekiq.
 - `../../docker/Dockerfile`: Ruby 3.4.4, Node 24, pnpm 10.2.0, gems e assets compilados.
 - `../../.github/workflows/crm-image.yml`: build linux/amd64; publicação exclusivamente ao enviar tag `vX.Y.Z`.
 
-Imagem prevista: **`ghcr.io/rhuanwarles/chatwoot:v1.0.10`**. A stack está preparada;
-a publicação dessa tag e seu digest ainda precisam ser confirmados antes do deploy.
+Imagem publicada: **`ghcr.io/rhuanwarles/chatwoot:v1.0.10`** (linux/amd64).
+Digest: `sha256:48a6c1acfed9847fc21aff1930d20d5f4525388afd7bb2858de48c2aafef0360`.
+Build e acesso público confirmados em [VALIDATION.md](VALIDATION.md).
+Inicialização e homologação em instalação nova permanecem pendentes.
 Não usar a imagem oficial pura ou `latest` como referência de release. Para ARM,
 preparar/testar build adicional antes de usar; o workflow publica apenas amd64.
 

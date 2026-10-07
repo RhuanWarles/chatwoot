@@ -1,10 +1,21 @@
 # Validação da stack
 
+## Publicação v1.0.10 — 07/10/2026
+
+- Build completo linux/amd64 concluído com sucesso no [GitHub Actions](https://github.com/RhuanWarles/chatwoot/actions/runs/37569479915).
+- Imagem: `ghcr.io/rhuanwarles/chatwoot:v1.0.10`.
+- Digest do índice: `sha256:48a6c1acfed9847fc21aff1930d20d5f4525388afd7bb2858de48c2aafef0360`.
+- Manifesto consultado sem autenticação privada: HTTP 200; plataforma linux/amd64 confirmada.
+- Labels conferidos: versão `v1.0.10`, revisão `dce92c12a6d724955d431742874e39a612eea2e3`.
+- Tag `v1.0.10` e branch `release/crm-v1.0.10` publicadas no GitHub.
+- Não houve deploy, restart, alteração de stack ou de configuração na VPS nesta publicação.
+- Inicialização com banco/storage novos e homologação funcional dessa imagem continuam pendentes.
+
 ## Preparação v1.0.10 — 07/10/2026
 
 - Código de aplicação: `9732da7e52`, já em execução na VPS por rebuild direto.
 - `stack.bundled.yaml` inclui PostgreSQL/pgvector, Redis, prepare, Web e worker.
-  `stack.yaml` usa PostgreSQL/Redis externos. Ambos apontam para a futura v1.0.10.
+  `stack.yaml` usa PostgreSQL/Redis externos. Ambos apontam para v1.0.10.
 - Acrescentadas apenas as variáveis de runtime `EVOLUTION_API_URL`,
   `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE_NAME`, compartilhadas por prepare,
   Web e worker. Nenhuma credencial real é incluída.
@@ -15,8 +26,8 @@
 - Testes da renderização: 23 aprovados, lint aprovado e componentes Vue compilados.
 - Rebuild direto da VPS validado com HTTP 200 local/público e assets HTTP 200;
   Rails/Sidekiq no código atual e instâncias Evolution conectadas.
-- Isso não comprova a publicação de `ghcr.io/rhuanwarles/chatwoot:v1.0.10`.
-  Publicação, digest e teste de instalação nova dessa release permanecem pendentes.
+- A publicação e o digest foram confirmados posteriormente, conforme registro acima.
+  O teste de instalação nova dessa release permanece pendente.
 - A preparação desta stack não faz redeploy na VPS.
 
 ## Validação original v1.0.0 — 04/10/2026
