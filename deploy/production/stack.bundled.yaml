@@ -1,6 +1,6 @@
 # Standalone Stack: local PostgreSQL and Redis with persistent named volumes.
 x-app: &app
-  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.0.4}
+  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.0.10}
   restart: unless-stopped
   environment: &app-env
     RAILS_ENV: production
@@ -39,6 +39,9 @@ x-app: &app
     SMTP_OPENSSL_VERIFY_MODE: ${SMTP_OPENSSL_VERIFY_MODE:-peer}
     GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
     GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+    EVOLUTION_API_URL: ${EVOLUTION_API_URL:-}
+    EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+    EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME:-}
   volumes:
     - storage_data:/app/storage
 

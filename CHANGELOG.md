@@ -1,5 +1,18 @@
 # Changelog do CRM
 
+## v1.0.10 — preparada para publicação
+
+- Menções reais de participantes de grupo: identidade estruturada no composer,
+  rascunhos e `content_attributes.whatsapp_mentions`, com validação por grupo/account.
+- Renderização de LID/JID como nome humano, incluindo mensagens antigas, com
+  prioridade para Contact salvo e sem alterar o conteúdo original persistido.
+- Metadados e intervalos Unicode preservam a identidade de pessoas com nomes iguais.
+- Stack passa a expor as variáveis de runtime da integração Evolution no Web/worker;
+  a chave permanece no backend e não entra nos atributos públicos da Inbox.
+- Inclui o patch do adaptador nativo da Evolution 2.3.7 em `deploy/evolution/`.
+  A imagem oficial da Evolution sem esse patch não envia a metadata de menção.
+- Não altera a implantação atual da VPS. Evolution continua como serviço externo.
+
 ## v1.0.0 — preparada, ainda não publicada
 
 ### CRM

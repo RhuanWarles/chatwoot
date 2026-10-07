@@ -1,4 +1,25 @@
-# Validação da preparação v1.0.0 — 04/10/2026
+# Validação da stack
+
+## Preparação v1.0.10 — 07/10/2026
+
+- Código de aplicação: `9732da7e52`, já em execução na VPS por rebuild direto.
+- `stack.bundled.yaml` inclui PostgreSQL/pgvector, Redis, prepare, Web e worker.
+  `stack.yaml` usa PostgreSQL/Redis externos. Ambos apontam para a futura v1.0.10.
+- Acrescentadas apenas as variáveis de runtime `EVOLUTION_API_URL`,
+  `EVOLUTION_API_KEY` e `EVOLUTION_INSTANCE_NAME`, compartilhadas por prepare,
+  Web e worker. Nenhuma credencial real é incluída.
+- Dependência do patch externo da Evolution 2.3.7 documentada explicitamente.
+- Os dois YAMLs passaram em `docker compose config`; imagem e variáveis
+  compartilhadas, gate de prepare e ausência de portas publicadas para os bancos
+  foram conferidos com os valores fictícios de `.env.example`, sem subir serviços.
+- Testes da renderização: 23 aprovados, lint aprovado e componentes Vue compilados.
+- Rebuild direto da VPS validado com HTTP 200 local/público e assets HTTP 200;
+  Rails/Sidekiq no código atual e instâncias Evolution conectadas.
+- Isso não comprova a publicação de `ghcr.io/rhuanwarles/chatwoot:v1.0.10`.
+  Publicação, digest e teste de instalação nova dessa release permanecem pendentes.
+- A preparação desta stack não faz redeploy na VPS.
+
+## Validação original v1.0.0 — 04/10/2026
 
 ## Verificado
 

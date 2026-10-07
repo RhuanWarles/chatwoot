@@ -1,4 +1,4 @@
-# Release CRM v1.0.4: GHCR e Portainer
+# Release CRM v1.0.10: GHCR e Portainer
 
 Veja a [auditoria técnica](AUDITORIA.md) antes do primeiro deploy: inclui correção de `DATABASE_URL` vazia, geração de chaves, variáveis exatas, comandos de preparação/update e limites dos testes realizados.
 
@@ -12,9 +12,16 @@ Este pacote reutiliza `docker/Dockerfile`. A mesma imagem executa Web e Sidekiq.
 - `../../docker/Dockerfile`: Ruby 3.4.4, Node 24, pnpm 10.2.0, gems e assets compilados.
 - `../../.github/workflows/crm-image.yml`: build linux/amd64; publicação exclusivamente ao enviar tag `vX.Y.Z`.
 
-Imagem proposta: **`ghcr.io/rhuanwarles/chatwoot:v1.0.4`**. Publicada pelo GitHub Actions em 04/10/2026, com acesso público de pull confirmado. Digest: `sha256:7e0a5429021a9f66fa62eec5ac84d0090d931bd17bda877b6b9ee0cc555609fa`. Não usar a imagem oficial pura ou `latest` como referência de release. Para ARM, preparar/testar build adicional antes de usar; o workflow inicial publica apenas amd64.
+Imagem prevista: **`ghcr.io/rhuanwarles/chatwoot:v1.0.10`**. A stack está preparada;
+a publicação dessa tag e seu digest ainda precisam ser confirmados antes do deploy.
+Não usar a imagem oficial pura ou `latest` como referência de release. Para ARM,
+preparar/testar build adicional antes de usar; o workflow publica apenas amd64.
 
-`v1.0.4` versiona este CRM/fork, não substitui a versão upstream registrada em `VERSION_CW`/`package.json`.
+Esta versão inclui o código `9732da7e52`, já aplicado na VPS por rebuild direto:
+menções reais outbound e renderização de identificadores como nomes humanos.
+Gerar/publicar esta stack não substitui a instalação existente da VPS.
+
+`v1.0.10` versiona este CRM/fork, não substitui a versão upstream registrada em `VERSION_CW`/`package.json`.
 
 ## 1. Revisão antes da tag
 
@@ -22,7 +29,7 @@ Confira `git status`, `git diff` e o [changelog](../../CHANGELOG.md). As mudanç
 
 O Dockerfile escreve `.git_sha` a partir de `SOURCE_REVISION`, aceita `CRM_VERSION` e não precisa copiar `.git` para a imagem. Normaliza scripts recebidos com CRLF. O build é feito do código completo; não usa uma camada improvisada sobre a imagem de produção da VPS.
 
-Antes de publicar, faça build completo e teste login, Kanban, Deal, campos inline, Activities, histórico e integração configurada num ambiente separado. O rótulo v1.0.4 não substitui homologação. As bases Docker e repositórios de pacotes usam tags: a mesma tag de source não garante bytes idênticos em rebuilds futuros. Depois de publicar, registre o digest e use-o para pinning quando precisar de identidade exata.
+Antes de publicar, faça build completo e teste login, Kanban, Deal, campos inline, Activities, histórico e integração configurada num ambiente separado. O rótulo v1.0.10 não substitui homologação. As bases Docker e repositórios de pacotes usam tags: a mesma tag de source não garante bytes idênticos em rebuilds futuros. Depois de publicar, registre o digest e use-o para pinning quando precisar de identidade exata.
 
 ## 2. Build local sem publicar
 
@@ -33,8 +40,8 @@ REVISION=$(git rev-parse HEAD)
 docker build --check -f docker/Dockerfile .
 docker build -f docker/Dockerfile \
   --build-arg SOURCE_REVISION="$REVISION" \
-  --build-arg CRM_VERSION=v1.0.4 \
-  -t ghcr.io/rhuanwarles/chatwoot:v1.0.4 .
+  --build-arg CRM_VERSION=v1.0.10 \
+  -t ghcr.io/rhuanwarles/chatwoot:v1.0.10 .
 ```
 
 Não fazer build pesado na VPS com pouco disco/RAM. O build usa lockfiles, mas precisa acessar os repositórios Ruby/Node/Alpine. Não passe segredos de produção como build args. Instalações reais recebem ENV somente em runtime.
@@ -48,13 +55,13 @@ git status --short
 git diff --check
 # Revise todos os arquivos; não inclua .env real, dumps ou chaves.
 git add .
-git commit -m "release: CRM v1.0.4"
-git tag -a v1.0.4 -m "CRM v1.0.4"
-git push origin feat/saas-ai-usage
-git push origin v1.0.4
+git commit -m "release: CRM v1.0.10"
+git tag -a v1.0.10 -m "CRM v1.0.10"
+git push origin release/crm-v1.0.10
+git push origin v1.0.10
 ```
 
-Verifique se `v1.0.4` já existe antes de criá-la. Não mover tags de release publicadas. O workflow usa `GITHUB_TOKEN`, `contents: read` e `packages: write`, publica `v1.0.4` e `sha-<commit-completo>`, preserva o código do fork e não chama Portainer. Os workflows herdados de publicação DockerHub foram limitados ao upstream `chatwoot/chatwoot`, evitando publicação paralela errada neste fork.
+Verifique se `v1.0.10` já existe antes de criá-la. Não mover tags de release publicadas. O workflow usa `GITHUB_TOKEN`, `contents: read` e `packages: write`, publica `v1.0.10` e `sha-<commit-completo>`, preserva o código do fork e não chama Portainer. Os workflows herdados de publicação DockerHub foram limitados ao upstream `chatwoot/chatwoot`, evitando publicação paralela errada neste fork.
 
 No GitHub, habilite Actions e confira permissão de escrita em Packages. Para repositórios/organizações com restrições, conceda acesso do workflow ao pacote. A visibilidade inicial do pacote pode exigir ajuste no GHCR. Aguarde sucesso e registre o digest antes de criar a Stack.
 
@@ -62,7 +69,7 @@ Alternativa manual, **somente quando autorizado**:
 
 ```sh
 printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u SEU_USUARIO --password-stdin
-docker push ghcr.io/rhuanwarles/chatwoot:v1.0.4
+docker push ghcr.io/rhuanwarles/chatwoot:v1.0.10
 ```
 
 Para pull privado, use PAT com permissão de leitura de packages e autorização SSO se aplicável. Nunca commitar tokens. Para publish via Actions não é necessário colocar PAT pessoal no workflow. Referência: [GitHub — publicação de imagens](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images).
@@ -74,6 +81,18 @@ Copie `.env.example` para `.env` **apenas para uso CLI**, ou carregue seus valor
 Obrigatórios: `FRONTEND_URL`, `SECRET_KEY_BASE`, três `ACTIVE_RECORD_ENCRYPTION_*`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`. Confira host/porta/database/usuário de PostgreSQL e `REDIS_URL`; mantenha os mesmos valores em Web e worker. As Stacks não definem `DATABASE_URL`: no Rails 7.2, uma string vazia causa `Database URL cannot be empty`. Para banco gerenciado que exija URI/TLS, adicione explicitamente uma `DATABASE_URL` não vazia ao bloco `environment: &app-env` do `stack.yaml`, por exemplo `DATABASE_URL: ${DATABASE_URL:?Set a non-empty DATABASE_URL}`. A URI prevalece sobre os campos individuais; codifique caracteres especiais de usuário/senha na URL. Somente cadastrar a variável na tela do Portainer não a injeta em um YAML que não a referencia.
 
 Configurar manualmente conforme uso: SMTP/remetente; OAuth Google; storage S3 e credenciais/região; HTTPS/proxy. Configurações OAuth salvas em Super Admin prevalecem sobre ENV. Guia funcional: [README-DEPLOY](../../README-DEPLOY.md), [Calendar](../../docs/crm/google-calendar.md).
+
+Para participantes/menções de grupos, preencher `EVOLUTION_API_URL` com a URL
+acessível a Web/worker e `EVOLUTION_API_KEY` com a chave da Evolution. Elas são
+variáveis de runtime do backend; não colocar a chave nos atributos da Inbox.
+Em Configurações → Caixas de Entrada → Inbox API → Configuração, informar o nome
+da instância Evolution. `EVOLUTION_INSTANCE_NAME` é apenas o fallback de instalação.
+Não confundir o nome da instância com seu UUID.
+
+A Evolution continua externa a esta stack. O envio real de menções exige o
+[patch do adaptador Evolution 2.3.7](../evolution/README.md); configurar URL/chave
+ou atualizar só o Chatwoot não aplica esse patch. A stack não cria instâncias,
+não gerencia sessões e não altera o banco ou a implantação da Evolution.
 
 `FORCE_SSL=true` pressupõe proxy HTTPS correto. `WEB_BIND_ADDRESS=127.0.0.1` permite proxy no host. Proxy em container deve compartilhar a rede e apontar para `web:3000`; não usar localhost do proxy. Só alterar o bind para `0.0.0.0` quando houver controle apropriado de firewall/acesso.
 
