@@ -1000,7 +1000,10 @@ export default {
         });
       } catch (error) {
         const errorMessage =
-          error?.response?.data?.error || this.$t('CONVERSATION.MESSAGE_ERROR');
+          error?.response?.status === 413
+            ? this.$t('CONVERSATION.UPLOAD_REJECTED_BY_SERVER')
+            : error?.response?.data?.error ||
+              this.$t('CONVERSATION.MESSAGE_ERROR');
         useAlert(errorMessage);
       }
     },
@@ -1151,6 +1154,17 @@ export default {
           isPrivate: this.isPrivate,
           blobSignedId: blob ? blob.signed_id : undefined,
           isVoiceMessage: true,
+        });
+        return;
+      }
+
+      if (file.file?.type.startsWith('audio/')) {
+        this.attachedFiles.push({
+          currentChatId: this.currentChat.id,
+          resource: blob || file,
+          isPrivate: this.isPrivate,
+          blobSignedId: blob ? blob.signed_id : undefined,
+          isVoiceMessage: false,
         });
         return;
       }

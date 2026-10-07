@@ -85,6 +85,9 @@ Configure DNS, certificado válido e proxy reverso para Rails e, se necessário,
 Trecho de referência dentro de um servidor Nginx com TLS já configurado:
 
 ```nginx
+# Dentro do server HTTPS do Chatwoot: 40 MB por arquivo + envelope multipart.
+client_max_body_size 50m;
+
 location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_http_version 1.1;

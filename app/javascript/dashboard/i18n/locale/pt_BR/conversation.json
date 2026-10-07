@@ -345,6 +345,7 @@
     "FILE_SIZE_LIMIT": "O arquivo excede os {MAXIMUM_SUPPORTED_FILE_UPLOAD_SIZE} MB do limite para anexos",
     "FILE_TYPE_NOT_SUPPORTED": "O tipo de arquivo {fileName} não é suportado nesta conversa",
     "MESSAGE_ERROR": "Não foi possível enviar esta mensagem, por favor, tente novamente mais tarde",
+    "UPLOAD_REJECTED_BY_SERVER": "O servidor recusou o upload pelo tamanho do arquivo. Peça ao administrador para verificar o limite de upload do proxy.",
     "SENT_BY": "Enviado por:",
     "BOT": "Robôs",
     "NATIVE_APP": "Aplicativo nativo",

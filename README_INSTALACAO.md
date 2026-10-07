@@ -187,6 +187,9 @@ Administrador de uma account e Super Admin da instalação são permissões dife
 Crie o DNS do domínio para o servidor. Configure TLS válido e encaminhe tráfego ao Rails. Em Nginx instalado no host, o destino pode ser `127.0.0.1:3000`. Exemplo do bloco dentro de um servidor HTTPS já configurado:
 
 ```nginx
+# Dentro do server HTTPS do Chatwoot: 40 MB por arquivo + envelope multipart.
+client_max_body_size 50m;
+
 location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_http_version 1.1;

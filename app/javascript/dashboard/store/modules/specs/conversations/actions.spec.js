@@ -62,6 +62,46 @@ describe('#hasMessageFailedWithExternalError', () => {
 });
 
 describe('#actions', () => {
+  describe('createPendingMessageAndSend', () => {
+    it('propagates an upload rejection to the composer', async () => {
+      const error = {
+        response: { status: 413, data: '<html>Too large</html>' },
+      };
+      const send = vi.fn().mockRejectedValue(error);
+
+      await expect(
+        actions.createPendingMessageAndSend(
+          { dispatch: send },
+          { conversationId: 9, files: ['signed-audio-blob'] }
+        )
+      ).rejects.toBe(error);
+      expect(send).toHaveBeenCalledWith(
+        'sendMessageWithData',
+        expect.objectContaining({ files: ['signed-audio-blob'] })
+      );
+    });
+
+    it('waits for sending to finish before resolving', async () => {
+      let finish;
+      const send = vi.fn(
+        () =>
+          new Promise(resolve => {
+            finish = resolve;
+          })
+      );
+      const complete = vi.fn();
+      const pending = actions
+        .createPendingMessageAndSend({ dispatch: send }, { conversationId: 9 })
+        .then(complete);
+
+      await Promise.resolve();
+      expect(complete).not.toHaveBeenCalled();
+      finish();
+      await pending;
+      expect(complete).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('conversation history loading', () => {
     let store;
     let conversationA;

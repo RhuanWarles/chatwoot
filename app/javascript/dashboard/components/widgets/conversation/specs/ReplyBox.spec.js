@@ -124,6 +124,95 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  describe.each([
+    ['mp3', 'audio/mpeg'],
+    ['wav', 'audio/wav'],
+    ['ogg', 'audio/ogg'],
+    ['m4a', 'audio/mp4'],
+  ])('local %s attachments', (extension, type) => {
+    it('queues the original audio without base64 or a voice-note flag', () => {
+      const file = new File(['audio'], `sample.${extension}`, { type });
+      const upload = { file, type, name: file.name, size: file.size };
+      const context = {
+        showFileUpload: true,
+        currentChat: { id: 9 },
+        isPrivate: false,
+        attachedFiles: [],
+      };
+
+      ReplyBox.methods.attachFile.call(context, { file: upload });
+
+      expect(context.attachedFiles).toEqual([
+        expect.objectContaining({
+          resource: upload,
+          isVoiceMessage: false,
+        }),
+      ]);
+      expect(context.attachedFiles[0]).not.toHaveProperty('thumb');
+      expect(context.attachedFiles[0].resource.file).toBe(file);
+    });
+
+    it('preserves the signed blob when direct upload is enabled', () => {
+      const file = new File(['audio'], `sample.${extension}`, { type });
+      const blob = { signed_id: 'audio-blob', content_type: type };
+      const context = {
+        showFileUpload: true,
+        currentChat: { id: 9 },
+        isPrivate: false,
+        attachedFiles: [],
+      };
+
+      ReplyBox.methods.attachFile.call(context, { file: { file }, blob });
+
+      expect(context.attachedFiles[0]).toMatchObject({
+        resource: blob,
+        blobSignedId: 'audio-blob',
+        isVoiceMessage: false,
+      });
+    });
+  });
+
+  describe('upload errors', () => {
+    it('explains a proxy HTTP 413 instead of silently failing', async () => {
+      const translate = vi.fn(key => key);
+      const context = {
+        $store: {
+          dispatch: vi.fn().mockRejectedValue({
+            response: { status: 413, data: '<html>Too large</html>' },
+          }),
+        },
+        $t: translate,
+      };
+
+      await ReplyBox.methods.sendMessage.call(context, {
+        conversationId: 9,
+        files: ['signed-audio-blob'],
+      });
+
+      expect(translate).toHaveBeenCalledWith(
+        'CONVERSATION.UPLOAD_REJECTED_BY_SERVER'
+      );
+    });
+
+    it('preserves the backend error for other failures', async () => {
+      const translate = vi.fn(key => key);
+
+      await ReplyBox.methods.sendMessage.call(
+        {
+          $store: {
+            dispatch: vi.fn().mockRejectedValue({
+              response: { status: 422, data: { error: 'Invalid attachment' } },
+            }),
+          },
+          $t: translate,
+        },
+        { conversationId: 9 }
+      );
+
+      expect(translate).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Instagram incident restriction', () => {
     it('opens in note mode and restores only the private-note draft', async () => {
       const { wrapper, store } = mountWith({
