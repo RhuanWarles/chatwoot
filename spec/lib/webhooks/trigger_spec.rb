@@ -32,6 +32,37 @@ describe Webhooks::Trigger do
   end
 
   describe '#execute' do
+    it 'does not overwrite an adapter confirmation with a late read timeout' do
+      message.update!(message_type: :outgoing, source_id: 'WAID:accepted')
+      payload = { event: 'message_created', id: message.id }
+      allow(SafeFetch).to receive(:fetch).and_raise(Net::ReadTimeout)
+
+      trigger.execute(url, payload, webhook_type)
+
+      expect(message.reload.status).to eq('sent')
+      expect(message.external_error).to be_nil
+    end
+
+    it 'keeps read timeouts as failures when the adapter has not confirmed sending' do
+      message.update!(message_type: :outgoing, source_id: nil)
+      payload = { event: 'message_created', id: message.id }
+      allow(SafeFetch).to receive(:fetch).and_raise(Net::ReadTimeout)
+
+      trigger.execute(url, payload, webhook_type)
+
+      expect(message.reload.status).to eq('failed')
+    end
+
+    it 'does not hide an HTTP rejection even when a source id exists' do
+      message.update!(message_type: :outgoing, source_id: 'WAID:accepted')
+      payload = { event: 'message_created', id: message.id }
+      allow(SafeFetch).to receive(:fetch).and_raise(SafeFetch::HttpError.new('500 Internal Server Error'))
+
+      trigger.execute(url, payload, webhook_type)
+
+      expect(message.reload.status).to eq('failed')
+    end
+
     it 'triggers webhook' do
       expect(SafeFetch).to receive(:fetch).with(
         url,

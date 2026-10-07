@@ -8,6 +8,12 @@ import { BUS_EVENTS } from '../../../../shared/constants/busEvents';
 import { emitter } from 'shared/helpers/mitt';
 import { CONTENT_TYPES } from 'dashboard/components-next/message/constants.js';
 
+const DELIVERY_STATUS_ORDER = [
+  MESSAGE_STATUS.SENT,
+  MESSAGE_STATUS.DELIVERED,
+  MESSAGE_STATUS.READ,
+];
+
 const state = {
   allConversations: [],
   attachments: {},
@@ -252,7 +258,22 @@ export const mutations = {
 
     const pendingMessageIndex = findPendingMessageIndex(chat, message);
     if (pendingMessageIndex !== -1) {
-      chat.messages[pendingMessageIndex] = message;
+      const confirmedMessage = chat.messages.find(m => m.id === message.id);
+      const confirmedStatus = DELIVERY_STATUS_ORDER.indexOf(
+        confirmedMessage?.status
+      );
+      const incomingStatus = DELIVERY_STATUS_ORDER.indexOf(message.status);
+      chat.messages[pendingMessageIndex] =
+        incomingStatus !== -1 && confirmedStatus > incomingStatus
+          ? { ...message, status: confirmedMessage.status }
+          : message;
+      // An update without echo_id can arrive before the create response.
+      chat.messages = chat.messages.filter(
+        (existingMessage, index) =>
+          index === pendingMessageIndex ||
+          (existingMessage.id !== message.id &&
+            existingMessage.id !== message.echo_id)
+      );
     } else {
       chat.messages.push(message);
       chat.timestamp = message.created_at;

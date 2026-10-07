@@ -1,0 +1,30 @@
+diff --git a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts b/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
+index 38f00ec150..48ab02a2ce 100644
+--- a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
++++ b/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
+@@ -1645,6 +1645,12 @@ export class ChatwootService {
+     if (this.isImportHistoryAvailable()) {
+       try {
+         await chatwootImport.updateMessageSourceID(chatwootMessageIds.messageId, key.id);
++        // Confirm through Rails so status/error changes reach the conversation websocket.
++        await chatwootRequest(this.getClientCwConfig(), {
++          method: 'PATCH',
++          url: `/api/v1/accounts/${this.provider.accountId}/conversations/${chatwootMessageIds.conversationId}/messages/${chatwootMessageIds.messageId}`,
++          body: { status: 'sent', external_error: null },
++        });
+       } catch (error) {
+         this.logger.error(`Error updating Chatwoot message source ID: ${error}`);
+       }
+diff --git a/src/api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper.ts b/src/api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper.ts
+index 7d55da4163..ee30d5f90a 100644
+--- a/src/api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper.ts
++++ b/src/api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper.ts
+@@ -570,7 +570,7 @@ class ChatwootImport {
+   public updateMessageSourceID(messageId: string | number, sourceId: string) {
+     const pgClient = postgresClient.getChatwootConnection();
+ 
+-    const sql = `UPDATE messages SET source_id = $1, status = 0, created_at = NOW(), updated_at = NOW() WHERE id = $2;`;
++    const sql = `UPDATE messages SET source_id = $1 WHERE id = $2;`;
+ 
+     return pgClient.query(sql, [`WAID:${sourceId}`, messageId]);
+   }

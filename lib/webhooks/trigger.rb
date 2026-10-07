@@ -98,7 +98,12 @@ class Webhooks::Trigger
   end
 
   def update_message_status(error)
-    Messages::StatusUpdateService.new(message, 'failed', error.message).perform
+    message.with_lock do
+      # The adapter may confirm the send while its webhook response is still pending.
+      next if error.is_a?(Net::ReadTimeout) && message.outgoing? && message.source_id.present? && !message.failed?
+
+      Messages::StatusUpdateService.new(message, 'failed', error.message).perform
+    end
   end
 
   def message

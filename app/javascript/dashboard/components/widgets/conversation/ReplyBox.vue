@@ -926,6 +926,7 @@ export default {
         this.getMessagePayload(textToSend);
       const audioPayload = {
         conversationId: textPayload.conversationId,
+        pendingMessageContent: this.$t('CHAT_LIST.ATTACHMENTS.audio.CONTENT'),
         private: false,
         sender: textPayload.sender,
         files,

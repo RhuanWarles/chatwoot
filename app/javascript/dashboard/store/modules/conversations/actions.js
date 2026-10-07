@@ -408,11 +408,9 @@ const actions = {
         : await MessageApi.create(pendingMessage);
       commit(types.ADD_MESSAGE, {
         ...response.data,
-        status: MESSAGE_STATUS.SENT,
       });
       commit(types.ADD_CONVERSATION_ATTACHMENTS, {
         ...response.data,
-        status: MESSAGE_STATUS.SENT,
       });
     } catch (error) {
       const errorMessage = error.response
