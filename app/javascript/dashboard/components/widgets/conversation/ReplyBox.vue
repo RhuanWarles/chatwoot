@@ -188,6 +188,7 @@ export default {
       newConversationModalActive: false,
       showArticleSearchPopover: false,
       hasRecordedAudio: false,
+      isSendingAudioWithText: false,
       audioRecordingSession: 0,
       copilotAcceptedMessages: {},
       isQuoteRemoved: false,
@@ -421,6 +422,13 @@ export default {
     hasAttachments() {
       return this.attachedFiles.length;
     },
+    hasAudioAttachment() {
+      return this.attachedFiles.some(attachment => {
+        const resource = attachment.resource;
+        const contentType = resource.content_type || resource.file?.type || '';
+        return attachment.isVoiceMessage || contentType.startsWith('audio/');
+      });
+    },
     showAudioRecorder() {
       return !this.isOnPrivateNote && this.showFileUpload;
     },
@@ -531,9 +539,10 @@ export default {
     },
     isEditorDisabled() {
       return (
-        (this.isAWhatsAppChannel || this.isAPIInbox) &&
-        !this.isOnPrivateNote &&
-        !this.currentChat.can_reply
+        this.isSendingAudioWithText ||
+        ((this.isAWhatsAppChannel || this.isAPIInbox) &&
+          !this.isOnPrivateNote &&
+          !this.currentChat.can_reply)
       );
     },
   },
@@ -862,12 +871,20 @@ export default {
     hideContentTemplatesModal() {
       this.showContentTemplatesModal = false;
     },
-    confirmOnSendReply() {
+    async confirmOnSendReply() {
       if (this.isReplyButtonDisabled) {
         return;
       }
       if (!this.showMentions) {
         const copilotAcceptedMessage = this.getCopilotAcceptedMessage();
+        if (
+          !this.isPrivate &&
+          this.hasAudioAttachment &&
+          this.outboundDraft.message.trim()
+        ) {
+          await this.sendAudioWithText(copilotAcceptedMessage);
+          return;
+        }
         const isOnWhatsApp =
           this.isATwilioWhatsAppChannel ||
           this.isAWhatsAppCloudChannel ||
@@ -899,6 +916,53 @@ export default {
 
         this.clearMessage();
         this.hideEmojiPicker();
+      }
+    },
+    async sendAudioWithText(copilotAcceptedMessage = '') {
+      const textToSend = this.message;
+      const replyType = this.replyType;
+      const draftKey = this.getDraftKey();
+      const { files, isVoiceMessage, ...textPayload } =
+        this.getMessagePayload(textToSend);
+      const audioPayload = {
+        conversationId: textPayload.conversationId,
+        private: false,
+        sender: textPayload.sender,
+        files,
+        isVoiceMessage:
+          isVoiceMessage ||
+          this.attachedFiles.some(file => file.isVoiceMessage),
+      };
+      const isCurrentComposer = () =>
+        this.currentChat.id === textPayload.conversationId &&
+        this.replyType === replyType;
+
+      this.isSendingAudioWithText = true;
+      try {
+        const audioSent = await this.sendMessage(audioPayload, '', '', {
+          preserveDraft: true,
+        });
+        if (!audioSent) return;
+
+        // Keep the captured text and reply context if only the second request fails.
+        if (isCurrentComposer()) this.resetRecorderAndClearAttachments();
+        const textSent = await this.sendMessage(
+          textPayload,
+          textToSend,
+          copilotAcceptedMessage,
+          { preserveDraft: true }
+        );
+        if (!textSent) return;
+
+        this.$store.dispatch('draftMessages/delete', { key: draftKey });
+        if (isCurrentComposer()) {
+          this.clearEmailField();
+          this.isQuoteRemoved = false;
+          this.clearMessage();
+          this.hideEmojiPicker();
+        }
+      } finally {
+        this.isSendingAudioWithText = false;
       }
     },
     sendMessageAsMultipleMessages(message, copilotAcceptedMessage = '') {
@@ -984,7 +1048,8 @@ export default {
     async sendMessage(
       messagePayload,
       editorMessage = '',
-      copilotAcceptedMessage = ''
+      copilotAcceptedMessage = '',
+      { preserveDraft = false } = {}
     ) {
       try {
         await this.$store.dispatch(
@@ -993,11 +1058,12 @@ export default {
         );
         emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
         emitter.emit(BUS_EVENTS.MESSAGE_SENT);
-        this.removeFromDraft();
+        if (!preserveDraft) this.removeFromDraft();
         this.sendMessageAnalyticsData(messagePayload.private, {
           editorMessage,
           copilotAcceptedMessage,
         });
+        return true;
       } catch (error) {
         const errorMessage =
           error?.response?.status === 413
@@ -1005,6 +1071,7 @@ export default {
             : error?.response?.data?.error ||
               this.$t('CONVERSATION.MESSAGE_ERROR');
         useAlert(errorMessage);
+        return false;
       }
     },
     async onSendWhatsAppReply(messagePayload) {
