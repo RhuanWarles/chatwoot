@@ -329,17 +329,18 @@ onMounted(() => {
           </div>
         </template>
       </Draggable>
-      <AccordionItem
-        v-if="isGroupConversation"
-        :title="$t('CONVERSATION.GROUP_PARTICIPANTS.TITLE')"
-        :is-open="isContactSidebarItemOpen('is_group_participants_open')"
-        compact
-        @toggle="
-          value => toggleSidebarUIState('is_group_participants_open', value)
-        "
-      >
-        <GroupParticipantsPanel :conversation-id="conversationId" />
-      </AccordionItem>
+      <div v-if="isGroupConversation" class="mt-3">
+        <AccordionItem
+          :title="$t('CONVERSATION.GROUP_PARTICIPANTS.TITLE')"
+          :is-open="isContactSidebarItemOpen('is_group_participants_open')"
+          compact
+          @toggle="
+            value => toggleSidebarUIState('is_group_participants_open', value)
+          "
+        >
+          <GroupParticipantsPanel :conversation-id="conversationId" />
+        </AccordionItem>
+      </div>
     </div>
   </div>
 </template>
