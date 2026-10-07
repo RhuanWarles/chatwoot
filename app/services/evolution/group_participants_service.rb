@@ -27,7 +27,10 @@ module Evolution
 
     def group_jid
       source_id = conversation.contact_inbox&.source_id.to_s
-      source_id if source_id.end_with?('@g.us')
+      return source_id if source_id.end_with?('@g.us')
+
+      identifier = conversation.contact&.identifier.to_s
+      identifier if identifier.end_with?('@g.us')
     end
 
     def instance_name

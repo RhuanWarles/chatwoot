@@ -13,6 +13,7 @@ import AccordionItem from 'dashboard/components/Accordion/AccordionItem.vue';
 import ContactConversations from './ContactConversations.vue';
 import ConversationAction from './ConversationAction.vue';
 import ConversationParticipant from './ConversationParticipant.vue';
+import GroupParticipantsPanel from './GroupParticipantsPanel.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
@@ -93,6 +94,9 @@ const channelType = computed(() => currentChat.value.meta?.channel);
 const contactGetter = useMapGetter('contacts/getContact');
 const contactId = computed(() => currentChat.value.meta?.sender?.id);
 const contact = computed(() => contactGetter.value(contactId.value));
+const isGroupConversation = computed(() =>
+  contact.value?.identifier?.endsWith('@g.us')
+);
 const contactAdditionalAttributes = computed(
   () => contact.value.additional_attributes || {}
 );
@@ -325,6 +329,17 @@ onMounted(() => {
           </div>
         </template>
       </Draggable>
+      <AccordionItem
+        v-if="isGroupConversation"
+        :title="$t('CONVERSATION.GROUP_PARTICIPANTS.TITLE')"
+        :is-open="isContactSidebarItemOpen('is_group_participants_open')"
+        compact
+        @toggle="
+          value => toggleSidebarUIState('is_group_participants_open', value)
+        "
+      >
+        <GroupParticipantsPanel :conversation-id="conversationId" />
+      </AccordionItem>
     </div>
   </div>
 </template>

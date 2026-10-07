@@ -1,8 +1,11 @@
 {
   "CONVERSATION": {
     "GROUP_PARTICIPANTS": {
+      "TITLE": "Group participants",
       "SEARCH": "Buscar participantes",
-      "EMPTY": "Nenhum participante encontrado"
+      "EMPTY": "Nenhum participante encontrado",
+      "LOADING": "Carregando participantes...",
+      "ERROR": "Não foi possível carregar os participantes."
     },
     "REFERRAL": {
       "AD_LABEL": "Ad",

@@ -18,6 +18,9 @@ class Api::V1::Accounts::Conversations::GroupParticipantsController < Api::V1::A
   end
 
   def group_conversation?
-    @conversation.contact_inbox&.source_id.to_s.end_with?('@g.us')
+    source_id = @conversation.contact_inbox&.source_id.to_s
+    return true if source_id.end_with?('@g.us')
+
+    @conversation.contact&.identifier.to_s.end_with?('@g.us')
   end
 end
