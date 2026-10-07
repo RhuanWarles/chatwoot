@@ -324,6 +324,7 @@ en:
       handoff: 'Transferring to another agent for further assistance.'
     messages:
       instagram_story_content: '%{story_sender} mentioned you in the story: '
+      invalid_group_mentions: 'The selected group mentions are invalid. Select the participants again.'
       instagram_deleted_story_content: This story is no longer available.
       instagram_shared_story_content: 'Shared story'
       instagram_shared_post_content: 'Shared post'

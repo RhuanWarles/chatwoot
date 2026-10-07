@@ -17,6 +17,12 @@ import TagAgents from '../conversation/TagAgents.vue';
 import VariableList from '../conversation/VariableList.vue';
 import MacroList from '../conversation/MacroList.vue';
 import GroupParticipants from '../conversation/GroupParticipants.vue';
+import {
+  withGroupMentionSchema,
+  withGroupMentionSerializer,
+  parseGroupMentionDraft,
+  groupMentionPayload,
+} from 'dashboard/helper/groupMentionHelper';
 import TagTools from '../conversation/TagTools.vue';
 import CopilotMenuBar from './CopilotMenuBar.vue';
 
@@ -142,7 +148,7 @@ const effectiveChannelType = computed(() =>
 );
 
 const editorSchema = computed(() => {
-  if (!props.channelType) return messageSchema;
+  if (!props.channelType) return withGroupMentionSchema(messageSchema);
 
   const formatType = props.isPrivate
     ? PRIVATE_NOTE_FORMATTING
@@ -151,8 +157,14 @@ const editorSchema = computed(() => {
     formatType,
     captainTasksEnabled.value
   );
-  return buildMessageSchema(formatting.marks, formatting.nodes);
+  return withGroupMentionSchema(
+    buildMessageSchema(formatting.marks, formatting.nodes)
+  );
 });
+
+const groupMentionSerializer = withGroupMentionSerializer(
+  MessageMarkdownSerializer
+);
 
 const editorMenuOptions = computed(() => {
   const formatType = props.isPrivate
@@ -169,9 +181,12 @@ const editorMenuOptions = computed(() => {
 const createState = (content, placeholder, plugins = [], methods = {}) => {
   const schema = editorSchema.value;
   // Strip unsupported formatting before parsing to prevent "Token type not supported" errors
-  const sanitizedContent = stripUnsupportedFormatting(content, schema);
   return EditorState.create({
-    doc: new MessageMarkdownTransformer(schema).parse(sanitizedContent),
+    doc: parseGroupMentionDraft(content || '', schema, draft =>
+      new MessageMarkdownTransformer(schema).parse(
+        stripUnsupportedFormatting(draft, schema)
+      )
+    ),
     plugins: buildEditor({
       schema,
       placeholder,
@@ -208,7 +223,6 @@ const showMacroMenu = ref(false);
 const toolSearchKey = ref('');
 const mentionSearchKey = ref('');
 const showGroupParticipants = ref(false);
-const selectedGroupParticipants = ref([]);
 const cannedSearchKey = ref('');
 const variableSearchKey = ref('');
 const emojiSearchKey = ref('');
@@ -247,14 +261,18 @@ const handleCopilotAction = actionKey => {
       emit('executeCopilotAction', 'improve', selectedText);
     }
   } else {
-    emit('executeCopilotAction', actionKey, props.modelValue);
+    emit(
+      'executeCopilotAction',
+      actionKey,
+      groupMentionPayload(props.modelValue).message
+    );
   }
 
   showSelectionMenu.value = false;
 };
 
 const contentFromEditor = () => {
-  return MessageMarkdownSerializer.serialize(editorView.state.doc);
+  return groupMentionSerializer.serialize(editorView.state.doc);
 };
 
 const shouldShowVariables = computed(() => {
@@ -808,14 +826,15 @@ function insertGroupParticipant(participant) {
   const displayName =
     participant.display_name || participant.phone || participant.lid;
   const { from, to } = range.value;
-  const node = editorView.state.schema.text(`@${displayName}`);
-  insertNodeIntoEditor(node, from, to);
-  selectedGroupParticipants.value.push({
-    lid: participant.lid,
-    jid: participant.jid,
-    phone: participant.phone,
-    display_name: displayName,
+  const node = editorView.state.schema.nodes.groupMention.create({
+    participant: {
+      lid: participant.lid,
+      jid: participant.jid,
+      phone: participant.phone,
+      display_name: displayName,
+    },
   });
+  insertNodeIntoEditor(node, from, to);
   dismissGroupParticipants();
 }
 

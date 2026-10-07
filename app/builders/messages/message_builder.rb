@@ -22,6 +22,7 @@ class Messages::MessageBuilder
   end
 
   def perform
+    Messages::GroupMentionsValidator.new(@conversation, @params).validate!
     @message = @conversation.messages.build(message_params)
     process_attachments
     process_emails

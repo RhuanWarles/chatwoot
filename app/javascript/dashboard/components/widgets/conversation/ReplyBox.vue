@@ -52,6 +52,7 @@ import ConversationResolveAttributesModal from 'dashboard/components-next/Conver
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { isFileTypeAllowedForChannel } from 'shared/helpers/FileHelper';
 import { isAIAssigneeType } from 'dashboard/helper/agentHelper';
+import { groupMentionPayload } from 'dashboard/helper/groupMentionHelper';
 
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -311,11 +312,14 @@ export default {
         ? this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT')
         : this.$t('CONVERSATION.FOOTER.MSG_INPUT');
     },
+    outboundDraft() {
+      return groupMentionPayload(this.message);
+    },
     isMessageLengthReachingThreshold() {
-      return this.message.length > this.maxLength - 50;
+      return this.outboundDraft.message.length > this.maxLength - 50;
     },
     charactersRemaining() {
-      return this.maxLength - this.message.length;
+      return this.maxLength - this.outboundDraft.message.length;
     },
     isReplyButtonDisabled() {
       if (this.isEditorDisabled) return true;
@@ -329,8 +333,8 @@ export default {
 
       return (
         this.isMessageEmpty ||
-        this.message.length === 0 ||
-        this.message.length > this.maxLength
+        this.outboundDraft.message.length === 0 ||
+        this.outboundDraft.message.length > this.maxLength
       );
     },
     sender() {
@@ -710,7 +714,10 @@ export default {
     saveDraft(conversationId, replyType) {
       if (this.message || this.message === '') {
         const key = this.getDraftKey(conversationId, replyType);
-        const draftToSave = trimContent(this.message || '', this.maxLength);
+        // Identity tokens must remain intact; the send limit counts visible text.
+        const draftToSave = this.outboundDraft.mentions.length
+          ? this.message
+          : trimContent(this.message || '', this.maxLength);
 
         this.$store.dispatch('draftMessages/set', {
           key,
@@ -1228,7 +1235,10 @@ export default {
       return multipleMessagePayload;
     },
     getMessagePayload(message) {
-      const messageWithQuote = this.getMessageWithQuotedEmailText(message);
+      const { message: visibleMessage, mentions } =
+        groupMentionPayload(message);
+      const messageWithQuote =
+        this.getMessageWithQuotedEmailText(visibleMessage);
 
       let messagePayload = {
         conversationId: this.currentChat.id,
@@ -1236,6 +1246,9 @@ export default {
         private: this.isPrivate,
         sender: this.sender,
       };
+      if (mentions.length && !this.isPrivate) {
+        messagePayload.contentAttributes = { whatsapp_mentions: mentions };
+      }
       messagePayload = this.setReplyToInPayload(messagePayload);
 
       if (this.attachedFiles && this.attachedFiles.length) {

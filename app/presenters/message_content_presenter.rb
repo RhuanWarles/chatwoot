@@ -8,10 +8,25 @@ class MessageContentPresenter < SimpleDelegator
   end
 
   def webhook_content
-    Messages::WebhookContentNormalizer.normalize(content_with_survey_link)
+    Messages::WebhookContentNormalizer.normalize(content_with_group_mentions)
   end
 
   private
+
+  def content_with_group_mentions
+    text = content_with_survey_link
+    mentions = content_attributes['whatsapp_mentions']
+    return text unless outgoing? && !private? && mentions.present?
+
+    # WhatsApp matches the @identifier in the text with contextInfo.mentionedJid.
+    # Stored content remains human-readable; only the delivery payload changes.
+    text = text.dup
+    mentions.reverse_each do |mention|
+      identifier = mention['lid'].presence || mention['jid']
+      text[mention['start']...mention['end']] = "@#{identifier.split('@').first}"
+    end
+    text
+  end
 
   def content_with_survey_link
     if should_append_survey_link?

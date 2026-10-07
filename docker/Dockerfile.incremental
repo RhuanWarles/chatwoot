@@ -1,0 +1,19 @@
+# For source-only updates with the same Gemfile.lock and package lock as BASE_IMAGE.
+# Reuse installed Ruby dependencies and rebuild frontend assets on the VPS.
+ARG BASE_IMAGE=chatwoot-saas-ai:production
+FROM node:24-alpine AS frontend
+WORKDIR /app
+RUN npm install -g pnpm@10.2.0
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
+COPY . .
+ENV RAILS_ENV=production NODE_ENV=production NODE_OPTIONS=--max-old-space-size=4096
+RUN pnpm exec vite build
+
+FROM ${BASE_IMAGE}
+ARG SOURCE_REVISION
+COPY app /app/app
+COPY config /app/config
+COPY --from=frontend /app/public/vite /app/public/vite
+RUN printf '%s\n' "$SOURCE_REVISION" > /app/.git_sha
+LABEL org.opencontainers.image.revision=$SOURCE_REVISION

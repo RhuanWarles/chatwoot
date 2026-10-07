@@ -1,0 +1,42 @@
+diff --git a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts b/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
+index 906fff1881..38f00ec150 100644
+--- a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
++++ b/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
+@@ -1251,6 +1251,7 @@ export class ChatwootService {
+         media: media,
+         delay: 1200,
+         quoted: options?.quoted,
++        ...(options?.mentioned?.length ? { mentioned: options.mentioned } : {}),
+       };
+ 
+       sendTelemetry('/message/sendMedia');
+@@ -1451,6 +1452,13 @@ export class ChatwootService {
+           return { message: 'bot' };
+         }
+ 
++        const selectedMentions = body.content_attributes?.whatsapp_mentions;
++        const mentioned = chatId.endsWith('@g.us') && Array.isArray(selectedMentions)
++          ? [...new Set<string>(selectedMentions
++              .map((mention) => mention.lid || mention.jid)
++              .filter((jid) => typeof jid === 'string' && /^\d+@(lid|s\.whatsapp\.net)$/.test(jid)))]
++          : [];
++
+         let formatText: string;
+         if (senderName === null || senderName === undefined) {
+           formatText = messageReceived;
+@@ -1473,6 +1481,7 @@ export class ChatwootService {
+ 
+               const options: Options = {
+                 quoted: await this.getQuotedMessage(body, instance),
++                ...(mentioned.length ? { mentioned } : {}),
+               };
+ 
+               const messageSent = await this.sendAttachment(
+@@ -1503,6 +1512,7 @@ export class ChatwootService {
+             const data: SendTextDto = {
+               number: chatId,
+               text: formatText,
++              ...(mentioned.length ? { mentioned } : {}),
+               delay: Math.floor(Math.random() * (2000 - 500 + 1)) + 500,
+               quoted: await this.getQuotedMessage(body, instance),
+             };

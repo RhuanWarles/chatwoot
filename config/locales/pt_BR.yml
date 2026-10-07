@@ -282,6 +282,7 @@ pt_BR:
     captain:
       handoff: 'Transferindo para que outro agente dê assistência.'
     messages:
+      invalid_group_mentions: 'As menções selecionadas são inválidas. Selecione os participantes novamente.'
       instagram_story_content: '%{story_sender} mencionou você na conversa: '
       instagram_deleted_story_content: Este Story não está mais disponível.
       instagram_shared_story_content: 'Story compartilhado'
