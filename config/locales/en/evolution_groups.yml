@@ -1,0 +1,23 @@
+en:
+  evolution_groups:
+    errors:
+      invalid_action: "This action is not valid for the participant's current state."
+      participant_not_found: "The participant is no longer in the group or has no confirmed phone number."
+      own_participant: "Use Leave group for the connected account."
+      not_group_admin: "The connected number must be a group administrator."
+      not_a_member: "The connected number is not a group member."
+      group_left: "You left this group. New messages cannot be sent."
+      invalid_picture: "Select a valid JPEG, PNG or WebP image up to 5 MB."
+      unconfirmed: "WhatsApp did not confirm the change. Refresh the group before retrying."
+      confirmation_required: "Confirm leaving the group before continuing."
+      invalid_request: "Enter a group name (up to 100 characters) and a valid request identifier."
+      invalid_phone: "Enter a valid phone number with country code. LIDs cannot be used as phone numbers."
+      not_on_whatsapp: "One or more numbers are not registered on WhatsApp."
+      not_configured: "This inbox is not configured for Evolution WhatsApp."
+      permission_denied: "WhatsApp refused the operation. Check the connected account's permissions in the group."
+      not_found: "The group or WhatsApp instance was not found."
+      unavailable: "Could not reach Evolution. Check whether the WhatsApp instance is connected."
+      creation_uncertain: "The result of group creation could not be confirmed. Check WhatsApp before creating another group; this request will not be sent again."
+      request_conflict: "This request was already used for another group. Close the form and start again."
+      already_member: "This participant is already in the group."
+      participant_rejected: "WhatsApp did not confirm the addition. Check the number, privacy settings and group permissions."

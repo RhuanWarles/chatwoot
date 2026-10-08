@@ -3,22 +3,30 @@
 module Evolution
   class GroupParticipantsService
     CACHE_TTL = 5.minutes
-    REQUEST_TIMEOUT = 8
 
     def initialize(conversation)
       @conversation = conversation
       @account = conversation.account
     end
 
-    def perform
+    def perform(refresh: false, strict: false)
+      return [] if conversation.additional_attributes['evolution_group_left_at'].present?
+
       return [] unless group_jid.present? && instance_name.present?
 
+      invalidate! if refresh
       Rails.cache.fetch(cache_key, expires_in: CACHE_TTL) do
         normalize_participants(fetch_participants)
       end
-    rescue HTTParty::Error, SocketError, Net::OpenTimeout, Net::ReadTimeout => e
+    rescue CustomExceptions::Evolution => e
+      raise if strict
+
       Rails.logger.warn("[Evolution] group participants unavailable: #{e.class}")
       []
+    end
+
+    def invalidate!
+      Rails.cache.delete(cache_key)
     end
 
     private
@@ -26,26 +34,11 @@ module Evolution
     attr_reader :conversation, :account
 
     def group_jid
-      source_id = conversation.contact_inbox&.source_id.to_s
-      return source_id if source_id.end_with?('@g.us')
-
-      identifier = conversation.contact&.identifier.to_s
-      identifier if identifier.end_with?('@g.us')
+      Evolution::GroupContext.new(conversation).group_jid
     end
 
     def instance_name
-      channel = conversation.inbox&.channel
-      channel&.respond_to?(:additional_attributes) &&
-        channel.additional_attributes['evolution_instance_name'].presence ||
-        ENV['EVOLUTION_INSTANCE_NAME'].presence
-    end
-
-    def base_url
-      ENV.fetch('EVOLUTION_API_URL', 'https://evolution.rwhub.com.br').sub(%r{/$}, '')
-    end
-
-    def api_key
-      ENV['EVOLUTION_API_KEY'].presence
+      Evolution::Configuration.new(conversation.inbox).instance_name
     end
 
     def cache_key
@@ -53,17 +46,7 @@ module Evolution
     end
 
     def fetch_participants
-      raise HTTParty::Error, 'Evolution API key is not configured' if api_key.blank?
-
-      response = HTTParty.get(
-        "#{base_url}/group/participants/#{CGI.escape(instance_name)}",
-        query: { groupJid: group_jid },
-        headers: { 'apikey' => api_key, 'Accept' => 'application/json' },
-        timeout: REQUEST_TIMEOUT
-      )
-      raise HTTParty::Error, "Evolution returned #{response.code}" unless response.success?
-
-      payload = response.parsed_response
+      payload = Evolution::GroupClient.new(conversation.inbox).get('group/participants', groupJid: group_jid)
       payload.dig('data', 'participants') || payload['participants'] || []
     end
 
@@ -84,7 +67,7 @@ module Evolution
 
     def normalize(participant)
       lid = participant['id'].to_s.presence
-      jid = participant['phoneNumber'].to_s.presence
+      jid = [participant['phoneNumber'], participant['id']].find { |value| value.to_s.match?(/\A\d+@s\.whatsapp\.net\z/) }
       return if lid.blank? && jid.blank?
 
       phone = jid&.delete_suffix('@s.whatsapp.net')
@@ -95,6 +78,7 @@ module Evolution
         whatsapp_name: participant['name'].presence,
         avatar_url: participant['imgUrl'].presence,
         admin: participant['admin'].present? && participant['admin'] != 'null',
+        super_admin: participant['admin'] == 'superadmin',
       }
     end
 

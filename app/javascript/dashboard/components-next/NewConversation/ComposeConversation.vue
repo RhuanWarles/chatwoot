@@ -237,6 +237,7 @@ watch(
 );
 
 onMounted(() => resetContacts());
+defineExpose({ open: () => popoverRef.value.show() });
 </script>
 
 <template>

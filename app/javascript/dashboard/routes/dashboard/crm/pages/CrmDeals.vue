@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { debounce } from '@chatwoot/utils';
+import { useEventListener } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
@@ -30,13 +31,71 @@ const now = ref(Date.now());
 let activityClock;
 const ACTIVITY_NEAR_WINDOW_MS = 2 * 60 * 60 * 1000;
 const DRAG_SCROLL_EDGE = 80;
+const DRAG_SCROLL_MAX_SPEED = 720;
+const DRAG_SCROLL_MAX_FRAME_MS = 32;
+let dragScrollFrame;
+let dragPointer = null;
+let lastDragScrollTime;
+const updateDragPointer = event => {
+  const pointer = event.touches?.[0] || event;
+  dragPointer = { x: pointer.clientX, y: pointer.clientY };
+};
+const stopDragScroll = () => {
+  cancelAnimationFrame(dragScrollFrame);
+  dragScrollFrame = null;
+  dragPointer = null;
+  lastDragScrollTime = null;
+};
+const dragScrollProximity = (position, start, end) => {
+  const edge = Math.min(DRAG_SCROLL_EDGE, (end - start) / 2);
+  return (
+    Math.max(0, 1 - (end - position) / edge) -
+    Math.max(0, 1 - (position - start) / edge)
+  );
+};
+const scrollDuringDrag = timestamp => {
+  const board = kanbanBoard.value;
+  const elapsed = Math.min(
+    timestamp - (lastDragScrollTime ?? timestamp),
+    DRAG_SCROLL_MAX_FRAME_MS
+  );
+  lastDragScrollTime = timestamp;
+  if (board && dragPointer) {
+    const { left, right, top, bottom } = board.getBoundingClientRect();
+    const { x, y } = dragPointer;
+    if (x >= left && x <= right && y >= top && y <= bottom) {
+      const distance = (DRAG_SCROLL_MAX_SPEED * elapsed) / 1000;
+      board.scrollLeft += dragScrollProximity(x, left, right) * distance;
+      const column = document
+        .elementFromPoint(x, y)
+        ?.closest('[data-crm-stage-deals]');
+      if (column && board.contains(column)) {
+        const rect = column.getBoundingClientRect();
+        column.scrollTop +=
+          dragScrollProximity(y, rect.top, rect.bottom) * distance;
+      }
+    }
+  }
+  dragScrollFrame = requestAnimationFrame(scrollDuringDrag);
+};
+const startDragScroll = event => {
+  stopDragScroll();
+  updateDragPointer(event.originalEvent);
+  dragScrollFrame = requestAnimationFrame(scrollDuringDrag);
+};
+useEventListener(document, 'pointermove', updateDragPointer);
+useEventListener(document, 'touchmove', updateDragPointer, { passive: true });
+useEventListener(
+  document,
+  ['pointerup', 'pointercancel', 'touchend', 'touchcancel'],
+  stopDragScroll
+);
+useEventListener(window, 'blur', stopDragScroll);
 const DRAG_SCROLL_OPTIONS = {
   forceFallback: true,
   fallbackOnBody: true,
-  forceAutoScrollFallback: true,
-  bubbleScroll: true,
-  scrollSensitivity: DRAG_SCROLL_EDGE,
-  scrollSpeed: 6,
+  // One animation loop controls both axes, independently of nested scroll roots.
+  scroll: false,
 };
 const searchDraft = ref('');
 const searchQuery = ref('');
@@ -428,6 +487,7 @@ onMounted(() => {
   }, 60 * 1000);
 });
 onUnmounted(() => {
+  stopDragScroll();
   if (activityClock) window.clearInterval(activityClock);
   searchVersion += 1;
 });
@@ -768,9 +828,11 @@ onUnmounted(() => {
           :model-value="stage.deals"
           item-key="id"
           group="crm-deals"
-          scroll
+          data-crm-stage-deals
           v-bind="DRAG_SCROLL_OPTIONS"
           class="flex flex-col flex-1 gap-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
+          @start="startDragScroll"
+          @end="stopDragScroll"
           @change="event => event.added && moveDeal(event.added.element, stage)"
         >
           <template #item="{ element }">

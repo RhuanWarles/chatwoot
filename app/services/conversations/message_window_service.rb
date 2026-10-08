@@ -7,6 +7,8 @@ class Conversations::MessageWindowService
   end
 
   def can_reply?
+    return false if @conversation.additional_attributes['evolution_group_left_at'].present?
+
     return true if messaging_window.blank?
 
     last_message_in_messaging_window?(messaging_window)

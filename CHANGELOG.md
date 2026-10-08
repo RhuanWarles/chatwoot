@@ -1,5 +1,18 @@
 # Changelog do CRM
 
+## v1.1.0 — preparada em 08/10/2026
+
+- Consolida os ajustes atuais de AI Agents, envio de áudio e texto e confirmação nativa de mensagens.
+- Restaura o scroll durante drag and drop horizontal/vertical do Kanban.
+- Criação de grupos WhatsApp pelo menu de nova conversa e adição de participantes.
+- Gestão de grupos: promover/rebaixar administradores, remover participantes, nome, foto e saída com confirmação.
+- Painel compacto com informações, modal único de edição, lista de participantes e zona de perigo.
+- Validações por account, permissões nativas, proteção da própria conta/criador e bloqueio de envio após saída.
+- Migration de idempotência de criação de grupos incluída no prepare da stack.
+- Stack bundled e app-only usam a imagem v1.1.0. Evolution permanece externa; patches em deploy/evolution continuam necessários para menções.
+- Retenção de releases antigas documentada em deploy/production/RELEASE_RETENTION.md.
+
+
 ## v1.0.10 — publicada em 07/10/2026
 
 - Menções reais de participantes de grupo: identidade estruturada no composer,

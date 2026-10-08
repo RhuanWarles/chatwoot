@@ -29,6 +29,9 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def retry
     return if message.blank?
+    if !message.private? && @conversation.additional_attributes['evolution_group_left_at'].present?
+      return render_could_not_create_error(I18n.t('evolution_groups.errors.group_left'))
+    end
 
     ::SendReplyJob.perform_later(message.id) if claim_message_retry
   rescue StandardError => e

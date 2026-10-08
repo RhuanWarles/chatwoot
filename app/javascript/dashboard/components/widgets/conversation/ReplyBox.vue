@@ -1447,6 +1447,13 @@ export default {
 </script>
 
 <template>
+  <p
+    v-if="currentChat.additional_attributes?.evolution_group_left_at"
+    role="status"
+    class="px-4 py-2 mb-0 text-sm text-n-slate-11 bg-n-alpha-2"
+  >
+    {{ $t('WHATSAPP_GROUPS.ADMIN.LEFT') }}
+  </p>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
   <div class="reply-box" :class="replyBoxClass">
     <ReplyTopPanel

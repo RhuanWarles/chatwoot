@@ -183,6 +183,7 @@ Rails.application.routes.draw do
           namespace :channels do
             resource :twilio_channel, only: [:create]
           end
+          resources :whatsapp_groups, only: [:index, :create]
           resources :conversations, only: [:index, :create, :show, :update, :destroy] do
             collection do
               get :meta
@@ -202,7 +203,11 @@ Rails.application.routes.draw do
               resources :assignments, only: [:create]
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
-              resource :group_participants, only: [:show]
+              resource :group_participants, only: [:show, :create]
+              resource :group, only: [:show, :update], controller: :groups do
+                post :participants
+                post :leave
+              end
               resource :direct_uploads, only: [:create]
               resource :draft_messages, only: [:show, :update, :destroy]
               resource :suggestions, only: [] do

@@ -78,6 +78,7 @@ class Message < ApplicationRecord
 
   validates :content_type, presence: true
   validates :content, length: { maximum: 150_000 }
+  validate :group_must_be_active, on: :create
   validates :processed_message_content, length: { maximum: 150_000 }
 
   # when you have a temperory id in your frontend and want it echoed back via action cable
@@ -291,6 +292,12 @@ class Message < ApplicationRecord
   end
 
   private
+
+  def group_must_be_active
+    return unless (outgoing? || template?) && !private? && conversation&.additional_attributes&.dig('evolution_group_left_at').present?
+
+    errors.add(:base, I18n.t('evolution_groups.errors.group_left'))
+  end
 
   def prevent_message_flooding
     # Added this to cover the validation specs in messages

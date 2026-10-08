@@ -1,0 +1,23 @@
+pt_BR:
+  evolution_groups:
+    errors:
+      invalid_action: "Esta ação não é válida para o estado atual do participante."
+      participant_not_found: "O participante não está mais no grupo ou não possui telefone confirmado."
+      own_participant: "Use a ação Sair do grupo para a própria conta."
+      not_group_admin: "O número conectado precisa ser administrador do grupo."
+      not_a_member: "O número conectado não faz parte deste grupo."
+      group_left: "Você saiu deste grupo. Não é possível enviar novas mensagens."
+      invalid_picture: "Selecione uma imagem JPEG, PNG ou WebP válida de até 5 MB."
+      unconfirmed: "O WhatsApp não confirmou a alteração. Atualize os dados do grupo antes de tentar novamente."
+      confirmation_required: "Confirme a saída do grupo antes de continuar."
+      invalid_request: "Informe o nome do grupo (até 100 caracteres) e um identificador válido da solicitação."
+      invalid_phone: "Informe um telefone válido com DDI. LIDs não podem ser usados como telefone."
+      not_on_whatsapp: "Um ou mais números não estão cadastrados no WhatsApp."
+      not_configured: "Esta inbox não está configurada para WhatsApp pela Evolution."
+      permission_denied: "O WhatsApp recusou a operação. Verifique as permissões da conta conectada no grupo."
+      not_found: "O grupo ou a instância do WhatsApp não foi encontrado."
+      unavailable: "Não foi possível acessar a Evolution. Verifique se a instância do WhatsApp está conectada."
+      creation_uncertain: "Não foi possível confirmar o resultado da criação. Confira o WhatsApp antes de criar outro grupo; esta solicitação não será reenviada."
+      request_conflict: "Esta solicitação já foi usada para outro grupo. Feche o formulário e comece novamente."
+      already_member: "Este participante já está no grupo."
+      participant_rejected: "O WhatsApp não confirmou a adição. Verifique o número, a privacidade do participante e as permissões no grupo."

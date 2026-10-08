@@ -1,6 +1,6 @@
 # App-only Stack: PostgreSQL/Redis must already be reachable from these containers.
 x-app: &app
-  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.0.10}
+  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.1.0}
   restart: unless-stopped
   environment: &app-env
     RAILS_ENV: production
