@@ -692,7 +692,7 @@ const menuItems = computed(() => {
       label: t('AI_AGENTS.TITLE'),
       icon: 'i-lucide-bot',
       to: accountScopedRoute('ai_agents_settings'),
-      activeOn: ['ai_agents_settings'],
+      activeOn: ['ai_agents_settings', 'saas_ai_settings'],
     },
     {
       name: 'Companies',
@@ -942,12 +942,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.INTEGRATIONS'),
           icon: 'i-lucide-blocks',
           to: accountScopedRoute('settings_applications'),
-        },
-        {
-          name: 'AI and Voice',
-          label: t('SAAS_AI.TITLE'),
-          icon: 'i-lucide-audio-lines',
-          to: accountScopedRoute('saas_ai_settings'),
         },
 
         ...(hasDataImport.value

@@ -1,6 +1,9 @@
 # SaaS AI and voice usage
 
-This module adds an account-scoped settings page at `/app/accounts/:accountId/settings/ai-voice`.
+The account-scoped page at `/app/accounts/:accountId/settings/ai-voice` now displays balances and existing usage history only.
+Agent configuration lives in the [AI Agents hub](ai-agents-hub.md), including the existing encrypted account text credentials.
+The APIs and legacy voice services documented below remain intact, but draft-generation and start-call actions are no longer exposed on the usage page.
+New voice-agent records are configuration only and are not connected to these legacy calling services.
 It is independent of Captain and its enterprise billing. It does not change existing Captain/WhatsApp automations.
 Only account administrators can configure the module, generate drafts or start calls. Drafts are not sent to contacts.
 

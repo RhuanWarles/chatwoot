@@ -13,7 +13,7 @@ export default {
           path: '',
           name: 'ai_agents_settings',
           component: Index,
-          meta: { permissions: ['administrator'] },
+          meta: { permissions: ['administrator'], reuseOnQueryChange: true },
         },
       ],
     },

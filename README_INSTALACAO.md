@@ -327,6 +327,8 @@ Configure `.env` para development e host/portas reais dos serviços. Use `Procfi
 
 ## 14. IA e voz, opcionais
 
+A configuração de agentes fica no [hub AI Agents](docs/ai-agents-hub.md), nas abas Texto e Voz. A chave própria de texto é configurada na aba Texto. O novo cadastro de voz ainda não executa chamadas; a antiga tela AI & Voice exibe apenas uso, créditos e histórico.
+
 Não são necessárias para CRM, inbox ou Calendar. Se o módulo estiver presente nesta revisão, configure as chaves de criptografia e siga [SaaS AI & Voice](docs/saas-ai-voice.md) para provedores de texto, Vapi, webhook público, vínculos por account e créditos. Os exemplos desse documento não incluem credenciais reais nem autorizam disparar chamadas em produção.
 
 ## 15. Checklist de entrega e diagnóstico

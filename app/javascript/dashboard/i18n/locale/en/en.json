@@ -160,5 +160,30 @@
     "MODEL_EMPTY": "No suggested models",
     "MODEL_CUSTOM_PLACEHOLDER": "Or enter a custom model identifier",
     "MODEL_HELP": "Choose a suggestion or enter any compatible model identifier."
+  },
+  "AI_HUB": {
+    "SUBTITLE": "Manage your text and voice agents in one place.",
+    "TEXT": "Text",
+    "VOICE": "Voice",
+    "NEW_TEXT": "New text agent",
+    "NEW_VOICE": "New voice agent",
+    "EDIT_VOICE": "Edit voice agent",
+    "USAGE": "AI usage",
+    "USAGE_HELP": "Credits, voice minutes and existing usage history.",
+    "BACK": "Back to AI Agents",
+    "VOICE_CONFIG_ONLY": "Configuration only. Activating a voice agent does not start or answer calls yet.",
+    "VOICE_EMPTY": "No voice agents yet.",
+    "ASSISTANT_ID": "Assistant ID",
+    "PHONE_NUMBER_ID": "Phone Number ID",
+    "PHONE_ID_HELP": "Provider identifier for the phone number, not the telephone number itself.",
+    "NOT_CONFIGURED": "Not configured",
+    "INBOUND": "Answer incoming calls",
+    "OUTBOUND": "Allow outgoing calls",
+    "MAX_DURATION": "Maximum call duration (seconds)",
+    "DURATION_HELP": "Optional. Enter between {min} and {max} seconds.",
+    "YES": "Yes",
+    "NO": "No",
+    "TEXT_CONNECTION": "Text provider connection",
+    "TEXT_CONNECTION_HELP": "Shared credentials for this account. Each text agent keeps its own model and instructions. Existing credentials are preserved."
   }
 }
