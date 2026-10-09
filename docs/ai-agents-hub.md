@@ -45,7 +45,9 @@ Os testes cobrem CRUD de voz, ativação/desativação, ausência de criação d
 
 Validação em 09/10/2026: 37 exemplos de regressão de texto, 7 exemplos da API de voz e 9 testes de interface aprovados. A migração foi executada no PostgreSQL local isolado. RuboCop dos novos arquivos Ruby passou sem infrações; ESLint passou sem erros (avisos de estilo/i18n permanecem); os cinco componentes Vue foram compilados. Não foi realizado teste manual em navegador nem build completo de produção.
 
-Para instalar a alteração é necessário executar a migração `20261009230000_create_saas_voice_agents`. Nenhum push, deploy remoto ou alteração de stack faz parte desta entrega.
+Para instalar a alteração é necessário executar a migração `20261009230000_create_saas_voice_agents`. A entrega inicial foi local, sem push ou deploy remoto.
+
+Publicado na VPS em 09/10/2026 após autorização, por rebuild da imagem existente `chatwoot-saas-ai:production`, revisão `9790a3df12` (imagem `fd13a25bb87f`). Somente Rails e Sidekiq foram recriados. O Compose não foi modificado e nenhuma stack nova foi gerada. A migração específica foi aplicada; configurações, volumes, redes, agentes de texto e credenciais existentes foram preservados. As APIs administrativas de Texto e Voz retornaram HTTP 200, com a Larissa na listagem; login, página do hub e bundle público retornaram HTTP 200. O bundle público corresponde ao arquivo da imagem. Os serviços ficaram sem reinícios inesperados ou erros críticos nos logs verificados. Rollback preservado na imagem `chatwoot-saas-ai:before-ai-hub-9790a3df12`. Nenhum agente foi ativado nem chamada de voz disparada pelo deploy.
 
 ## Arquivos da alteração
 
