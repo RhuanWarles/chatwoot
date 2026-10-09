@@ -7,6 +7,7 @@ export const newAgent = () => ({
   system_prompt: '',
   inbox_ids: [],
   handoff_enabled: true,
+  respond_to_groups: false,
   active: false,
 });
 
@@ -19,6 +20,7 @@ export const agentPayload = agent => ({
   system_prompt: agent.system_prompt,
   inbox_ids: [...agent.inbox_ids],
   handoff_enabled: agent.handoff_enabled,
+  respond_to_groups: agent.respond_to_groups,
   active: agent.active,
 });
 

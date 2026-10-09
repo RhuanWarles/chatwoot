@@ -237,9 +237,7 @@ onMounted(load);
           </p>
           <p class="text-xs text-n-slate-11">
             {{ t('AI_AGENTS.UPDATED') }}:
-            {{
-              formatUpdatedAt(agent.updated_at)
-            }}
+            {{ formatUpdatedAt(agent.updated_at) }}
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -377,6 +375,15 @@ onMounted(load);
             {{ t('AI_AGENTS.NO_INBOXES') }}
           </p>
         </fieldset>
+        <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <input
+            v-model="draft.respond_to_groups"
+            type="checkbox"
+            :disabled="busy"
+          />
+          {{ t('AI_AGENTS.RESPOND_TO_GROUPS') }}
+        </label>
+        <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.GROUP_HELP') }}</p>
         <label class="flex items-center gap-2 text-sm text-n-slate-12"
           ><input
             v-model="draft.handoff_enabled"

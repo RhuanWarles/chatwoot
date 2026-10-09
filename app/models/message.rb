@@ -67,6 +67,7 @@ class Message < ApplicationRecord
   before_validation :prevent_message_flooding
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
+  before_create :pause_ai_agent_for_human_response
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
@@ -144,6 +145,12 @@ class Message < ApplicationRecord
 
   def channel_token
     @token ||= inbox.channel.try(:page_access_token)
+  end
+
+  def pause_ai_agent_for_human_response
+    return unless human_response? && !private? && content_attributes['generated_by_ai'] != true
+
+    Saas::AiAgents::Runtime.pause_for_human!(self)
   end
 
   def push_event_data
@@ -232,7 +239,7 @@ class Message < ApplicationRecord
     return false unless human_response? && !private?
     return false if conversation.first_reply_created_at.present?
     return false if conversation.messages.outgoing
-                                .where.not(sender_type: ['AgentBot', 'Captain::Assistant'])
+                                .where.not(sender_type: ['AgentBot', 'Captain::Assistant', 'Saas::AiAgent'])
                                 .where.not(private: true)
                                 .not_forwarded
                                 .where("(additional_attributes->'campaign_id') is null").count > 1
@@ -388,7 +395,7 @@ class Message < ApplicationRecord
 
   def bot_response?
     # Check if this is a response from AgentBot or Captain::Assistant
-    outgoing? && sender_type.in?(['AgentBot', 'Captain::Assistant'])
+    outgoing? && (sender_type.in?(['AgentBot', 'Captain::Assistant', 'Saas::AiAgent']) || content_attributes['generated_by_ai'] == true)
   end
 
   def dispatch_create_events

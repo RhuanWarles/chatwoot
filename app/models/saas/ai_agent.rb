@@ -5,14 +5,16 @@ class Saas::AiAgent < ApplicationRecord
   TEMPERATURE_RANGE = 0..1
 
   belongs_to :account
+  has_many :messages, as: :sender, dependent: :nullify
   has_many :ai_agent_inboxes, class_name: 'Saas::AiAgentInbox', dependent: :destroy, inverse_of: :ai_agent
   has_many :inboxes, through: :ai_agent_inboxes
 
   validates :name, :system_prompt, :provider, :model, presence: true
   validates :name, :model, length: { maximum: 100 }
+  validates :system_prompt, length: { minimum: 1 }
   validates :provider, inclusion: { in: PROVIDERS }
   validates :temperature, numericality: { in: TEMPERATURE_RANGE }
-  validates :active, :handoff_enabled, inclusion: { in: [true, false] }
+  validates :active, :handoff_enabled, :respond_to_groups, inclusion: { in: [true, false] }
   validate :validate_inboxes
 
   # Serialize assignment and activation together, including concurrent requests.
@@ -27,10 +29,18 @@ class Saas::AiAgent < ApplicationRecord
 
   def public_data
     attributes.slice('id', 'account_id', 'name', 'description', 'system_prompt', 'provider', 'model',
-                     'temperature', 'active', 'handoff_enabled', 'created_at', 'updated_at').merge(
+                     'temperature', 'active', 'handoff_enabled', 'respond_to_groups', 'created_at', 'updated_at').merge(
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } }
                      )
+  end
+
+  def push_event_data
+    { id: id, name: name, type: 'agent_bot', avatar_url: nil }
+  end
+
+  def webhook_data
+    push_event_data
   end
 
   private

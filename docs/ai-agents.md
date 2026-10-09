@@ -1,8 +1,8 @@
-# Text AI agents: configuration phase
+# Text AI agents
 
 Administrators can manage agents in **Settings → AI Agents** (`/app/accounts/:accountId/settings/ai-agents`). The list shows name, active state, provider, model, inboxes and last update. The editor uses the existing Chatwoot Input, ComboBox, Button and Dialog components, with a large multiline prompt, inbox checkboxes and a handoff preference. Empty states, errors, retry and delete confirmation are included. Styling uses theme-aware Tailwind utilities.
 
-This phase stores configuration only. It does not subscribe to messages, call an LLM, send replies, consume credits, perform handoff, change CRM records or modify voice AI. An active badge means enabled configuration, not a running responder.
+Active agents can now reply to public text messages in their selected inboxes using the account's own OpenAI key. Group replies require explicit opt-in. Native message delivery, conversation history and human takeover are preserved. See [runtime configuration and limits](ai-agent-runtime.md). Platform credits, other providers, voice AI and CRM tools are outside this runtime.
 
 ## Data and API
 

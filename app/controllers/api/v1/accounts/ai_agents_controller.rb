@@ -18,6 +18,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'temperature' => ->(value) { value.is_a?(Numeric) && value.finite? && Saas::AiAgent::TEMPERATURE_RANGE.cover?(value) },
     'active' => ->(value) { [true, false].include?(value) },
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
+    'respond_to_groups' => ->(value) { [true, false].include?(value) },
     'inbox_ids' => lambda { |value|
       value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
     }

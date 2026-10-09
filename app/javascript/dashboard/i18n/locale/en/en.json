@@ -114,7 +114,7 @@
   "AI_AGENTS": {
     "TITLE": "AI Agents",
     "SUBTITLE": "Configure account text agents and their inboxes.",
-    "CONFIG_ONLY": "Configuration only. Agents do not respond to conversations in this phase.",
+    "CONFIG_ONLY": "Active agents reply to public text messages in their selected inboxes using the account's own OpenAI key. Human replies pause the agent for that conversation.",
     "NEW": "New agent",
     "EDIT": "Edit agent",
     "SAVE": "Save agent",
@@ -137,6 +137,8 @@
     "INBOXES": "Linked inboxes",
     "NO_INBOXES": "No inboxes",
     "INBOX_HELP": "Each inbox can have at most one active text agent.",
+    "RESPOND_TO_GROUPS": "Reply in WhatsApp groups",
+    "GROUP_HELP": "When enabled, the agent also replies in groups from its selected inboxes. Disabled by default.",
     "OCCUPIED": "Already linked to an active agent",
     "HANDOFF": "Allow handoff to a human",
     "HANDOFF_HELP": "Saved for a future phase. No automatic transfer is performed yet.",

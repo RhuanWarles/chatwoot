@@ -3,6 +3,7 @@ import { agentPayload, newAgent, validAgent } from '../form';
 describe('AI agent configuration', () => {
   it('starts inactive and requires a prompt and model', () => {
     expect(newAgent().active).toBe(false);
+    expect(newAgent().respond_to_groups).toBe(false);
     expect(validAgent(newAgent())).toBe(false);
   });
 
@@ -35,5 +36,6 @@ describe('AI agent configuration', () => {
     expect(payload).not.toHaveProperty('id');
     payload.inbox_ids.push(6);
     expect(agent.inbox_ids).toEqual([5]);
+    expect(agentPayload({ ...agent, respond_to_groups: true }).respond_to_groups).toBe(true);
   });
 });
