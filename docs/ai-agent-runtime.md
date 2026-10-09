@@ -42,3 +42,7 @@ Executar os specs de `spec/services/saas/ai_agents` e `spec/listeners/ai_agent_l
 O teste real e a entrega pelo canal não podem ser considerados validados apenas com o provider simulado nos specs.
 
 Validação em 09/10/2026: 37 exemplos Rails passaram em PostgreSQL/Redis locais isolados, cobrindo provider, contexto, concorrência em sessões distintas, idempotência, mensagens nativas, intervenção humana, grupos e isolamento por account. Os três testes do formulário passaram; sintaxe Ruby e lint não apresentaram erros. A migração `20261009180000` foi aplicada no banco de teste. Nenhuma chamada real à OpenAI nem mensagem de teste externa foi enviada por essa suíte.
+
+Publicado na VPS em 09/10/2026 por rebuild da imagem `chatwoot-saas-ai:production`, revisão `6c376d4583`, sem gerar ou substituir stack. Somente Rails e Sidekiq foram recriados; valores de ENV, comandos, portas, volumes e redes foram preservados. A migração específica foi aplicada; o listener e a fila `low` foram confirmados; o login público retornou HTTP 200. Rollback preservado em `chatwoot-saas-ai:before-ai-agent-runtime-6c376d4583`.
+
+Na verificação após o deploy, a Larissa (account 1) continuava inativa, sem inboxes vinculadas, com respostas em grupos desativadas e sem chave BYOK configurada. Nenhuma dessas escolhas foi ativada automaticamente. O administrador precisa concluir a configuração pela interface antes do teste real de resposta.
