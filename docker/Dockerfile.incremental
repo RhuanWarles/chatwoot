@@ -14,8 +14,8 @@ FROM ${BASE_IMAGE}
 ARG SOURCE_REVISION
 COPY app /app/app
 COPY config /app/config
-COPY db /app/db
-COPY lib /app/lib
+COPY db/migrate/20261010000000_add_expiration_to_saas_usage_records.rb /app/db/migrate/
+COPY lib/tasks/saas_ai.rake /app/lib/tasks/
 COPY --from=frontend /app/public/vite /app/public/vite
 RUN printf '%s\n' "$SOURCE_REVISION" > /app/.git_sha
 LABEL org.opencontainers.image.revision=$SOURCE_REVISION
