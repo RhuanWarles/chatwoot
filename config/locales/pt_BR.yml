@@ -603,6 +603,42 @@ pt_BR:
     ssl_status:
       custom_domain_not_configured: 'Domínio personalizado não está configurado'
   super_admin:
+    saas_usage:
+      link: 'Créditos de IA'
+      title: 'Créditos de IA — %{account}'
+      back_to_account: 'Voltar para a conta'
+      description: 'Gerencie créditos de texto e minutos de voz. Toda alteração registra o Super Admin e o motivo.'
+      total: 'Total'
+      reserved: 'Reservado'
+      available: 'Disponível'
+      resource: 'Recurso'
+      change: 'Alteração'
+      status: 'Status'
+      date: 'Data'
+      actor: 'Responsável'
+      history: 'Histórico e reservas'
+      no_history: 'Ainda não há registros de uso.'
+      system: 'Sistema'
+      direction: 'Operação'
+      credit: 'Adicionar'
+      debit: 'Remover'
+      reason: 'Motivo'
+      submit: 'Aplicar alteração'
+      resources:
+        text: 'IA de texto'
+        voice: 'IA de voz'
+      units:
+        text: 'créditos'
+        voice: 'minutos'
+      amount:
+        text: 'Créditos'
+        voice: 'Minutos'
+      adjustment_success: 'Alteração de créditos de IA aplicada.'
+      errors:
+        invalid: 'Não foi possível aplicar a alteração.'
+        insufficient_balance: 'Não há saldo disponível suficiente para essa remoção.'
+        invalid_reason: 'Informe um motivo com até 500 caracteres.'
+        invalid_amount: 'Informe um número inteiro positivo.'
     account_suspension:
       categories:
         spam: 'Spam'

@@ -28,6 +28,7 @@ as well as a link to its edit page.
       <%= if accessible_action?(page.resource, :edit)
         link_to("Edit", [:edit, namespace, page.resource], class: "button")
       end %>
+      <%= link_to t('super_admin.saas_usage.link'), saas_usage_super_admin_account_path(page.resource), class: 'button' %>
     </div>
   </header>
 

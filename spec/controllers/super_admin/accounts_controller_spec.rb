@@ -66,6 +66,30 @@ RSpec.describe 'Super Admin accounts API', type: :request do
     end
   end
 
+  describe 'AI credits' do
+    it 'shows balances only to authenticated Super Admins' do
+      get "/super_admin/accounts/#{account.id}/saas_usage"
+      expect(response).to have_http_status(:redirect)
+
+      sign_in(super_admin, scope: :super_admin)
+      get "/super_admin/accounts/#{account.id}/saas_usage"
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('AI credits', 'Text AI', 'Voice AI')
+    end
+
+    it 'applies a credit and records it in the account wallet' do
+      sign_in(super_admin, scope: :super_admin)
+
+      post "/super_admin/accounts/#{account.id}/saas_usage_adjust", params: {
+        resource: 'text_credits', direction: 'credit', amount: '12', reason: 'Carga manual'
+      }
+
+      expect(response).to redirect_to(saas_usage_super_admin_account_path(account))
+      expect(account.reload.saas_wallets.find_by(resource: 'text_credits').balance_units).to eq(12)
+      expect(Saas::UsageRecord.last.metadata).to include('actor_id' => super_admin.id, 'reason' => 'Carga manual')
+    end
+  end
+
   describe 'GET /super_admin/accounts/{account_id}/edit' do
     context 'when it is an authenticated user' do
       it 'renders separate Captain model selectors for customer and internal AI features', if: ChatwootApp.enterprise? do

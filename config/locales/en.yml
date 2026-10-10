@@ -661,6 +661,43 @@ en:
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
+    saas_usage:
+      link: 'AI credits'
+      title: 'AI credits for %{account}'
+      back_to_account: 'Back to account'
+      description: 'Manage text credits and voice minutes. Changes are recorded with the acting Super Admin and reason.'
+      total: 'Total'
+      reserved: 'Reserved'
+      available: 'Available'
+      resource: 'Resource'
+      change: 'Change'
+      status: 'Status'
+      date: 'Date'
+      actor: 'Actor'
+      history: 'History and reservations'
+      no_history: 'No usage records yet.'
+      system: 'System'
+      direction: 'Operation'
+      credit: 'Add'
+      debit: 'Remove'
+      reason: 'Reason'
+      submit: 'Apply adjustment'
+      resources:
+        text: 'Text AI'
+        voice: 'Voice AI'
+      units:
+        text: 'credits'
+        voice: 'minutes'
+      amount:
+        text: 'Credits'
+        voice: 'Minutes'
+      adjustment_success: 'AI credit adjustment applied.'
+      errors:
+        invalid: 'Could not apply the adjustment.'
+        insufficient_balance: 'There is not enough available balance for this removal.'
+        invalid_reason: 'Enter a reason with up to 500 characters.'
+        invalid_amount: 'Enter a positive whole number.'
+
     account_suspension:
       categories:
         spam: 'Spam'

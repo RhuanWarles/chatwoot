@@ -66,6 +66,33 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     # rubocop:enable Rails/I18nLocaleTexts
   end
 
+  def saas_usage
+    @saas_account = requested_resource
+    @saas_wallets = Saas::Wallet::RESOURCES.index_with do |resource|
+      Saas::Wallet.for_account(@saas_account, resource)
+    end
+    @saas_usage_records = Saas::UsageRecord.where(wallet: @saas_wallets.values)
+                                           .includes(:wallet).order(created_at: :desc).limit(100)
+  end
+
+  def saas_usage_adjust
+    Saas::AdminCreditAdjustment.call(
+      account: requested_resource,
+      resource: params[:resource],
+      direction: params[:direction],
+      amount: parse_amount,
+      reason: params[:reason],
+      actor: current_super_admin,
+      idempotency_key: params[:idempotency_key]
+    )
+    redirect_to saas_usage_super_admin_account_path(requested_resource), notice: I18n.t('super_admin.saas_usage.adjustment_success')
+  rescue CustomExceptions::SaasError => e
+    error_message = I18n.t("super_admin.saas_usage.errors.#{e.code}", default: I18n.t('super_admin.saas_usage.errors.invalid'))
+    redirect_to saas_usage_super_admin_account_path(requested_resource), alert: error_message
+  rescue ActiveRecord::RecordInvalid
+    redirect_to saas_usage_super_admin_account_path(requested_resource), alert: I18n.t('super_admin.saas_usage.errors.invalid')
+  end
+
   def destroy
     account = Account.find(params[:id])
 
@@ -76,6 +103,13 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
   end
 
   private
+
+  def parse_amount
+    value = params[:amount].to_s
+    raise CustomExceptions::SaasError, 'invalid_amount' unless value.match?(/\A[1-9]\d*\z/)
+
+    value.to_i
+  end
 
   def validate_suspension_metadata
     return unless suspension_metadata_required?
