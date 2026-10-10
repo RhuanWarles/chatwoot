@@ -10,8 +10,8 @@ class Evolution::GroupContext
   end
 
   def group_jid
-    jid = conversation.contact_inbox&.source_id.to_s
-    raise CustomExceptions::Evolution, :not_found unless jid.match?(/\A[\d-]+@g\.us\z/)
+    jid = Evolution::GroupJidResolver.call(conversation)
+    raise CustomExceptions::Evolution, :not_found unless jid
 
     jid
   end

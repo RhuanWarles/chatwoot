@@ -63,8 +63,7 @@ class Messages::GroupMentionsValidator
     return false unless (@params[:message_type] || 'outgoing') == 'outgoing'
     return false unless @conversation.inbox.api?
 
-    source_id = @conversation.contact_inbox.source_id.to_s
-    source_id.end_with?('@g.us') || @conversation.contact.identifier.to_s.end_with?('@g.us')
+    Evolution::GroupJidResolver.call(@conversation).present?
   end
 
   def invalid!

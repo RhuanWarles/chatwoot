@@ -22,6 +22,6 @@ class Api::V1::Accounts::WhatsappGroupsController < Api::V1::Accounts::BaseContr
       inbox: inbox, user: Current.user, subject: subject.strip,
       participants: params[:participants], request_id: request_id
     ).perform
-    render json: { conversation_id: conversation.display_id, group_jid: conversation.contact_inbox.source_id }, status: :created
+    render json: { conversation_id: conversation.display_id, group_jid: Evolution::GroupJidResolver.call(conversation) }, status: :created
   end
 end
