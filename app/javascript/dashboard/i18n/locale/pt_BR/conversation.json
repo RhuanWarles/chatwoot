@@ -45,6 +45,10 @@
     "OPERATION_ERROR": "Não foi possível confirmar a operação. Tente novamente para verificar a mesma solicitação."
   },
   "CONVERSATION": {
+    "DATE_SEPARATOR": {
+      "TODAY": "Hoje",
+      "YESTERDAY": "Ontem"
+    },
     "404": "Desculpe, não conseguimos encontrar a conversa. Por favor, tente novamente",
     "GROUP_PARTICIPANTS": {
       "TITLE": "Participantes do grupo",

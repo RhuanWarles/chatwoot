@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Message from './Message.vue';
 import CampaignMessage from './CampaignMessage.vue';
 import { MESSAGE_TYPES } from './constants.js';
@@ -7,6 +8,7 @@ import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import MessageApi from 'dashboard/api/inbox/message.js';
 import { provideGroupMentionParticipants } from 'dashboard/composables/useGroupMentionParticipants';
+import { formatMessageDaySeparator } from 'dashboard/helper/messagePresentation';
 
 /**
  * Props definition for the component
@@ -46,6 +48,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['retry']);
+const { t, locale } = useI18n();
 
 const allMessages = computed(() => {
   return useCamelCase(props.messages, {
@@ -65,6 +68,19 @@ const groupContact = computed(() => ({
     contactGetter.value(currentChat.value.meta?.sender?.id).identifier ||
     currentChat.value.meta?.sender?.identifier,
 }));
+const isGroupConversation = computed(() => {
+  const identifiers = [
+    currentChat.value?.meta?.sender?.identifier,
+    currentChat.value?.contact?.identifier,
+    currentChat.value?.contactInbox?.sourceId,
+    currentChat.value?.contact_inbox?.source_id,
+  ];
+
+  return identifiers.some(
+    identifier =>
+      typeof identifier === 'string' && identifier.endsWith('@g.us')
+  );
+});
 provideGroupMentionParticipants(currentChat, groupContact, accountId);
 
 const timeline = computed(() => {
@@ -73,17 +89,43 @@ const timeline = computed(() => {
     createdAt: message.createdAt,
     message,
   }));
-  if (!props.campaignHistory.length) return messages;
-
-  return [
+  const entries = props.campaignHistory.length
+    ? [
     ...messages,
     ...props.campaignHistory.map(recipient => ({
       key: `campaign-${recipient.id}`,
       createdAt: recipient.sent_at,
       recipient,
     })),
-  ].sort((a, b) => a.createdAt - b.createdAt);
+      ].sort((a, b) => a.createdAt - b.createdAt)
+    : messages;
+
+  let lastDayKey = null;
+  let lastDayValue = null;
+  return entries.reduce((result, entry) => {
+    const separator = formatMessageDaySeparator(entry.createdAt, locale.value);
+    if (separator.key !== lastDayKey || separator.value !== lastDayValue) {
+      result.push({
+        key: `day-${separator.key}-${separator.value || entry.createdAt}`,
+        dayKey: separator.key,
+        dayValue: separator.value,
+        isDaySeparator: true,
+      });
+      lastDayKey = separator.key;
+      lastDayValue = separator.value;
+    }
+    result.push(entry);
+    return result;
+  }, []);
 });
+
+const daySeparatorLabel = entry => {
+  if (entry.dayKey === 'today') return t('CONVERSATION.DATE_SEPARATOR.TODAY');
+  if (entry.dayKey === 'yesterday') {
+    return t('CONVERSATION.DATE_SEPARATOR.YESTERDAY');
+  }
+  return entry.dayValue;
+};
 
 // Cache for fetched reply messages to avoid duplicate API calls
 const fetchedReplyMessages = reactive(new Map());
@@ -200,20 +242,32 @@ const getInReplyToMessage = parentMessage => {
         v-if="firstUnreadId && entry.message?.id === firstUnreadId"
         name="unreadBadge"
       />
-      <CampaignMessage v-if="entry.recipient" :recipient="entry.recipient" />
-      <Message
-        v-else
-        v-bind="entry.message"
-        :is-email-inbox="isAnEmailChannel"
-        :in-reply-to="getInReplyToMessage(entry.message)"
-        :group-with-next="
-          shouldGroupWithNext(entry.message, timeline[index + 1]?.message)
-        "
-        :inbox-supports-reply-to="inboxSupportsReplyTo"
-        :current-user-id="currentUserId"
-        data-clarity-mask="True"
-        @retry="emit('retry', entry.message)"
-      />
+      <li
+        v-if="entry.isDaySeparator"
+        class="flex justify-center py-3"
+        :aria-label="daySeparatorLabel(entry)"
+      >
+        <span class="px-3 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11">
+          {{ daySeparatorLabel(entry) }}
+        </span>
+      </li>
+      <template v-if="!entry.isDaySeparator">
+        <CampaignMessage v-if="entry.recipient" :recipient="entry.recipient" />
+        <Message
+          v-else
+          v-bind="entry.message"
+          :is-email-inbox="isAnEmailChannel"
+          :in-reply-to="getInReplyToMessage(entry.message)"
+          :group-with-next="
+            shouldGroupWithNext(entry.message, timeline[index + 1]?.message)
+          "
+          :inbox-supports-reply-to="inboxSupportsReplyTo"
+          :current-user-id="currentUserId"
+          :is-group-conversation="isGroupConversation"
+          data-clarity-mask="True"
+          @retry="emit('retry', entry.message)"
+        />
+      </template>
     </template>
     <slot name="after" />
   </ul>
