@@ -11,6 +11,7 @@ pt_BR:
       unconfirmed: "O WhatsApp não confirmou a alteração. Atualize os dados do grupo antes de tentar novamente."
       confirmation_required: "Confirme a saída do grupo antes de continuar."
       invalid_request: "Informe o nome do grupo (até 100 caracteres) e um identificador válido da solicitação."
+      invalid_sign_msg: "A configuração de assinatura das mensagens é inválida."
       invalid_phone: "Informe um telefone válido com DDI. LIDs não podem ser usados como telefone."
       not_on_whatsapp: "Um ou mais números não estão cadastrados no WhatsApp."
       not_configured: "Esta inbox não está configurada para WhatsApp pela Evolution."

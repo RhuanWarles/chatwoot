@@ -982,8 +982,15 @@
       "USE_INBOX_AVATAR_FOR_BOT": "Use o nome da caixa de entrada e avatar do bot"
     },
     "SETTINGS_POPUP": {
-    "EVOLUTION_INSTANCE_NAME": "Nome da instância Evolution",
-    "EVOLUTION_INSTANCE_NAME_HELP": "Instância usada para carregar participantes dos grupos WhatsApp. Não coloque chaves de API aqui.",
+      "EVOLUTION_API_TITLE": "Integração com a Evolution API",
+      "EVOLUTION_INSTANCE_NAME": "Instância da Evolution",
+      "EVOLUTION_INSTANCE_NAME_HELP": "Informe o nome da instância Evolution usada por esta caixa de entrada. Não informe chaves de API aqui.",
+      "EVOLUTION_SIGN_MESSAGES": "Assinar mensagens com o nome do remetente",
+      "EVOLUTION_SIGN_MESSAGES_HELP": "Adiciona o nome do atendente ou agente antes das mensagens enviadas ao WhatsApp. Esta configuração afeta todas as caixas de entrada que usam a mesma instância Evolution.",
+      "EVOLUTION_SIGN_MESSAGES_DISABLED": "Informe e salve um nome de instância Evolution válido para carregar esta configuração.",
+      "EVOLUTION_CONFIGURATION_LOADING": "Carregando a configuração da Evolution…",
+      "EVOLUTION_CONFIGURATION_ERROR": "Não foi possível carregar a configuração da Evolution.",
+      "EVOLUTION_CONFIGURATION_UPDATE_ERROR": "Não foi possível atualizar a configuração da Evolution.",
       "MESSENGER_HEADING": "Código Menssageiro <scripit>",
       "MESSENGER_SUB_HEAD": "Favor, insira essse código <script> dentro da tag Body de sua página html",
       "ALLOWED_DOMAINS": {

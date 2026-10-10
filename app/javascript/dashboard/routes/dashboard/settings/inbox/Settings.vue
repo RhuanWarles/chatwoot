@@ -23,6 +23,7 @@ import PreChatFormSettings from './PreChatForm/Settings.vue';
 import WeeklyAvailability from './components/WeeklyAvailability.vue';
 import GreetingsEditor from 'shared/components/GreetingsEditor.vue';
 import ConfigurationPage from './settingsPage/ConfigurationPage.vue';
+import EvolutionConfiguration from './settingsPage/EvolutionConfiguration.vue';
 import VoiceConfigurationPage from './settingsPage/VoiceConfigurationPage.vue';
 import WhatsappCallingPage from './settingsPage/WhatsappCallingPage.vue';
 import CustomerSatisfactionPage from './settingsPage/CustomerSatisfactionPage.vue';
@@ -58,6 +59,7 @@ export default {
     BotConfiguration,
     CollaboratorsPage,
     ConfigurationPage,
+    EvolutionConfiguration,
     VoiceConfigurationPage,
     WhatsappCallingPage,
     CustomerSatisfactionPage,
@@ -958,6 +960,8 @@ export default {
                 @on-reset="resetWebhookSecret"
               />
             </SettingsFieldSection>
+
+            <EvolutionConfiguration v-if="isAPIInbox" :inbox="inbox" />
 
             <SettingsFieldSection
               v-if="isAWebWidgetInbox"

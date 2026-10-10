@@ -84,4 +84,16 @@ describe('ConfigurationPage', () => {
 
     expect(wrapper.vm.showWhatsAppReconfigure).toBe(false);
   });
+  it('keeps API identity settings without the relocated Evolution editor', () => {
+    const wrapper = mountComponent({
+      channel_type: 'Channel::Api',
+      additional_attributes: { evolution_instance_name: 'rwhub' },
+    });
+
+    expect(wrapper.html()).toContain(
+      'INBOX_MGMT.SETTINGS_POPUP.INBOX_IDENTIFIER'
+    );
+    expect(wrapper.find('input[type="text"]').exists()).toBe(false);
+    expect(wrapper.vm.updateEvolutionInstance).toBeUndefined();
+  });
 });

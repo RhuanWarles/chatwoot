@@ -15,6 +15,16 @@ class Inboxes extends CacheEnabledApiClient {
     return axios.get(`${this.url}/${inboxId}/campaigns`);
   }
 
+  getEvolutionConfiguration(inboxId) {
+    return axios.get(`${this.url}/${inboxId}/evolution_configuration`);
+  }
+
+  updateEvolutionConfiguration(inboxId, signMsg) {
+    return axios.patch(`${this.url}/${inboxId}/evolution_configuration`, {
+      sign_msg: signMsg,
+    });
+  }
+
   deleteInboxAvatar(inboxId) {
     return axios.delete(`${this.url}/${inboxId}/avatar`);
   }

@@ -11,6 +11,7 @@ en:
       unconfirmed: "WhatsApp did not confirm the change. Refresh the group before retrying."
       confirmation_required: "Confirm leaving the group before continuing."
       invalid_request: "Enter a group name (up to 100 characters) and a valid request identifier."
+      invalid_sign_msg: "The message signing setting is invalid."
       invalid_phone: "Enter a valid phone number with country code. LIDs cannot be used as phone numbers."
       not_on_whatsapp: "One or more numbers are not registered on WhatsApp."
       not_configured: "This inbox is not configured for Evolution WhatsApp."

@@ -1094,8 +1094,15 @@
       "USE_INBOX_AVATAR_FOR_BOT": "Use inbox name and avatar for the bot"
     },
     "SETTINGS_POPUP": {
-    "EVOLUTION_INSTANCE_NAME": "Evolution instance name",
-    "EVOLUTION_INSTANCE_NAME_HELP": "Instance used to load WhatsApp group participants. Do not enter API keys here.",
+      "EVOLUTION_API_TITLE": "Evolution API integration",
+      "EVOLUTION_INSTANCE_NAME": "Evolution instance",
+      "EVOLUTION_INSTANCE_NAME_HELP": "Enter the Evolution instance used by this inbox. Do not enter API keys here.",
+      "EVOLUTION_SIGN_MESSAGES": "Sign messages with the sender's name",
+      "EVOLUTION_SIGN_MESSAGES_HELP": "Adds the attendant or agent name before messages sent to WhatsApp. This setting applies to every inbox that uses the same Evolution instance.",
+      "EVOLUTION_SIGN_MESSAGES_DISABLED": "Enter and save a valid Evolution instance name to load this setting.",
+      "EVOLUTION_CONFIGURATION_LOADING": "Loading the Evolution configuration…",
+      "EVOLUTION_CONFIGURATION_ERROR": "Could not load the Evolution configuration.",
+      "EVOLUTION_CONFIGURATION_UPDATE_ERROR": "Could not update the Evolution configuration.",
       "MESSENGER_HEADING": "Messenger Script",
       "MESSENGER_SUB_HEAD": "Place this button inside your body tag",
       "ALLOWED_DOMAINS": {

@@ -331,6 +331,7 @@ Rails.application.routes.draw do
           resources :custom_filters, only: [:index, :show, :create, :update, :destroy]
           resource :branded_email_layout, only: [:show, :update]
           resources :inboxes, only: [:index, :show, :create, :update, :destroy] do
+            resource :evolution_configuration, only: [:show, :update], controller: 'inbox_evolution_configuration'
             get :assignable_agents, on: :member
             get :campaigns, on: :member
             get :agent_bot, on: :member
