@@ -94,9 +94,19 @@ const channelType = computed(() => currentChat.value.meta?.channel);
 const contactGetter = useMapGetter('contacts/getContact');
 const contactId = computed(() => currentChat.value.meta?.sender?.id);
 const contact = computed(() => contactGetter.value(contactId.value));
-const isGroupConversation = computed(() =>
-  contact.value?.identifier?.endsWith('@g.us')
-);
+const isGroupConversation = computed(() => {
+  const identifiers = [
+    contact.value?.identifier,
+    currentChat.value?.meta?.sender?.identifier,
+    currentChat.value?.contactInbox?.sourceId,
+    currentChat.value?.contact_inbox?.source_id,
+  ];
+
+  return identifiers.some(
+    identifier =>
+      typeof identifier === 'string' && identifier.endsWith('@g.us')
+  );
+});
 const contactAdditionalAttributes = computed(
   () => contact.value.additional_attributes || {}
 );
