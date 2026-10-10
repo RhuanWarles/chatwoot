@@ -1,4 +1,6 @@
 class Platform::Api::V1::AccountsController < PlatformController
+  before_action :protect_ai_entitlements, only: [:create, :update]
+
   def index
     @resources = @platform_app.platform_app_permissibles
                               .where(permissible_type: 'Account')
@@ -27,6 +29,12 @@ class Platform::Api::V1::AccountsController < PlatformController
   end
 
   private
+
+  def protect_ai_entitlements
+    return unless params[:features].is_a?(ActionController::Parameters) && params[:features].keys.intersect?(%w[text_ai voice_ai])
+
+    render json: { error: 'AI access is managed by Super Admin' }, status: :forbidden
+  end
 
   def set_resource
     @resource = Account.find(params[:id])

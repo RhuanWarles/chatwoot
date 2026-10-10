@@ -33,7 +33,7 @@ module SuperAdmin::AccountFeaturesHelper
   end
 
   def self.partition_features(features)
-    filtered = filter_internal_features(features)
+    filtered = filter_internal_features(features).except('text_ai', 'voice_ai')
     filtered = filter_deprecated_features(filtered)
     display_names = feature_display_names
 

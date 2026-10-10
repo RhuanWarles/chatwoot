@@ -1,13 +1,17 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import SaasAI from 'dashboard/api/saasAI';
 import Button from 'dashboard/components-next/button/Button.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { useRoute } from 'vue-router';
 
 const { t, tm, rt, locale } = useI18n();
+const { currentAccount } = useAccount();
+const route = useRoute();
 const SECONDS_PER_MINUTE = 60;
 const data = ref(null);
 const loading = ref(true);
@@ -21,23 +25,52 @@ const formatNumber = value =>
 const formatDate = value =>
   new Date(value).toLocaleString(formattingLocale.value);
 const statusLabel = status => rt(tm('SAAS_AI.STATES')[status]);
-const wallets = computed(() => data.value?.wallets || []);
+const hasResourceAccess = resource =>
+  currentAccount.value?.features?.[
+    resource === 'text_credits' ? 'text_ai' : 'voice_ai'
+  ];
+const wallets = computed(() =>
+  (data.value?.wallets || []).filter(wallet =>
+    hasResourceAccess(wallet.resource)
+  )
+);
+const usage = computed(() =>
+  (data.value?.usage || []).filter(entry => hasResourceAccess(entry.resource))
+);
 async function load() {
+  const requestedAccount = route.params.accountId;
   refreshing.value = true;
   try {
     const response = await SaasAI.get();
+    if (requestedAccount !== route.params.accountId) return;
     data.value = response.data;
     loadFailed.value = false;
   } catch (error) {
+    if (requestedAccount !== route.params.accountId) return;
     if (!data.value) loadFailed.value = true;
     const messages = tm('SAAS_AI.ERRORS');
     useAlert(rt(messages[error.response?.data?.error] || messages.generic));
   } finally {
-    loading.value = false;
-    refreshing.value = false;
+    if (requestedAccount === route.params.accountId) {
+      loading.value = false;
+      refreshing.value = false;
+    }
   }
 }
-onMounted(load);
+watch(
+  [
+    () => route.params.accountId,
+    () => currentAccount.value?.features?.text_ai,
+    () => currentAccount.value?.features?.voice_ai,
+  ],
+  ([, text, voice]) => {
+    data.value = null;
+    loadFailed.value = false;
+    loading.value = !!(text || voice);
+    if (text || voice) load();
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -49,7 +82,16 @@ onMounted(load);
       />
     </template>
     <template #body>
-      <div v-if="loadFailed" class="flex flex-col items-start gap-4 p-6">
+      <p
+        v-if="
+          !currentAccount?.features?.text_ai &&
+          !currentAccount?.features?.voice_ai
+        "
+        class="text-sm text-n-slate-11"
+      >
+        {{ t('AI_HUB.UNAVAILABLE') }}
+      </p>
+      <div v-else-if="loadFailed" class="flex flex-col items-start gap-4 p-6">
         <p role="alert">{{ t('SAAS_AI.LOAD_ERROR') }}</p>
         <Button :label="t('SAAS_AI.RETRY')" @click="load()" />
       </div>
@@ -109,7 +151,10 @@ onMounted(load);
           />
         </div>
 
-        <section class="flex flex-col gap-4">
+        <section
+          v-if="currentAccount?.features?.voice_ai"
+          class="flex flex-col gap-4"
+        >
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.CALLS_TITLE') }}
           </h2>
@@ -156,7 +201,7 @@ onMounted(load);
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.USAGE_TITLE') }}
           </h2>
-          <p v-if="!data.usage.length" class="text-body-main text-n-slate-11">
+          <p v-if="!usage.length" class="text-body-main text-n-slate-11">
             {{ t('SAAS_AI.USAGE_EMPTY') }}
           </p>
           <div v-else class="overflow-x-auto rounded-xl border border-n-weak">
@@ -172,7 +217,7 @@ onMounted(load);
               </thead>
               <tbody>
                 <tr
-                  v-for="entry in data.usage"
+                  v-for="entry in usage"
                   :key="entry.id"
                   class="border-t border-n-weak"
                 >

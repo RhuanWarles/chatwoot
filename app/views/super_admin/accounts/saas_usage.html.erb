@@ -8,6 +8,25 @@
 <section class="main-content__body">
   <p class="mb-6 text-sm text-n-slate-11"><%= t('super_admin.saas_usage.description') %></p>
 
+  <section class="mb-6 rounded-md border border-n-weak p-5">
+    <h2 class="text-lg font-medium"><%= t('super_admin.saas_usage.features.title') %></h2>
+    <div class="mt-4 grid gap-6 md:grid-cols-2">
+      <% %w[text voice].each do |feature| %>
+        <% enabled = @saas_account.feature_enabled?("#{feature}_ai") %>
+        <%= form_with url: saas_features_super_admin_account_path(@saas_account), method: :post do |form| %>
+          <%= form.hidden_field :feature, value: feature %>
+          <%= form.label :enabled, t("super_admin.saas_usage.resources.#{feature}"), for: "#{feature}_ai_enabled", class: 'block font-medium' %>
+          <p class="my-2 text-sm text-n-slate-11"><%= t("super_admin.saas_usage.features.#{feature}_description") %></p>
+          <div class="flex items-center gap-3">
+            <%= form.check_box :enabled, { id: "#{feature}_ai_enabled", checked: enabled, role: 'switch', class: 'h-5 w-5' }, 'true', 'false' %>
+            <span><%= t("super_admin.saas_usage.features.#{enabled ? 'enabled' : 'disabled'}") %></span>
+            <%= form.submit t('super_admin.saas_usage.features.save'), class: 'button' %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
   <div class="grid gap-6 md:grid-cols-2">
     <% { 'text_credits' => 'text', 'voice_seconds' => 'voice' }.each do |resource, label| %>
       <% wallet = @saas_wallets.fetch(resource) %>
@@ -17,6 +36,7 @@
       <% available = number_with_precision(wallet.public_data[:available_units] / divisor, precision: 2, strip_insignificant_zeros: true) %>
       <article class="rounded-md border border-n-weak p-5">
         <h2 class="text-lg font-medium"><%= t("super_admin.saas_usage.resources.#{label}") %></h2>
+        <p class="text-sm text-n-slate-11"><%= t("super_admin.saas_usage.features.#{@saas_account.feature_enabled?("#{label}_ai") ? 'enabled' : 'disabled'}") %></p>
         <dl class="mt-4 space-y-2 text-sm">
           <div class="flex justify-between">
             <dt><%= t('super_admin.saas_usage.total') %></dt>
@@ -36,18 +56,13 @@
           <%= form.hidden_field :resource, value: resource %>
           <%= form.hidden_field :idempotency_key, value: SecureRandom.uuid %>
           <div>
-            <%= form.label :direction, t('super_admin.saas_usage.direction'), class: 'block text-sm font-medium' %>
-            <%= form.select :direction,
-                            [[t('super_admin.saas_usage.credit'), 'credit'], [t('super_admin.saas_usage.debit'), 'debit']],
-                            {}, class: 'mt-1 w-full' %>
+            <%= form.label :amount, t("super_admin.saas_usage.amount.#{label}"), for: "#{resource}_amount", class: 'block text-sm font-medium' %>
+            <%= form.number_field :amount, id: "#{resource}_amount", step: 1, required: true, class: 'mt-1 w-full' %>
+            <p class="mt-1 text-sm text-n-slate-11"><%= t('super_admin.saas_usage.signed_amount_help') %></p>
           </div>
           <div>
-            <%= form.label :amount, t("super_admin.saas_usage.amount.#{label}"), class: 'block text-sm font-medium' %>
-            <%= form.number_field :amount, min: 1, step: 1, required: true, class: 'mt-1 w-full' %>
-          </div>
-          <div>
-            <%= form.label :reason, t('super_admin.saas_usage.reason'), class: 'block text-sm font-medium' %>
-            <%= form.text_area :reason, required: true, maxlength: 500, rows: 2, class: 'mt-1 w-full' %>
+            <%= form.label :reason, t('super_admin.saas_usage.reason'), for: "#{resource}_reason", class: 'block text-sm font-medium' %>
+            <%= form.text_area :reason, id: "#{resource}_reason", required: true, maxlength: 500, rows: 2, class: 'mt-1 w-full' %>
           </div>
           <%= form.submit t('super_admin.saas_usage.submit'), class: 'button' %>
         <% end %>
@@ -95,4 +110,21 @@
       </div>
     <% end %>
   </section>
+  <% history = @saas_account.internal_attributes.fetch('ai_feature_history', []) %>
+  <% if history.any? %>
+    <section class="mt-8">
+      <h2 class="text-lg font-medium"><%= t('super_admin.saas_usage.features.history') %></h2>
+      <ul class="mt-3 space-y-2 text-sm">
+        <% history.reverse_each do |event| %>
+          <li>
+            <%= l(Time.iso8601(event.fetch('at')), format: :short) %> ·
+            <%= event.fetch('actor_email') %> ·
+            <%= t("super_admin.saas_usage.resources.#{event.fetch('feature')}") %>:
+            <%= t("super_admin.saas_usage.features.#{event.fetch('previous') ? 'enabled' : 'disabled'}") %> →
+            <%= t("super_admin.saas_usage.features.#{event.fetch('enabled') ? 'enabled' : 'disabled'}") %>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
 </section>

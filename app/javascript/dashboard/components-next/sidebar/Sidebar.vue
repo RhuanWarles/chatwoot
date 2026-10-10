@@ -44,7 +44,7 @@ const emit = defineEmits([
   'closeMobileSidebar',
 ]);
 
-const { accountScopedRoute, isOnChatwootCloud } = useAccount();
+const { accountScopedRoute, isOnChatwootCloud, currentAccount } = useAccount();
 const { isEnterprise } = useConfig();
 const store = useStore();
 
@@ -687,13 +687,24 @@ const menuItems = computed(() => {
         },
       ],
     },
-    {
-      name: 'AI Agents',
-      label: t('AI_AGENTS.TITLE'),
-      icon: 'i-lucide-bot',
-      to: accountScopedRoute('ai_agents_settings'),
-      activeOn: ['ai_agents_settings', 'saas_ai_settings'],
-    },
+    ...(currentAccount.value?.features?.text_ai ||
+    currentAccount.value?.features?.voice_ai
+      ? [
+          {
+            name: 'AI Agents',
+            label: t('AI_AGENTS.TITLE'),
+            icon: 'i-lucide-bot',
+            to: accountScopedRoute(
+              'ai_agents_settings',
+              {},
+              {
+                type: currentAccount.value.features.text_ai ? 'text' : 'voice',
+              }
+            ),
+            activeOn: ['ai_agents_settings', 'saas_ai_settings'],
+          },
+        ]
+      : []),
     {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),

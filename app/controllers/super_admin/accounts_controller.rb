@@ -40,7 +40,10 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     permitted_params.extract!(:suspension_category, :suspension_reason)
     permitted_params[:limits] = permitted_params[:limits].to_h.compact if permitted_params.key?(:limits)
     permitted_params[:captain_models] = permitted_params[:captain_models].to_h.compact_blank.presence if permitted_params.key?(:captain_models)
-    permitted_params[:selected_feature_flags] = params[:enabled_features].keys.map(&:to_sym) if params[:enabled_features].present?
+    if params[:enabled_features].present?
+      # AI access changes use the dedicated, audited action with disable confirmation.
+      permitted_params[:selected_feature_flags] = selected_flags_with_preserved_ai_access
+    end
     permitted_params
   end
 
@@ -79,7 +82,6 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     Saas::AdminCreditAdjustment.call(
       account: requested_resource,
       resource: params[:resource],
-      direction: params[:direction],
       amount: parse_amount,
       reason: params[:reason],
       actor: current_super_admin,
@@ -90,6 +92,21 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     error_message = I18n.t("super_admin.saas_usage.errors.#{e.code}", default: I18n.t('super_admin.saas_usage.errors.invalid'))
     redirect_to saas_usage_super_admin_account_path(requested_resource), alert: error_message
   rescue ActiveRecord::RecordInvalid
+    redirect_to saas_usage_super_admin_account_path(requested_resource), alert: I18n.t('super_admin.saas_usage.errors.invalid')
+  end
+
+  def saas_features
+    feature, enabled = ai_feature_params
+    if !enabled && active_ai_agents?(feature) && params[:confirmed] != 'true'
+      @saas_account = requested_resource
+      @ai_feature = feature
+      render :saas_feature_confirmation
+      return
+    end
+
+    Saas::AdminAiFeatures.call(account: requested_resource, feature: feature, enabled: enabled, actor: current_super_admin)
+    redirect_to saas_usage_super_admin_account_path(requested_resource), notice: I18n.t('super_admin.saas_usage.features.saved')
+  rescue CustomExceptions::SaasError
     redirect_to saas_usage_super_admin_account_path(requested_resource), alert: I18n.t('super_admin.saas_usage.errors.invalid')
   end
 
@@ -104,9 +121,28 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
 
   private
 
+  def selected_flags_with_preserved_ai_access
+    ai_flags = %i[feature_text_ai feature_voice_ai]
+    chosen = params[:enabled_features].keys.map(&:to_sym) - ai_flags
+    chosen + (requested_resource.selected_feature_flags & ai_flags)
+  end
+
+  def ai_feature_params
+    unless Saas::AdminAiFeatures::FEATURES.include?(params[:feature]) && %w[true false].include?(params[:enabled])
+      raise CustomExceptions::SaasError, 'invalid_settings'
+    end
+
+    [params[:feature], params[:enabled] == 'true']
+  end
+
+  def active_ai_agents?(feature)
+    agents = feature == 'text' ? requested_resource.saas_ai_agents : requested_resource.saas_voice_agents
+    agents.exists?(active: true)
+  end
+
   def parse_amount
     value = params[:amount].to_s
-    raise CustomExceptions::SaasError, 'invalid_amount' unless value.match?(/\A[1-9]\d*\z/)
+    raise CustomExceptions::SaasError, 'invalid_amount' unless value.match?(/\A-?[1-9]\d*\z/)
 
     value.to_i
   end

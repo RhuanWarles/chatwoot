@@ -1,0 +1,16 @@
+<% content_for(:title) { t('super_admin.saas_usage.features.title') } %>
+<header class="main-content__header" role="banner">
+  <h1 class="main-content__page-title"><%= content_for(:title) %></h1>
+</header>
+<section class="main-content__body">
+  <p class="mb-6"><%= t("super_admin.saas_usage.features.confirm_#{@ai_feature}", account: @saas_account.name) %></p>
+  <div class="flex gap-3">
+    <%= link_to t('super_admin.saas_usage.features.cancel'), saas_usage_super_admin_account_path(@saas_account), class: 'button' %>
+    <%= form_with url: saas_features_super_admin_account_path(@saas_account), method: :post do |form| %>
+      <%= form.hidden_field :feature, value: @ai_feature %>
+      <%= form.hidden_field :enabled, value: 'false' %>
+      <%= form.hidden_field :confirmed, value: 'true' %>
+      <%= form.submit t('super_admin.saas_usage.features.disable'), class: 'button' %>
+    <% end %>
+  </div>
+</section>

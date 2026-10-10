@@ -1,17 +1,16 @@
 class Saas::AdminCreditAdjustment
   RESOURCES = Saas::Wallet::RESOURCES.freeze
-  DIRECTIONS = %w[credit debit].freeze
   MAX_REASON_LENGTH = 500
 
-  def self.call(account:, resource:, direction:, amount:, reason:, actor:, idempotency_key: nil)
-    new(account: account, resource: resource, direction: direction, amount: amount, reason: reason, actor: actor,
+  def self.call(account:, resource:, amount:, reason:, actor:, idempotency_key: nil)
+    new(account: account, resource: resource, amount: amount, reason: reason, actor: actor,
         idempotency_key: idempotency_key).call
   end
 
-  def initialize(account:, resource:, direction:, amount:, reason:, actor:, idempotency_key: nil)
+  def initialize(account:, resource:, amount:, reason:, actor:, idempotency_key: nil)
     @account = account
     @resource = resource
-    @direction = direction
+    @direction = amount.is_a?(Integer) && amount.negative? ? 'debit' : 'credit'
     @amount = amount
     @reason = reason.to_s.strip
     @actor = actor
@@ -29,7 +28,9 @@ class Saas::AdminCreditAdjustment
       'reason' => @reason,
       'actor_id' => @actor.id,
       'actor_email' => @actor.email,
-      'delta_units' => delta_units
+      'delta_units' => delta_units,
+      'original_amount' => @amount,
+      'resource' => @resource
     }
 
     if @direction == 'credit'
@@ -43,15 +44,14 @@ class Saas::AdminCreditAdjustment
 
   def validate!
     raise CustomExceptions::SaasError, 'invalid_resource' unless RESOURCES.include?(@resource)
-    raise CustomExceptions::SaasError, 'invalid_direction' unless DIRECTIONS.include?(@direction)
-    raise CustomExceptions::SaasError, 'invalid_amount' unless @amount.is_a?(Integer) && @amount.positive?
+    raise CustomExceptions::SaasError, 'invalid_amount' unless @amount.is_a?(Integer) && !@amount.zero?
     raise CustomExceptions::SaasError, 'invalid_reason' unless @reason.present? && @reason.length <= MAX_REASON_LENGTH
-    raise CustomExceptions::SaasError, 'invalid_actor' unless @actor
+    raise CustomExceptions::SaasError, 'invalid_actor' unless @actor.is_a?(SuperAdmin)
     raise CustomExceptions::SaasError, 'invalid_reference' unless @idempotency_key.match?(/\A[a-zA-Z0-9_-]{1,100}\z/)
   end
 
   def units
-    @resource == 'voice_seconds' ? @amount * 60 : @amount
+    @resource == 'voice_seconds' ? @amount.abs * 60 : @amount.abs
   end
 
   def delta_units

@@ -1,5 +1,6 @@
 class Webhooks::VapiController < ActionController::API
   before_action :authenticate_vapi!
+  rescue_from CustomExceptions::SaasError, with: :render_saas_error
 
   def create
     message = params.require(:message)
@@ -11,13 +12,15 @@ class Webhooks::VapiController < ActionController::API
     return render json: {} unless %w[assistant-request status-update end-of-call-report].include?(message[:type])
 
     render json: Saas::VapiEventService.new(message.to_unsafe_h).perform
-  rescue CustomExceptions::SaasError => e
-    render json: { error: e.code }, status: :unprocessable_entity
   rescue ActiveRecord::RecordNotFound, KeyError, ActionController::ParameterMissing
     render json: { error: 'invalid_event' }, status: :unprocessable_entity
   end
 
   private
+
+  def render_saas_error(error)
+    render json: { error: error.code }, status: error.code == 'voice_ai_disabled' ? :forbidden : :unprocessable_entity
+  end
 
   def authenticate_vapi!
     expected = ENV.fetch('VAPI_WEBHOOK_SECRET')

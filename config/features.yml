@@ -295,3 +295,12 @@
   enabled: false
   premium: true
   column: feature_flags_ext_1
+
+- name: text_ai
+  display_name: Text AI
+  enabled: true
+  column: feature_flags_ext_1
+- name: voice_ai
+  display_name: Voice AI
+  enabled: true
+  column: feature_flags_ext_1

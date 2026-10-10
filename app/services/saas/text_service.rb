@@ -53,6 +53,7 @@ class Saas::TextService
   end
 
   def create!(prompt:, request_id:)
+    @account.reload.require_ai_feature!(:text)
     wallet = Saas::Wallet.for_account(@account, 'text_credits')
     wallet.with_lock do
       existing = @account.saas_text_generations.find_by(request_id: request_id)
@@ -70,6 +71,7 @@ class Saas::TextService
   end
 
   def generate(generation)
+    @account.reload.require_ai_feature!(:text)
     context = RubyLLM.context do |config|
       config.public_send("#{generation.provider}_api_key=", api_key(generation))
       config.request_timeout = 60

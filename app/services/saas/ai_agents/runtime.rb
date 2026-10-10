@@ -22,10 +22,16 @@ class Saas::AiAgents::Runtime
   end
 
   def self.enabled?(conversation)
-    conversation.account.active? && conversation.additional_attributes.fetch(STATE_KEY, 'active') == 'active' &&
+    account_available?(conversation.account) && conversation.additional_attributes.fetch(STATE_KEY, 'active') == 'active' &&
       RESPONDABLE_STATUSES.include?(conversation.status) && !conversation.contact.blocked? &&
       !conversation.inbox.active_bot? && conversation.ai_assignee.nil? && conversation.can_reply?
   end
+
+  def self.account_available?(account)
+    account.reload
+    account.active? && account.feature_enabled?(:text_ai)
+  end
+  private_class_method :account_available?
 
   def self.pause_for_human!(message)
     conversation = message.account.conversations.find(message.conversation_id)

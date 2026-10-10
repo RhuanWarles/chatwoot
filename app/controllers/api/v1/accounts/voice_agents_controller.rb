@@ -1,4 +1,6 @@
 class Api::V1::Accounts::VoiceAgentsController < Api::V1::Accounts::BaseController
+  include SaasAiAccess
+  before_action -> { require_ai_feature('voice') }
   before_action :check_admin_authorization?
   before_action :fetch_agent, only: [:show, :update, :destroy]
   rescue_from CustomExceptions::SaasError, ActiveRecord::RecordInvalid do

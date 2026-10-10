@@ -3,6 +3,8 @@ class Saas::StartVoiceCallJob < ApplicationJob
 
   def perform(call_id)
     call = Saas::VoiceCall.find(call_id)
+    return reject_call(call, reason: 'voice_ai_disabled') unless call.account.feature_enabled?(:voice_ai)
+
     claimed = call.with_lock do
       next false unless call.status == 'pending'
 
@@ -27,13 +29,13 @@ class Saas::StartVoiceCallJob < ApplicationJob
 
   private
 
-  def reject_call(call)
+  def reject_call(call, reason: 'provider_rejected')
     # A rejected request did not start a call; release its reserved minutes.
     call.usage_record.wallet.with_lock do
       call.lock!
-      if call.status == 'submitting'
+      if %w[pending submitting].include?(call.status)
         call.usage_record.wallet.release!(call.usage_record)
-        call.update!(status: 'failed', ended_reason: 'provider_rejected')
+        call.update!(status: 'failed', ended_reason: reason)
       end
     end
   end

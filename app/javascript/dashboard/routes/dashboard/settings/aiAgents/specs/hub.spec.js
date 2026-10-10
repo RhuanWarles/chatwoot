@@ -1,4 +1,4 @@
-import { reactive } from 'vue';
+import { computed, reactive } from 'vue';
 import { shallowMount, flushPromises } from '@vue/test-utils';
 import Index from '../Index.vue';
 import TextCredentials from '../TextCredentials.vue';
@@ -9,7 +9,16 @@ import voiceAgentsAPI from 'dashboard/api/voiceAgents';
 const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   route: null,
+  accounts: null,
   alert: vi.fn(),
+}));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({
+    accountId: computed(() => mocks.route.params.accountId),
+    currentAccount: computed(
+      () => mocks.accounts[mocks.route.params.accountId]
+    ),
+  }),
 }));
 vi.mock('vue-router', () => ({
   useRoute: () => mocks.route,
@@ -66,6 +75,9 @@ vi.mock('dashboard/components-next/tabbar/TabBar.vue', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.route = reactive({ params: { accountId: '1' }, query: {} });
+  mocks.accounts = reactive({
+    1: { features: { text_ai: true, voice_ai: true } },
+  });
   SaasAI.get.mockResolvedValue({
     data: {
       settings: {
@@ -109,6 +121,61 @@ it('uses the URL tab on entry and refresh, defaults existing links to text and p
   });
   expect(refreshed.findComponent(VoiceAgents).exists()).toBe(true);
   refreshed.unmount();
+});
+
+it.each([
+  [true, true, 'voice', ['text', 'voice'], 'VoiceAgents'],
+  [true, false, 'voice', ['text'], 'TextAgents'],
+  [false, true, 'text', ['voice'], 'VoiceAgents'],
+  [false, false, 'voice', [], null],
+])(
+  'enforces text=%s voice=%s for direct URL type=%s before rendering a restricted tab',
+  async (text, voice, requested, allowed, component) => {
+    mocks.accounts[1].features = { text_ai: text, voice_ai: voice };
+    mocks.route.query = { type: requested };
+    const wrapper = shallowMount(Index, {
+      global: { stubs: { RouterLink: true } },
+    });
+    const tabBar = wrapper.findComponent({ name: 'TabBar' });
+    if (allowed.length) {
+      expect(tabBar.props('tabs').map(tab => tab.value)).toEqual(allowed);
+      expect(wrapper.findComponent({ name: component }).exists()).toBe(true);
+      const forbidden =
+        component === 'TextAgents' ? 'VoiceAgents' : 'TextAgents';
+      if (allowed.length === 1)
+        expect(wrapper.findComponent({ name: forbidden }).exists()).toBe(false);
+      if (!allowed.includes(requested)) {
+        expect(mocks.replace).toHaveBeenCalledWith({
+          query: { type: allowed[0] },
+        });
+      }
+    } else {
+      expect(tabBar.exists()).toBe(false);
+      expect(wrapper.findComponent({ name: 'TextAgents' }).exists()).toBe(
+        false
+      );
+      expect(wrapper.findComponent({ name: 'VoiceAgents' }).exists()).toBe(
+        false
+      );
+      expect(wrapper.text()).toContain('AI_HUB.UNAVAILABLE');
+    }
+    wrapper.unmount();
+  }
+);
+
+it('recalculates tabs and access when switching accounts without logout', async () => {
+  mocks.accounts[2] = { features: { text_ai: true } };
+  mocks.route.query = { type: 'voice' };
+  const wrapper = shallowMount(Index, {
+    global: { stubs: { RouterLink: true } },
+  });
+  expect(wrapper.findComponent(VoiceAgents).exists()).toBe(true);
+  mocks.route.params.accountId = '2';
+  await wrapper.vm.$nextTick();
+  expect(wrapper.findComponent(VoiceAgents).exists()).toBe(false);
+  expect(wrapper.findComponent({ name: 'TextAgents' }).exists()).toBe(true);
+  expect(mocks.replace).toHaveBeenLastCalledWith({ query: { type: 'text' } });
+  wrapper.unmount();
 });
 
 it('saves text settings through the existing API without overwriting voice settings or removing the stored key', async () => {

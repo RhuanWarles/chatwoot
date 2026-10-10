@@ -168,6 +168,7 @@
     "NOT_CONFIGURED": "Not configured"
   },
   "AI_HUB": {
+    "UNAVAILABLE": "AI features are not available for this account. Contact your platform administrator.",
     "SUBTITLE": "Manage your text and voice agents in one place.",
     "TEXT": "Text",
     "VOICE": "Voice",

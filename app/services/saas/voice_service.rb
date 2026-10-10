@@ -4,6 +4,7 @@ class Saas::VoiceService
   end
 
   def reserve!(direction:, request_id:, customer_number:, contact: nil, provider_call_id: nil)
+    @account.reload.require_ai_feature!(:voice)
     wallet = Saas::Wallet.for_account(@account, 'voice_seconds')
     wallet.with_lock do
       existing = @account.saas_voice_calls.find_by(request_id: request_id)

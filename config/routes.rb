@@ -798,6 +798,7 @@ Rails.application.routes.draw do
         post :reset_cache, on: :member
         get :saas_usage, on: :member
         post :saas_usage_adjust, on: :member
+        post :saas_features, on: :member
       end
       resources :users, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
         delete :avatar, on: :member, action: :destroy_avatar

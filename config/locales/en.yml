@@ -677,9 +677,20 @@ en:
       history: 'History and reservations'
       no_history: 'No usage records yet.'
       system: 'System'
-      direction: 'Operation'
-      credit: 'Add'
-      debit: 'Remove'
+      signed_amount_help: 'Positive amounts add balance; negative amounts remove it. Zero is not valid.'
+      features:
+        title: 'AI features'
+        text_description: 'Allow access to text AI agents and functionality.'
+        voice_description: 'Allow access to voice AI agents and functionality.'
+        enabled: 'Enabled'
+        disabled: 'Disabled'
+        save: 'Save'
+        saved: 'AI feature access updated.'
+        cancel: 'Cancel'
+        disable: 'Disable'
+        confirm_text: '%{account} has active text agents. Disabling Text AI stops their responses until access is enabled again. Agents and balances will be preserved.'
+        confirm_voice: '%{account} has active voice agents. Disabling Voice AI blocks new calls until access is enabled again. Agents and balances will be preserved.'
+        history: 'AI access history'
       reason: 'Reason'
       submit: 'Apply adjustment'
       resources:
@@ -696,7 +707,7 @@ en:
         invalid: 'Could not apply the adjustment.'
         insufficient_balance: 'There is not enough available balance for this removal.'
         invalid_reason: 'Enter a reason with up to 500 characters.'
-        invalid_amount: 'Enter a positive whole number.'
+        invalid_amount: 'Enter a nonzero whole number, positive or negative.'
 
     account_suspension:
       categories:

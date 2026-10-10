@@ -30,6 +30,24 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(conversation.reload.additional_attributes['ai_agent_state']).to eq('active')
   end
 
+  it 'preserves an active agent but blocks the provider and credit reservation while text access is disabled' do
+    account.saas_ai_setting.update!(text_mode: 'platform')
+    wallet = Saas::Wallet.for_account(account, 'text_credits')
+    wallet.credit!(units: 400, reference: 'initial')
+    incoming
+    account.disable_features!(:text_ai)
+    expect { described_class.new(conversation, incoming).perform }.not_to change(Saas::UsageRecord, :count)
+    expect(Saas::AiAgents::Provider).not_to have_received(:for)
+    expect(agent.reload.active).to be(true)
+    expect(wallet.reload.available_units).to eq(400)
+    expect(conversation.messages.outgoing).to be_empty
+    account.saas_ai_setting.update!(text_mode: 'byok')
+    account.enable_features!(:text_ai)
+    described_class.new(conversation, incoming).perform
+    expect(provider).to have_received(:generate).once
+    expect(conversation.messages.outgoing.count).to eq(1)
+  end
+
   it 'pauses on a human public response and never responds while paused' do
     incoming
     user = create(:user, account: account)
