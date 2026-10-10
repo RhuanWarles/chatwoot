@@ -245,6 +245,9 @@ const getInReplyToMessage = parentMessage => {
       <li
         v-if="entry.isDaySeparator"
         class="flex justify-center py-3"
+        data-message-day-separator
+        :data-day-key="entry.dayKey"
+        :data-day-value="entry.dayValue"
         :aria-label="daySeparatorLabel(entry)"
       >
         <span class="px-3 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11">

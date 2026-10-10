@@ -141,6 +141,9 @@ export default {
       isProgrammaticScroll: false,
       messageSentSinceOpened: false,
       labelSuggestions: [],
+      floatingDateLabel: '',
+      floatingDateVisible: false,
+      floatingDateTimer: null,
     };
   },
 
@@ -379,6 +382,7 @@ export default {
   unmounted() {
     this.removeBusListeners();
     this.removeScrollListener();
+    clearTimeout(this.floatingDateTimer);
   },
 
   methods: {
@@ -454,6 +458,41 @@ export default {
     },
     removeScrollListener() {
       this.conversationPanel.removeEventListener('scroll', this.handleScroll);
+    },
+    floatingDateText(daySeparator) {
+      if (daySeparator.dataset.dayKey === 'today') {
+        return this.$t('CONVERSATION.DATE_SEPARATOR.TODAY');
+      }
+      if (daySeparator.dataset.dayKey === 'yesterday') {
+        return this.$t('CONVERSATION.DATE_SEPARATOR.YESTERDAY');
+      }
+      return daySeparator.dataset.dayValue;
+    },
+    updateFloatingDate() {
+      if (!this.conversationPanel) return;
+
+      const separators = [
+        ...this.conversationPanel.querySelectorAll(
+          '[data-message-day-separator]'
+        ),
+      ];
+      if (!separators.length) return;
+
+      const panelTop = this.conversationPanel.getBoundingClientRect().top;
+      const activeSeparator =
+        separators.filter(
+          separator => separator.getBoundingClientRect().top <= panelTop + 12
+        ).at(-1) || separators[0];
+
+      this.floatingDateLabel = this.floatingDateText(activeSeparator);
+    },
+    showFloatingDate() {
+      this.updateFloatingDate();
+      this.floatingDateVisible = true;
+      clearTimeout(this.floatingDateTimer);
+      this.floatingDateTimer = setTimeout(() => {
+        this.floatingDateVisible = false;
+      }, 1000);
     },
     scrollToBottom() {
       this.isProgrammaticScroll = true;
@@ -535,6 +574,7 @@ export default {
         this.hasUserScrolled = false;
       } else {
         this.hasUserScrolled = true;
+        this.showFloatingDate();
       }
       emitter.emit(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL);
       this.fetchPreviousMessages(e.target.scrollTop);
@@ -561,7 +601,7 @@ export default {
 <template>
   <div
     ref="messagesViewRef"
-    class="flex flex-col justify-between flex-grow h-full min-w-0 m-0"
+    class="relative flex flex-col justify-between flex-grow h-full min-w-0 m-0"
   >
     <div ref="topBannerRef">
       <Banner
@@ -587,6 +627,24 @@ export default {
         :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
       />
     </div>
+    <Transition
+      enter-active-class="transition-opacity duration-150"
+      leave-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="floatingDateVisible && floatingDateLabel"
+        class="absolute z-10 left-1/2 top-3 -translate-x-1/2 pointer-events-none"
+        aria-live="polite"
+      >
+        <span
+          class="px-3 py-1 text-xs rounded-full shadow-sm bg-n-alpha-2 text-n-slate-11"
+        >
+          {{ floatingDateLabel }}
+        </span>
+      </div>
+    </Transition>
     <MessageList
       ref="conversationPanelRef"
       class="conversation-panel flex-shrink flex-grow basis-px flex flex-col overflow-y-auto relative h-full m-0"
