@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -8,7 +8,6 @@ import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 
 const { t } = useI18n();
 const route = useRoute();
-const router = useRouter();
 const agent = ref(null);
 const runtime = ref(null);
 const availableCredits = ref(null);
