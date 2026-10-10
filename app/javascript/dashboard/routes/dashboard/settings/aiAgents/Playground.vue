@@ -11,6 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const agent = ref(null);
 const runtime = ref(null);
+const availableCredits = ref(null);
 const messages = ref([]);
 const prompt = ref('');
 const sessionId = ref(crypto.randomUUID());
@@ -35,6 +36,7 @@ const load = async () => {
     agent.value = agentResponse.data;
     messages.value = sessionResponse.data.messages || [];
     runtime.value = sessionResponse.data.runtime;
+    availableCredits.value = sessionResponse.data.available_credits;
   } catch (requestError) {
     error.value =
       requestError.response?.status === 403
@@ -64,6 +66,7 @@ const send = async () => {
     );
     messages.value.push(data.message);
     runtime.value = data.runtime;
+    availableCredits.value = data.available_credits;
     scrollToBottom();
   } catch (requestError) {
     messages.value.pop();
@@ -113,7 +116,7 @@ onMounted(load);
       />
     </header>
     <p v-if="runtime?.mode === 'platform'" class="text-sm text-n-slate-11">
-      {{ t('AI_PLAYGROUND.PLATFORM_CREDITS') }}
+      {{ t('AI_PLAYGROUND.PLATFORM_CREDITS', { amount: availableCredits ?? 0 }) }}
     </p>
     <p v-if="error" role="alert" class="text-sm text-n-ruby-9">{{ error }}</p>
     <div
