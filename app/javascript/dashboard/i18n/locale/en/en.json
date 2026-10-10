@@ -167,6 +167,21 @@
     "PLATFORM_NOT_READY": "Platform text AI is not configured yet. Ask the platform administrator to configure it before activating this agent.",
     "NOT_CONFIGURED": "Not configured"
   },
+  "AI_PLAYGROUND": {
+    "TITLE": "Playground — {name}",
+    "BACK": "Back to AI Agents",
+    "OPEN": "Playground",
+    "CLEAR": "Clear conversation",
+    "EMPTY": "Send a message to test this agent.",
+    "PLACEHOLDER": "Type a message...",
+    "SEND": "Send",
+    "RESPONDING": "{name} is responding...",
+    "PLATFORM_CREDITS": "Platform credits are used for this test.",
+    "INSUFFICIENT_CREDITS": "Not enough credits to run this test.",
+    "GENERATION_ERROR": "Could not generate a response. Try again.",
+    "LOAD_ERROR": "Could not load the Playground.",
+    "DISABLED": "Text AI is not enabled for this account."
+  },
   "AI_HUB": {
     "UNAVAILABLE": "AI features are not available for this account. Contact your platform administrator.",
     "SUBTITLE": "Manage your text and voice agents in one place.",

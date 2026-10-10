@@ -53,7 +53,13 @@ Rails.application.routes.draw do
 
         scope module: :accounts do
           resources :voice_agents, only: [:index, :show, :create, :update, :destroy]
-          resources :ai_agents, only: [:index, :show, :create, :update, :destroy]
+          resources :ai_agents, only: [:index, :show, :create, :update, :destroy] do
+            member do
+              get 'playground/:session_id', to: 'ai_agent_playground#show'
+              post 'playground/messages', to: 'ai_agent_playground#create_message'
+              delete 'playground/:session_id', to: 'ai_agent_playground#destroy'
+            end
+          end
           resource :saas_ai, only: [:show, :update], controller: 'saas_ai' do
             post :calls
             post :text_generations

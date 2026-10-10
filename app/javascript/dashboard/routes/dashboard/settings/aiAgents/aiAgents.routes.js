@@ -1,6 +1,7 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import Index from './Index.vue';
+import Playground from './Playground.vue';
 
 export default {
   routes: [
@@ -14,6 +15,12 @@ export default {
           name: 'ai_agents_settings',
           component: Index,
           meta: { permissions: ['administrator'], reuseOnQueryChange: true },
+        },
+        {
+          path: ':agentId/playground',
+          name: 'ai_agent_playground',
+          component: Playground,
+          meta: { permissions: ['administrator'] },
         },
       ],
     },

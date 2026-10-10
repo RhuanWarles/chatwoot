@@ -262,6 +262,17 @@ onMounted(load);
         <div class="flex flex-wrap items-center gap-2">
           <Button
             variant="ghost"
+            :label="t('AI_PLAYGROUND.OPEN')"
+            :disabled="busy"
+            @click="
+              $router.push({
+                name: 'ai_agent_playground',
+                params: { accountId, agentId: agent.id },
+              })
+            "
+          />
+          <Button
+            variant="ghost"
             :label="t('AI_AGENTS.EDIT')"
             :disabled="busy"
             @click="openEditor(agent)"
