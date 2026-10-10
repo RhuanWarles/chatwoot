@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Textarea from 'dashboard/components-next/textarea/Textarea.vue';
+import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -136,7 +136,7 @@ onMounted(load);
       </p>
     </div>
     <form class="flex items-end gap-2" @submit.prevent="send">
-      <Textarea
+      <TextArea
         v-model="prompt"
         class="flex-1"
         :placeholder="t('AI_PLAYGROUND.PLACEHOLDER')"
