@@ -31,6 +31,7 @@ const formattedContent = computed(() => {
     return props.content;
   }
 
+  let formatted;
   if (participants.value !== null && !isPrivate.value) {
     // MessageList converts message metadata to camelCase; the participants API
     // keeps snake_case. Convert only these identity fields for the resolver.
@@ -45,13 +46,15 @@ const formattedContent = computed(() => {
             end: mention.end,
           }))
         : [];
-    return formatGroupMentionContent(
+    formatted = formatGroupMentionContent(
       props.content,
       participants.value,
       mentions
     );
+  } else {
+    formatted = new MessageFormatter(props.content).formattedMessage;
   }
-    const formatted = new MessageFormatter(props.content).formattedMessage;
+
     return isGroupConversation.value
       ? formatGroupSenderHeader(formatted, props.content)
       : formatted;
