@@ -114,7 +114,7 @@
   "AI_AGENTS": {
     "TITLE": "AI Agents",
     "SUBTITLE": "Configure account text agents and their inboxes.",
-    "CONFIG_ONLY": "Active agents reply to public text messages in their selected inboxes using the account's own OpenAI key. Human replies pause the agent for that conversation.",
+    "CONFIG_ONLY": "Active agents reply to public text messages in their selected inboxes using the configured platform credits or account key. Human replies pause the agent for that conversation.",
     "NEW": "New agent",
     "EDIT": "Edit agent",
     "SAVE": "Save agent",
@@ -159,7 +159,13 @@
     "MODEL_SEARCH": "Search models",
     "MODEL_EMPTY": "No suggested models",
     "MODEL_CUSTOM_PLACEHOLDER": "Or enter a custom model identifier",
-    "MODEL_HELP": "Choose a suggestion or enter any compatible model identifier."
+    "MODEL_HELP": "Choose a suggestion or enter any compatible model identifier.",
+    "PLATFORM_MODE": "Platform credits",
+    "PLATFORM_CREDITS": "Available platform credits: {amount}",
+    "PLATFORM_COST": "Cost: {count} credit(s) per response",
+    "PLATFORM_MODEL_HELP": "Platform mode uses {provider} with model {model}. Agent provider and model fields are informational and cannot be changed here.",
+    "PLATFORM_NOT_READY": "Platform text AI is not configured yet. Ask the platform administrator to configure it before activating this agent.",
+    "NOT_CONFIGURED": "Not configured"
   },
   "AI_HUB": {
     "SUBTITLE": "Manage your text and voice agents in one place.",
@@ -184,6 +190,6 @@
     "YES": "Yes",
     "NO": "No",
     "TEXT_CONNECTION": "Text provider connection",
-    "TEXT_CONNECTION_HELP": "Shared credentials for this account. Each text agent keeps its own model and instructions. Existing credentials are preserved."
+    "TEXT_CONNECTION_HELP": "Choose the account payment mode here. Platform mode uses the administrator's provider and model; BYOK stores the account key securely. Agent instructions remain per agent."
   }
 }

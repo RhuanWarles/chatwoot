@@ -15,6 +15,7 @@ const { t, locale } = useI18n();
 const store = useStore();
 const agents = ref([]);
 const providers = ref([]);
+const textSettings = ref(null);
 const loading = ref(true);
 const busy = ref(false);
 const loadError = ref('');
@@ -46,6 +47,16 @@ const modelOptions = computed(() =>
     value,
     label: value,
   }))
+);
+const platformMode = computed(() => textSettings.value?.mode === 'platform');
+const effectivePlatformProvider = computed(
+  () => textSettings.value?.platform_provider || ''
+);
+const effectivePlatformModel = computed(
+  () => textSettings.value?.platform_model || ''
+);
+const platformTextReady = computed(
+  () => textSettings.value?.platform_ready === true
 );
 
 const formatUpdatedAt = timestamp => {
@@ -98,6 +109,7 @@ const load = async () => {
       ? response.data.agents.map(normalizeAgent)
       : [];
     providers.value = response.data.providers;
+    textSettings.value = response.data.text;
   } catch {
     loadError.value = t('AI_AGENTS.LOAD_ERROR');
   } finally {
@@ -113,6 +125,11 @@ const openEditor = agent => {
         inbox_ids: (agent.inboxes || []).map(inbox => inbox.id),
       })
     : newAgent();
+  if (platformMode.value) {
+    draft.value.provider =
+      effectivePlatformProvider.value || draft.value.provider;
+    draft.value.model = effectivePlatformModel.value || draft.value.model;
+  }
   previousProvider.value = draft.value.provider;
   editorError.value = '';
   editor.value.open();
@@ -222,7 +239,12 @@ onMounted(load);
           <p class="text-sm text-n-slate-11">
             {{ agent.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE') }}
           </p>
-          <p class="text-sm break-all text-n-slate-11">
+          <p v-if="platformMode" class="text-sm text-n-slate-11">
+            {{ t('AI_AGENTS.PLATFORM_MODE') }} ·
+            {{ effectivePlatformProvider || t('AI_AGENTS.NOT_CONFIGURED') }} ·
+            {{ effectivePlatformModel || t('AI_AGENTS.NOT_CONFIGURED') }}
+          </p>
+          <p v-else class="text-sm break-all text-n-slate-11">
             {{ providerLabels[agent.provider] }} · {{ agent.model }}
           </p>
           <p class="text-sm text-n-slate-11">
@@ -262,7 +284,7 @@ onMounted(load);
         </div>
       </article>
     </div>
-    <TextCredentials class="mt-6" />
+    <TextCredentials class="mt-6" @saved="load" />
     <Dialog
       ref="editor"
       width="2xl"
@@ -301,7 +323,7 @@ onMounted(load);
             ><ComboBox
               v-model="draft.provider"
               :options="providerOptions"
-              :disabled="busy"
+              :disabled="busy || platformMode"
             />
           </div>
           <div class="flex flex-col gap-2">
@@ -314,17 +336,49 @@ onMounted(load);
               :placeholder="t('AI_AGENTS.MODEL_PLACEHOLDER')"
               :search-placeholder="t('AI_AGENTS.MODEL_SEARCH')"
               :empty-state="t('AI_AGENTS.MODEL_EMPTY')"
-              :disabled="busy"
+              :disabled="busy || platformMode"
             />
           </div>
           <Input
             v-model="draft.model"
             :label="t('AI_AGENTS.MODEL')"
             :placeholder="t('AI_AGENTS.MODEL_CUSTOM_PLACEHOLDER')"
-            :disabled="busy"
+            :disabled="busy || platformMode"
           />
           <p class="text-xs text-n-slate-11 sm:col-span-2">
-            {{ t('AI_AGENTS.MODEL_HELP') }}
+            {{
+              platformMode
+                ? t('AI_AGENTS.PLATFORM_MODEL_HELP', {
+                    provider:
+                      effectivePlatformProvider ||
+                      t('AI_AGENTS.NOT_CONFIGURED'),
+                    model:
+                      effectivePlatformModel || t('AI_AGENTS.NOT_CONFIGURED'),
+                  })
+                : t('AI_AGENTS.MODEL_HELP')
+            }}
+          </p>
+        </div>
+        <div
+          v-if="platformMode"
+          class="rounded-lg bg-n-solid-2 p-3 text-sm text-n-slate-11"
+        >
+          <p>
+            {{
+              t('AI_AGENTS.PLATFORM_CREDITS', {
+                amount: textSettings?.available_credits ?? 0,
+              })
+            }}
+          </p>
+          <p>
+            {{
+              t('AI_AGENTS.PLATFORM_COST', {
+                count: textSettings?.credits_per_request ?? 1,
+              })
+            }}
+          </p>
+          <p v-if="!platformTextReady" class="mt-1 text-n-amber-11">
+            {{ t('AI_AGENTS.PLATFORM_NOT_READY') }}
           </p>
         </div>
         <label class="flex flex-col gap-2 text-sm text-n-slate-12"

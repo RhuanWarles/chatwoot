@@ -25,8 +25,14 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
   }.freeze
 
   def index
+    settings = Current.account.saas_ai_setting || Current.account.build_saas_ai_setting
+    text_wallet = Saas::Wallet.for_account(Current.account, 'text_credits')
     render json: { agents: Current.account.saas_ai_agents.includes(:inboxes).order(:name, :id).map(&:public_data),
-                   providers: Saas::AiAgent::PROVIDERS, temperature_range: [0, 1] }
+                   providers: Saas::AiAgent::PROVIDERS, temperature_range: [0, 1],
+                   text: { mode: settings.text_mode, platform_ready: Saas::TextService.configured?,
+                           platform_provider: ENV.fetch('SAAS_TEXT_PROVIDER', nil), platform_model: ENV.fetch('SAAS_TEXT_MODEL', nil),
+                           credits_per_request: Saas::TextService.credits_per_request,
+                           available_credits: text_wallet.available_units } }
   end
 
   def show

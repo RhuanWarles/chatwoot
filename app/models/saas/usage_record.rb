@@ -3,7 +3,7 @@ class Saas::UsageRecord < ApplicationRecord
   has_one :voice_call, class_name: 'Saas::VoiceCall', dependent: :destroy
 
   validates :reference, presence: true, uniqueness: { scope: :wallet_id }
-  validates :kind, inclusion: { in: %w[credit consumption] }
+  validates :kind, inclusion: { in: %w[credit consumption adjustment] }
   validates :status, inclusion: { in: %w[reserved settled released] }
   validates :units, :reserved_units, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 

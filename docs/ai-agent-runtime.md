@@ -1,10 +1,10 @@
 # Primeira execução dos AI Agents
 
-O runtime responde a mensagens públicas de texto de um Contact quando existe um único Agent ativo vinculado à inbox da mesma account. Não executa ferramentas, ações do CRM, áudio, RAG ou integrações externas além da geração OpenAI.
+O runtime responde a mensagens públicas de texto de um Contact quando existe um único Agent ativo vinculado à inbox da mesma account. Não executa ferramentas, ações do CRM, áudio, RAG ou integrações externas além da geração pelo provider configurado.
 
 ## Configuração
 
-Em **AI Agents → Texto → Conexão do provedor de texto**, configure o modo BYOK com provedor OpenAI e a chave da própria account. A chave continua criptografada no backend. O Agent fornece o modelo, a temperatura e o system prompt. Nesta etapa, o runtime exige BYOK: não utiliza o modo plataforma, que possui cobrança própria em créditos. Outros provedores retornam erro controlado e não enviam resposta.
+Em **AI Agents → Texto → Conexão do provedor de texto**, escolha o modo da account. No modo plataforma, o runtime usa `SAAS_TEXT_PROVIDER`, `SAAS_TEXT_MODEL` e `SAAS_TEXT_API_KEY`, reserva `text_credits` antes da chamada e liquida o valor configurado em `SAAS_TEXT_CREDITS_PER_REQUEST` quando a resposta é persistida. No modo BYOK, a chave continua criptografada no backend e o Agent fornece provider, modelo, temperatura e system prompt; atualmente o runtime BYOK suporta OpenAI. Falhas liberam a reserva e não geram resposta.
 
 Em **Configurações → AI Agents**, edite a Larissa (ou outro agente), selecione as **inboxes vinculadas** da própria conta e ative o agente. Marque **Reply in WhatsApp groups** para autorizar respostas em grupos dessas inboxes. A opção começa desmarcada, inclusive para agentes existentes. Sem inbox selecionada, nenhuma conversa é atendida.
 

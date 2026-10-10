@@ -6,6 +6,7 @@ import SaasAI from 'dashboard/api/saasAI';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 
+const emit = defineEmits(['saved']);
 const { t, tm, rt } = useI18n();
 const providers = ['openai', 'anthropic', 'gemini'];
 const data = ref(null);
@@ -48,6 +49,7 @@ async function save(removeKey = false) {
     apiKey.value = '';
     useAlert(t('SAAS_AI.SAVED'));
     await load();
+    emit('saved');
     window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch (error) {
     showError(error);

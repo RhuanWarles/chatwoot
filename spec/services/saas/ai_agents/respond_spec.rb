@@ -9,9 +9,10 @@ RSpec.describe Saas::AiAgents::Respond do
   let(:provider) { instance_double(Saas::AiAgents::Providers::OpenAi) }
 
   before do
+    account.create_saas_ai_setting!(text_mode: 'byok', text_provider: 'openai', text_model: 'test-model', text_api_key: 'test-key')
     agent.configure!({ name: 'Assistente', system_prompt: 'Ajude o cliente', provider: 'openai', model: 'test-model', active: true },
                      selected_inboxes: [inbox])
-    allow(Saas::AiAgents::Provider).to receive(:for).with(account, 'openai').and_return(provider)
+    allow(Saas::AiAgents::Provider).to receive(:for).with(account, 'openai', mode: 'byok').and_return(provider)
     allow(provider).to receive(:generate).and_return(content: 'Olá!', usage: {})
   end
 
@@ -73,6 +74,84 @@ RSpec.describe Saas::AiAgents::Respond do
     allow(provider).to receive(:generate).and_return(content: 'Recovered', usage: {})
     described_class.new(conversation, incoming).perform
     expect(conversation.messages.outgoing.count).to eq(1)
+  end
+
+  it 'reserves and settles one platform credit for an automatic reply' do
+    account.saas_ai_setting.update!(text_mode: 'platform')
+    wallet = Saas::Wallet.for_account(account, 'text_credits')
+    wallet.credit!(units: 2, reference: 'spec-platform-credit')
+    platform_provider = instance_double(Saas::AiAgents::Providers::Platform)
+    allow(Saas::AiAgents::Provider).to receive(:for).with(account, 'openai', mode: 'platform').and_return(platform_provider)
+    allow(platform_provider).to receive(:generate).and_return(content: 'Resposta da plataforma', usage: { 'total_tokens' => 7 })
+    with_modified_env SAAS_TEXT_PROVIDER: 'openai', SAAS_TEXT_MODEL: 'platform-model', SAAS_TEXT_API_KEY: 'platform-key' do
+      described_class.new(conversation, incoming).perform
+      described_class.new(conversation, incoming).perform
+    end
+
+    expect(wallet.reload.available_units).to eq(1)
+    record = wallet.usage_records.find_by(reference: "ai_agent:#{account.id}:#{conversation.id}:#{incoming.id}:#{agent.id}")
+    expect(record).to have_attributes(kind: 'consumption', status: 'settled', units: 1)
+    expect(record.metadata).to include('mode' => 'platform', 'ai_agent_id' => agent.id)
+    expect(platform_provider).to have_received(:generate).once
+  end
+
+  it 'does not call the provider or consume credits when the platform balance is insufficient' do
+    account.saas_ai_setting.update!(text_mode: 'platform')
+    platform_provider = instance_double(Saas::AiAgents::Providers::Platform)
+    allow(platform_provider).to receive(:generate)
+    allow(Saas::AiAgents::Provider).to receive(:for).with(account, 'openai', mode: 'platform').and_return(platform_provider)
+    with_modified_env SAAS_TEXT_PROVIDER: 'openai', SAAS_TEXT_MODEL: 'platform-model', SAAS_TEXT_API_KEY: 'platform-key' do
+      described_class.new(conversation, incoming).perform
+    end
+
+    expect(platform_provider).not_to have_received(:generate)
+    expect(Saas::Wallet.for_account(account, 'text_credits').available_units).to eq(0)
+    expect(conversation.messages.outgoing.count).to eq(0)
+  end
+
+  it 'releases stale platform output and skips a retry after human takeover' do
+    account.saas_ai_setting.update!(text_mode: 'platform')
+    wallet = Saas::Wallet.for_account(account, 'text_credits')
+    wallet.credit!(units: 1, reference: 'stale-platform-credit')
+    platform_provider = instance_double(Saas::AiAgents::Providers::Platform)
+    allow(Saas::AiAgents::Provider).to receive(:for).with(account, 'openai', mode: 'platform').and_return(platform_provider)
+    allow(platform_provider).to receive(:generate) do
+      expect(wallet.reload.available_units).to eq(0)
+      create(:message, account: account, inbox: inbox, conversation: conversation,
+                       sender: create(:user, account: account), message_type: :outgoing, content: 'Human reply')
+      { content: 'Stale AI reply', usage: {} }
+    end
+    allow(Rails.logger).to receive(:info).and_call_original
+
+    with_modified_env SAAS_TEXT_PROVIDER: 'openai', SAAS_TEXT_MODEL: 'platform-model', SAAS_TEXT_API_KEY: 'platform-key' do
+      2.times { described_class.new(conversation, incoming).perform }
+    end
+
+    expect(conversation.messages.outgoing.pluck(:content)).to eq(['Human reply'])
+    expect(wallet.reload.available_units).to eq(1)
+    expect(wallet.balance_units).to eq(1)
+    expect(wallet.usage_records.where(kind: 'consumption').count).to eq(1)
+    expect(wallet.usage_records.find_by(kind: 'consumption')).to have_attributes(status: 'released', units: 0)
+    expect(platform_provider).to have_received(:generate).once
+    expect(Rails.logger).to have_received(:info).with(include('discarded_stale_response'))
+  end
+
+  it 'releases a platform reservation when provider generation fails' do
+    account.saas_ai_setting.update!(text_mode: 'platform')
+    wallet = Saas::Wallet.for_account(account, 'text_credits')
+    wallet.credit!(units: 1, reference: 'spec-platform-failure')
+    platform_provider = instance_double(Saas::AiAgents::Providers::Platform)
+    allow(Saas::AiAgents::Provider).to receive(:for).with(account, 'openai', mode: 'platform').and_return(platform_provider)
+    allow(platform_provider).to receive(:generate).and_raise(CustomExceptions::AiAgentError::Transient, 'provider_timeout_or_connection_error')
+    expect do
+      with_modified_env SAAS_TEXT_PROVIDER: 'openai', SAAS_TEXT_MODEL: 'platform-model', SAAS_TEXT_API_KEY: 'platform-key' do
+        described_class.new(conversation, incoming).perform
+      end
+    end.to raise_error(CustomExceptions::AiAgentError::Transient)
+
+    record = wallet.usage_records.find_by(reference: "ai_agent:#{account.id}:#{conversation.id}:#{incoming.id}:#{agent.id}")
+    expect(record).to have_attributes(status: 'released', units: 0, reserved_units: 1)
+    expect(wallet.reload.available_units).to eq(1)
   end
 
   it 'skips inactive agents and outgoing triggers' do

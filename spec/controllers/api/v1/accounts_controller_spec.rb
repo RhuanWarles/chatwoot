@@ -218,9 +218,8 @@ RSpec.describe 'Accounts API', type: :request do
       end
 
       it 'exposes the safe derived AI credit warning state' do
-        allow(account).to receive(:saas_ai_credit_status).and_return(
-          text_mode: 'platform', available_text_credits: 0, active_text_ai_agents: 1, show_credit_warning: true
-        )
+        account.saas_ai_agents.create!(name: 'Active text agent', system_prompt: 'Help the customer',
+                                      provider: 'openai', model: 'test-model', active: true)
 
         get "/api/v1/accounts/#{account.id}", headers: admin.create_new_auth_token, as: :json
 

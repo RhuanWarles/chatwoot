@@ -8,6 +8,11 @@ task 'saas:credit', [:account_id, :resource, :units, :reference] => :environment
   puts "Balance: #{wallet.reload.balance_units} #{wallet.resource}; available: #{wallet.available_units}"
 end
 
+desc 'Release expired platform text reservations for AI Agents'
+task 'saas:reconcile_ai_agent_credits' => :environment do
+  Saas::Wallet.release_expired!
+end
+
 desc 'Assign a platform-owned Vapi assistant and number: saas:connect_voice[account_id,assistant_id,phone_number_id]'
 task 'saas:connect_voice', [:account_id, :assistant_id, :phone_number_id] => :environment do |_task, args|
   raise 'Configure VAPI_PRIVATE_KEY, VAPI_WEBHOOK_SECRET and VAPI_WEBHOOK_URL first' unless Saas::VapiClient.configured?

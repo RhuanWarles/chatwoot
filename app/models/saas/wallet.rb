@@ -16,7 +16,7 @@ class Saas::Wallet < ApplicationRecord
   end
 
   # Only trusted provisioning/billing code calls this method, never account APIs.
-  def credit!(units:, reference:)
+  def credit!(units:, reference:, metadata: {})
     raise ArgumentError, 'units must be a positive integer' unless units.is_a?(Integer) && units.positive?
 
     with_lock do
@@ -27,11 +27,29 @@ class Saas::Wallet < ApplicationRecord
         next existing
       end
       update!(balance_units: balance_units + units)
-      usage_records.create!(reference: reference, kind: 'credit', status: 'settled', units: units)
+      usage_records.create!(reference: reference, kind: 'credit', status: 'settled', units: units, metadata: metadata)
     end
   end
 
-  def reserve!(units:, reference:)
+  def debit!(units:, reference:, metadata: {})
+    raise ArgumentError, 'units must be a positive integer' unless units.is_a?(Integer) && units.positive?
+
+    with_lock do
+      existing = usage_records.find_by(reference: reference)
+      if existing
+        raise CustomExceptions::SaasError, 'reference_conflict' unless existing.kind == 'adjustment' && existing.units == units
+
+        next existing
+      end
+      raise CustomExceptions::SaasError, 'insufficient_balance' if available_units < units
+
+      update!(balance_units: balance_units - units)
+      usage_records.create!(reference: reference, kind: 'adjustment', status: 'settled', units: units,
+                            metadata: metadata)
+    end
+  end
+
+  def reserve!(units:, reference:, expires_at: nil, metadata: {})
     raise ArgumentError, 'units must be a positive integer' unless units.is_a?(Integer) && units.positive?
 
     with_lock do
@@ -39,11 +57,17 @@ class Saas::Wallet < ApplicationRecord
       if existing
         raise CustomExceptions::SaasError, 'reference_conflict' unless existing.kind == 'consumption' && existing.reserved_units == units
 
+        if existing.status == 'released'
+          raise CustomExceptions::SaasError, 'insufficient_balance' if available_units < units
+
+          existing.update!(status: 'reserved', expires_at: expires_at, metadata: metadata)
+        end
         next existing
       end
       raise CustomExceptions::SaasError, 'insufficient_balance' if available_units < units
 
-      usage_records.create!(reference: reference, kind: 'consumption', status: 'reserved', reserved_units: units)
+      usage_records.create!(reference: reference, kind: 'consumption', status: 'reserved', reserved_units: units,
+                            expires_at: expires_at, metadata: metadata)
     end
   end
 
@@ -62,10 +86,22 @@ class Saas::Wallet < ApplicationRecord
     end
   end
 
-  def release!(record)
+  def release!(record, metadata: {})
     with_lock do
       record = usage_records.find(record.id)
-      record.update!(status: 'released') if record.status == 'reserved'
+      record.update!(status: 'released', metadata: record.metadata.merge(metadata)) if record.status == 'reserved'
+    end
+  end
+
+  def self.release_expired!(now: Time.current)
+    Saas::UsageRecord.joins(:wallet).where(status: 'reserved').where('expires_at IS NOT NULL AND expires_at <= ?', now)
+                     .where(saas_wallets: { resource: 'text_credits' }).find_each do |record|
+      record.wallet.with_lock do
+        record.reload
+        next unless record.status == 'reserved' && record.expires_at && record.expires_at <= now
+
+        record.update!(status: 'released')
+      end
     end
   end
 

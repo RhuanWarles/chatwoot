@@ -11,6 +11,37 @@ class Saas::TextService
       ENV['SAAS_TEXT_MODEL'].present? && ENV['SAAS_TEXT_API_KEY'].present?
   end
 
+  def self.platform_config
+    raise CustomExceptions::SaasError, 'text_not_ready' unless configured?
+
+    { provider: ENV.fetch('SAAS_TEXT_PROVIDER'), model: ENV.fetch('SAAS_TEXT_MODEL') }
+  end
+
+  def self.generate_messages(messages:, temperature:)
+    config = platform_config
+    context = RubyLLM.context do |settings|
+      settings.public_send("#{config[:provider]}_api_key=", ENV.fetch('SAAS_TEXT_API_KEY'))
+      settings.request_timeout = 60
+      settings.max_retries = 0
+    end
+    chat = context.chat(model: config[:model], provider: config[:provider], assume_model_exists: true)
+                  .with_temperature(temperature)
+                  .with_params(**OUTPUT_LIMITS.fetch(config[:provider]))
+    messages.each { |message| chat.add_message(role: message.fetch(:role).to_sym, content: message.fetch(:content)) }
+    response = chat.complete
+    content = response&.content
+    raise CustomExceptions::SaasError, 'empty_response' unless content.is_a?(String) && content.strip.present?
+
+    {
+      content: content.strip,
+      usage: {
+        'prompt_tokens' => response.input_tokens,
+        'completion_tokens' => response.output_tokens,
+        'total_tokens' => response.input_tokens.to_i + response.output_tokens.to_i
+      }.compact
+    }
+  end
+
   def self.credits_per_request
     Integer(ENV.fetch('SAAS_TEXT_CREDITS_PER_REQUEST', '1')).tap do |units|
       raise ArgumentError, 'SAAS_TEXT_CREDITS_PER_REQUEST must be positive' unless units.positive?

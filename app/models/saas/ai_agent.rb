@@ -16,6 +16,7 @@ class Saas::AiAgent < ApplicationRecord
   validates :temperature, numericality: { in: TEMPERATURE_RANGE }
   validates :active, :handoff_enabled, :respond_to_groups, inclusion: { in: [true, false] }
   validate :validate_inboxes
+  validate :validate_runtime_provider
 
   # Serialize assignment and activation together, including concurrent requests.
   def configure!(attributes, selected_inboxes: nil)
@@ -52,5 +53,13 @@ class Saas::AiAgent < ApplicationRecord
     occupied = account.saas_ai_agents.where(active: true).where.not(id: id)
                       .joins(:ai_agent_inboxes).where(saas_ai_agent_inboxes: { inbox_id: inboxes.map(&:id) }).exists?
     errors.add(:inboxes, :taken) if occupied
+  end
+
+  def validate_runtime_provider
+    return unless active? && account
+    return if (account.saas_ai_setting&.text_mode || 'platform') == 'platform'
+    return if provider == 'openai'
+
+    errors.add(:provider, :invalid)
   end
 end

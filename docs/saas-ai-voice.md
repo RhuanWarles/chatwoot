@@ -66,6 +66,13 @@ Use a unique payment/grant reference. Repeating the same grant does not add bala
 reusing its reference with a different amount is rejected. A future billing integration must call `Saas::Wallet#credit!`
 only after validating the payment server-side.
 
+Text AI Agents use the same `text_credits` wallet. In platform mode, a response reserves the configured
+`SAAS_TEXT_CREDITS_PER_REQUEST` amount before calling the provider and settles it only after the outgoing message
+is persisted. Provider failures and stale responses release the reservation. Agent reservations expire after 15 minutes;
+run `bundle exec rake saas:reconcile_ai_agent_credits` from the platform scheduler to release reservations left by a
+worker crash. The expiration is longer than the provider request timeout and retry window, so an active request is not
+released while it is still running. BYOK agent responses do not create usage records or consume platform credits.
+
 The wallet serializes reservations and settlement under a row lock. Concurrent calls cannot reserve the same seconds.
 At call end, connected duration is rounded up to the next second and capped at the authorized maximum. Unused time is released.
 There is no per-call rounding to a full minute. Replayed reports do not charge again. A call without a connected start consumes zero seconds.

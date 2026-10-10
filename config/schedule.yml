@@ -25,6 +25,12 @@ trigger_hourly_scheduled_items_job:
   class: 'Internal::TriggerHourlyScheduledItemsJob'
   queue: scheduled_jobs
 
+# Release AI Agent platform-credit reservations left by interrupted workers.
+saas_ai_agents_reconcile_credits_job:
+  cron: '*/5 * * * *'
+  class: 'Saas::AiAgents::ReconcileCreditsJob'
+  queue: scheduled_jobs
+
 # executed At every minute..
 trigger_imap_email_inboxes_job:
   cron: '*/1 * * * *'
