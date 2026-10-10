@@ -133,6 +133,7 @@ const save = async () => {
     agents.value = agents.value.filter(agent => agent.id !== response.data.id);
     agents.value.push(normalizeAgent(response.data));
     editor.value.close();
+    window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch (error) {
     editorError.value = errorText(error);
   } finally {
@@ -150,6 +151,7 @@ const toggle = async agent => {
     agents.value = agents.value.map(item =>
       item.id === data.id ? data : item
     );
+    window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch (error) {
     actionError.value = errorText(error);
   } finally {
@@ -168,6 +170,7 @@ const remove = async () => {
     await aiAgentsAPI.delete(deleting.value.id);
     agents.value = agents.value.filter(agent => agent.id !== deleting.value.id);
     deletion.value.close();
+    window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch {
     actionError.value = t('AI_AGENTS.DELETE_ERROR');
   } finally {

@@ -10,6 +10,7 @@
     "SUBMIT": "Atualizar configurações",
     "BACK": "Anterior",
     "DISMISS": "Recusar",
+    "SAAS_AI_CREDIT_WARNING": "Os créditos de IA estão esgotados. Existem agentes ativos usando a plataforma, mas as respostas automáticas estão pausadas. Entre em contato com o suporte para solicitar novos créditos.",
     "UPDATE": {
       "ERROR": "Não foi possível atualizar as configurações, tente novamente!",
       "SUCCESS": "Configurações de conta atualizadas com sucesso"

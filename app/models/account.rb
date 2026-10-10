@@ -155,6 +155,19 @@ class Account < ApplicationRecord
     }
   end
 
+  def saas_ai_credit_status
+    text_mode = saas_ai_setting&.text_mode || 'platform'
+    available_text_credits = saas_wallets.find_by(resource: 'text_credits')&.available_units || 0
+    active_text_ai_agents = saas_ai_agents.where(active: true).count
+
+    {
+      text_mode: text_mode,
+      available_text_credits: available_text_credits,
+      active_text_ai_agents: active_text_ai_agents,
+      show_credit_warning: text_mode == 'platform' && available_text_credits <= 0 && active_text_ai_agents.positive?
+    }
+  end
+
   def suspension_history
     internal_attributes['suspensions'] || []
   end

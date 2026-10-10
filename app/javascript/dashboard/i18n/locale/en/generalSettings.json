@@ -10,6 +10,7 @@
     "SUBMIT": "Update settings",
     "BACK": "Back",
     "DISMISS": "Dismiss",
+    "SAAS_AI_CREDIT_WARNING": "AI credits are exhausted. Active platform agents are paused until credits are available. Contact support to request more credits.",
     "UPDATE": {
       "ERROR": "Could not update settings, try again!",
       "SUCCESS": "Successfully updated account settings"

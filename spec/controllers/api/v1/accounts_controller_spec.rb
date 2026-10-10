@@ -216,6 +216,18 @@ RSpec.describe 'Accounts API', type: :request do
 
         expect(response.parsed_body['reporting_timezone']).to eq('America/Los_Angeles')
       end
+
+      it 'exposes the safe derived AI credit warning state' do
+        allow(account).to receive(:saas_ai_credit_status).and_return(
+          text_mode: 'platform', available_text_credits: 0, active_text_ai_agents: 1, show_credit_warning: true
+        )
+
+        get "/api/v1/accounts/#{account.id}", headers: admin.create_new_auth_token, as: :json
+
+        expect(response.parsed_body['saas_ai_credit_status']).to eq(
+          'text_mode' => 'platform', 'available_text_credits' => 0, 'active_text_ai_agents' => 1, 'show_credit_warning' => true
+        )
+      end
     end
 
     context 'when API and webhook access is disabled for the account' do

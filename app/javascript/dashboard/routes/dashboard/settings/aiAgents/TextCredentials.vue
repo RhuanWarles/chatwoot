@@ -48,6 +48,7 @@ async function save(removeKey = false) {
     apiKey.value = '';
     useAlert(t('SAAS_AI.SAVED'));
     await load();
+    window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch (error) {
     showError(error);
   } finally {
