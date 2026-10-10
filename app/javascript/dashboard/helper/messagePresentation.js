@@ -56,3 +56,16 @@ export const getGroupSenderColor = identifier => {
   return GROUP_SENDER_COLORS[hash % GROUP_SENDER_COLORS.length];
 };
 
+const GROUP_SENDER_HEADER = /^\*\*(?<identifier>[^*\n]+?)\s+-\s+(?<name>[^*\n:]+):\*\*/;
+
+export const formatGroupSenderHeader = (formattedContent, content) => {
+  const match = content?.match(GROUP_SENDER_HEADER);
+  if (!match) return formattedContent;
+
+  const color = getGroupSenderColor(match.groups.identifier.trim());
+  return formattedContent.replace(
+    /<strong>([^<]+)<\/strong>/,
+    `<strong><span class="${color}">$1</span></strong>`
+  );
+};
+

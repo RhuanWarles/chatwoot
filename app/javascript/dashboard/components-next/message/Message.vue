@@ -49,7 +49,6 @@ import ForwardEmailPanel from './forward/ForwardEmailPanel.vue';
 import ForwardedEmailBanner from './forward/ForwardedEmailBanner.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
-import { getGroupSenderColor } from 'dashboard/helper/messagePresentation';
 
 /**
  * @typedef {Object} Attachment
@@ -540,15 +539,6 @@ const avatarTooltip = computed(() => {
   return `${t('CONVERSATION.SENT_BY')} ${avatarInfo.value.name}`;
 });
 
-const groupSenderName = computed(() => {
-  if (!props.isGroupConversation || props.messageType !== MESSAGE_TYPES.INCOMING) return '';
-  return props.sender?.name || props.additionalAttributes?.senderName || '';
-});
-
-const groupSenderColor = computed(() =>
-  getGroupSenderColor(props.sender?.id || props.sender?.identifier || groupSenderName.value)
-);
-
 const setupHighlightTimer = () => {
   if (Number(route.query.messageId) !== Number(props.id)) {
     return;
@@ -570,6 +560,7 @@ provideMessageContext({
   orientation,
   isBotOrAgentMessage,
   shouldGroupWithNext,
+  isGroupConversation: computed(() => props.isGroupConversation),
 });
 </script>
 
@@ -618,17 +609,10 @@ provideMessageContext({
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
           'flex-col items-start gap-2':
-            shouldShowWhatsappReferral || isForwardedEmail || groupSenderName,
+            shouldShowWhatsappReferral || isForwardedEmail,
         }"
         @contextmenu="openContextMenu($event)"
       >
-        <span
-          v-if="groupSenderName"
-          class="mb-1 text-xs font-medium"
-          :class="groupSenderColor"
-        >
-          {{ groupSenderName }}
-        </span>
         <WhatsappReferral
           v-if="shouldShowWhatsappReferral"
           :referral="contentAttributes.referral"

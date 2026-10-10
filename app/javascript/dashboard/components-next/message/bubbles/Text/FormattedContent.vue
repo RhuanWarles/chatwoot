@@ -8,6 +8,7 @@ import {
   GROUP_MENTION_PARTICIPANTS,
   formatGroupMentionContent,
 } from 'dashboard/helper/groupMentionRendering';
+import { formatGroupSenderHeader } from 'dashboard/helper/messagePresentation';
 
 const props = defineProps({
   content: {
@@ -20,6 +21,7 @@ const {
   variant,
   contentAttributes,
   isPrivate,
+  isGroupConversation,
   content: originalContent,
 } = useMessageContext();
 const participants = inject(GROUP_MENTION_PARTICIPANTS, ref(null));
@@ -49,7 +51,10 @@ const formattedContent = computed(() => {
       mentions
     );
   }
-  return new MessageFormatter(props.content).formattedMessage;
+    const formatted = new MessageFormatter(props.content).formattedMessage;
+    return isGroupConversation.value
+      ? formatGroupSenderHeader(formatted, props.content)
+      : formatted;
 });
 </script>
 
