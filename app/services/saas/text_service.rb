@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Saas::TextService
   MAX_OUTPUT_TOKENS = 1024
   OUTPUT_LIMITS = {
@@ -17,13 +19,18 @@ class Saas::TextService
     { provider: ENV.fetch('SAAS_TEXT_PROVIDER'), model: ENV.fetch('SAAS_TEXT_MODEL') }
   end
 
-  def self.generate_messages(messages:, temperature:)
+  def self.generate_messages(messages:, temperature:, tools: [], tool_handler: nil)
     config = platform_config
     context = RubyLLM.context do |settings|
       settings.public_send("#{config[:provider]}_api_key=", ENV.fetch('SAAS_TEXT_API_KEY'))
       settings.request_timeout = 60
       settings.max_retries = 0
     end
+    if tools.present? && config[:provider] != 'openai'
+      raise CustomExceptions::SaasError, 'tools_provider_unsupported'
+    end
+    return generate_openai_messages(messages:, temperature:, tools:, tool_handler:) if tools.present?
+
     chat = context.chat(model: config[:model], provider: config[:provider], assume_model_exists: true)
                   .with_temperature(temperature)
                   .with_params(**OUTPUT_LIMITS.fetch(config[:provider]))
@@ -40,6 +47,11 @@ class Saas::TextService
     usage['cached_tokens'] = response.cached_input_tokens if response.respond_to?(:cached_input_tokens)
     usage['reasoning_tokens'] = response.reasoning_tokens if response.respond_to?(:reasoning_tokens)
     { content: content.strip, usage: usage.compact }
+  end
+
+  def self.generate_openai_messages(messages:, temperature:, tools:, tool_handler:)
+    provider = Saas::AiAgents::Providers::OpenAi.new(OpenStruct.new(saas_ai_setting: OpenStruct.new(text_mode: 'byok', text_provider: 'openai', text_api_key: ENV.fetch('SAAS_TEXT_API_KEY'))))
+    provider.generate(model: platform_config[:model], messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler)
   end
 
   def self.credits_per_request

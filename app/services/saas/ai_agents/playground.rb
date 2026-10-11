@@ -32,12 +32,16 @@ class Saas::AiAgents::Playground
       mode = text_mode
       usage = create_usage(mode, session_id, request_id)
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      tools = Saas::AiTools::Catalog.for_agent(@agent, playground: true)
+      executor = Saas::AiTools::Executor.new(account: @account, agent: @agent, playground_session_id: session_id)
       result = Saas::AiAgents::Provider.for(@account, @agent.provider, mode: mode).generate(
-        model: effective_model(mode), messages: build_messages(data, prompt), temperature: @agent.temperature.to_f
+        model: effective_model(mode), messages: build_messages(data, prompt), temperature: @agent.temperature.to_f,
+        tools: tools, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
       )
       assistant = {
         'role' => 'assistant', 'content' => result.fetch(:content), 'request_id' => request_id,
-        'created_at' => Time.current.iso8601
+        'created_at' => Time.current.iso8601,
+        'tool_calls_count' => result.fetch(:tool_calls_count, 0), 'tool_names' => result.fetch(:tool_names, [])
       }
       data['messages'] = trim_history(data.fetch('messages') + [
         { 'role' => 'user', 'content' => prompt, 'request_id' => request_id, 'created_at' => Time.current.iso8601 }, assistant

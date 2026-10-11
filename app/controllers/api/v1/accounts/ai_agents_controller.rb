@@ -23,6 +23,9 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
     'customer_memory_enabled' => ->(value) { [true, false].include?(value) },
+    'tool_ids' => lambda { |value|
+      value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
+    },
     'inbox_ids' => lambda { |value|
       value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
     }
@@ -83,14 +86,20 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
       raise CustomExceptions::SaasError, 'invalid_settings'
     end
 
-    attributes = input.permit(*VALIDATORS.keys.excluding('inbox_ids'), inbox_ids: []).to_h.symbolize_keys
+    attributes = input.permit(*VALIDATORS.keys.excluding('inbox_ids', 'tool_ids'), inbox_ids: [], tool_ids: []).to_h.symbolize_keys
     inbox_ids = attributes.delete(:inbox_ids)
+    tool_ids = attributes.delete(:tool_ids)
     selected_inboxes = Current.account.inboxes.where(id: inbox_ids).to_a unless inbox_ids.nil?
     if selected_inboxes && selected_inboxes.length != inbox_ids.length
       @agent.errors.add(:inboxes, :invalid)
       raise ActiveRecord::RecordInvalid, @agent
     end
-    @agent.configure!(attributes, selected_inboxes: selected_inboxes)
+    selected_tools = Current.account.saas_ai_tools.where(id: tool_ids).to_a unless tool_ids.nil?
+    if selected_tools && selected_tools.length != tool_ids.length
+      @agent.errors.add(:tools, :invalid)
+      raise ActiveRecord::RecordInvalid, @agent
+    end
+    @agent.configure!(attributes, selected_inboxes: selected_inboxes, selected_tools: selected_tools)
   end
 
   def memory_data(memory)

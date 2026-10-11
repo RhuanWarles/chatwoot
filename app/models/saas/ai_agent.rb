@@ -9,6 +9,8 @@ class Saas::AiAgent < ApplicationRecord
   has_many :ai_agent_inboxes, class_name: 'Saas::AiAgentInbox', dependent: :destroy, inverse_of: :ai_agent
   has_many :inboxes, through: :ai_agent_inboxes
   has_many :memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy
+  has_many :ai_tool_agents, class_name: 'Saas::AiToolAgent', dependent: :destroy
+  has_many :tools, through: :ai_tool_agents, source: :ai_tool
 
   validates :name, :system_prompt, :provider, :model, presence: true
   validates :name, :model, length: { maximum: 100 }
@@ -21,10 +23,14 @@ class Saas::AiAgent < ApplicationRecord
   validate :validate_runtime_provider
 
   # Serialize assignment and activation together, including concurrent requests.
-  def configure!(attributes, selected_inboxes: nil)
+  def configure!(attributes, selected_inboxes: nil, selected_tools: nil)
     account.with_lock do
       assign_attributes(attributes)
       self.inboxes = selected_inboxes unless selected_inboxes.nil?
+      if selected_tools
+        ai_tool_agents.delete_all
+        selected_tools.each { |tool| ai_tool_agents.create!(account: account, ai_tool: tool) }
+      end
       save!
     end
     self
@@ -34,7 +40,8 @@ class Saas::AiAgent < ApplicationRecord
     attributes.slice('id', 'account_id', 'name', 'description', 'system_prompt', 'provider', 'model',
                      'temperature', 'context_messages_limit', 'active', 'handoff_enabled', 'respond_to_groups', 'customer_memory_enabled', 'created_at', 'updated_at').merge(
                        'temperature' => temperature.to_f,
-                       'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } }
+                       'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } },
+                       'tools' => tools.map { |tool| { id: tool.id, name: tool.name, slug: tool.slug, description: tool.description, active: tool.active, allow_in_playground: tool.allow_in_playground } }
                      )
   end
 

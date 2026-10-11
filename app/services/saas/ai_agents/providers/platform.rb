@@ -1,6 +1,6 @@
 class Saas::AiAgents::Providers::Platform
-  def generate(model:, messages:, temperature:)
-    Saas::TextService.generate_messages(messages: messages, temperature: temperature)
+  def generate(model:, messages:, temperature:, tools: [], tool_handler: nil)
+    Saas::TextService.generate_messages(messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler)
   rescue Faraday::TimeoutError, Faraday::ConnectionFailed
     raise CustomExceptions::AiAgentError::Transient, 'provider_timeout_or_connection_error', cause: nil
   rescue Faraday::Error => e

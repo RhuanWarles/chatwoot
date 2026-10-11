@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
@@ -18,6 +18,7 @@ const loading = ref(true);
 const sending = ref(false);
 const error = ref('');
 const messagesRef = ref(null);
+const hasLiveTools = computed(() => agent.value?.tools?.some(tool => tool.active && tool.allow_in_playground) === true);
 
 const scrollToBottom = () =>
   nextTick(() => {
@@ -116,6 +117,9 @@ onMounted(load);
     </header>
     <p v-if="runtime?.mode === 'platform'" class="text-sm text-n-slate-11">
       {{ t('AI_PLAYGROUND.PLATFORM_CREDITS', { amount: availableCredits ?? 0 }) }}
+    </p>
+    <p v-if="hasLiveTools" class="p-3 text-sm rounded-lg text-n-amber-11 bg-n-amber-2">
+      {{ t('AI_PLAYGROUND.LIVE_TOOLS_WARNING') }}
     </p>
     <p v-if="error" role="alert" class="text-sm text-n-ruby-9">{{ error }}</p>
     <div

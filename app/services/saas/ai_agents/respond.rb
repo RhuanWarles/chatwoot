@@ -39,10 +39,14 @@ class Saas::AiAgents::Respond
     mode = @conversation.account.saas_ai_setting&.text_mode || 'platform'
     memory_context = Saas::AiAgents::Memory.prompt_context(@agent, @conversation.contact)
     usage = reserve_credits(mode)
+    tool_definitions = Saas::AiTools::Catalog.for_agent(@agent)
+    tool_executor = Saas::AiTools::Executor.new(account: @conversation.account, agent: @agent, conversation: @conversation)
     result = Saas::AiAgents::Provider.for(@conversation.account, @agent.provider, mode: mode).generate(
       model: @agent.model,
       messages: Saas::AiAgents::Context.build(@conversation, @agent, @incoming, memory_context: memory_context),
-      temperature: @agent.temperature.to_f
+      temperature: @agent.temperature.to_f,
+      tools: tool_definitions,
+      tool_handler: ->(name, arguments) { tool_executor.call(name, arguments) }
     )
     persist(result, usage, mode: mode)
   rescue CustomExceptions::SaasError => e
@@ -70,7 +74,8 @@ class Saas::AiAgents::Respond
                                      content_attributes: {
                                        generated_by_ai: true, ai_agent_id: @agent.id, ai_agent_incoming_message_id: @incoming.id,
                                        ai_provider: effective_provider(mode), ai_model: effective_model(mode),
-                                       ai_duration_ms: duration, ai_token_usage: result.fetch(:usage)
+                                       ai_duration_ms: duration, ai_token_usage: result.fetch(:usage),
+                                       tool_calls_count: result.fetch(:tool_calls_count, 0), tool_names: result.fetch(:tool_names, [])
                                      }
                                    }).perform
       usage&.wallet&.settle!(usage, units: usage.reserved_units, metadata: usage_metadata(result, mode))
@@ -122,7 +127,8 @@ class Saas::AiAgents::Respond
       'source' => 'runtime', 'ai_agent_id' => @agent.id, 'conversation_id' => @conversation.id, 'incoming_message_id' => @incoming.id,
       'provider' => effective_provider(mode), 'model' => effective_model(mode), 'mode' => mode,
       'prompt_tokens' => result.dig(:usage, 'prompt_tokens'), 'completion_tokens' => result.dig(:usage, 'completion_tokens'),
-      'total_tokens' => result.dig(:usage, 'total_tokens'), 'duration_ms' => duration
+      'total_tokens' => result.dig(:usage, 'total_tokens'), 'tool_calls_count' => result.fetch(:tool_calls_count, 0),
+      'tool_names' => result.fetch(:tool_names, []), 'duration_ms' => duration
     }.compact
   end
 

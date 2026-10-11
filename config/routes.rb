@@ -62,6 +62,9 @@ Rails.application.routes.draw do
               delete 'playground/:session_id', to: 'ai_agent_playground#destroy'
             end
           end
+          resources :ai_tools, only: [:index, :show, :create, :update, :destroy], controller: 'ai_tools' do
+            post :test, on: :member
+          end
           resource :saas_ai, only: [:show, :update], controller: 'saas_ai' do
             post :calls
             post :text_generations
