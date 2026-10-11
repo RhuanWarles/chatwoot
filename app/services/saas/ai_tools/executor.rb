@@ -28,7 +28,7 @@ class Saas::AiTools::Executor
     uri = rendered_uri(tool, args)
     validate_uri!(uri)
     request = build_request(tool, uri, args)
-    response = perform_request(request, tool.configuration['timeout_seconds'].to_i)
+    response = perform_request(request, uri, tool.configuration['timeout_seconds'].to_i)
     normalized = normalize_response(response)
     status = response.code.to_i.between?(200, 299) ? 'completed' : 'failed'
     persist_execution(tool, request_id, masked_arguments(tool, args), status, response.code.to_i, started, status == 'failed' ? 'tool_http_error' : nil)
@@ -122,9 +122,10 @@ class Saas::AiTools::Executor
     render(value, args)
   end
 
-  def perform_request(request, timeout)
-    http = Net::HTTP.new(request.uri.host, request.uri.port)
-    http.use_ssl = request.uri.scheme == 'https'
+  def perform_request(request, uri, timeout)
+    parsed = URI.parse(uri)
+    http = Net::HTTP.new(parsed.host, parsed.port)
+    http.use_ssl = parsed.scheme == 'https'
     http.open_timeout = timeout
     http.read_timeout = timeout
     http.verify_mode = OpenSSL::SSL::VERIFY_PEER if http.use_ssl?
