@@ -32,16 +32,14 @@ class Saas::TextService
     content = response&.content
     raise CustomExceptions::SaasError, 'empty_response' unless content.is_a?(String) && content.strip.present?
 
-    {
-      content: content.strip,
-      usage: {
-        'prompt_tokens' => response.input_tokens,
-        'completion_tokens' => response.output_tokens,
-        'total_tokens' => response.input_tokens.to_i + response.output_tokens.to_i,
-        'cached_tokens' => response.cached_input_tokens if response.respond_to?(:cached_input_tokens),
-        'reasoning_tokens' => response.reasoning_tokens if response.respond_to?(:reasoning_tokens)
-      }.compact
+    usage = {
+      'prompt_tokens' => response.input_tokens,
+      'completion_tokens' => response.output_tokens,
+      'total_tokens' => response.input_tokens.to_i + response.output_tokens.to_i
     }
+    usage['cached_tokens'] = response.cached_input_tokens if response.respond_to?(:cached_input_tokens)
+    usage['reasoning_tokens'] = response.reasoning_tokens if response.respond_to?(:reasoning_tokens)
+    { content: content.strip, usage: usage.compact }
   end
 
   def self.credits_per_request
