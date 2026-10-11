@@ -718,6 +718,7 @@ en:
         prompt_tokens: 'Prompt tokens'
         completion_tokens: 'Completion tokens'
         total_tokens: 'Total tokens'
+        credits: 'Credits consumed'
         estimated_cost: 'Estimated cost'
         not_configured: 'Price not configured'
         period: 'Period'

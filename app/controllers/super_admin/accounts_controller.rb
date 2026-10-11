@@ -90,9 +90,9 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     @ai_usage_summary = @ai_usage_scope.group(:source).pluck(
       :source, Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(prompt_tokens), 0)'),
       Arel.sql('COALESCE(SUM(completion_tokens), 0)'), Arel.sql('COALESCE(SUM(total_tokens), 0)'),
-      Arel.sql('COALESCE(SUM(estimated_cost_usd), 0)')
+      Arel.sql('COALESCE(SUM(estimated_cost_usd), 0)'), Arel.sql('COALESCE(SUM(units), 0)')
     ).to_h { |row| [row[0], { generations: row[1], prompt_tokens: row[2], completion_tokens: row[3],
-                              total_tokens: row[4], estimated_cost_usd: row[5] }] }
+                              total_tokens: row[4], estimated_cost_usd: row[5], credits: row[6] }] }
     @ai_usage_records = @ai_usage_scope.includes(:wallet).order(created_at: :desc).limit(100)
     @ai_usage_agents = @saas_account.saas_ai_agents.order(:name)
   end
