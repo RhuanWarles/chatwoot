@@ -23,6 +23,11 @@ const actionError = ref('');
 const editorError = ref('');
 const editor = ref(null);
 const deletion = ref(null);
+const memoryDialog = ref(null);
+const memoryAgent = ref(null);
+const memories = ref([]);
+const memoryLoading = ref(false);
+const memoryError = ref('');
 const deleting = ref(null);
 const draft = ref(newAgent());
 const previousProvider = ref(draft.value.provider);
@@ -69,6 +74,7 @@ const formatUpdatedAt = timestamp => {
 
 const normalizeAgent = agent => ({
   ...agent,
+  customer_memory_enabled: agent?.customer_memory_enabled === true,
   inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
 });
 
@@ -180,6 +186,33 @@ const requestDelete = agent => {
   actionError.value = '';
   deletion.value.open();
 };
+const openMemories = async agent => {
+  memoryAgent.value = agent;
+  memories.value = [];
+  memoryError.value = '';
+  memoryDialog.value.open();
+  memoryLoading.value = true;
+  try {
+    const { data } = await aiAgentsAPI.memories(agent.id);
+    memories.value = Array.isArray(data) ? data : [];
+  } catch {
+    memoryError.value = t('AI_AGENTS.MEMORY_LOAD_ERROR');
+  } finally {
+    memoryLoading.value = false;
+  }
+};
+const clearMemory = async memory => {
+  if (memoryLoading.value) return;
+  memoryLoading.value = true;
+  try {
+    await aiAgentsAPI.clearMemory(memoryAgent.value.id, memory.contact_id);
+    memories.value = memories.value.filter(item => item.id !== memory.id);
+  } catch {
+    memoryError.value = t('AI_AGENTS.MEMORY_CLEAR_ERROR');
+  } finally {
+    memoryLoading.value = false;
+  }
+};
 const remove = async () => {
   if (busy.value || !deleting.value) return;
   busy.value = true;
@@ -270,6 +303,12 @@ onMounted(load);
                 params: { accountId, agentId: agent.id },
               })
             "
+          />
+          <Button
+            variant="ghost"
+            :label="t('AI_AGENTS.MEMORIES')"
+            :disabled="busy"
+            @click="openMemories(agent)"
           />
           <Button
             variant="ghost"
@@ -447,6 +486,11 @@ onMounted(load);
           {{ t('AI_AGENTS.RESPOND_TO_GROUPS') }}
         </label>
         <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.GROUP_HELP') }}</p>
+        <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <input v-model="draft.customer_memory_enabled" type="checkbox" :disabled="busy" />
+          {{ t('AI_AGENTS.CUSTOMER_MEMORY') }}
+        </label>
+        <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.CUSTOMER_MEMORY_HELP') }}</p>
         <label class="flex items-center gap-2 text-sm text-n-slate-12"
           ><input
             v-model="draft.handoff_enabled"
@@ -455,6 +499,25 @@ onMounted(load);
           />{{ t('AI_AGENTS.HANDOFF') }}</label
         >
         <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.HANDOFF_HELP') }}</p>
+      </div>
+    </Dialog>
+    <Dialog
+      ref="memoryDialog"
+      width="2xl"
+      :title="t('AI_AGENTS.MEMORIES')"
+      :cancel-button-label="t('AI_AGENTS.CLOSE')"
+    >
+      <div class="flex flex-col gap-3 max-h-[65vh] overflow-y-auto">
+        <p v-if="memoryError" role="alert" class="text-sm text-n-ruby-9">{{ memoryError }}</p>
+        <p v-if="memoryLoading" class="text-sm text-n-slate-11">{{ t('AI_AGENTS.LOADING') }}</p>
+        <p v-else-if="!memories.length" class="text-sm text-n-slate-11">{{ t('AI_AGENTS.NO_MEMORIES') }}</p>
+        <article v-for="memory in memories" :key="memory.id" class="p-3 rounded-lg bg-n-solid-2">
+          <div class="flex items-center justify-between gap-3">
+            <strong class="text-sm text-n-slate-12">{{ memory.contact_name || memory.contact_id }}</strong>
+            <Button variant="ghost" color="ruby" :label="t('AI_AGENTS.CLEAR_MEMORY')" @click="clearMemory(memory)" />
+          </div>
+          <p class="mt-2 text-sm whitespace-pre-wrap text-n-slate-11">{{ memory.content }}</p>
+        </article>
       </div>
     </Dialog>
     <Dialog

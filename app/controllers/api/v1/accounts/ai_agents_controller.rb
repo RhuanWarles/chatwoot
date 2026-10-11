@@ -2,7 +2,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
   include SaasAiAccess
   before_action -> { require_ai_feature('text') }
   before_action :check_admin_authorization?
-  before_action :fetch_agent, only: [:show, :update, :destroy]
+  before_action :fetch_agent, only: [:show, :update, :destroy, :memories, :clear_memory]
   rescue_from CustomExceptions::SaasError do
     render json: { error: 'invalid_settings' }, status: :unprocessable_entity
   end
@@ -21,6 +21,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'active' => ->(value) { [true, false].include?(value) },
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
+    'customer_memory_enabled' => ->(value) { [true, false].include?(value) },
     'inbox_ids' => lambda { |value|
       value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
     }
@@ -57,6 +58,17 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     head :no_content
   end
 
+  def memories
+    memories = @agent.memories.where(account: Current.account).includes(:contact).order(updated_at: :desc)
+    memories = memories.where(contact_id: params[:contact_id]) if params[:contact_id].present?
+    render json: memories.map { |memory| memory_data(memory) }
+  end
+
+  def clear_memory
+    @agent.memories.where(account: Current.account, contact_id: params[:contact_id]).delete_all
+    head :no_content
+  end
+
   private
 
   def fetch_agent
@@ -78,5 +90,11 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
       raise ActiveRecord::RecordInvalid, @agent
     end
     @agent.configure!(attributes, selected_inboxes: selected_inboxes)
+  end
+
+  def memory_data(memory)
+    { id: memory.id, contact_id: memory.contact_id, contact_name: memory.contact.name, content: memory.content,
+      updated_at: memory.updated_at,
+      last_processed_message_id: memory.last_processed_message_id }
   end
 end

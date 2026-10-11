@@ -8,6 +8,7 @@ export const newAgent = () => ({
   inbox_ids: [],
   handoff_enabled: true,
   respond_to_groups: false,
+  customer_memory_enabled: false,
   active: false,
 });
 
@@ -21,6 +22,7 @@ export const agentPayload = agent => ({
   inbox_ids: [...agent.inbox_ids],
   handoff_enabled: agent.handoff_enabled,
   respond_to_groups: agent.respond_to_groups,
+  customer_memory_enabled: agent.customer_memory_enabled,
   active: agent.active,
 });
 

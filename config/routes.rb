@@ -55,6 +55,8 @@ Rails.application.routes.draw do
           resources :voice_agents, only: [:index, :show, :create, :update, :destroy]
           resources :ai_agents, only: [:index, :show, :create, :update, :destroy] do
             member do
+              get 'memories', to: 'ai_agents#memories'
+              delete 'memories/:contact_id', to: 'ai_agents#clear_memory'
               get 'playground/:session_id', to: 'ai_agent_playground#show'
               post 'playground/messages', to: 'ai_agent_playground#create_message'
               delete 'playground/:session_id', to: 'ai_agent_playground#destroy'

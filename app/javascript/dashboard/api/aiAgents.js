@@ -11,5 +11,8 @@ client.sendPlaygroundMessage = (agentId, sessionId, payload) =>
   });
 client.clearPlaygroundSession = (agentId, sessionId) =>
   axios.delete(`${client.url}/${agentId}/playground/${sessionId}`);
+client.memories = agentId => axios.get(`${client.url}/${agentId}/memories`);
+client.clearMemory = (agentId, contactId) =>
+  axios.delete(`${client.url}/${agentId}/memories/${contactId}`);
 
 export default client;

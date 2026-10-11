@@ -77,11 +77,11 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     @saas_usage_records = Saas::UsageRecord.where(wallet: @saas_wallets.values)
                                            .includes(:wallet).order(created_at: :desc).limit(100)
     @ai_usage_period = params[:period].presence_in(%w[today seven_days thirty_days total]) || 'thirty_days'
-    @ai_usage_source = params[:source].presence_in(%w[runtime playground])
+    @ai_usage_source = params[:source].presence_in(%w[runtime playground memory])
     @ai_usage_provider = params[:provider].presence
     @ai_usage_model = params[:model].presence
     @ai_usage_agent_id = params[:agent_id].presence
-    @ai_usage_scope = Saas::UsageRecord.where(account: @saas_account, kind: 'consumption').where(source: %w[runtime playground])
+    @ai_usage_scope = Saas::UsageRecord.where(account: @saas_account, kind: 'consumption').where(source: %w[runtime playground memory])
     @ai_usage_scope = @ai_usage_scope.where(source: @ai_usage_source) if @ai_usage_source
     @ai_usage_scope = @ai_usage_scope.where(provider: @ai_usage_provider) if @ai_usage_provider
     @ai_usage_scope = @ai_usage_scope.where(model: @ai_usage_model) if @ai_usage_model

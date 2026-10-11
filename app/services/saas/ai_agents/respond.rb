@@ -37,9 +37,12 @@ class Saas::AiAgents::Respond
     return unless @incoming && @incoming.id > @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i
 
     mode = @conversation.account.saas_ai_setting&.text_mode || 'platform'
+    memory_context = Saas::AiAgents::Memory.prompt_context(@agent, @conversation.contact)
     usage = reserve_credits(mode)
     result = Saas::AiAgents::Provider.for(@conversation.account, @agent.provider, mode: mode).generate(
-      model: @agent.model, messages: Saas::AiAgents::Context.build(@conversation, @agent, @incoming), temperature: @agent.temperature.to_f
+      model: @agent.model,
+      messages: Saas::AiAgents::Context.build(@conversation, @agent, @incoming, memory_context: memory_context),
+      temperature: @agent.temperature.to_f
     )
     persist(result, usage, mode: mode)
   rescue CustomExceptions::SaasError => e
@@ -78,6 +81,18 @@ class Saas::AiAgents::Respond
       true
     end
     release_usage(usage) unless persisted || usage.nil?
+    enqueue_memory_update if persisted
+  end
+
+  def enqueue_memory_update
+    return unless @agent.customer_memory_enabled? && @conversation.contact
+
+    Saas::AiAgents::MemoryJob.perform_later(
+      @conversation.account_id, @agent.id, @conversation.contact_id, @conversation.id, @incoming.id
+    )
+  rescue StandardError => error
+    Rails.logger.warn({ event: 'ai_agent_memory', account_id: @conversation.account_id, ai_agent_id: @agent.id,
+                        conversation_id: @conversation.id, status: 'enqueue_failed', error: error.message }.to_json)
   end
 
   def reserve_credits(mode)

@@ -83,7 +83,7 @@
         </div>
         <div>
           <%= form.label :source, t('super_admin.saas_usage.ai_usage.source'), class: 'block text-xs' %>
-          <%= form.select :source, [[t('super_admin.saas_usage.ai_usage.all'), ''], ['Runtime', 'runtime'], ['Playground', 'playground']], { selected: @ai_usage_source }, class: 'mt-1' %>
+          <%= form.select :source, [[t('super_admin.saas_usage.ai_usage.all'), ''], ['Runtime', 'runtime'], ['Playground', 'playground'], ['Memória', 'memory']], { selected: @ai_usage_source }, class: 'mt-1' %>
         </div>
         <div>
           <%= form.label :agent_id, t('super_admin.saas_usage.ai_usage.agent'), class: 'block text-xs' %>
@@ -94,7 +94,7 @@
     </div>
 
     <div class="mt-5 grid gap-4 md:grid-cols-3">
-      <% { 'runtime' => t('super_admin.saas_usage.ai_usage.runtime'), 'playground' => t('super_admin.saas_usage.ai_usage.playground') }.each do |source, label| %>
+      <% { 'runtime' => t('super_admin.saas_usage.ai_usage.runtime'), 'playground' => t('super_admin.saas_usage.ai_usage.playground'), 'memory' => 'Memória' }.each do |source, label| %>
         <% summary = @ai_usage_summary.fetch(source, { generations: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, estimated_cost_usd: 0, credits: 0 }) %>
         <article class="rounded-md bg-n-solid-2 p-4">
           <h3 class="font-medium"><%= label %></h3>

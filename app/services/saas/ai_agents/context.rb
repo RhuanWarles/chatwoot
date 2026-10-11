@@ -14,7 +14,7 @@ class Saas::AiAgents::Context
                           .reorder(id: :desc).first
   end
 
-  def self.build(conversation, agent, incoming)
+  def self.build(conversation, agent, incoming, memory_context: nil)
     remaining = HISTORY_CHARACTER_LIMIT
     history = relevant(conversation).where('id <= ?', incoming.id).reorder(id: :desc).limit(HISTORY_LIMIT).filter_map do |message|
       next if message.content_attributes['generated_by_ai'] == true && message.incoming?
@@ -26,6 +26,8 @@ class Saas::AiAgents::Context
       remaining -= content.length
       { role: message.incoming? ? 'user' : 'assistant', content: content }
     end.reverse
-    [{ role: 'system', content: agent.system_prompt }] + history
+    system_messages = [{ role: 'system', content: agent.system_prompt }]
+    system_messages << { role: 'system', content: memory_context } if memory_context.present?
+    system_messages + history
   end
 end

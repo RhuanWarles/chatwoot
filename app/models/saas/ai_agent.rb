@@ -8,13 +8,14 @@ class Saas::AiAgent < ApplicationRecord
   has_many :messages, as: :sender, dependent: :nullify
   has_many :ai_agent_inboxes, class_name: 'Saas::AiAgentInbox', dependent: :destroy, inverse_of: :ai_agent
   has_many :inboxes, through: :ai_agent_inboxes
+  has_many :memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy
 
   validates :name, :system_prompt, :provider, :model, presence: true
   validates :name, :model, length: { maximum: 100 }
   validates :system_prompt, length: { minimum: 1 }
   validates :provider, inclusion: { in: PROVIDERS }
   validates :temperature, numericality: { in: TEMPERATURE_RANGE }
-  validates :active, :handoff_enabled, :respond_to_groups, inclusion: { in: [true, false] }
+  validates :active, :handoff_enabled, :respond_to_groups, :customer_memory_enabled, inclusion: { in: [true, false] }
   validate :validate_inboxes
   validate :validate_runtime_provider
 
@@ -30,7 +31,7 @@ class Saas::AiAgent < ApplicationRecord
 
   def public_data
     attributes.slice('id', 'account_id', 'name', 'description', 'system_prompt', 'provider', 'model',
-                     'temperature', 'active', 'handoff_enabled', 'respond_to_groups', 'created_at', 'updated_at').merge(
+                     'temperature', 'active', 'handoff_enabled', 'respond_to_groups', 'customer_memory_enabled', 'created_at', 'updated_at').merge(
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } }
                      )
