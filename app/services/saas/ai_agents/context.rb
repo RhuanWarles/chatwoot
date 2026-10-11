@@ -18,7 +18,8 @@ class Saas::AiAgents::Context
   def self.build(conversation, agent, incoming, memory_context: nil)
     remaining = HISTORY_CHARACTER_LIMIT
     limit = agent.context_messages_limit.presence || DEFAULT_HISTORY_LIMIT
-    history = relevant(conversation).where('id <= ?', incoming.id).reorder(id: :desc).limit(limit.clamp(1, MAX_HISTORY_LIMIT)).filter_map do |message|
+    history = relevant(conversation).where('id <= ?', incoming.id).reorder(id: :desc)
+                         .limit(limit.clamp(1, MAX_HISTORY_LIMIT) + 1).filter_map do |message|
       next if message.content_attributes['generated_by_ai'] == true && message.incoming?
       next unless remaining.positive?
 

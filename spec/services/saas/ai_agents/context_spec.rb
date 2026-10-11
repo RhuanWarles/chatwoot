@@ -34,9 +34,10 @@ RSpec.describe Saas::AiAgents::Context do
     history = described_class.build(conversation, agent, incoming)
 
     expect(history.drop(1)).to eq([
+      { role: 'user', content: first.content },
       { role: 'user', content: 'Second' },
       { role: 'user', content: 'Third' }
     ])
-    expect(history).not_to include(hash_including(content: first.content))
+    expect(history.drop(1).count { |entry| entry[:content] == incoming.content }).to eq(1)
   end
 end
