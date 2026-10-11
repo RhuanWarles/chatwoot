@@ -4,6 +4,7 @@ export const newAgent = () => ({
   provider: 'openai',
   model: '',
   temperature: 0.7,
+  context_messages_limit: 20,
   system_prompt: '',
   inbox_ids: [],
   handoff_enabled: true,
@@ -18,6 +19,7 @@ export const agentPayload = agent => ({
   provider: agent.provider,
   model: agent.model,
   temperature: agent.temperature,
+  context_messages_limit: agent.context_messages_limit ?? 20,
   system_prompt: agent.system_prompt,
   inbox_ids: [...agent.inbox_ids],
   handoff_enabled: agent.handoff_enabled,
@@ -37,5 +39,8 @@ export const validAgent = agent =>
       typeof agent.temperature === 'number' &&
       Number.isFinite(agent.temperature) &&
       agent.temperature >= 0 &&
-      agent.temperature <= 1
+      agent.temperature <= 1 &&
+      Number.isInteger(agent.context_messages_limit) &&
+      agent.context_messages_limit >= 1 &&
+      agent.context_messages_limit <= 100
   );

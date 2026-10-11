@@ -451,6 +451,19 @@ onMounted(load);
             class="w-full p-3 rounded-lg resize-y min-h-48 bg-n-solid-2 text-n-slate-12 border border-n-weak focus:border-n-brand"
           />
         </label>
+        <label class="flex flex-col gap-2 text-sm text-n-slate-12">
+          {{ t('AI_AGENTS.CONTEXT_MESSAGES_LIMIT') }}
+          <input
+            v-model.number="draft.context_messages_limit"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            :disabled="busy"
+            class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak focus:border-n-brand"
+          />
+          <span class="text-xs text-n-slate-11">{{ t('AI_AGENTS.CONTEXT_MESSAGES_LIMIT_HELP') }}</span>
+        </label>
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-2 text-sm text-n-slate-12">
             {{ t('AI_AGENTS.INBOXES') }}

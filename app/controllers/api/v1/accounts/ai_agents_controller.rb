@@ -18,6 +18,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'provider' => ->(value) { Saas::AiAgent::PROVIDERS.include?(value) },
     'model' => ->(value) { value.is_a?(String) && value.strip.present? && value.length <= 100 },
     'temperature' => ->(value) { value.is_a?(Numeric) && value.finite? && Saas::AiAgent::TEMPERATURE_RANGE.cover?(value) },
+    'context_messages_limit' => ->(value) { value.is_a?(Integer) && (1..100).cover?(value) },
     'active' => ->(value) { [true, false].include?(value) },
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },

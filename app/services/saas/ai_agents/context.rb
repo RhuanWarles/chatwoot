@@ -1,5 +1,6 @@
 class Saas::AiAgents::Context
-  HISTORY_LIMIT = 30
+  DEFAULT_HISTORY_LIMIT = 20
+  MAX_HISTORY_LIMIT = 100
   HISTORY_CHARACTER_LIMIT = 24_000
   MESSAGE_CHARACTER_LIMIT = 4000
 
@@ -16,7 +17,8 @@ class Saas::AiAgents::Context
 
   def self.build(conversation, agent, incoming, memory_context: nil)
     remaining = HISTORY_CHARACTER_LIMIT
-    history = relevant(conversation).where('id <= ?', incoming.id).reorder(id: :desc).limit(HISTORY_LIMIT).filter_map do |message|
+    limit = agent.context_messages_limit.presence || DEFAULT_HISTORY_LIMIT
+    history = relevant(conversation).where('id <= ?', incoming.id).reorder(id: :desc).limit(limit.clamp(1, MAX_HISTORY_LIMIT)).filter_map do |message|
       next if message.content_attributes['generated_by_ai'] == true && message.incoming?
       next unless remaining.positive?
 

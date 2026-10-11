@@ -134,6 +134,8 @@
     "MODEL": "Model identifier",
     "TEMPERATURE": "Temperature (0-1)",
     "PROMPT": "System prompt",
+    "CONTEXT_MESSAGES_LIMIT": "Context messages",
+    "CONTEXT_MESSAGES_LIMIT_HELP": "Defines how many recent messages from this conversation are sent to the AI as context.",
     "INBOXES": "Linked inboxes",
     "NO_INBOXES": "No inboxes",
     "INBOX_HELP": "Each inbox can have at most one active text agent.",

@@ -4,6 +4,7 @@ describe('AI agent configuration', () => {
   it('starts inactive and requires a prompt and model', () => {
     expect(newAgent().active).toBe(false);
     expect(newAgent().respond_to_groups).toBe(false);
+    expect(newAgent().context_messages_limit).toBe(20);
     expect(validAgent(newAgent())).toBe(false);
   });
 
@@ -37,5 +38,6 @@ describe('AI agent configuration', () => {
     payload.inbox_ids.push(6);
     expect(agent.inbox_ids).toEqual([5]);
     expect(agentPayload({ ...agent, respond_to_groups: true }).respond_to_groups).toBe(true);
+    expect(agentPayload({ ...agent, context_messages_limit: 5 }).context_messages_limit).toBe(5);
   });
 });

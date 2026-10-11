@@ -16,6 +16,7 @@ RSpec.describe 'AI Agents API', type: :request do
     id = response.parsed_body.fetch('id')
     expect(response.parsed_body['inboxes'].pluck('id')).to eq([inbox.id])
     expect(response.parsed_body['respond_to_groups']).to be(false)
+    expect(response.parsed_body['context_messages_limit']).to eq(20)
     expect(response.parsed_body.keys).not_to include('api_key')
     patch "#{url}/#{id}", params: { ai_agent: { active: true, description: 'Updated', respond_to_groups: true } }, headers: headers, as: :json
     expect(response).to have_http_status(:ok)
@@ -57,7 +58,7 @@ RSpec.describe 'AI Agents API', type: :request do
   end
 
   it 'rejects malformed and missing fields with 422' do
-    [{ name: ' ' }, attributes.merge(temperature: '0.7'), attributes.merge(active: 'true'),
+    [{ name: ' ' }, attributes.merge(temperature: '0.7'), attributes.merge(active: 'true'), attributes.merge(context_messages_limit: 0),
      attributes.merge(temperature: 2), attributes.merge(respond_to_groups: 'true'), attributes.merge(inbox_ids: [inbox.id.to_s]),
      attributes.merge(inbox_ids: [inbox.id, inbox.id]), attributes.merge(account_id: account.id)].each do |input|
       post url, params: { ai_agent: input }, headers: headers, as: :json

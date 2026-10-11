@@ -54,7 +54,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def update_ai_state
-    authorize @conversation, :update?
+    authorize @conversation, :show?
     state = params.require(:state).to_s
     raise ActionController::BadRequest, 'invalid_state' unless Saas::AiAgents::ConversationState::STATES.include?(state)
 
