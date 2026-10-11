@@ -104,7 +104,7 @@ class Saas::AiAgents::Respond
 
   def usage_metadata(result, mode)
     {
-      'ai_agent_id' => @agent.id, 'conversation_id' => @conversation.id, 'incoming_message_id' => @incoming.id,
+      'source' => 'runtime', 'ai_agent_id' => @agent.id, 'conversation_id' => @conversation.id, 'incoming_message_id' => @incoming.id,
       'provider' => effective_provider(mode), 'model' => effective_model(mode), 'mode' => mode,
       'prompt_tokens' => result.dig(:usage, 'prompt_tokens'), 'completion_tokens' => result.dig(:usage, 'completion_tokens'),
       'total_tokens' => result.dig(:usage, 'total_tokens'), 'duration_ms' => duration
@@ -113,7 +113,7 @@ class Saas::AiAgents::Respond
 
   def reservation_metadata(mode)
     {
-      'ai_agent_id' => @agent.id, 'conversation_id' => @conversation.id, 'incoming_message_id' => @incoming.id,
+      'source' => 'runtime', 'ai_agent_id' => @agent.id, 'conversation_id' => @conversation.id, 'incoming_message_id' => @incoming.id,
       'provider' => effective_provider(mode), 'model' => effective_model(mode), 'mode' => mode
     }
   end

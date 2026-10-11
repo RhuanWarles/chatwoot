@@ -161,7 +161,7 @@
     "MODEL_CUSTOM_PLACEHOLDER": "Or enter a custom model identifier",
     "MODEL_HELP": "Choose a suggestion or enter any compatible model identifier.",
     "PLATFORM_MODE": "Platform credits",
-    "PLATFORM_CREDITS": "Available platform credits: {amount}",
+    "PLATFORM_CREDITS": "Available for live service: {amount} credits. Playground tests do not consume account credits.",
     "PLATFORM_COST": "Cost: {count} credit(s) per response",
     "PLATFORM_MODEL_HELP": "Platform mode uses {provider} with model {model}. Agent provider and model fields are informational and cannot be changed here.",
     "PLATFORM_NOT_READY": "Platform text AI is not configured yet. Ask the platform administrator to configure it before activating this agent.",

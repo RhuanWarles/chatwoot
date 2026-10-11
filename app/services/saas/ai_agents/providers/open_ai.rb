@@ -19,7 +19,11 @@ class Saas::AiAgents::Providers::OpenAi
     text = response.dig('choices', 0, 'message', 'content')
     raise CustomExceptions::AiAgentError, 'empty_response' unless text.is_a?(String) && text.strip.present?
 
-    { content: text.strip, usage: response.fetch('usage', {}).slice('prompt_tokens', 'completion_tokens', 'total_tokens') }
+    usage = response.fetch('usage', {})
+    { content: text.strip, usage: usage.slice('prompt_tokens', 'completion_tokens', 'total_tokens').merge(
+      'cached_tokens' => usage.dig('prompt_tokens_details', 'cached_tokens'),
+      'reasoning_tokens' => usage.dig('completion_tokens_details', 'reasoning_tokens')
+    ).compact }
   rescue Faraday::TimeoutError, Faraday::ConnectionFailed
     raise CustomExceptions::AiAgentError::Transient, 'provider_timeout_or_connection_error', cause: nil
   rescue Faraday::Error => e

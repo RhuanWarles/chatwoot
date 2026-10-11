@@ -27,7 +27,7 @@ class Saas::Wallet < ApplicationRecord
         next existing
       end
       update!(balance_units: balance_units + units)
-      usage_records.create!(reference: reference, kind: 'credit', status: 'settled', units: units, metadata: metadata)
+      usage_records.create!(account: account, reference: reference, kind: 'credit', status: 'settled', units: units, metadata: metadata)
     end
   end
 
@@ -44,7 +44,7 @@ class Saas::Wallet < ApplicationRecord
       raise CustomExceptions::SaasError, 'insufficient_balance' if available_units < units
 
       update!(balance_units: balance_units - units)
-      usage_records.create!(reference: reference, kind: 'adjustment', status: 'settled', units: units,
+      usage_records.create!(account: account, reference: reference, kind: 'adjustment', status: 'settled', units: units,
                             metadata: metadata)
     end
   end
@@ -66,7 +66,7 @@ class Saas::Wallet < ApplicationRecord
       end
       raise CustomExceptions::SaasError, 'insufficient_balance' if available_units < units
 
-      usage_records.create!(reference: reference, kind: 'consumption', status: 'reserved', reserved_units: units,
+      usage_records.create!(account: account, reference: reference, kind: 'consumption', status: 'reserved', reserved_units: units,
                             expires_at: expires_at, metadata: metadata)
     end
   end

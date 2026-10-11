@@ -70,6 +70,71 @@
     <% end %>
   </div>
 
+  <section class="mt-8 rounded-md border border-n-weak p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-medium"><%= t('super_admin.saas_usage.ai_usage.title') %></h2>
+        <p class="text-sm text-n-slate-11"><%= t('super_admin.saas_usage.ai_usage.description') %></p>
+      </div>
+      <%= form_with url: saas_usage_super_admin_account_path(@saas_account), method: :get, class: 'flex flex-wrap items-end gap-2' do |form| %>
+        <div>
+          <%= form.label :period, t('super_admin.saas_usage.ai_usage.period'), class: 'block text-xs' %>
+          <%= form.select :period, [[t('super_admin.saas_usage.ai_usage.periods.today'), 'today'], [t('super_admin.saas_usage.ai_usage.periods.seven_days'), 'seven_days'], [t('super_admin.saas_usage.ai_usage.periods.thirty_days'), 'thirty_days'], [t('super_admin.saas_usage.ai_usage.periods.total'), 'total']], { selected: @ai_usage_period }, class: 'mt-1' %>
+        </div>
+        <div>
+          <%= form.label :source, t('super_admin.saas_usage.ai_usage.source'), class: 'block text-xs' %>
+          <%= form.select :source, [[t('super_admin.saas_usage.ai_usage.all'), ''], ['Runtime', 'runtime'], ['Playground', 'playground']], { selected: @ai_usage_source }, class: 'mt-1' %>
+        </div>
+        <div>
+          <%= form.label :agent_id, t('super_admin.saas_usage.ai_usage.agent'), class: 'block text-xs' %>
+          <%= form.select :agent_id, [[t('super_admin.saas_usage.ai_usage.all'), '']] + @ai_usage_agents.map { |agent| [agent.name, agent.id] }, { selected: @ai_usage_agent_id }, class: 'mt-1' %>
+        </div>
+        <%= form.submit t('super_admin.saas_usage.ai_usage.apply'), class: 'button' %>
+      <% end %>
+    </div>
+
+    <div class="mt-5 grid gap-4 md:grid-cols-3">
+      <% { 'runtime' => t('super_admin.saas_usage.ai_usage.runtime'), 'playground' => t('super_admin.saas_usage.ai_usage.playground') }.each do |source, label| %>
+        <% summary = @ai_usage_summary.fetch(source, { generations: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, estimated_cost_usd: 0 }) %>
+        <article class="rounded-md bg-n-solid-2 p-4">
+          <h3 class="font-medium"><%= label %></h3>
+          <dl class="mt-3 space-y-1 text-sm">
+            <div class="flex justify-between"><dt><%= t('super_admin.saas_usage.ai_usage.generations') %></dt><dd><%= summary[:generations] %></dd></div>
+            <div class="flex justify-between"><dt><%= t('super_admin.saas_usage.ai_usage.prompt_tokens') %></dt><dd><%= number_with_delimiter(summary[:prompt_tokens]) %></dd></div>
+            <div class="flex justify-between"><dt><%= t('super_admin.saas_usage.ai_usage.completion_tokens') %></dt><dd><%= number_with_delimiter(summary[:completion_tokens]) %></dd></div>
+            <div class="flex justify-between"><dt><%= t('super_admin.saas_usage.ai_usage.total_tokens') %></dt><dd><%= number_with_delimiter(summary[:total_tokens]) %></dd></div>
+            <div class="flex justify-between"><dt><%= t('super_admin.saas_usage.ai_usage.estimated_cost') %></dt><dd><%= summary[:estimated_cost_usd].to_d.zero? ? t('super_admin.saas_usage.ai_usage.not_configured') : number_to_currency(summary[:estimated_cost_usd], unit: 'US$') %></dd></div>
+          </dl>
+        </article>
+      <% end %>
+      <% total_cost = @ai_usage_summary.values.sum { |summary| summary[:estimated_cost_usd].to_d } %>
+      <article class="rounded-md bg-n-solid-2 p-4">
+        <h3 class="font-medium"><%= t('super_admin.saas_usage.ai_usage.total') %></h3>
+        <p class="mt-3 text-sm"><%= t('super_admin.saas_usage.ai_usage.estimated_cost') %>: <%= total_cost.zero? ? t('super_admin.saas_usage.ai_usage.not_configured') : number_to_currency(total_cost, unit: 'US$') %></p>
+      </article>
+    </div>
+
+    <div class="mt-6 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead><tr class="border-b border-n-weak">
+          <% %w[date agent source provider model prompt_tokens completion_tokens total_tokens credits estimated_cost status].each do |column| %><th class="p-2"><%= t("super_admin.saas_usage.ai_usage.columns.#{column}") %></th><% end %>
+        </tr></thead>
+        <tbody>
+          <% @ai_usage_records.each do |record| %>
+            <% metadata = record.metadata || {} %>
+            <tr class="border-b border-n-weak">
+              <td class="p-2"><%= l(record.created_at, format: :short) %></td>
+              <td class="p-2"><%= @ai_usage_agents.find { |agent| agent.id.to_s == metadata['ai_agent_id'].to_s }&.name || '—' %></td>
+              <td class="p-2"><%= record.source %></td><td class="p-2"><%= record.provider || '—' %></td><td class="p-2"><%= record.model || '—' %></td>
+              <td class="p-2"><%= record.prompt_tokens || 0 %></td><td class="p-2"><%= record.completion_tokens || 0 %></td><td class="p-2"><%= record.total_tokens || 0 %></td>
+              <td class="p-2"><%= record.source == 'runtime' ? record.units : 0 %></td><td class="p-2"><%= record.estimated_cost_usd ? number_to_currency(record.estimated_cost_usd, unit: 'US$') : t('super_admin.saas_usage.ai_usage.not_configured') %></td><td class="p-2"><%= record.status %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="mt-8">
     <h2 class="text-lg font-medium"><%= t('super_admin.saas_usage.history') %></h2>
     <% if @saas_usage_records.empty? %>

@@ -37,7 +37,9 @@ class Saas::TextService
       usage: {
         'prompt_tokens' => response.input_tokens,
         'completion_tokens' => response.output_tokens,
-        'total_tokens' => response.input_tokens.to_i + response.output_tokens.to_i
+        'total_tokens' => response.input_tokens.to_i + response.output_tokens.to_i,
+        'cached_tokens' => response.cached_input_tokens if response.respond_to?(:cached_input_tokens),
+        'reasoning_tokens' => response.reasoning_tokens if response.respond_to?(:reasoning_tokens)
       }.compact
     }
   end

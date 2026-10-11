@@ -30,7 +30,8 @@ class Saas::AiAgents::Playground
       return response_for(session_id, data, existing) if existing
 
       mode = text_mode
-      usage = reserve_credits(mode, session_id, request_id)
+      usage = create_usage(mode, session_id, request_id)
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       result = Saas::AiAgents::Provider.for(@account, @agent.provider, mode: mode).generate(
         model: effective_model(mode), messages: build_messages(data, prompt), temperature: @agent.temperature.to_f
       )
@@ -42,11 +43,11 @@ class Saas::AiAgents::Playground
         { 'role' => 'user', 'content' => prompt, 'request_id' => request_id, 'created_at' => Time.current.iso8601 }, assistant
       ])
       data['requests'][request_id] = assistant
-      usage&.wallet&.settle!(usage, units: usage.reserved_units, metadata: usage_metadata(result, mode, session_id, request_id))
+      complete_usage(usage, result, mode, session_id, request_id, started)
       save_session(session_id, data)
       response_for(session_id, data, assistant, result.fetch(:usage), mode)
-    rescue StandardError
-      release_usage(usage) if defined?(usage)
+    rescue StandardError => error
+      fail_usage(usage, error) if defined?(usage)
       raise
     end
   end
@@ -128,20 +129,42 @@ class Saas::AiAgents::Playground
     Saas::Wallet.for_account(@account, 'text_credits').available_units
   end
 
-  def reserve_credits(mode, session_id, request_id)
-    return unless mode == 'platform'
-
-    Saas::Wallet.for_account(@account, 'text_credits').reserve!(
-      units: Saas::TextService.credits_per_request,
-      reference: "playground:#{@account.id}:#{@user.id}:#{@agent.id}:#{session_id}:#{request_id}",
-      expires_at: Time.current + 15.minutes,
-      metadata: { 'source' => 'playground', 'ai_agent_id' => @agent.id, 'playground_session_id' => session_id,
-                  'request_id' => request_id, 'mode' => mode, 'provider' => effective_provider(mode), 'model' => effective_model(mode) }
-    )
+  def create_usage(mode, session_id, request_id)
+    Saas::UsageRecord.create!(account: @account, reference: usage_reference(session_id, request_id), kind: 'consumption',
+                              status: 'running', units: 0, reserved_units: 0, source: 'playground',
+                              metadata: usage_metadata(mode, session_id, request_id))
   end
 
-  def release_usage(usage)
-    usage&.wallet&.release!(usage)
+  def complete_usage(usage, result, mode, session_id, request_id, started)
+    usage.update!(status: 'completed', metadata: usage.metadata.merge(
+      usage_metadata(mode, session_id, request_id).merge(
+        'prompt_tokens' => result.dig(:usage, 'prompt_tokens'), 'completion_tokens' => result.dig(:usage, 'completion_tokens'),
+        'total_tokens' => result.dig(:usage, 'total_tokens'), 'cached_tokens' => result.dig(:usage, 'cached_tokens'),
+        'reasoning_tokens' => result.dig(:usage, 'reasoning_tokens'), 'duration_ms' => elapsed_ms(started)
+      ).compact
+    ))
+  end
+
+  def fail_usage(usage, error)
+    return unless usage
+
+    usage.update!(status: 'failed', error_code: error.respond_to?(:code) ? error.code : error.class.name.demodulize.underscore,
+                  metadata: usage.metadata.merge('error_code' => error.message.to_s))
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  def usage_reference(session_id, request_id)
+    "playground:#{@account.id}:#{@user.id}:#{@agent.id}:#{session_id}:#{request_id}"
+  end
+
+  def usage_metadata(mode, session_id, request_id)
+    { 'source' => 'playground', 'ai_agent_id' => @agent.id, 'playground_session_id' => session_id,
+      'request_id' => request_id, 'mode' => mode, 'provider' => effective_provider(mode), 'model' => effective_model(mode) }
+  end
+
+  def elapsed_ms(started)
+    ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
   end
 
   def effective_provider(mode)

@@ -76,6 +76,25 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     end
     @saas_usage_records = Saas::UsageRecord.where(wallet: @saas_wallets.values)
                                            .includes(:wallet).order(created_at: :desc).limit(100)
+    @ai_usage_period = params[:period].presence_in(%w[today seven_days thirty_days total]) || 'thirty_days'
+    @ai_usage_source = params[:source].presence_in(%w[runtime playground])
+    @ai_usage_provider = params[:provider].presence
+    @ai_usage_model = params[:model].presence
+    @ai_usage_agent_id = params[:agent_id].presence
+    @ai_usage_scope = Saas::UsageRecord.where(account: @saas_account, kind: 'consumption').where(source: %w[runtime playground])
+    @ai_usage_scope = @ai_usage_scope.where(source: @ai_usage_source) if @ai_usage_source
+    @ai_usage_scope = @ai_usage_scope.where(provider: @ai_usage_provider) if @ai_usage_provider
+    @ai_usage_scope = @ai_usage_scope.where(model: @ai_usage_model) if @ai_usage_model
+    @ai_usage_scope = @ai_usage_scope.where("metadata ->> 'ai_agent_id' = ?", @ai_usage_agent_id) if @ai_usage_agent_id
+    @ai_usage_scope = @ai_usage_scope.where(created_at: usage_period_range(@ai_usage_period)) if @ai_usage_period != 'total'
+    @ai_usage_summary = @ai_usage_scope.group(:source).pluck(
+      :source, Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(prompt_tokens), 0)'),
+      Arel.sql('COALESCE(SUM(completion_tokens), 0)'), Arel.sql('COALESCE(SUM(total_tokens), 0)'),
+      Arel.sql('COALESCE(SUM(estimated_cost_usd), 0)')
+    ).to_h { |row| [row[0], { generations: row[1], prompt_tokens: row[2], completion_tokens: row[3],
+                              total_tokens: row[4], estimated_cost_usd: row[5] }] }
+    @ai_usage_records = @ai_usage_scope.includes(:wallet).order(created_at: :desc).limit(100)
+    @ai_usage_agents = @saas_account.saas_ai_agents.order(:name)
   end
 
   def saas_usage_adjust
@@ -145,6 +164,15 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     raise CustomExceptions::SaasError, 'invalid_amount' unless value.match?(/\A-?[1-9]\d*\z/)
 
     value.to_i
+  end
+
+  def usage_period_range(period)
+    case period
+    when 'today' then Time.zone.now.beginning_of_day..Time.zone.now.end_of_day
+    when 'seven_days' then 7.days.ago..Time.zone.now
+    when 'thirty_days' then 30.days.ago..Time.zone.now
+    else Time.at(0)..Time.zone.now
+    end
   end
 
   def validate_suspension_metadata
