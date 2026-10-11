@@ -51,11 +51,16 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
                              configuration: [:method, :url, :timeout_seconds, :headers, :query_params, :body,
                                              { parameters: [:name, :type, :description, :required, :sensitive, enum_values: []] }],
                              secret_headers: {}).to_h
-    if input.key?('secret_headers') && input[:secret_headers].to_h.present?
-      permitted[:secret_headers] = JSON.generate(input[:secret_headers].to_h)
-    else
-      permitted.delete(:secret_headers)
-    end
+    configuration = permitted[:configuration].to_h.stringify_keys
+    headers = configuration.fetch('headers', {}).to_h.stringify_keys
+    secret_names = %w[authorization apikey x-api-key x-auth-token]
+    extracted = headers.select { |name, _| secret_names.include?(name.downcase) }
+    configuration['headers'] = headers.except(*extracted.keys)
+    permitted[:configuration] = configuration
+    supplied_secrets = input.key?('secret_headers') ? input[:secret_headers].to_h : {}
+    secrets = extracted.merge(supplied_secrets.stringify_keys)
+    permitted[:secret_headers] = JSON.generate(secrets) if secrets.present?
+    permitted.delete(:secret_headers) if secrets.blank?
     permitted
   end
 

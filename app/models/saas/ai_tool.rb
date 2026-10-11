@@ -43,7 +43,7 @@ class Saas::AiTool < ApplicationRecord
   def public_data
     { 'id' => id, 'name' => name, 'slug' => slug, 'description' => description, 'tool_type' => tool_type,
       'active' => active, 'allow_in_playground' => allow_in_playground,
-      'configuration' => configuration.except('headers', 'secret_headers').merge('secret_headers_configured' => secret_headers.present?) }
+      'configuration' => configuration.except('secret_headers').merge('secret_headers_configured' => secret_headers.present?) }
   end
 
   private
