@@ -171,10 +171,4 @@ class Saas::AiAgents::Playground
     mode == 'platform' ? Saas::TextService.platform_config[:provider] : @agent.provider
   end
 
-  def usage_metadata(result, mode, session_id, request_id)
-    { 'source' => 'playground', 'ai_agent_id' => @agent.id, 'playground_session_id' => session_id,
-      'request_id' => request_id, 'provider' => effective_provider(mode), 'model' => effective_model(mode), 'mode' => mode,
-      'prompt_tokens' => result.dig(:usage, 'prompt_tokens'), 'completion_tokens' => result.dig(:usage, 'completion_tokens'),
-      'total_tokens' => result.dig(:usage, 'total_tokens') }.compact
-  end
 end
