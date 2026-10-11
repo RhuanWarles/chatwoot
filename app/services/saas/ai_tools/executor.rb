@@ -95,7 +95,7 @@ class Saas::AiTools::Executor
 
   def private_address?(address)
     ip = IPAddr.new(address)
-    ip.loopback? || ip.private? || ip.link_local? || ip.zero? || ip.to_s == '169.254.169.254'
+    ip.loopback? || ip.private? || ip.link_local? || ip.to_i.zero? || ip.to_s == '169.254.169.254'
   rescue IPAddr::InvalidAddressError
     true
   end
