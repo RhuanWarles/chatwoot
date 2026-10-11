@@ -30,6 +30,7 @@ import captain from './captain/captain.routes';
 import data from './data/data.routes';
 import saasAI from './saasAI/saasAI.routes';
 import aiAgents from './aiAgents/aiAgents.routes';
+import aiTools from './aiTools/aiTools.routes';
 
 export default {
   routes: [
@@ -65,6 +66,7 @@ export default {
     ...data.routes,
     ...saasAI.routes,
     ...aiAgents.routes,
+    ...aiTools.routes,
     ...labels.routes,
     ...macros.routes,
     ...reports.routes,

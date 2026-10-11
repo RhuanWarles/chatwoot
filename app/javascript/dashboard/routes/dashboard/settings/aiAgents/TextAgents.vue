@@ -21,9 +21,6 @@ const busy = ref(false);
 const loadError = ref('');
 const actionError = ref('');
 const tools = ref([]);
-const toolDialog = ref(null);
-const toolDraft = ref(null);
-const toolError = ref('');
 const editorError = ref('');
 const editor = ref(null);
 const deletion = ref(null);
@@ -80,11 +77,6 @@ const normalizeAgent = agent => ({
   ...agent,
   customer_memory_enabled: agent?.customer_memory_enabled === true,
   inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
-});
-
-const defaultTool = () => ({
-  name: '', slug: '', description: '', tool_type: 'http', active: false, allow_in_playground: false,
-  secret_headers: '', configuration: { method: 'GET', url: '', timeout_seconds: 10, headers: {}, query_params: {}, body: {}, parameters: [] },
 });
 
 watch(
@@ -182,33 +174,6 @@ const toggle = async agent => {
     const { data } = await aiAgentsAPI.update(agent.id, {
       ai_agent: { active: !agent.active },
     });
-
-const openToolEditor = tool => {
-  const configuration = tool ? { ...tool.configuration } : defaultTool().configuration;
-  toolDraft.value = tool ? { ...tool, configuration: { ...configuration, parameters_json: JSON.stringify(configuration.parameters || []), headers_json: JSON.stringify(configuration.headers || {}) }, secret_headers: '' } : { ...defaultTool(), configuration: { ...configuration, parameters_json: '', headers_json: '' } };
-  toolError.value = '';
-  toolDialog.value.open();
-};
-const saveTool = async () => {
-  toolError.value = '';
-  try {
-    const configuration = { ...toolDraft.value.configuration, parameters: JSON.parse(toolDraft.value.configuration.parameters_json || '[]'), headers: JSON.parse(toolDraft.value.configuration.headers_json || '{}') };
-    delete configuration.parameters_json;
-    delete configuration.headers_json;
-    const payload = { ai_tool: { ...toolDraft.value, configuration } };
-    if (toolDraft.value.secret_headers.trim()) payload.ai_tool.secret_headers = JSON.parse(toolDraft.value.secret_headers);
-    const response = toolDraft.value.id ? await aiAgentsAPI.updateTool(toolDraft.value.id, payload) : await aiAgentsAPI.createTool(payload);
-    tools.value = [...tools.value.filter(item => item.id !== response.data.id), response.data].sort((a, b) => a.name.localeCompare(b.name));
-    toolDialog.value.close();
-  } catch (error) {
-    toolError.value = error.response?.data?.error || t('AI_AGENTS.TOOL_SAVE_ERROR');
-  }
-};
-const removeTool = async tool => {
-  if (!window.confirm(t('AI_AGENTS.TOOL_DELETE_CONFIRM', { name: tool.name }))) return;
-  await aiAgentsAPI.deleteTool(tool.id);
-  tools.value = tools.value.filter(item => item.id !== tool.id);
-};
     agents.value = agents.value.map(item =>
       item.id === data.id ? data : item
     );
@@ -371,17 +336,7 @@ onMounted(load);
           />
         </div>
       </article>
-      <section class="flex flex-col gap-3 mt-4">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-heading-4 text-n-slate-12">{{ t('AI_AGENTS.TOOLS') }}</h3>
-          <Button variant="faded" icon="i-lucide-plus" :label="t('AI_AGENTS.NEW_TOOL')" @click="openToolEditor()" />
-        </div>
-        <p v-if="!tools.length" class="text-sm text-n-slate-11">{{ t('AI_AGENTS.NO_TOOLS') }}</p>
-        <article v-for="tool in tools" :key="tool.id" class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-n-solid-2">
-          <div><strong class="text-n-slate-12">{{ tool.name }}</strong><p class="text-xs text-n-slate-11">{{ tool.slug }} · {{ tool.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE') }}</p></div>
-          <div class="flex gap-2"><Button variant="ghost" :label="t('AI_AGENTS.EDIT')" @click="openToolEditor(tool)" /><Button variant="ghost" color="ruby" :label="t('AI_AGENTS.DELETE')" @click="removeTool(tool)" /></div>
-        </article>
-      </section>
+
     </div>
     <TextCredentials class="mt-6" @saved="load" />
     <Dialog
@@ -568,20 +523,6 @@ onMounted(load);
           />{{ t('AI_AGENTS.HANDOFF') }}</label
         >
         <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.HANDOFF_HELP') }}</p>
-      </div>
-    </Dialog>
-    <Dialog ref="toolDialog" width="2xl" overflow-y-auto :title="toolDraft?.id ? t('AI_AGENTS.EDIT_TOOL') : t('AI_AGENTS.NEW_TOOL')" :confirm-button-label="t('AI_AGENTS.SAVE')" :cancel-button-label="t('AI_AGENTS.CANCEL')" @confirm="saveTool">
-      <div v-if="toolDraft" class="flex flex-col gap-3 max-h-[65vh] overflow-y-auto p-1">
-        <p v-if="toolError" role="alert" class="text-sm text-n-ruby-9">{{ toolError }}</p>
-        <Input v-model="toolDraft.name" :label="t('AI_AGENTS.TOOL_NAME')" />
-        <Input v-model="toolDraft.slug" :label="t('AI_AGENTS.TOOL_SLUG')" placeholder="consultar_pedido" />
-        <Input v-model="toolDraft.description" :label="t('AI_AGENTS.DESCRIPTION')" />
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"><input v-model="toolDraft.active" type="checkbox" />{{ t('AI_AGENTS.ACTIVE') }}</label>
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"><input v-model="toolDraft.allow_in_playground" type="checkbox" />{{ t('AI_AGENTS.TOOL_PLAYGROUND') }}</label>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><Input v-model="toolDraft.configuration.method" :label="t('AI_AGENTS.TOOL_METHOD')" placeholder="GET" /><Input v-model="toolDraft.configuration.url" :label="t('AI_AGENTS.TOOL_URL')" /><Input v-model.number="toolDraft.configuration.timeout_seconds" type="number" min="1" max="30" :label="t('AI_AGENTS.TOOL_TIMEOUT')" /></div>
-        <label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_AGENTS.TOOL_PARAMETERS_JSON') }}<textarea v-model="toolDraft.configuration.parameters_json" rows="5" class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" placeholder='[{"name":"pedido_id","type":"string","required":true}]' /></label>
-        <label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_AGENTS.TOOL_HEADERS_JSON') }}<textarea v-model="toolDraft.configuration.headers_json" rows="3" class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" placeholder='{"Content-Type":"application/json"}' /></label>
-        <label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_AGENTS.TOOL_SECRETS_JSON') }}<textarea v-model="toolDraft.secret_headers" rows="3" class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" placeholder='{"Authorization":"Bearer ..."}' /></label>
       </div>
     </Dialog>
     <Dialog

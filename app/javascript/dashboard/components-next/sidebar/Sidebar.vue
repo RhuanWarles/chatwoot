@@ -691,17 +691,33 @@ const menuItems = computed(() => {
     currentAccount.value?.features?.voice_ai
       ? [
           {
-            name: 'AI Agents',
-            label: t('AI_AGENTS.TITLE'),
+            name: 'AI',
+            label: t('AI_HUB.TITLE'),
             icon: 'i-lucide-bot',
-            to: accountScopedRoute(
-              'ai_agents_settings',
-              {},
+            children: [
               {
-                type: currentAccount.value.features.text_ai ? 'text' : 'voice',
-              }
-            ),
-            activeOn: ['ai_agents_settings', 'saas_ai_settings'],
+                name: 'Assistants',
+                label: t('AI_HUB.ASSISTANTS'),
+                to: accountScopedRoute(
+                  'ai_agents_settings',
+                  {},
+                  {
+                    type: currentAccount.value.features.text_ai ? 'text' : 'voice',
+                  }
+                ),
+                activeOn: ['ai_agents_settings', 'saas_ai_settings'],
+              },
+              ...(currentAccount.value.features.text_ai
+                ? [
+                    {
+                      name: 'Tools',
+                      label: t('AI_HUB.TOOLS'),
+                      to: accountScopedRoute('ai_tools_settings'),
+                      activeOn: ['ai_tools_settings'],
+                    },
+                  ]
+                : []),
+            ],
           },
         ]
       : []),
