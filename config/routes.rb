@@ -225,6 +225,8 @@ Rails.application.routes.draw do
               end
             end
             member do
+              get :ai_state
+              patch :ai_state, action: :update_ai_state
               post :mute
               post :unmute
               post :transcript

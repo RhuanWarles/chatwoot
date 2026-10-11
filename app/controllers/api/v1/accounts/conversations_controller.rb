@@ -48,6 +48,21 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     @conversation.update!(permitted_update_params)
   end
 
+  def ai_state
+    agent = Saas::AiAgents::Runtime.agent_for(@conversation)
+    render json: ai_state_data(agent)
+  end
+
+  def update_ai_state
+    authorize @conversation, :update?
+    state = params.require(:state).to_s
+    raise ActionController::BadRequest, 'invalid_state' unless Saas::AiAgents::ConversationState::STATES.include?(state)
+
+    Saas::AiAgents::ConversationState.update!(conversation: @conversation, state: state, user: Current.user)
+    agent = Saas::AiAgents::Runtime.agent_for(@conversation)
+    render json: ai_state_data(agent).merge(additional_attributes: @conversation.reload.additional_attributes)
+  end
+
   def filter
     result = ::Conversations::FilterService.new(params.permit!, current_user, current_account).perform
     @conversations = result[:conversations]
@@ -143,6 +158,11 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     raise ActionController::ParameterMissing, :priority unless params[:priority].nil? || Conversation.priorities.key?(params[:priority])
 
     params.permit(:priority)
+  end
+
+  def ai_state_data(agent)
+    stored_state = @conversation.additional_attributes.fetch('ai_agent_state', 'ai')
+    { state: stored_state == 'active' ? 'ai' : stored_state, available: agent.present?, agent_name: agent&.name }
   end
 
   def attachment_params

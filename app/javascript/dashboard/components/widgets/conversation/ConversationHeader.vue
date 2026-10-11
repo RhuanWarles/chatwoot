@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore } from 'vuex';
 import { useElementSize } from '@vueuse/core';
@@ -16,6 +16,8 @@ import { useInbox } from 'dashboard/composables/useInbox';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
+import Button from 'dashboard/components-next/button/Button.vue';
+import ConversationApi from 'dashboard/api/inbox/conversation';
 
 const props = defineProps({
   chat: {
@@ -37,6 +39,65 @@ const { isAWebWidgetInbox, isAnEmailChannel } = useInbox();
 
 const currentChat = computed(() => store.getters.getSelectedChat);
 const accountId = computed(() => store.getters.getCurrentAccountId);
+const aiState = ref(null);
+const aiStateLoading = ref(false);
+const aiStateBusy = ref(false);
+
+const aiAvailable = computed(() => aiState.value?.available === true);
+const aiEnabled = computed(() => aiState.value?.state === 'ai');
+const aiLabel = computed(() =>
+  aiEnabled.value ? t('CONVERSATION.HEADER.AI_ACTIVE') : t('CONVERSATION.HEADER.AI_PAUSED')
+);
+const aiHelp = computed(() =>
+  aiEnabled.value
+    ? t('CONVERSATION.HEADER.AI_ACTIVE_HELP')
+    : t('CONVERSATION.HEADER.AI_PAUSED_HELP')
+);
+
+const loadAiState = async conversationId => {
+  aiState.value = null;
+  if (!conversationId) return;
+  aiStateLoading.value = true;
+  try {
+    const { data } = await ConversationApi.getAiState(conversationId);
+    aiState.value = data;
+  } catch {
+    aiState.value = null;
+  } finally {
+    aiStateLoading.value = false;
+  }
+};
+
+const updateLocalConversation = additionalAttributes => {
+  store.dispatch('updateConversation', {
+    ...currentChat.value,
+    additional_attributes: additionalAttributes,
+  });
+};
+
+const toggleAiState = async () => {
+  if (aiStateBusy.value || !aiAvailable.value) return;
+  aiStateBusy.value = true;
+  try {
+    const state = aiEnabled.value ? 'human' : 'ai';
+    const { data } = await ConversationApi.updateAiState({
+      conversationId: currentChat.value.id,
+      state,
+    });
+    aiState.value = data;
+    updateLocalConversation(data.additional_attributes);
+  } catch {
+    useAlert(t('CONVERSATION.HEADER.AI_UPDATE_ERROR'));
+  } finally {
+    aiStateBusy.value = false;
+  }
+};
+
+watch(
+  () => currentChat.value.id,
+  conversationId => loadAiState(conversationId),
+  { immediate: true }
+);
 
 const chatMetadata = computed(() => props.chat.meta);
 
@@ -189,6 +250,15 @@ const copyConversationId = async () => {
         class="hidden md:flex"
       />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
+      <Button
+        v-if="aiAvailable"
+        v-tooltip="aiHelp"
+        variant="ghost"
+        :label="`${t('CONVERSATION.HEADER.AI_LABEL')}: ${aiLabel}`"
+        :disabled="aiStateLoading || aiStateBusy"
+        :color="aiEnabled ? 'teal' : 'amber'"
+        @click="toggleAiState"
+      />
       <MoreActions :conversation-id="currentChat.id" />
     </div>
   </div>

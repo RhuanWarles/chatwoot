@@ -22,7 +22,7 @@ class Saas::AiAgents::Runtime
   end
 
   def self.enabled?(conversation)
-    account_available?(conversation.account) && conversation.additional_attributes.fetch(STATE_KEY, 'active') == 'active' &&
+    account_available?(conversation.account) && %w[active ai].include?(conversation.additional_attributes.fetch(STATE_KEY, 'active')) &&
       RESPONDABLE_STATUSES.include?(conversation.status) && !conversation.contact.blocked? &&
       !conversation.inbox.active_bot? && conversation.ai_assignee.nil? && conversation.can_reply?
   end

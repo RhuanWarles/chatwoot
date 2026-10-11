@@ -136,6 +136,14 @@ class ConversationApi extends ApiClient {
     });
   }
 
+  getAiState(conversationId) {
+    return axios.get(`${this.url}/${conversationId}/ai_state`);
+  }
+
+  updateAiState({ conversationId, state }) {
+    return axios.patch(`${this.url}/${conversationId}/ai_state`, { state });
+  }
+
   fetchParticipants(conversationId) {
     return axios.get(`${this.url}/${conversationId}/participants`);
   }
