@@ -31,6 +31,7 @@ class Saas::AiTool < ApplicationRecord
     required = []
     parameters.each do |parameter|
       next unless parameter['name'].to_s.match?(/\A[a-zA-Z][a-zA-Z0-9_]*\z/)
+      next unless parameter['value_source'].to_s.presence.in?([nil, 'ai'])
 
       schema = { 'type' => parameter['type'] == 'enum' ? 'string' : parameter['type'].to_s,
                  'description' => parameter['description'].to_s }
@@ -67,9 +68,13 @@ class Saas::AiTool < ApplicationRecord
     errors.add(:configuration, :invalid) unless METHODS.include?(config['method']) && config['url'].to_s.start_with?('http://', 'https://')
     timeout = config['timeout_seconds'].to_i
     errors.add(:configuration, :invalid) unless timeout.between?(1, 30)
+    names = []
     parameters.each do |parameter|
       valid_name = parameter['name'].to_s.match?(/\A[a-zA-Z][a-zA-Z0-9_]*\z/)
-      errors.add(:configuration, :invalid) unless PARAMETER_TYPES.include?(parameter['type']) && valid_name
+      source = parameter['value_source'].to_s.presence || 'ai'
+      errors.add(:configuration, :invalid) unless PARAMETER_TYPES.include?(parameter['type']) && valid_name && Saas::AiTools::ParameterResolver::SOURCES.include?(source)
+      errors.add(:configuration, :invalid) if names.include?(parameter['name'].to_s)
+      names << parameter['name'].to_s
     end
   end
 

@@ -26,12 +26,13 @@ class Saas::AiTools::Executor
     return record_failure(tool, request_id, validation, started) unless validation == true
 
     request_builder = Saas::AiTools::RequestBuilder.new(tool: tool, account: @account, agent: @agent, conversation: @conversation)
-    request, uri = request_builder.build(args)
+    resolved = request_builder.resolve(args)
+    request, uri = request_builder.build(args, resolved_parameters: resolved)
     validate_uri!(uri)
     response = perform_request(request, uri, tool.configuration['timeout_seconds'].to_i)
     normalized = normalize_response(response)
     status = response.code.to_i.between?(200, 299) ? 'completed' : 'failed'
-    persist_execution(tool, request_id, masked_arguments(tool, args), status, response.code.to_i, started, status == 'failed' ? 'tool_http_error' : nil)
+    persist_execution(tool, request_id, masked_arguments(tool, resolved), status, response.code.to_i, started, status == 'failed' ? 'tool_http_error' : nil)
     Rails.logger.info({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id, conversation_id: @conversation&.id,
                         ai_tool_id: tool.id, tool_name: tool.slug, execution_id: request_id, status: status,
                         duration_ms: elapsed_ms(started) }.compact.to_json)
@@ -48,7 +49,7 @@ class Saas::AiTools::Executor
   private
 
   def validate_arguments(tool, arguments)
-    parameters = tool.parameters
+    parameters = tool.parameters.select { |item| item['value_source'].to_s.presence.in?([nil, 'ai']) }
     names = parameters.map { |item| item['name'] }
     return 'unknown_argument' unless (arguments.keys - names).empty?
     return 'missing_required_argument' unless parameters.select { |item| item['required'] == true }.all? { |item| arguments.key?(item['name']) }

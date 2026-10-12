@@ -5,8 +5,6 @@ require 'net/http'
 class Saas::AiTools::RequestBuilder
   METHODS_WITH_BODY = %w[POST PUT PATCH].freeze
   METHODS_WITH_QUERY_ARGUMENTS = %w[GET DELETE].freeze
-  CONTEXT_VARIABLES = %w[contact_phone contact_phone_e164 contact_name contact_email contact_id conversation_id account_id agent_id].freeze
-
   def initialize(tool:, account:, agent:, conversation: nil)
     @tool = tool
     @account = account
@@ -14,25 +12,33 @@ class Saas::AiTools::RequestBuilder
     @conversation = conversation
   end
 
-  def build(arguments)
+  def build(arguments, resolved_parameters: nil)
+    resolved = resolved_parameters || resolve(arguments)
     config = @tool.configuration.stringify_keys
     method = config.fetch('method').to_s.upcase
-    parsed = URI.parse(render(config.fetch('url'), arguments, escape: true))
-    query = config.fetch('query_params', {}).to_h.transform_values { |value| render(value, arguments) }
-    query.merge!(arguments) if METHODS_WITH_QUERY_ARGUMENTS.include?(method)
+    parsed = URI.parse(render(config.fetch('url'), resolved, escape: true))
+    query = config.fetch('query_params', {}).to_h.transform_values { |value| render(value, resolved) }
+    query.merge!(resolved) if METHODS_WITH_QUERY_ARGUMENTS.include?(method)
     parsed.query = URI.encode_www_form(URI.decode_www_form(parsed.query.to_s) + query.to_a) if query.present?
 
-    headers = config.fetch('headers', {}).to_h.transform_values { |value| render(value, arguments) }
+    headers = config.fetch('headers', {}).to_h.transform_values { |value| render(value, resolved) }
     headers.merge!(JSON.parse(@tool.secret_headers)) if @tool.secret_headers.present?
     request = Net::HTTP.const_get(method.capitalize).new(parsed)
     headers.each { |name, value| request[name] = value.to_s }
 
-    body = request_body(config, method, arguments)
+    body = request_body(config, method, resolved)
     if body
       request.body = JSON.generate(body)
       request['Content-Type'] ||= 'application/json'
     end
     [request, parsed.to_s]
+  end
+
+  def resolve(arguments)
+    parameters = @tool.respond_to?(:parameters) ? @tool.parameters : []
+    return arguments.stringify_keys if parameters.empty?
+
+    Saas::AiTools::ParameterResolver.new(tool: @tool, account: @account, agent: @agent, conversation: @conversation).call(arguments)
   end
 
   private
@@ -53,8 +59,6 @@ class Saas::AiTools::RequestBuilder
                elsif context.key?(key)
                  context[key]
                else
-                 raise CustomExceptions::SaasError, "missing_context_variable:#{key}" if CONTEXT_VARIABLES.include?(key)
-
                  raise CustomExceptions::SaasError, "unresolved_template_variable:#{key}"
                end
       raise CustomExceptions::SaasError, "missing_context_variable:#{key}" if source.nil?
@@ -72,18 +76,6 @@ class Saas::AiTools::RequestBuilder
   end
 
   def context
-    contact = @conversation&.contact
-    phone = contact&.phone_number.to_s
-    digits = phone.gsub(/\D/, '')
-    {
-      'contact_phone' => digits.presence,
-      'contact_phone_e164' => digits.presence && "+#{digits}",
-      'contact_name' => contact&.name.presence,
-      'contact_email' => contact&.email.presence,
-      'contact_id' => contact&.id,
-      'conversation_id' => @conversation&.id,
-      'account_id' => @account.id,
-      'agent_id' => @agent.id
-    }
+    @context ||= Saas::AiTools::ParameterResolver.new(tool: @tool, account: @account, agent: @agent, conversation: @conversation).context
   end
 end

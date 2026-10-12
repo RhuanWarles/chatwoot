@@ -27,7 +27,7 @@ const form = ref({
   name: '', description: '', active: false, allow_in_playground: false, slug: '', secret_headers: {},
   configuration: { method: 'GET', url: '', timeout_seconds: 10, parameters: [], headers: {}, query_params: {}, body: {} },
 });
-const parameterDraft = ref({ name: '', type: 'string', description: '', required: false, sensitive: false, enum_values: [] });
+const parameterDraft = ref({ name: '', type: 'string', description: '', required: false, sensitive: false, value_source: 'ai', enum_values: [] });
 const parameterEditorOpen = ref(false);
 const parametersJson = ref('[]');
 const headersJson = ref('{}');
@@ -35,18 +35,20 @@ const secretHeadersJson = ref('{}');
 const bodyJson = ref('{}');
 const queryJson = ref('{}');
 const headerRows = ref([]);
-const contextVariables = [
-  '{{contact_phone}}',
-  '{{contact_phone_e164}}',
-  '{{contact_name}}',
-  '{{contact_email}}',
-  '{{contact_id}}',
-  '{{conversation_id}}',
-  '{{account_id}}',
-  '{{agent_id}}',
-];
 const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(value => ({ value, label: value }));
 const typeOptions = ['string', 'number', 'integer', 'boolean', 'enum'].map(value => ({ value, label: value }));
+const valueSourceOptions = [
+  ['ai', 'AI_TOOLS.SOURCE_AI'], ['contact_phone', 'AI_TOOLS.SOURCE_CONTACT_PHONE'],
+  ['contact_phone_e164', 'AI_TOOLS.SOURCE_CONTACT_PHONE_E164'], ['contact_name', 'AI_TOOLS.SOURCE_CONTACT_NAME'],
+  ['contact_email', 'AI_TOOLS.SOURCE_CONTACT_EMAIL'], ['contact_id', 'AI_TOOLS.SOURCE_CONTACT_ID'],
+  ['conversation_id', 'AI_TOOLS.SOURCE_CONVERSATION_ID'], ['account_id', 'AI_TOOLS.SOURCE_ACCOUNT_ID'],
+  ['agent_id', 'AI_TOOLS.SOURCE_AGENT_ID'],
+].map(([value, label]) => ({ value, label }));
+const sourceLabel = source => valueSourceOptions.find(option => option.value === (source || 'ai'))?.label || 'AI_TOOLS.SOURCE_AI';
+const automaticPreview = computed(() => form.value.configuration.parameters.map(parameter => ({
+  name: parameter.name,
+  label: parameter.value_source && parameter.value_source !== 'ai' ? sourceLabel(parameter.value_source) : t('AI_TOOLS.SOURCE_AI'),
+})));
 const isEdit = computed(() => Boolean(route.params.toolId));
 const showBody = computed(() => ['POST', 'PUT', 'PATCH'].includes(form.value.configuration.method));
 const agentOptions = computed(() => agents.value.map(agent => ({ value: agent.id, label: agent.name })));
@@ -82,14 +84,15 @@ const switchParameterMode = mode => {
 const openParameter = parameter => {
   parameterEditorOpen.value = true;
   editingParameter.value = parameter;
-  parameterDraft.value = parameter ? { ...parameter, enum_values: [...(parameter.enum_values || [])] } : { name: '', type: 'string', description: '', required: false, sensitive: false, enum_values: [] };
+  parameterDraft.value = parameter ? { value_source: 'ai', ...parameter, enum_values: [...(parameter.enum_values || [])] } : { name: '', type: 'string', description: '', required: false, sensitive: false, value_source: 'ai', enum_values: [] };
 };
 const applyParameter = () => {
   if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(parameterDraft.value.name)) return;
   const parameters = [...form.value.configuration.parameters];
   const index = editingParameter.value ? parameters.indexOf(editingParameter.value) : -1;
   if (index >= 0) parameters[index] = { ...parameterDraft.value };
-  else parameters.push({ ...parameterDraft.value });
+  else if (!parameters.some(item => item.name === parameterDraft.value.name)) parameters.push({ ...parameterDraft.value });
+  else return;
   form.value.configuration.parameters = parameters;
   syncVisualJson();
   editingParameter.value = null;
@@ -178,13 +181,13 @@ onMounted(load);
     </section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2">
       <div class="flex items-center justify-between"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.PARAMETERS_SECTION') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.PARAMETERS_HELP') }}</p></div><div class="flex gap-1"><Button variant="faded" :label="t('AI_TOOLS.VISUAL')" :disabled="parameterMode === 'visual'" @click="switchParameterMode('visual')" /><Button variant="faded" :label="t('AI_TOOLS.JSON_MODE')" :disabled="parameterMode === 'json'" @click="switchParameterMode('json')" /></div></div>
-      <div v-if="parameterMode === 'visual'" class="flex flex-col gap-2"><div v-for="parameter in form.configuration.parameters" :key="parameter.name" class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-n-solid-1"><span class="font-mono text-sm text-n-slate-12">{{ parameter.name }} <span class="text-n-slate-11">{{ parameter.type }}{{ parameter.required ? ' · required' : '' }}</span></span><div class="flex gap-2"><Button variant="ghost" :label="t('AI_TOOLS.EDIT')" @click="openParameter(parameter)" /><Button variant="ghost" color="ruby" :label="t('AI_TOOLS.DELETE')" @click="removeParameter(parameter)" /></div></div><Button variant="faded" :label="t('AI_TOOLS.ADD_PARAMETER')" icon="i-lucide-plus" @click="openParameter(null)" /></div>
+      <div v-if="parameterMode === 'visual'" class="flex flex-col gap-2"><div v-for="parameter in form.configuration.parameters" :key="parameter.name" class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-n-solid-1"><span class="flex flex-wrap items-center gap-2 text-sm text-n-slate-12"><span class="font-mono">{{ parameter.name }}</span><span class="text-xs text-n-slate-11">{{ parameter.type }}</span><span class="text-xs text-n-slate-11">{{ t(sourceLabel(parameter.value_source)) }}</span><span v-if="parameter.required" class="text-xs text-n-slate-11">{{ t('AI_TOOLS.REQUIRED') }}</span></span><div class="flex gap-2"><Button variant="ghost" :label="t('AI_TOOLS.EDIT')" @click="openParameter(parameter)" /><Button variant="ghost" color="ruby" :label="t('AI_TOOLS.DELETE')" @click="removeParameter(parameter)" /></div></div><Button variant="faded" :label="t('AI_TOOLS.ADD_PARAMETER')" icon="i-lucide-plus" @click="openParameter(null)" /></div>
       <TextArea v-else v-model="parametersJson" :label="t('AI_TOOLS.PARAMETERS')" :message="t('AI_TOOLS.JSON_SCHEMA_HELP')" :auto-height="true" :min-height="'12rem'" />
-      <div v-if="parameterEditorOpen" class="flex flex-col gap-3 p-4 rounded-lg bg-n-solid-1"><Input v-model="parameterDraft.name" label="Name" placeholder="pedido_id" /><ComboBox v-model="parameterDraft.type" label="Type" :options="typeOptions" /><TextArea v-model="parameterDraft.description" label="Description" :auto-height="true" /><label class="flex justify-between text-sm text-n-slate-12">Required <Switch v-model="parameterDraft.required" /></label><label class="flex justify-between text-sm text-n-slate-12">Sensitive <Switch v-model="parameterDraft.sensitive" /></label><div v-if="parameterDraft.type === 'enum'" class="flex flex-col gap-2"><Input v-for="(_, index) in parameterDraft.enum_values" :key="index" v-model="parameterDraft.enum_values[index]" label="Enum value" /><Button variant="ghost" :label="t('AI_TOOLS.ADD_ENUM')" @click="addEnumValue" /></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.CANCEL')" @click="parameterEditorOpen = false" /><Button :label="t('AI_TOOLS.APPLY')" @click="applyParameter" /></div></div>
+      <div v-if="parameterEditorOpen" class="flex flex-col gap-3 p-4 rounded-lg bg-n-solid-1"><Input v-model="parameterDraft.name" label="Name" placeholder="pedido_id" /><ComboBox v-model="parameterDraft.type" label="Type" :options="typeOptions" /><ComboBox v-model="parameterDraft.value_source" :label="t('AI_TOOLS.VALUE_SOURCE')" :options="valueSourceOptions.map(option => ({ ...option, label: t(option.label) }))" /><TextArea v-model="parameterDraft.description" label="Description" :auto-height="true" /><label class="flex justify-between text-sm text-n-slate-12">Required <Switch v-model="parameterDraft.required" /></label><label class="flex justify-between text-sm text-n-slate-12">Sensitive <Switch v-model="parameterDraft.sensitive" /></label><div v-if="parameterDraft.type === 'enum'" class="flex flex-col gap-2"><Input v-for="(_, index) in parameterDraft.enum_values" :key="index" v-model="parameterDraft.enum_values[index]" label="Enum value" /><Button variant="ghost" :label="t('AI_TOOLS.ADD_ENUM')" @click="addEnumValue" /></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.CANCEL')" @click="parameterEditorOpen = false" /><Button :label="t('AI_TOOLS.APPLY')" @click="applyParameter" /></div></div>
     </section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.REQUEST_HELP') }}</p></div><label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_TOOLS.METHOD') }}<ComboBox v-model="form.configuration.method" :options="methodOptions" /></label><Input v-model="form.configuration.url" :label="t('AI_TOOLS.URL')" :placeholder="t('AI_TOOLS.URL_PLACEHOLDER')" :message="t('AI_TOOLS.URL_HELP')" /><Input v-model.number="form.configuration.timeout_seconds" type="number" min="1" max="30" :label="t('AI_TOOLS.TIMEOUT')" :message="t('AI_TOOLS.TIMEOUT_HELP')" /></section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div class="flex items-center justify-between"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.HEADERS_SECTION') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.HEADERS_HELP') }}</p></div><div class="flex gap-1"><Button variant="faded" :label="t('AI_TOOLS.VISUAL')" :disabled="headerMode === 'visual'" @click="headerMode = 'visual'; syncVisualJson()" /><Button variant="faded" :label="t('AI_TOOLS.JSON_MODE')" :disabled="headerMode === 'json'" @click="headerMode = 'json'" /></div></div><div v-if="headerMode === 'visual'" class="flex flex-col gap-2"><div v-for="(row, index) in headerRows" :key="index" class="flex flex-wrap items-end gap-2"><Input v-model="row.name" label="Header name" /><Input v-model="row.value" label="Value" /><Button variant="ghost" color="ruby" :label="t('AI_TOOLS.DELETE')" @click="removeHeader(index)" /></div><Button variant="faded" :label="t('AI_TOOLS.ADD_HEADER')" icon="i-lucide-plus" @click="addHeader" /></div><TextArea v-else v-model="headersJson" :label="t('AI_TOOLS.HEADERS')" :auto-height="true" :min-height="'8rem'" /><TextArea v-model="secretHeadersJson" :label="t('AI_TOOLS.SECRETS')" :message="t('AI_TOOLS.SECRETS_HELP')" :auto-height="true" :min-height="'6rem'" /><TextArea v-model="queryJson" :label="t('AI_TOOLS.QUERY_PARAMS')" :message="t('AI_TOOLS.QUERY_HELP')" :auto-height="true" :min-height="'6rem'" /></section>
-    <section v-if="showBody" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST_BODY') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BODY_MODE_HELP') }}</p></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.AUTOMATIC')" :disabled="bodyMode === 'automatic'" @click="bodyMode = 'automatic'" /><Button variant="faded" :label="t('AI_TOOLS.CUSTOM')" :disabled="bodyMode === 'custom'" @click="bodyMode = 'custom'" /></div><div v-if="bodyMode === 'custom'" class="flex flex-col gap-2"><p class="text-xs text-n-slate-11">{{ t('AI_TOOLS.CONTEXT_VARIABLES') }}: {{ t('AI_TOOLS.CONTEXT_VARIABLES_HELP') }} <code>{{ contextVariables.join(', ') }}</code></p><TextArea v-model="bodyJson" :label="t('AI_TOOLS.BODY_JSON')" :auto-height="true" :min-height="'10rem'" /></div></section>
+    <section v-if="showBody" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST_BODY') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BODY_MODE_HELP') }}</p></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.AUTOMATIC')" :disabled="bodyMode === 'automatic'" @click="bodyMode = 'automatic'" /><Button variant="faded" :label="t('AI_TOOLS.CUSTOM')" :disabled="bodyMode === 'custom'" @click="bodyMode = 'custom'" /></div><div v-if="bodyMode === 'automatic' && automaticPreview.length" class="flex flex-col gap-1 p-3 rounded-lg bg-n-solid-1"><p class="text-xs text-n-slate-11">{{ t('AI_TOOLS.AUTOMATIC_PREVIEW') }}</p><code v-for="item in automaticPreview" :key="item.name" class="text-xs text-n-slate-12">{{ item.name }}: &lt;{{ item.label }}&gt;</code></div><div v-if="bodyMode === 'custom'" class="flex flex-col gap-2"><p class="text-xs text-n-slate-11">{{ t('AI_TOOLS.CUSTOM_BODY_HELP') }}</p><TextArea v-model="bodyJson" :label="t('AI_TOOLS.BODY_JSON')" :auto-height="true" :min-height="'10rem'" /></div></section>
     <section v-if="isEdit" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.TEST') }}</h2><TextArea v-model="testArguments" :label="t('AI_TOOLS.TEST_ARGUMENTS')" :auto-height="true" /><Button :label="t('AI_TOOLS.RUN_TEST')" :disabled="busy" @click="runTest" /><pre v-if="testResult" class="p-3 overflow-x-auto text-xs rounded-lg bg-n-solid-1">{{ JSON.stringify(testResult, null, 2) }}</pre></section>
   </main>
 </template>
