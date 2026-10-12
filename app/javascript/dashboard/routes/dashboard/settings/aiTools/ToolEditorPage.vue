@@ -18,6 +18,7 @@ const busy = ref(false);
 const error = ref('');
 const parameterMode = ref('visual');
 const headerMode = ref('visual');
+const bodyMode = ref('automatic');
 const editingParameter = ref(null);
 const testArguments = ref('{}');
 const testResult = ref(null);
@@ -110,6 +111,7 @@ const load = async () => {
       const tool = toolResponse.data;
       form.value = { ...form.value, ...tool, configuration: { ...form.value.configuration, ...tool.configuration } };
       secretHeadersJson.value = '{}';
+      bodyMode.value = Object.keys(tool.configuration?.body || {}).length ? 'custom' : 'automatic';
     }
     syncVisualJson();
   } catch { error.value = t('AI_TOOLS.LOAD_ERROR'); }
@@ -121,7 +123,8 @@ const save = async () => {
   try {
     if (headerMode.value === 'visual') syncHeadersVisual();
     syncJsonVisual();
-    const payload = { ai_tool: { name: form.value.name, description: form.value.description, active: form.value.active, allow_in_playground: form.value.allow_in_playground, configuration: { ...form.value.configuration, timeout_seconds: Number(form.value.configuration.timeout_seconds) } } };
+    if (bodyMode.value === 'automatic') form.value.configuration.body = {};
+    const payload = { ai_tool: { name: form.value.name, description: form.value.description, active: form.value.active, allow_in_playground: form.value.allow_in_playground, configuration: { ...form.value.configuration, body: bodyMode.value === 'custom' ? form.value.configuration.body : {}, timeout_seconds: Number(form.value.configuration.timeout_seconds) } } };
     if (form.value.slug) payload.ai_tool.slug = form.value.slug;
     const secrets = parseJson(secretHeadersJson.value, '{}');
     if (secrets && Object.keys(secrets).length) payload.ai_tool.secret_headers = secrets;
@@ -165,7 +168,7 @@ onMounted(load);
     </section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.REQUEST_HELP') }}</p></div><label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_TOOLS.METHOD') }}<ComboBox v-model="form.configuration.method" :options="methodOptions" /></label><Input v-model="form.configuration.url" :label="t('AI_TOOLS.URL')" :placeholder="t('AI_TOOLS.URL_PLACEHOLDER')" :message="t('AI_TOOLS.URL_HELP')" /><Input v-model.number="form.configuration.timeout_seconds" type="number" min="1" max="30" :label="t('AI_TOOLS.TIMEOUT')" :message="t('AI_TOOLS.TIMEOUT_HELP')" /></section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div class="flex items-center justify-between"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.HEADERS_SECTION') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.HEADERS_HELP') }}</p></div><div class="flex gap-1"><Button variant="faded" :label="t('AI_TOOLS.VISUAL')" :disabled="headerMode === 'visual'" @click="headerMode = 'visual'; syncVisualJson()" /><Button variant="faded" :label="t('AI_TOOLS.JSON_MODE')" :disabled="headerMode === 'json'" @click="headerMode = 'json'" /></div></div><div v-if="headerMode === 'visual'" class="flex flex-col gap-2"><div v-for="(row, index) in headerRows" :key="index" class="flex flex-wrap items-end gap-2"><Input v-model="row.name" label="Header name" /><Input v-model="row.value" label="Value" /><Button variant="ghost" color="ruby" :label="t('AI_TOOLS.DELETE')" @click="removeHeader(index)" /></div><Button variant="faded" :label="t('AI_TOOLS.ADD_HEADER')" icon="i-lucide-plus" @click="addHeader" /></div><TextArea v-else v-model="headersJson" :label="t('AI_TOOLS.HEADERS')" :auto-height="true" :min-height="'8rem'" /><TextArea v-model="secretHeadersJson" :label="t('AI_TOOLS.SECRETS')" :message="t('AI_TOOLS.SECRETS_HELP')" :auto-height="true" :min-height="'6rem'" /><TextArea v-model="queryJson" :label="t('AI_TOOLS.QUERY_PARAMS')" :message="t('AI_TOOLS.QUERY_HELP')" :auto-height="true" :min-height="'6rem'" /></section>
-    <section v-if="showBody" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST_BODY') }}</h2><TextArea v-model="bodyJson" :label="t('AI_TOOLS.BODY_JSON')" :auto-height="true" :min-height="'10rem'" /></section>
+    <section v-if="showBody" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST_BODY') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BODY_MODE_HELP') }}</p></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.AUTOMATIC')" :disabled="bodyMode === 'automatic'" @click="bodyMode = 'automatic'" /><Button variant="faded" :label="t('AI_TOOLS.CUSTOM')" :disabled="bodyMode === 'custom'" @click="bodyMode = 'custom'" /></div><div v-if="bodyMode === 'custom'" class="flex flex-col gap-2"><p class="text-xs text-n-slate-11">{{ t('AI_TOOLS.CONTEXT_VARIABLES') }}: {{ t('AI_TOOLS.CONTEXT_VARIABLES_HELP') }}</p><TextArea v-model="bodyJson" :label="t('AI_TOOLS.BODY_JSON')" :auto-height="true" :min-height="'10rem'" /></div></section>
     <section v-if="isEdit" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.TEST') }}</h2><TextArea v-model="testArguments" :label="t('AI_TOOLS.TEST_ARGUMENTS')" :auto-height="true" /><Button :label="t('AI_TOOLS.RUN_TEST')" :disabled="busy" @click="runTest" /><pre v-if="testResult" class="p-3 overflow-x-auto text-xs rounded-lg bg-n-solid-1">{{ JSON.stringify(testResult, null, 2) }}</pre></section>
   </main>
 </template>

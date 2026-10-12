@@ -25,9 +25,9 @@ class Saas::AiTools::Executor
     validation = validate_arguments(tool, args)
     return record_failure(tool, request_id, validation, started) unless validation == true
 
-    uri = rendered_uri(tool, args)
+    request_builder = Saas::AiTools::RequestBuilder.new(tool: tool, account: @account, agent: @agent, conversation: @conversation)
+    request, uri = request_builder.build(args)
     validate_uri!(uri)
-    request = build_request(tool, uri, args)
     response = perform_request(request, uri, tool.configuration['timeout_seconds'].to_i)
     normalized = normalize_response(response)
     status = response.code.to_i.between?(200, 299) ? 'completed' : 'failed'
@@ -69,21 +69,6 @@ class Saas::AiTools::Executor
     true
   end
 
-  def rendered_uri(tool, args)
-    render(tool.configuration.fetch('url'), args, escape: true)
-  end
-
-  def render(value, args, escape: false)
-    internals = { 'account_id' => @account.id, 'conversation_id' => @conversation&.id, 'contact_id' => @conversation&.contact_id, 'agent_id' => @agent.id }
-    value.to_s.gsub(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/) do
-      key = Regexp.last_match(1)
-      raise CustomExceptions::SaasError, 'invalid_template_variable' unless args.key?(key) || internals.key?(key)
-
-      rendered = (args[key] || internals[key]).to_s
-      escape ? CGI.escape(rendered) : rendered
-    end
-  end
-
   def validate_uri!(uri)
     parsed = URI.parse(uri)
     raise CustomExceptions::SaasError, 'invalid_tool_url' unless parsed.is_a?(URI::HTTP) && parsed.userinfo.nil? && parsed.host.present?
@@ -98,28 +83,6 @@ class Saas::AiTools::Executor
     ip.loopback? || ip.private? || ip.link_local? || ip.to_i.zero? || ip.to_s == '169.254.169.254'
   rescue IPAddr::InvalidAddressError
     true
-  end
-
-  def build_request(tool, uri, args)
-    parsed = URI.parse(uri)
-    query = tool.configuration.fetch('query_params', {}).to_h.transform_values { |value| render(value, args) }
-    parsed.query = URI.encode_www_form((URI.decode_www_form(parsed.query.to_s) + query.to_a)) if query.present?
-    headers = tool.configuration.fetch('headers', {}).to_h.transform_values { |value| render(value, args) }
-    headers.merge!(JSON.parse(tool.secret_headers)) if tool.secret_headers.present?
-    klass = Net::HTTP.const_get(tool.configuration.fetch('method').to_s.capitalize)
-    request = klass.new(parsed)
-    headers.each { |name, value| request[name] = value.to_s }
-    body = tool.configuration['body']
-    request.body = JSON.generate(render_object(body, args)) if body.present? && !request.is_a?(Net::HTTP::Get) && !request.is_a?(Net::HTTP::Delete)
-    request['Content-Type'] ||= 'application/json' if request.body
-    request
-  end
-
-  def render_object(value, args)
-    return value.map { |item| render_object(item, args) } if value.is_a?(Array)
-    return value.to_h.transform_values { |item| render_object(item, args) } if value.is_a?(Hash)
-
-    render(value, args)
   end
 
   def perform_request(request, uri, timeout)
