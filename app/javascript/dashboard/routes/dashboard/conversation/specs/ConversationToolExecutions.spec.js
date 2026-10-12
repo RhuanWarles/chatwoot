@@ -13,6 +13,7 @@ const state = {
   loading: ref(false),
   error: ref(false),
   refresh: vi.fn(),
+  openExecution: vi.fn(),
   conversationId: ref(9),
 };
 vi.mock('dashboard/composables/useConversationToolExecutions', () => ({
@@ -43,6 +44,7 @@ beforeEach(() => {
   state.conversationId.value = 9;
   state.error.value = false;
   aiTools.execution.mockReset();
+  state.openExecution.mockReset();
 });
 
 it('shows an empty state and reuses the accordion expand/collapse design', async () => {
@@ -61,7 +63,7 @@ it('shows an empty state and reuses the accordion expand/collapse design', async
   expect(accordion.get('button').classes()).toContain('outline-n-weak');
 });
 
-it('shows recent items, all items and sanitized details using one scoped detail request', async () => {
+it('opens shared details without expanding them in the sidebar', async () => {
   state.executions.value = Array.from({ length: 6 }, (_, index) => ({
     ...execution,
     id: index + 1,
@@ -74,9 +76,10 @@ it('shows recent items, all items and sanitized details using one scoped detail 
   expect(panel.findAll('button')).toHaveLength(7);
   await panel.findAll('button')[0].trigger('click');
   await flushPromises();
-  expect(aiTools.execution).toHaveBeenCalledWith(1, { conversation_id: 9 });
-  expect(panel.text()).toContain('***REDACTED***');
-  expect(panel.text()).toContain('NOT_STORED');
+  expect(state.openExecution).toHaveBeenCalledWith(1);
+  expect(aiTools.execution).not.toHaveBeenCalled();
+  expect(panel.find('pre').exists()).toBe(false);
+  expect(panel.text()).not.toContain('request-1');
 });
 
 it('renders failed executions and clears details when switching conversation', async () => {

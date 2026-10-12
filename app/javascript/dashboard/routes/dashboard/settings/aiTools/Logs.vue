@@ -6,6 +6,7 @@ import aiAgentsAPI from 'dashboard/api/aiAgents';
 import aiToolsAPI from 'dashboard/api/aiTools';
 import Button from 'dashboard/components-next/button/Button.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
+import ToolExecutionDetailsDialog from 'dashboard/components-next/ai-tools/ToolExecutionDetailsDialog.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -65,14 +66,7 @@ const applyFilters = () => {
 const openConversation = id => {
   if (id) router.push({ name: 'inbox_conversation', params: { conversation_id: id } });
 };
-const openDetails = async item => {
-  try {
-    const response = await aiToolsAPI.execution(item.id);
-    selected.value = response.data.execution;
-  } catch {
-    error.value = t('AI_TOOLS.LOGS_DETAIL_ERROR');
-  }
-};
+const openDetails = item => { selected.value = item.id; };
 watch(page, load);
 onMounted(load);
 </script>
@@ -100,6 +94,6 @@ onMounted(load);
       <table class="w-full text-sm"><thead><tr class="text-left text-n-slate-11 border-b border-n-weak"><th class="p-3">{{ t('AI_TOOLS.LOGS_DATE') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_AGENT') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_TOOL') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_STATUS') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_HTTP') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_DURATION') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_SOURCE') }}</th><th class="p-3">{{ t('AI_TOOLS.LOGS_CONVERSATION') }}</th></tr></thead><tbody><tr v-for="item in executions" :key="item.id" class="cursor-pointer border-b border-n-weak last:border-0 hover:bg-n-solid-1" @click="openDetails(item)"><td class="p-3 whitespace-nowrap">{{ formatDate(item.created_at) }}</td><td class="p-3">{{ item.agent.name }}</td><td class="p-3">{{ item.tool.name }}</td><td class="p-3"><span :class="item.status === 'completed' ? 'text-n-emerald-11' : 'text-n-ruby-11'">{{ statusLabel(item.status) }}</span></td><td class="p-3">{{ item.response_status || '—' }}</td><td class="p-3">{{ item.duration_ms ? `${item.duration_ms} ms` : '—' }}</td><td class="p-3">{{ sourceLabel(item.source) }}</td><td class="p-3"><button v-if="item.conversation_id" class="text-n-brand" @click.stop="openConversation(item.conversation_id)">#{{ item.conversation_id }}</button><span v-else>—</span></td></tr></tbody></table>
     </div>
     <PaginationFooter v-if="total" v-model:current-page="page" :total-items="total" :items-per-page="25" />
-    <section v-if="selected" class="flex flex-col gap-3 p-5 rounded-xl bg-n-solid-2"><div class="flex items-center justify-between"><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.LOGS_DETAIL') }}</h2><Button variant="ghost" :label="t('AI_TOOLS.CLOSE')" @click="selected = null" /></div><dl class="grid gap-2 text-sm md:grid-cols-2"><div><dt class="text-n-slate-11">{{ t('AI_TOOLS.LOGS_EXECUTION_ID') }}</dt><dd class="text-n-slate-12">{{ selected.execution_id }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_TOOLS.LOGS_ERROR_CODE') }}</dt><dd class="text-n-slate-12">{{ selected.error_code || '—' }}</dd></div></dl><pre class="p-3 overflow-x-auto text-xs rounded-lg bg-n-solid-1">{{ JSON.stringify(selected.arguments || {}, null, 2) }}</pre></section>
+    <ToolExecutionDetailsDialog v-if="selected" :execution-id="selected" @close="selected = null" />
   </main>
 </template>

@@ -493,6 +493,16 @@
       "GO_TO_CONVERSATION": "Go to conversation thread"
     },
     "TOOL_EXECUTIONS": {
+      "DETAIL_TITLE": "Execution details",
+      "DETAIL_ERROR": "Unable to load the details of this execution.",
+      "CLOSE": "Close",
+      "TOOL": "Tool",
+      "STATUS": "Status",
+      "DURATION": "Duration",
+      "CONVERSATION": "Conversation",
+      "TECHNICAL": "Technical information",
+      "SENT": "Sent data",
+      "RESPONSE_NOT_STORED": "Response not stored.",
       "TITLE": "Tool executions",
       "SUCCESS": "Success",
       "FAILED": "Failed",

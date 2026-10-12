@@ -460,6 +460,16 @@
       "GO_TO_CONVERSATION": "Ir para a conversa"
     },
     "TOOL_EXECUTIONS": {
+      "DETAIL_TITLE": "Detalhes da execução",
+      "DETAIL_ERROR": "Não foi possível carregar os detalhes desta execução.",
+      "CLOSE": "Fechar",
+      "TOOL": "Ferramenta",
+      "STATUS": "Status",
+      "DURATION": "Duração",
+      "CONVERSATION": "Conversa",
+      "TECHNICAL": "Informações técnicas",
+      "SENT": "Dados enviados",
+      "RESPONSE_NOT_STORED": "Resposta não armazenada.",
       "TITLE": "Execuções de ferramentas",
       "SUCCESS": "Sucesso",
       "FAILED": "Falhou",

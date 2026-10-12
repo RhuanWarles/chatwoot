@@ -20,7 +20,11 @@ const time = computed(() =>
   <component
     :is="interactive ? 'button' : 'div'"
     class="w-full min-w-0 m-0 p-2 text-start rounded-lg"
-    :class="{ 'hover:bg-n-alpha-2': interactive }"
+    :class="{
+      'hover:bg-n-alpha-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-n-blue-9':
+        interactive,
+    }"
+    :type="interactive ? 'button' : undefined"
     @click="interactive && $emit('select', execution)"
   >
     <span class="block text-sm font-medium text-n-slate-12 break-words">{{

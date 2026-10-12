@@ -16,6 +16,7 @@ import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBar
 import { emitter } from 'shared/helpers/mitt';
 import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
+import ToolExecutionDetailsDialog from 'dashboard/components-next/ai-tools/ToolExecutionDetailsDialog.vue';
 
 export default {
   components: {
@@ -24,6 +25,7 @@ export default {
     CmdBarConversationSnooze,
     SidepanelSwitch,
     ConversationSidebar,
+    ToolExecutionDetailsDialog,
   },
   beforeRouteLeave(to, from, next) {
     // Clear selected state if navigating away from a conversation to a route without a conversationId to prevent stale data issues
@@ -60,7 +62,7 @@ export default {
     },
   },
   setup() {
-    provideConversationToolExecutions();
+    const toolExecutions = provideConversationToolExecutions();
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();
@@ -74,6 +76,7 @@ export default {
       updateUISettings,
       isOnExpandedLayout,
       accountId,
+      toolExecutions,
     };
   },
   data() {
@@ -219,5 +222,11 @@ export default {
     </ConversationBox>
     <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
     <CmdBarConversationSnooze />
+    <ToolExecutionDetailsDialog
+      v-if="toolExecutions.selectedExecutionId.value"
+      :execution-id="toolExecutions.selectedExecutionId.value"
+      :conversation-id="currentChat.id"
+      @close="toolExecutions.selectedExecutionId.value = null"
+    />
   </section>
 </template>

@@ -277,7 +277,7 @@ const getInReplyToMessage = parentMessage => {
             }}</span>
             <ToolExecutionItem
               :execution="entry.execution"
-              :interactive="false"
+              @select="toolExecutions.openExecution(entry.execution.id)"
             />
           </div>
         </li>

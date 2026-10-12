@@ -10,6 +10,7 @@ export const provideConversationToolExecutions = () => {
   const executions = ref([]);
   const error = ref(false);
   const loading = ref(false);
+  const selectedExecutionId = ref(null);
   let generation = 0;
 
   const refresh = async () => {
@@ -44,6 +45,7 @@ export const provideConversationToolExecutions = () => {
     [accountId, () => chat.value.id],
     () => {
       generation += 1;
+      selectedExecutionId.value = null;
       executions.value = [];
       loading.value = false;
       error.value = false;
@@ -65,6 +67,10 @@ export const provideConversationToolExecutions = () => {
     error,
     refresh,
     conversationId: computed(() => chat.value.id),
+    selectedExecutionId,
+    openExecution: id => {
+      selectedExecutionId.value = id;
+    },
   };
   provide(TOOL_EXECUTIONS, state);
   return state;
