@@ -1,6 +1,37 @@
 import { mergeToolExecutions } from '../conversationToolTimeline';
+import portuguese from '../../i18n/locale/pt_BR/conversation.json';
 
 describe('conversation tool timeline', () => {
+  it('preserves Portuguese accents in the execution labels', () => {
+    expect(portuguese.CONVERSATION.TOOL_EXECUTIONS.TITLE).toBe(
+      'Execuções de ferramentas'
+    );
+    expect(portuguese.CONVERSATION.TOOL_EXECUTIONS.ERROR).toContain(
+      'Não foi possível'
+    );
+  });
+  it('places a subsecond execution before its AI reply without reordering Messages', () => {
+    const inbound = { key: 'inbound', createdAt: 100, message: { id: 1 } };
+    const reply = {
+      key: 'reply',
+      createdAt: 100,
+      message: {
+        id: 2,
+        contentAttributes: { generatedByAi: true, aiAgentId: 1 },
+      },
+    };
+    const execution = {
+      id: 1,
+      agent: { id: 1 },
+      created_at: new Date(100500).toISOString(),
+    };
+    const timeline = mergeToolExecutions([inbound, reply], [execution]);
+    expect(timeline.map(entry => entry.key)).toEqual([
+      'inbound',
+      'tool-execution-1',
+      'reply',
+    ]);
+  });
   it('places executions between the inbound message and reply without creating Messages', () => {
     const entries = [
       { key: 'inbound', createdAt: 100, message: { id: 1 } },

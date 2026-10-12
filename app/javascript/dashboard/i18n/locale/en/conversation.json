@@ -499,7 +499,7 @@
       "EMPTY": "No tools have been executed in this conversation.",
       "ERROR": "Unable to load tool executions.",
       "RETRY": "Try again",
-      "LOADING": "Loading executions?",
+      "LOADING": "Loading executions…",
       "LESS": "Show less",
       "ALL": "View all ({count})",
       "AGENT": "Assistant",

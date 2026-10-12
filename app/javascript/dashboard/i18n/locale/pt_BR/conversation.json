@@ -460,13 +460,13 @@
       "GO_TO_CONVERSATION": "Ir para a conversa"
     },
     "TOOL_EXECUTIONS": {
-      "TITLE": "Execu??es de ferramentas",
+      "TITLE": "Execuções de ferramentas",
       "SUCCESS": "Sucesso",
       "FAILED": "Falhou",
       "EMPTY": "Nenhuma ferramenta foi executada nesta conversa.",
-      "ERROR": "N?o foi poss?vel carregar as execu??es de ferramentas.",
+      "ERROR": "Não foi possível carregar as execuções de ferramentas.",
       "RETRY": "Tentar novamente",
-      "LOADING": "Carregando execu??es?",
+      "LOADING": "Carregando execuções…",
       "LESS": "Ver menos",
       "ALL": "Ver todas ({count})",
       "AGENT": "Assistente",
@@ -474,9 +474,9 @@
       "REQUEST_ID": "Request ID",
       "EXECUTION_ID": "Execution ID",
       "HTTP": "Status HTTP",
-      "ERROR_CODE": "C?digo de erro",
+      "ERROR_CODE": "Código de erro",
       "ARGUMENTS": "Argumentos sanitizados",
-      "NOT_STORED": "Requests completos, headers e corpos de resposta n?o s?o armazenados nestes logs.",
+      "NOT_STORED": "Requests completos, headers e corpos de resposta não são armazenados nestes logs.",
       "EVENT": "Ferramenta executada"
     }
   },
