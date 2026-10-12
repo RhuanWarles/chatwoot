@@ -275,6 +275,8 @@
     ,"QUERY_PARAMS": "Query parameters JSON"
     ,"QUERY_HELP": "Add query values or templates supported by the tool."
     ,"TEST_ARGUMENTS": "Test arguments JSON"
+    ,"TEST_CONVERSATION_ID": "Test conversation ID"
+    ,"TEST_CONVERSATION_HELP": "Required when the tool uses Contact or Conversation values."
     ,"DESCRIPTION_REQUIRED": "Enter a description for the tool."
     ,"VALUE_SOURCE": "Value source"
     ,"REQUIRED": "Required"

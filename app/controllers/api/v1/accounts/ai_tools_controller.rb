@@ -39,7 +39,8 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
 
   def test
     agent = Current.account.saas_ai_agents.find(params[:agent_id])
-    result = Saas::AiTools::Executor.new(account: Current.account, agent: agent).call(@tool.slug, test_arguments)
+    conversation = Current.account.conversations.find_by(id: params[:conversation_id]) if params[:conversation_id].present?
+    result = Saas::AiTools::Executor.new(account: Current.account, agent: agent, conversation: conversation).call(@tool.slug, test_arguments)
     render json: result
   end
 
