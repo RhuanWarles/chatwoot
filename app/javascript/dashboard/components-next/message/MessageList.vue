@@ -10,8 +10,10 @@ import MessageApi from 'dashboard/api/inbox/message.js';
 import { provideGroupMentionParticipants } from 'dashboard/composables/useGroupMentionParticipants';
 import { formatMessageDaySeparator } from 'dashboard/helper/messagePresentation';
 import { useConversationToolExecutions } from 'dashboard/composables/useConversationToolExecutions';
-import { mergeToolExecutions } from 'dashboard/helper/conversationToolTimeline';
+import { mergeConversationEvents } from 'dashboard/helper/conversationToolTimeline';
 import ToolExecutionItem from 'dashboard/routes/dashboard/conversation/ToolExecutionItem.vue';
+import KnowledgeRetrievalItem from 'dashboard/routes/dashboard/conversation/KnowledgeRetrievalItem.vue';
+import { useConversationKnowledgeRetrievals } from 'dashboard/composables/useConversationKnowledgeRetrievals';
 
 /**
  * Props definition for the component
@@ -53,6 +55,7 @@ const props = defineProps({
 const emit = defineEmits(['retry']);
 const { t, locale } = useI18n();
 const toolExecutions = useConversationToolExecutions();
+const knowledgeRetrievals = useConversationKnowledgeRetrievals();
 
 const allMessages = computed(() => {
   return useCamelCase(props.messages, {
@@ -105,9 +108,10 @@ const timeline = computed(() => {
 
   let lastDayKey = null;
   let lastDayValue = null;
-  return mergeToolExecutions(
+  return mergeConversationEvents(
     entries,
-    toolExecutions?.executions.value || []
+    toolExecutions?.executions.value || [],
+    knowledgeRetrievals?.retrievals.value || []
   ).reduce((result, entry) => {
     const separator = formatMessageDaySeparator(entry.createdAt, locale.value);
     if (separator.key !== lastDayKey || separator.value !== lastDayValue) {
@@ -278,6 +282,18 @@ const getInReplyToMessage = parentMessage => {
             <ToolExecutionItem
               :execution="entry.execution"
               @select="toolExecutions.openExecution(entry.execution.id)"
+            />
+          </div>
+        </li>
+        <li
+          v-else-if="entry.retrieval"
+          class="flex justify-center py-2"
+          data-knowledge-retrieval-event
+        >
+          <div class="max-w-sm min-w-0 text-center rounded-lg bg-n-alpha-2 px-3 py-1">
+            <KnowledgeRetrievalItem
+              :retrieval="entry.retrieval"
+              @select="knowledgeRetrievals.openRetrieval(entry.retrieval.id)"
             />
           </div>
         </li>

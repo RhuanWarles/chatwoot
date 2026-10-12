@@ -8,6 +8,7 @@ import {
 } from 'dashboard/composables/useContactConversationNavigation';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { provideConversationToolExecutions } from 'dashboard/composables/useConversationToolExecutions';
+import { provideConversationKnowledgeRetrievals } from 'dashboard/composables/useConversationKnowledgeRetrievals';
 import ChatList from '../../../components/ChatList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -17,6 +18,7 @@ import { emitter } from 'shared/helpers/mitt';
 import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 import ToolExecutionDetailsDialog from 'dashboard/components-next/ai-tools/ToolExecutionDetailsDialog.vue';
+import KnowledgeRetrievalDetailsDialog from 'dashboard/components-next/ai-tools/KnowledgeRetrievalDetailsDialog.vue';
 
 export default {
   components: {
@@ -26,6 +28,7 @@ export default {
     SidepanelSwitch,
     ConversationSidebar,
     ToolExecutionDetailsDialog,
+    KnowledgeRetrievalDetailsDialog,
   },
   beforeRouteLeave(to, from, next) {
     // Clear selected state if navigating away from a conversation to a route without a conversationId to prevent stale data issues
@@ -63,6 +66,7 @@ export default {
   },
   setup() {
     const toolExecutions = provideConversationToolExecutions();
+    const knowledgeRetrievals = provideConversationKnowledgeRetrievals();
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();
@@ -77,6 +81,7 @@ export default {
       isOnExpandedLayout,
       accountId,
       toolExecutions,
+      knowledgeRetrievals,
     };
   },
   data() {
@@ -227,6 +232,12 @@ export default {
       :execution-id="toolExecutions.selectedExecutionId.value"
       :conversation-id="currentChat.id"
       @close="toolExecutions.selectedExecutionId.value = null"
+    />
+    <KnowledgeRetrievalDetailsDialog
+      v-if="knowledgeRetrievals.selectedRetrievalId.value"
+      :retrieval-id="knowledgeRetrievals.selectedRetrievalId.value"
+      :conversation-id="currentChat.id"
+      @close="knowledgeRetrievals.selectedRetrievalId.value = null"
     />
   </section>
 </template>

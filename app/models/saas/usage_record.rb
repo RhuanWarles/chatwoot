@@ -1,6 +1,7 @@
 class Saas::UsageRecord < ApplicationRecord
   belongs_to :wallet, class_name: 'Saas::Wallet', optional: true
   belongs_to :account
+  belongs_to :conversation, optional: true
   has_one :voice_call, class_name: 'Saas::VoiceCall', dependent: :destroy
 
   validates :reference, presence: true, uniqueness: { scope: :account_id }

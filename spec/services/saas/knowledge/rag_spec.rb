@@ -50,6 +50,27 @@ RSpec.describe 'Text agent knowledge retrieval' do
     expect(Saas::Knowledge::Retrieval.for_agent(agent, 'warranty').size).to eq(5)
   end
 
+  it 'stores compact conversation retrieval details in the existing usage record' do
+    Saas::Knowledge::IndexJob.perform_now(document.id, document.indexing_version)
+    agent.configure!({}, selected_knowledge_bases: [base])
+    conversation = create(:conversation, account: account)
+    incoming = create(:message, account: account, conversation: conversation, message_type: :incoming)
+    record = Saas::UsageRecord.create!(account: account, reference: 'knowledge-retrieval-spec', kind: 'consumption',
+                                       status: 'completed', units: 0, reserved_units: 0, source: 'knowledge_retrieval',
+                                       metadata: { 'ai_agent_id' => agent.id })
+    allow(Saas::Knowledge::Embeddings).to receive(:call).and_return(vectors: [vector], usage_record: record)
+
+    result = Saas::Knowledge::Retrieval.for_agent(agent, 'warranty', conversation_id: conversation.id,
+                                                  incoming_message_id: incoming.id)
+
+    expect(result).not_to be_empty
+    details = record.reload.metadata.fetch('retrieval')
+    expect(record.conversation_id).to eq(conversation.id)
+    expect(record.incoming_message_id).to eq(incoming.id)
+    expect(details).to include('accepted_count' => 1, 'top_k' => 5, 'threshold' => 0.5)
+    expect(details.fetch('chunks').first.fetch('content')).to include('12 months')
+  end
+
   it 'keeps old chunks on embedding failure and ignores stale jobs' do
     Saas::Knowledge::IndexJob.perform_now(document.id, document.indexing_version)
     id = document.chunks.first.id

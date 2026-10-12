@@ -39,7 +39,8 @@ class Saas::AiAgents::Respond
     mode = @conversation.account.saas_ai_setting&.text_mode || 'platform'
     memory_context = Saas::AiAgents::Memory.prompt_context(@agent, @conversation.contact)
     usage = reserve_credits(mode)
-    sources = Saas::Knowledge::Retrieval.for_agent(@agent, @incoming.content)
+    sources = Saas::Knowledge::Retrieval.for_agent(@agent, @incoming.content, conversation_id: @conversation.id,
+                                                    incoming_message_id: @incoming.id)
     knowledge_context = Saas::Knowledge::Retrieval.messages(sources, enabled: @agent.knowledge_bases.exists?)
     tool_definitions = Saas::AiTools::Catalog.for_agent(@agent)
     tool_executor = Saas::AiTools::Executor.new(account: @conversation.account, agent: @agent, conversation: @conversation)

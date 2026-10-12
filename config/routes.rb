@@ -223,6 +223,7 @@ Rails.application.routes.draw do
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
               resource :group_participants, only: [:show, :create]
+              resources :knowledge_retrievals, only: [:index, :show], controller: :knowledge_retrievals
               resource :group, only: [:show, :update], controller: :groups do
                 post :participants
                 post :leave

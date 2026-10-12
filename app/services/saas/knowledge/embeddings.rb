@@ -5,18 +5,21 @@ class Saas::Knowledge::Embeddings
     ENV.fetch('SAAS_EMBEDDING_MODEL', 'text-embedding-3-small')
   end
 
-  def self.call(account:, texts:, source:, document_id: nil, agent_id: nil)
+  def self.call(account:, texts:, source:, document_id: nil, agent_id: nil, metadata: {}, return_record: false)
     provider = ENV.fetch('SAAS_EMBEDDING_PROVIDER', 'openai')
     record = Saas::UsageRecord.create!(account: account, reference: "#{source}:#{SecureRandom.uuid}", kind: 'consumption',
                                        source: source, status: 'running', units: 0, reserved_units: 0,
-                                       provider: provider, model: model,
-                                       metadata: { 'knowledge_document_id' => document_id, 'ai_agent_id' => agent_id }.compact)
+                                       provider: provider, model: model, metadata: {
+                                         'knowledge_document_id' => document_id, 'ai_agent_id' => agent_id
+                                       }.merge(metadata).compact)
     client = configured_client(provider)
     response = client.embeddings(parameters: { model: model, input: texts, dimensions: DIMENSIONS, encoding_format: 'float' })
     vectors = parse_vectors(response, texts.size)
     tokens = response.fetch('usage', {}).fetch('total_tokens', 0)
     record.update!(status: 'completed', prompt_tokens: tokens, completion_tokens: 0, total_tokens: tokens)
-    vectors
+    return vectors unless return_record
+
+    { vectors: vectors, usage_record: record }
   rescue StandardError => e
     record&.update!(status: 'failed', error_code: e.respond_to?(:code) ? e.code : 'embedding_failed')
     raise CustomExceptions::SaasError, 'embedding_failed', cause: nil

@@ -521,6 +521,24 @@
       "ARGUMENTS": "Sanitized arguments",
       "NOT_STORED": "Full requests, headers and response bodies are not stored in these logs.",
       "EVENT": "Tool executed"
+    },
+    "KNOWLEDGE_RETRIEVAL": {
+      "DETAIL_TITLE": "Knowledge base query details",
+      "DETAIL_ERROR": "Unable to load the retrieval details.",
+      "CLOSE": "Close",
+      "EVENT": "Knowledge base consulted",
+      "CHUNKS": "chunks",
+      "LOADING": "Loading retrieval details…",
+      "RETRY": "Try again",
+      "QUERY": "Query",
+      "BASES": "Knowledge bases",
+      "ACCEPTED": "Accepted chunks",
+      "TOP_K": "Top K",
+      "THRESHOLD": "Threshold",
+      "DURATION": "Duration",
+      "DATE": "Date and time",
+      "AGENT": "Assistant",
+      "USED_CHUNKS": "Chunks used"
     }
   },
   "EMAIL_TRANSCRIPT": {

@@ -488,6 +488,24 @@
       "ARGUMENTS": "Argumentos sanitizados",
       "NOT_STORED": "Requests completos, headers e corpos de resposta não são armazenados nestes logs.",
       "EVENT": "Ferramenta executada"
+    },
+    "KNOWLEDGE_RETRIEVAL": {
+      "DETAIL_TITLE": "Detalhes da consulta à base",
+      "DETAIL_ERROR": "Não foi possível carregar os detalhes da consulta.",
+      "CLOSE": "Fechar",
+      "EVENT": "Base consultada",
+      "CHUNKS": "trechos",
+      "LOADING": "Carregando detalhes da consulta…",
+      "RETRY": "Tentar novamente",
+      "QUERY": "Consulta",
+      "BASES": "Bases de conhecimento",
+      "ACCEPTED": "Trechos aceitos",
+      "TOP_K": "Top K",
+      "THRESHOLD": "Limite",
+      "DURATION": "Duração",
+      "DATE": "Data e hora",
+      "AGENT": "Assistente",
+      "USED_CHUNKS": "Trechos utilizados"
     }
   },
   "EMAIL_TRANSCRIPT": {

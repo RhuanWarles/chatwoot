@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_12_203000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_13_020000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1899,8 +1899,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_12_203000) do
     t.decimal "estimated_cost_usd", precision: 20, scale: 10
     t.jsonb "pricing_snapshot", default: {}, null: false
     t.string "error_code"
+    t.bigint "conversation_id"
+    t.bigint "incoming_message_id"
     t.index ["account_id", "source", "created_at"], name: "index_saas_usage_records_on_account_source_created"
     t.index ["account_id"], name: "index_saas_usage_records_on_account_id"
+    t.index ["conversation_id"], name: "index_saas_usage_records_on_conversation_id"
+    t.index ["incoming_message_id"], name: "index_saas_usage_records_on_incoming_message_id"
     t.index ["status", "expires_at"], name: "index_saas_usage_records_on_status_and_expires_at"
     t.index ["wallet_id", "reference"], name: "index_saas_usage_records_on_wallet_id_and_reference", unique: true
     t.index ["wallet_id", "status"], name: "index_saas_usage_records_on_wallet_id_and_status"

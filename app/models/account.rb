@@ -72,6 +72,7 @@ class Account < ApplicationRecord
   has_many :saas_ai_agent_memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy
   has_many :saas_voice_agents, class_name: 'Saas::VoiceAgent', dependent: :destroy
   has_many :saas_wallets, class_name: 'Saas::Wallet', dependent: :destroy
+  has_many :saas_usage_records, class_name: 'Saas::UsageRecord', dependent: :destroy
   has_many :saas_voice_calls, class_name: 'Saas::VoiceCall', dependent: :destroy
   has_many :saas_text_generations, class_name: 'Saas::TextGeneration', dependent: :destroy
   has_many :agent_bot_inboxes, dependent: :destroy_async

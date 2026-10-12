@@ -1,4 +1,7 @@
-import { mergeToolExecutions } from '../conversationToolTimeline';
+import {
+  mergeConversationEvents,
+  mergeToolExecutions,
+} from '../conversationToolTimeline';
 import portuguese from '../../i18n/locale/pt_BR/conversation.json';
 
 describe('conversation tool timeline', () => {
@@ -61,5 +64,18 @@ describe('conversation tool timeline', () => {
       mergeToolExecutions([{ createdAt: 0 }, { createdAt: 10 }], [execution])
     ).toHaveLength(3);
     expect(mergeToolExecutions([], [execution])).toEqual([]);
+  });
+
+  it('adds retrieval events without turning them into messages', () => {
+    const entries = [{ key: 'inbound', createdAt: 100, message: { id: 1 } }];
+    const retrieval = { id: 4, created_at: new Date(101000).toISOString() };
+    const timeline = mergeConversationEvents(entries, [], [retrieval]);
+
+    expect(timeline.map(entry => entry.key)).toEqual([
+      'inbound',
+      'knowledge-retrieval-4',
+    ]);
+    expect(timeline[1].message).toBeUndefined();
+    expect(timeline[1].retrieval).toBe(retrieval);
   });
 });
