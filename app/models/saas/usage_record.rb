@@ -6,7 +6,7 @@ class Saas::UsageRecord < ApplicationRecord
   validates :reference, presence: true, uniqueness: { scope: :account_id }
   validates :kind, inclusion: { in: %w[credit consumption adjustment] }
   validates :status, inclusion: { in: %w[reserved settled released running completed failed] }
-  validates :source, inclusion: { in: %w[runtime playground memory] }
+  validates :source, inclusion: { in: %w[runtime playground memory knowledge_embedding knowledge_retrieval] }
   validates :units, :reserved_units, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   before_validation :sync_account_from_wallet

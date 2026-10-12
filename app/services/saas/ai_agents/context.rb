@@ -15,7 +15,7 @@ class Saas::AiAgents::Context
                           .reorder(id: :desc).first
   end
 
-  def self.build(conversation, agent, incoming, memory_context: nil)
+  def self.build(conversation, agent, incoming, memory_context: nil, knowledge_context: [])
     remaining = HISTORY_CHARACTER_LIMIT
     limit = agent.context_messages_limit.presence || DEFAULT_HISTORY_LIMIT
     history = relevant(conversation).where('id <= ?', incoming.id).reorder(id: :desc)
@@ -31,6 +31,6 @@ class Saas::AiAgents::Context
     end.reverse
     system_messages = [{ role: 'system', content: agent.system_prompt }]
     system_messages << { role: 'system', content: memory_context } if memory_context.present?
-    system_messages + history
+    system_messages + knowledge_context + history
   end
 end

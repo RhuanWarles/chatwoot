@@ -11,6 +11,8 @@ class Saas::AiAgent < ApplicationRecord
   has_many :memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy
   has_many :ai_tool_agents, class_name: 'Saas::AiToolAgent', dependent: :destroy
   has_many :tools, through: :ai_tool_agents, source: :ai_tool
+  has_many :knowledge_links, class_name: 'Saas::AiAgentKnowledgeBase', dependent: :destroy
+  has_many :knowledge_bases, through: :knowledge_links, source: :knowledge_base
 
   validates :name, :system_prompt, :provider, :model, presence: true
   validates :name, :model, length: { maximum: 100 }
@@ -23,10 +25,11 @@ class Saas::AiAgent < ApplicationRecord
   validate :validate_runtime_provider
 
   # Serialize assignment and activation together, including concurrent requests.
-  def configure!(attributes, selected_inboxes: nil, selected_tools: nil)
+  def configure!(attributes, selected_inboxes: nil, selected_tools: nil, selected_knowledge_bases: nil)
     account.with_lock do
       assign_attributes(attributes)
       self.inboxes = selected_inboxes unless selected_inboxes.nil?
+      self.knowledge_bases = selected_knowledge_bases unless selected_knowledge_bases.nil?
       if selected_tools
         ai_tool_agents.delete_all
         selected_tools.each { |tool| ai_tool_agents.create!(account: account, ai_tool: tool) }
@@ -41,6 +44,7 @@ class Saas::AiAgent < ApplicationRecord
                      'temperature', 'context_messages_limit', 'active', 'handoff_enabled', 'respond_to_groups', 'customer_memory_enabled', 'created_at', 'updated_at').merge(
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } },
+                       'knowledge_bases' => knowledge_bases.map { |base| { id: base.id, name: base.name, active: base.active } },
                        'tools' => tools.map { |tool| { id: tool.id, name: tool.name, slug: tool.slug, description: tool.description, active: tool.active, allow_in_playground: tool.allow_in_playground } }
                      )
   end

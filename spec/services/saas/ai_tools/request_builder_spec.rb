@@ -10,7 +10,7 @@ RSpec.describe Saas::AiTools::RequestBuilder do
   let(:builder) { described_class.new(tool: tool, account: account, agent: agent, conversation: conversation) }
 
   it 'uses arguments as an automatic JSON body for write requests' do
-    request, = builder.build('name' => 'Rhuan', 'active' => true, 'quantity' => 2)
+    request, = builder.build({ 'name' => 'Rhuan', 'active' => true, 'quantity' => 2 })
 
     expect(request.body).to eq('{"name":"Rhuan","active":true,"quantity":2}')
     expect(request['Content-Type']).to eq('application/json')
@@ -37,7 +37,7 @@ RSpec.describe Saas::AiTools::RequestBuilder do
     tool_configuration = configuration.merge('method' => 'GET')
     allow(tool).to receive(:configuration).and_return(tool_configuration)
 
-    request, = builder.build('order_id' => '4382')
+    request, = builder.build({ 'order_id' => '4382' })
 
     expect(request.path).to eq('/hooks?order_id=4382')
     expect(request.body).to be_nil
@@ -47,7 +47,7 @@ RSpec.describe Saas::AiTools::RequestBuilder do
     tool_configuration = configuration.merge('body' => { 'phone' => '{{contact_phone}}', 'cpf' => '{{cpf}}', 'conversation' => '{{conversation_id}}' })
     allow(tool).to receive(:configuration).and_return(tool_configuration)
 
-    request, = builder.build('cpf' => '123')
+    request, = builder.build({ 'cpf' => '123' })
 
     expect(JSON.parse(request.body)).to eq('phone' => '5562999999999', 'cpf' => '123', 'conversation' => '4')
   end

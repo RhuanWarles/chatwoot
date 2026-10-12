@@ -30,6 +30,15 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(conversation.reload.additional_attributes['ai_agent_state']).to eq('active')
   end
 
+  it 'adds retrieved knowledge to native replies without publishing internal sources' do
+    base = account.saas_knowledge_bases.create!(name: 'FAQ')
+    agent.configure!({}, selected_knowledge_bases: [base])
+    allow(Saas::Knowledge::Retrieval).to receive(:for_agent).and_return([{ content: 'Warranty is 12 months.' }])
+    described_class.new(conversation, incoming).perform
+    expect(provider).to have_received(:generate).with(hash_including(messages: include(hash_including(content: include('12 months')))))
+    expect(conversation.messages.outgoing.last.content_attributes).not_to have_key('knowledge_sources')
+  end
+
   it 'preserves an active agent but blocks the provider and credit reservation while text access is disabled' do
     account.saas_ai_setting.update!(text_mode: 'platform')
     wallet = Saas::Wallet.for_account(account, 'text_credits')

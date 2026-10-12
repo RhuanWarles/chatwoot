@@ -66,6 +66,12 @@ Rails.application.routes.draw do
             post :test, on: :member
           end
           resources :ai_tool_executions, only: [:index, :show], controller: 'ai_tool_executions'
+          resources :knowledge_bases, only: [:index, :show, :create, :update, :destroy] do
+            post :search, on: :member
+            resources :documents, controller: 'knowledge_documents', only: [:index, :show, :create, :update, :destroy] do
+              post :reindex, on: :member
+            end
+          end
           resource :saas_ai, only: [:show, :update], controller: 'saas_ai' do
             post :calls
             post :text_generations

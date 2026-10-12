@@ -11,6 +11,7 @@ RSpec.describe Saas::AiAgents::Playground do
   let(:request_id) { SecureRandom.uuid }
 
   before do
+    allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
     account.create_saas_ai_setting!(text_mode: 'platform')
     allow(Saas::TextService).to receive(:configured?).and_return(true)
     allow(Saas::TextService).to receive(:platform_config).and_return(provider: 'openai', model: 'gpt-4.1')
@@ -32,6 +33,21 @@ RSpec.describe Saas::AiAgents::Playground do
     expect(Saas::UsageRecord.where(account: account, source: 'playground')).to contain_exactly(
       have_attributes(status: 'completed', units: 0, prompt_tokens: 10, completion_tokens: 5, total_tokens: 15)
     )
+  end
+
+  it 'uses linked knowledge and returns sources without debiting credits' do
+    base = account.saas_knowledge_bases.create!(name: 'FAQ')
+    agent.configure!({}, selected_knowledge_bases: [base])
+    sources = [{ base: 'FAQ', document: 'Warranty', content: 'Warranty is 12 months.', score: 0.9 }]
+    allow(Saas::Knowledge::Retrieval).to receive(:for_agent).with(agent, 'Warranty?').and_return(sources)
+    wallet = Saas::Wallet.for_account(account, 'text_credits')
+    wallet.credit!(units: 20, reference: 'knowledge-test-credit')
+
+    result = described_class.new(account, user, agent).message(session_id: session_id, request_id: request_id, prompt: 'Warranty?')
+
+    expect(result[:message]['knowledge_sources']).to eq(sources)
+    expect(provider).to have_received(:generate).with(hash_including(messages: include(hash_including(content: include('12 months')))))
+    expect(wallet.reload.available_units).to eq(20)
   end
 
   it 'keeps the same request idempotent without a second provider call' do

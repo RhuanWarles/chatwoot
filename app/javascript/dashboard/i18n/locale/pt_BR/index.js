@@ -1,3 +1,4 @@
+import knowledge from './knowledge.json';
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
@@ -49,6 +50,7 @@ import whatsappTemplateMgmt from './whatsappTemplateMgmt.json';
 import yearInReview from './yearInReview.json';
 
 export default {
+  ...knowledge,
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,

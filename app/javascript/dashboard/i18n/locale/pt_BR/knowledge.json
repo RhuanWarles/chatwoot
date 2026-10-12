@@ -1,0 +1,52 @@
+{
+  "KNOWLEDGE": {
+    "TITLE": "Base de conhecimento",
+    "HELP": "Conhecimento da empresa compartilhado somente com os assistentes vinculados a cada base.",
+    "AGENT_HELP": "Selecione as bases que este assistente pode consultar. Bases inativas não são utilizadas.",
+    "CREATE": "Criar base de conhecimento",
+    "NAME": "Nome",
+    "DESCRIPTION": "Descrição",
+    "ACTIVE": "Ativa",
+    "INACTIVE": "Inativa",
+    "AGENTS": "Assistentes vinculados",
+    "NONE": "Nenhum",
+    "EMPTY": "Nenhuma base de conhecimento criada.",
+    "DOCUMENTS": "Documentos",
+    "DOCUMENTS_COUNT": "{count} documentos",
+    "ADD_DOCUMENT": "Adicionar ou substituir documento",
+    "NO_DOCUMENTS": "Nenhum documento nesta base.",
+    "CHUNKS": "{count} trechos",
+    "EDIT": "Editar",
+    "DELETE": "Excluir",
+    "SAVE": "Salvar",
+    "CLOSE": "Fechar",
+    "VIEW": "Ver texto",
+    "REINDEX": "Reprocessar",
+    "MANUAL_TEXT": "Texto manual",
+    "UPLOAD_HELP": "Envie PDF, TXT ou MD de até 10 MB, ou preencha o texto abaixo (até 500 mil caracteres). PDF com texto, até 200 páginas; sem OCR.",
+    "DELETE_CONFIRM": "Excluir este item? Ao excluir uma base, seus documentos, trechos e vínculos com assistentes também serão removidos.",
+    "SEARCH": "Testar busca",
+    "SEARCH_QUESTION": "Faça uma pergunta sobre esta base",
+    "NO_RESULTS": "Nenhum trecho relevante encontrado.",
+    "NO_EXTRACTED_TEXT": "Nenhum texto extraído disponível ainda.",
+    "CONTEXT_USED": "Contexto utilizado: {count} trechos",
+    "ERROR": "Não foi possível concluir esta ação. Tente novamente.",
+    "STATUS": {
+      "processing": "Processando",
+      "ready": "Pronto",
+      "failed": "Falhou"
+    },
+    "ERRORS": {
+      "invalid_file": "Escolha um PDF, TXT ou MD de até 10 MB com tipo de arquivo válido.",
+      "document_limit": "Esta base atingiu o limite de 100 documentos.",
+      "no_extractable_text": "Nenhum texto extraível encontrado. PDFs escaneados precisam de OCR, indisponível nesta versão.",
+      "text_too_large": "O texto extraído excede o limite permitido.",
+      "too_many_pages": "O PDF excede o limite de 200 páginas.",
+      "too_many_chunks": "O documento excede o limite de 400 trechos.",
+      "extraction_timeout": "A extração de texto excedeu o tempo permitido.",
+      "extraction_failed": "Não foi possível extrair o texto deste documento.",
+      "embedding_failed": "Não foi possível indexar este documento. Confira a configuração da plataforma e tente novamente.",
+      "indexing_failed": "Não foi possível processar este documento. Confira seu conteúdo e tente novamente."
+    }
+  }
+}

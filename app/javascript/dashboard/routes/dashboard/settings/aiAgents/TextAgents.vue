@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
+import knowledgeAPI from 'dashboard/api/knowledgeBases';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -21,6 +22,7 @@ const busy = ref(false);
 const loadError = ref('');
 const actionError = ref('');
 const tools = ref([]);
+const knowledgeBases = ref([]);
 const editorError = ref('');
 const editor = ref(null);
 const deletion = ref(null);
@@ -104,10 +106,11 @@ const load = async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    const [response, inboxesLoaded, toolsResponse] = await Promise.all([
+    const [response, inboxesLoaded, toolsResponse, knowledgeResponse] = await Promise.all([
       aiAgentsAPI.get(),
       store.dispatch('inboxes/get'),
       aiAgentsAPI.tools(),
+      knowledgeAPI.get(),
     ]);
     if (!inboxesLoaded) {
       loadError.value = t('AI_AGENTS.LOAD_ERROR');
@@ -119,6 +122,7 @@ const load = async () => {
     providers.value = response.data.providers;
     textSettings.value = response.data.text;
     tools.value = toolsResponse.data.tools || [];
+    knowledgeBases.value = knowledgeResponse.data.bases;
   } catch {
     loadError.value = t('AI_AGENTS.LOAD_ERROR');
   } finally {
@@ -499,6 +503,14 @@ onMounted(load);
           <label v-for="tool in tools" :key="tool.id" class="flex items-center gap-2 text-sm text-n-slate-12">
             <input v-model="draft.tool_ids" type="checkbox" :value="tool.id" :disabled="busy" />{{ tool.name }}
             <span v-if="!tool.active" class="text-n-slate-11">({{ t('AI_AGENTS.INACTIVE') }})</span>
+          </label>
+        </fieldset>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-2 text-sm text-n-slate-12">{{ t('KNOWLEDGE.TITLE') }}</legend>
+          <p class="text-xs text-n-slate-11">{{ t('KNOWLEDGE.AGENT_HELP') }}</p>
+          <label v-for="base in knowledgeBases" :key="base.id" class="flex items-center gap-2 text-sm text-n-slate-12">
+            <input v-model="draft.knowledge_base_ids" type="checkbox" :value="base.id" :disabled="busy" />{{ base.name }}
+            <span v-if="!base.active" class="text-n-slate-11">({{ t('KNOWLEDGE.INACTIVE') }})</span>
           </label>
         </fieldset>
         <label class="flex items-center gap-2 text-sm text-n-slate-12">

@@ -23,6 +23,9 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
     'customer_memory_enabled' => ->(value) { [true, false].include?(value) },
+    'knowledge_base_ids' => lambda { |value|
+      value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
+    },
     'tool_ids' => lambda { |value|
       value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
     },
@@ -86,7 +89,10 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
       raise CustomExceptions::SaasError, 'invalid_settings'
     end
 
-    attributes = input.permit(*VALIDATORS.keys.excluding('inbox_ids', 'tool_ids'), inbox_ids: [], tool_ids: []).to_h.symbolize_keys
+    attributes = input.permit(*VALIDATORS.keys.excluding('inbox_ids', 'tool_ids', 'knowledge_base_ids'), inbox_ids: [], tool_ids: [], knowledge_base_ids: []).to_h.symbolize_keys
+    base_ids = attributes.delete(:knowledge_base_ids)
+    selected_bases = Current.account.saas_knowledge_bases.where(id: base_ids).to_a unless base_ids.nil?
+    raise CustomExceptions::SaasError, 'invalid_settings' if selected_bases && selected_bases.length != base_ids.length
     inbox_ids = attributes.delete(:inbox_ids)
     tool_ids = attributes.delete(:tool_ids)
     selected_inboxes = Current.account.inboxes.where(id: inbox_ids).to_a unless inbox_ids.nil?
@@ -99,7 +105,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
       @agent.errors.add(:tools, :invalid)
       raise ActiveRecord::RecordInvalid, @agent
     end
-    @agent.configure!(attributes, selected_inboxes: selected_inboxes, selected_tools: selected_tools)
+    @agent.configure!(attributes, selected_inboxes: selected_inboxes, selected_tools: selected_tools, selected_knowledge_bases: selected_bases)
   end
 
   def memory_data(memory)

@@ -31,6 +31,7 @@ import data from './data/data.routes';
 import saasAI from './saasAI/saasAI.routes';
 import aiAgents from './aiAgents/aiAgents.routes';
 import aiTools from './aiTools/aiTools.routes';
+import knowledgeBases from './knowledgeBases/knowledgeBases.routes';
 
 export default {
   routes: [
@@ -67,6 +68,7 @@ export default {
     ...saasAI.routes,
     ...aiAgents.routes,
     ...aiTools.routes,
+    ...knowledgeBases.routes,
     ...labels.routes,
     ...macros.routes,
     ...reports.routes,

@@ -39,5 +39,9 @@ describe('AI agent configuration', () => {
     expect(agent.inbox_ids).toEqual([5]);
     expect(agentPayload({ ...agent, respond_to_groups: true }).respond_to_groups).toBe(true);
     expect(agentPayload({ ...agent, context_messages_limit: 5 }).context_messages_limit).toBe(5);
+    const linked = agentPayload({ ...agent, knowledge_base_ids: undefined, knowledge_bases: [{ id: 3 }] });
+    expect(linked.knowledge_base_ids).toEqual([3]);
+    linked.knowledge_base_ids.push(4);
+    expect(agent.knowledge_base_ids).toEqual([]);
   });
 });

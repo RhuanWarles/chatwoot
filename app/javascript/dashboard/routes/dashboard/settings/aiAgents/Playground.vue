@@ -136,6 +136,13 @@ onMounted(load);
         :class="message.role === 'user' ? 'self-end bg-n-brand text-white' : 'self-start bg-n-alpha-2 text-n-slate-12'"
       >
         {{ message.content }}
+        <details v-if="message.role === 'assistant' && message.knowledge_sources" class="mt-3 text-xs">
+          <summary class="cursor-pointer">{{ t('KNOWLEDGE.CONTEXT_USED', { count: message.knowledge_sources.length }) }}</summary>
+          <article v-for="source in message.knowledge_sources" :key="source.id" class="mt-2 p-2 rounded bg-n-alpha-2 break-words">
+            <strong>{{ source.base }} · {{ source.document }}</strong>
+            <p class="whitespace-pre-wrap">{{ source.content }}</p>
+          </article>
+        </details>
       </div>
       <p v-if="sending" class="self-start text-sm text-n-slate-11">
         {{ t('AI_PLAYGROUND.RESPONDING', { name: agent?.name || '' }) }}

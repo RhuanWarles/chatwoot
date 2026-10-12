@@ -1,3 +1,4 @@
+import knowledge from './knowledge.json';
 import advancedFilters from './advancedFilters.json';
 import saasAI from './en.json';
 import agentBots from './agentBots.json';
@@ -48,6 +49,7 @@ import sessionLimit from './sessionLimit.json';
 import yearInReview from './yearInReview.json';
 
 export default {
+  ...knowledge,
   ...saasAI,
   ...advancedFilters,
   ...agentBots,

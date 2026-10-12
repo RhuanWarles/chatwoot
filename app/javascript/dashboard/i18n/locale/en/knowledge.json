@@ -1,0 +1,52 @@
+{
+  "KNOWLEDGE": {
+    "TITLE": "Knowledge base",
+    "HELP": "Company knowledge shared only with assistants you link to these bases.",
+    "AGENT_HELP": "Select the bases this assistant may use. Inactive bases are excluded.",
+    "CREATE": "Create knowledge base",
+    "NAME": "Name",
+    "DESCRIPTION": "Description",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "AGENTS": "Linked assistants",
+    "NONE": "None",
+    "EMPTY": "No knowledge bases yet.",
+    "DOCUMENTS": "Documents",
+    "DOCUMENTS_COUNT": "{count} documents",
+    "ADD_DOCUMENT": "Add or replace document",
+    "NO_DOCUMENTS": "No documents in this base.",
+    "CHUNKS": "{count} excerpts",
+    "EDIT": "Edit",
+    "DELETE": "Delete",
+    "SAVE": "Save",
+    "CLOSE": "Close",
+    "VIEW": "View text",
+    "REINDEX": "Reprocess",
+    "MANUAL_TEXT": "Manual text",
+    "UPLOAD_HELP": "Upload PDF, TXT or MD up to 10 MB, or enter text below (up to 500,000 characters). Text-only PDFs, up to 200 pages; no OCR.",
+    "DELETE_CONFIRM": "Delete this item? Its documents, excerpts and assistant links will be removed when deleting a base.",
+    "SEARCH": "Test search",
+    "SEARCH_QUESTION": "Ask a question about this base",
+    "NO_RESULTS": "No relevant excerpts found.",
+    "NO_EXTRACTED_TEXT": "No extracted text available yet.",
+    "CONTEXT_USED": "Context used: {count} excerpts",
+    "ERROR": "Unable to complete this action. Please try again.",
+    "STATUS": {
+      "processing": "Processing",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "ERRORS": {
+      "invalid_file": "Choose a PDF, TXT or MD file up to 10 MB with a valid file type.",
+      "document_limit": "This base has reached its limit of 100 documents.",
+      "no_extractable_text": "No extractable text found. Scanned PDFs require OCR, which is not supported.",
+      "text_too_large": "Extracted text exceeds the allowed limit.",
+      "too_many_pages": "PDF exceeds the limit of 200 pages.",
+      "too_many_chunks": "Document exceeds the limit of 400 excerpts.",
+      "extraction_timeout": "Text extraction exceeded the time limit.",
+      "extraction_failed": "Unable to extract text from this document.",
+      "embedding_failed": "Unable to index this document. Check the platform configuration and try again.",
+      "indexing_failed": "Unable to process this document. Check its content and try again."
+    }
+  }
+}

@@ -12,6 +12,7 @@ export const newAgent = () => ({
   customer_memory_enabled: false,
   active: false,
   tool_ids: [],
+  knowledge_base_ids: [],
 });
 
 export const agentPayload = agent => ({
@@ -28,6 +29,7 @@ export const agentPayload = agent => ({
   customer_memory_enabled: agent.customer_memory_enabled,
   active: agent.active,
   tool_ids: [...(agent.tool_ids || (agent.tools || []).map(tool => tool.id))],
+  knowledge_base_ids: [...(agent.knowledge_base_ids || (agent.knowledge_bases || []).map(base => base.id))],
 });
 
 export const validAgent = agent =>

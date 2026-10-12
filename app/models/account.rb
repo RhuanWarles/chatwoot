@@ -66,6 +66,7 @@ class Account < ApplicationRecord
   has_many :account_users, dependent: :destroy_async
   has_one :saas_ai_setting, class_name: 'Saas::AiSetting', dependent: :destroy
   has_many :saas_ai_agents, class_name: 'Saas::AiAgent', dependent: :destroy
+  has_many :saas_knowledge_bases, class_name: 'Saas::KnowledgeBase', dependent: :destroy
   has_many :saas_ai_tools, class_name: 'Saas::AiTool', dependent: :destroy
   has_many :saas_ai_tool_executions, class_name: 'Saas::AiToolExecution', dependent: :destroy
   has_many :saas_ai_agent_memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy

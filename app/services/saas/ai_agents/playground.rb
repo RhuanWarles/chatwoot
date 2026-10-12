@@ -34,13 +34,15 @@ class Saas::AiAgents::Playground
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       tools = Saas::AiTools::Catalog.for_agent(@agent, playground: true)
       executor = Saas::AiTools::Executor.new(account: @account, agent: @agent, playground_session_id: session_id)
+      sources = Saas::Knowledge::Retrieval.for_agent(@agent, prompt)
       result = Saas::AiAgents::Provider.for(@account, @agent.provider, mode: mode).generate(
-        model: effective_model(mode), messages: build_messages(data, prompt), temperature: @agent.temperature.to_f,
+        model: effective_model(mode), messages: build_messages(data, prompt, sources), temperature: @agent.temperature.to_f,
         tools: tools, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
       )
       assistant = {
         'role' => 'assistant', 'content' => result.fetch(:content), 'request_id' => request_id,
         'created_at' => Time.current.iso8601,
+        'knowledge_sources' => sources,
         'tool_calls_count' => result.fetch(:tool_calls_count, 0), 'tool_names' => result.fetch(:tool_names, [])
       }
       data['messages'] = trim_history(data.fetch('messages') + [
@@ -87,8 +89,9 @@ class Saas::AiAgents::Playground
     end
   end
 
-  def build_messages(data, prompt)
-    [{ role: 'system', content: @agent.system_prompt }] + data.fetch('messages').map do |message|
+  def build_messages(data, prompt, sources = [])
+    [{ role: 'system', content: @agent.system_prompt }] +
+      Saas::Knowledge::Retrieval.messages(sources, enabled: @agent.knowledge_bases.exists?) + data.fetch('messages').map do |message|
       { role: message.fetch('role'), content: message.fetch('content') }
     end + [{ role: 'user', content: prompt }]
   end

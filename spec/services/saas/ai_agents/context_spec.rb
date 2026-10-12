@@ -17,6 +17,16 @@ RSpec.describe Saas::AiAgents::Context do
     expect(history.to_s).not_to include('Private secret')
   end
 
+  it 'keeps memory, knowledge and the latest customer message in the existing priority order' do
+    incoming = create(:message, account: conversation.account, inbox: conversation.inbox, conversation: conversation, content: 'Warranty?')
+    knowledge = Saas::Knowledge::Retrieval.messages([{ content: 'Warranty is 12 months.' }])
+    messages = described_class.build(conversation, agent, incoming, memory_context: 'Customer name: Rhuan', knowledge_context: knowledge)
+    expect(messages[0]).to eq(role: 'system', content: agent.system_prompt)
+    expect(messages[1]).to eq(role: 'system', content: 'Customer name: Rhuan')
+    expect(messages[2..3]).to eq(knowledge)
+    expect(messages.last).to eq(role: 'user', content: 'Warranty?')
+  end
+
   it 'ignores whitespace-only input and generated AI input when finding the latest customer message' do
     valid = create(:message, account: conversation.account, inbox: conversation.inbox, conversation: conversation, content: 'Question')
     create(:message, account: conversation.account, inbox: conversation.inbox, conversation: conversation, content: " \n\t")
