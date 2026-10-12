@@ -38,6 +38,9 @@ const load = async () => {
   }
 };
 const openEditor = tool => router.push(tool ? { name: 'ai_tool_edit', params: { toolId: tool.id } } : { name: 'ai_tool_new' });
+const onSaved = tool => {
+  tools.value = tools.value.map(item => (item.id === tool.id ? tool : item));
+};
 const toggle = async tool => {
   if (busy.value) return;
   busy.value = true;

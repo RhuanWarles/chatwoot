@@ -104,10 +104,16 @@ const parseJson = (value, fallback) => {
 const validationError = computed(() => {
   if (!String(form.value.name || '').trim()) return t('AI_TOOLS.NAME_REQUIRED');
   if (!String(form.value.description || '').trim()) return t('AI_TOOLS.DESCRIPTION_REQUIRED');
+  if (!methodOptions.some(option => option.value === form.value.configuration.method)) return t('AI_TOOLS.METHOD_REQUIRED');
   if (!String(form.value.configuration.url || '').trim()) return t('AI_TOOLS.URL_REQUIRED');
   try { if (!['http:', 'https:'].includes(new URL(form.value.configuration.url).protocol)) return t('AI_TOOLS.URL_INVALID'); } catch { return t('AI_TOOLS.URL_INVALID'); }
   if (!Number.isInteger(Number(form.value.configuration.timeout_seconds)) || Number(form.value.configuration.timeout_seconds) < 1 || Number(form.value.configuration.timeout_seconds) > 30) return t('AI_TOOLS.TIMEOUT_INVALID');
-  if (!parseJson(parametersJson.value, '[]')) return t('AI_TOOLS.JSON_INVALID');
+  const parameters = parseJson(parametersJson.value, '[]');
+  if (parameters === null) return t('AI_TOOLS.JSON_INVALID');
+  if (!Array.isArray(parameters) || parameters.some(parameter =>
+    !parameter || !/^[a-zA-Z][a-zA-Z0-9_]*$/.test(parameter.name || '') ||
+    !typeOptions.some(option => option.value === parameter.type)
+  )) return t('AI_TOOLS.PARAMETERS_INVALID');
   return '';
 });
 const load = async () => {
@@ -130,7 +136,7 @@ const load = async () => {
   finally { loading.value = false; }
 };
 const save = async () => {
-  if (busy.value || validationError.value) return;
+  if (loading.value || busy.value || validationError.value) return;
   busy.value = true; error.value = '';
   try {
     const { values: secretHeaders, changed: secretHeadersChanged } = syncHeadersVisual();
@@ -138,7 +144,6 @@ const save = async () => {
     const configuration = { ...form.value.configuration };
     delete configuration.secret_header_names;
     const payload = { ai_tool: { name: form.value.name, description: form.value.description, active: form.value.active, allow_in_playground: form.value.allow_in_playground, configuration: { ...configuration, timeout_seconds: Number(form.value.configuration.timeout_seconds) } } };
-    if (form.value.slug) payload.ai_tool.slug = form.value.slug;
     if (secretHeadersChanged) payload.ai_tool.secret_headers = secretHeaders;
     const response = isEdit.value ? await aiToolsAPI.update(route.params.toolId, payload) : await aiToolsAPI.create(payload);
     router.push({ name: 'ai_tools_settings' });
@@ -162,7 +167,7 @@ onMounted(load);
   <main class="flex flex-col w-full max-w-5xl gap-6 mx-auto pb-8">
     <header class="flex flex-wrap items-center justify-between gap-4">
       <div><h1 class="text-xl font-semibold text-n-slate-12">{{ isEdit ? t('AI_TOOLS.EDIT') : t('AI_TOOLS.NEW') }}</h1><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.PAGE_HELP') }}</p></div>
-      <div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.CANCEL')" :disabled="busy" @click="router.push({ name: 'ai_tools_settings' })" /><Button :label="t('AI_TOOLS.SAVE')" :disabled="busy || Boolean(validationError)" @click="save" /></div>
+      <div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.CANCEL')" :disabled="busy" @click="router.push({ name: 'ai_tools_settings' })" /><Button :label="t('AI_TOOLS.SAVE')" :disabled="loading || busy || Boolean(validationError)" @click="save" /></div>
     </header>
     <p v-if="error" role="alert" class="text-sm text-n-ruby-9">{{ error }}</p>
     <p v-if="validationError" role="alert" class="text-sm text-n-ruby-9">{{ validationError }}</p>
