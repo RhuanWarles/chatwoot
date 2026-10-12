@@ -16,6 +16,7 @@ class Saas::AiAgents::Providers::OpenAi
     total_usage = Hash.new(0)
     tool_names = []
     tool_calls_count = 0
+    message = {}
     loop do
       parameters = { model: model, messages: current_messages, temperature: temperature, max_completion_tokens: OUTPUT_LIMIT }
       parameters[:tools] = tools if tools.present?

@@ -17,6 +17,22 @@ RSpec.describe Saas::AiAgents::Providers::OpenAi do
     expect(described_class.new(account).generate(**parameters)).to eq(content: 'Hello!', usage: { 'total_tokens' => 12 })
   end
 
+  it 'returns the final response after executing a tool call' do
+    tool_call = {
+      'id' => 'call_1',
+      'function' => { 'name' => 'lookup_order', 'arguments' => '{"order_id":"123"}' }
+    }
+    allow(client).to receive(:chat).and_return(
+      { 'choices' => [{ 'message' => { 'tool_calls' => [tool_call] } }], 'usage' => { 'total_tokens' => 4 } },
+      { 'choices' => [{ 'message' => { 'content' => 'Order found.' } }], 'usage' => { 'total_tokens' => 6 } }
+    )
+
+    result = described_class.new(account).generate(**parameters, tools: [{ 'type' => 'function' }], tool_handler: ->(_name, args) { args })
+
+    expect(result).to include(content: 'Order found.', tool_calls_count: 1, tool_names: ['lookup_order'])
+    expect(result[:usage]).to eq('total_tokens' => 10)
+  end
+
   it 'rejects empty responses' do
     allow(client).to receive(:chat).and_return('choices' => [{ 'message' => { 'content' => '  ' } }])
     expect { described_class.new(account).generate(**parameters) }.to raise_error(CustomExceptions::AiAgentError, 'empty_response')
