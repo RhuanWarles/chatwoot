@@ -89,8 +89,21 @@ const validationError = computed(() => {
     return t('AI_TOOLS.URL_INVALID');
   }
   try {
-    JSON.parse(draft.value.configuration.parameters_json || '[]');
-    JSON.parse(draft.value.configuration.headers_json || '{}');
+    const parameters = JSON.parse(draft.value.configuration.parameters_json || '[]');
+    const headers = JSON.parse(draft.value.configuration.headers_json || '{}');
+    if (
+      !Array.isArray(parameters) ||
+      parameters.some(
+        parameter =>
+          !parameter?.name?.match(/^[a-zA-Z][a-zA-Z0-9_]*$/) ||
+          !['string', 'number', 'integer', 'boolean', 'enum'].includes(parameter.type)
+      )
+    ) {
+      return t('AI_TOOLS.PARAMETERS_INVALID');
+    }
+    if (!headers || Array.isArray(headers) || typeof headers !== 'object') {
+      return t('AI_TOOLS.HEADERS_INVALID');
+    }
     if (draft.value.secret_headers.trim()) JSON.parse(draft.value.secret_headers);
   } catch {
     return t('AI_TOOLS.JSON_INVALID');
