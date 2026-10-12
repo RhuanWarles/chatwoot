@@ -82,6 +82,10 @@ onMounted(load);
       </div>
       <Button :label="t('AI_TOOLS.NEW')" icon="i-lucide-plus" :disabled="loading || busy" @click="openEditor()" />
     </header>
+    <nav class="flex gap-2 border-b border-n-weak">
+      <Button variant="faded" :label="t('AI_TOOLS.TOOLS_TAB')" :disabled="true" />
+      <Button variant="ghost" :label="t('AI_TOOLS.LOGS_TAB')" @click="router.push({ name: 'ai_tool_logs' })" />
+    </nav>
     <p v-if="loading" role="status" class="text-n-slate-11">{{ t('AI_TOOLS.LOADING') }}</p>
     <div v-else-if="error" class="flex items-center gap-3 text-n-ruby-9" role="alert">
       {{ error }} <Button :label="t('AI_TOOLS.RETRY')" @click="load" />

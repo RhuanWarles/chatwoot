@@ -2,6 +2,7 @@ import { frontendURL } from '../../../../helper/URLHelper';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import Index from './Index.vue';
 import ToolEditorPage from './ToolEditorPage.vue';
+import Logs from './Logs.vue';
 
 export default {
   routes: [
@@ -10,6 +11,12 @@ export default {
       component: SettingsWrapper,
       meta: { permissions: ['administrator'] },
       children: [
+        {
+          path: 'logs',
+          name: 'ai_tool_logs',
+          component: Logs,
+          meta: { permissions: ['administrator'] },
+        },
         {
           path: '',
           name: 'ai_tools_settings',

@@ -33,6 +33,7 @@ import macros from './macros.json';
 import mfa from './mfa.json';
 import onboarding from './onboarding.json';
 import report from './report.json';
+import saasAI from './saasAI.json';
 import resetPassword from './resetPassword.json';
 import search from './search.json';
 import setNewPassword from './setNewPassword.json';
@@ -83,6 +84,7 @@ export default {
   ...mfa,
   ...onboarding,
   ...report,
+  ...saasAI,
   ...resetPassword,
   ...search,
   ...setNewPassword,

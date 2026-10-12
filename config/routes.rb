@@ -65,6 +65,7 @@ Rails.application.routes.draw do
           resources :ai_tools, only: [:index, :show, :create, :update, :destroy], controller: 'ai_tools' do
             post :test, on: :member
           end
+          resources :ai_tool_executions, only: [:index, :show], controller: 'ai_tool_executions'
           resource :saas_ai, only: [:show, :update], controller: 'saas_ai' do
             post :calls
             post :text_generations

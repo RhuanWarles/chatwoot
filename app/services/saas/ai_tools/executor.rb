@@ -16,11 +16,12 @@ class Saas::AiTools::Executor
   end
 
   def call(tool_name, arguments)
-    tool = @agent.tools.find_by(account_id: @account.id, slug: tool_name)
-    return failure('tool_not_available') unless tool&.active?
-
     started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     request_id = SecureRandom.uuid
+    tool = @agent.tools.find_by(account_id: @account.id, slug: tool_name)
+    return record_failure(tool, request_id, 'tool_not_available', started) if tool && !tool.active?
+    return failure('tool_not_available') unless tool
+
     args = arguments.is_a?(Hash) ? arguments.stringify_keys : {}
     validation = validate_arguments(tool, args)
     return record_failure(tool, request_id, validation, started) unless validation == true
@@ -117,6 +118,9 @@ class Saas::AiTools::Executor
 
   def record_failure(tool, request_id, error_code, started)
     persist_execution(tool, request_id, {}, 'failed', nil, started, error_code) if tool
+    Rails.logger.warn({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id,
+                        conversation_id: @conversation&.id, ai_tool_id: tool&.id, status: 'failed',
+                        error_code: error_code, execution_id: request_id, duration_ms: elapsed_ms(started) }.compact.to_json)
     { 'success' => false, 'error' => error_code.to_s, 'status' => nil, 'duration_ms' => elapsed_ms(started) }
   end
 
