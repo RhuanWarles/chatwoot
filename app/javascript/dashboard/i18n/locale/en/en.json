@@ -253,6 +253,22 @@
     ,"PARAMETERS_INVALID": "Each parameter needs a valid name and type."
     ,"HEADERS_INVALID": "Public headers must be a JSON object."
     ,"TIMEOUT_INVALID": "Timeout must be a whole number between 1 and 30."
+    ,"PAGE_HELP": "Configure this tool using clear settings and test it before assigning it to an assistant."
+    ,"TOOL_SETTINGS": "Tool settings"
+    ,"TOOL_SETTINGS_HELP": "Configure the basic information for this tool."
+    ,"VISUAL": "Visual"
+    ,"JSON_MODE": "JSON"
+    ,"ADD_PARAMETER": "Add parameter"
+    ,"ADD_ENUM": "Add value"
+    ,"ADD_HEADER": "Add header"
+    ,"APPLY": "Apply"
+    ,"JSON_SCHEMA_HELP": "Edit the parameter schema directly as JSON."
+    ,"REQUEST_BODY": "Request body"
+    ,"BODY_JSON": "Body JSON"
+    ,"QUERY_PARAMS": "Query parameters JSON"
+    ,"QUERY_HELP": "Add query values or templates supported by the tool."
+    ,"TEST_ARGUMENTS": "Test arguments JSON"
+    ,"DESCRIPTION_REQUIRED": "Enter a description for the tool."
   },
   "AI_PLAYGROUND": {
     "TITLE": "Playground — {name}",

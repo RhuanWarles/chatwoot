@@ -1,19 +1,19 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import aiToolsAPI from 'dashboard/api/aiTools';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
-import ToolEditorDialog from './ToolEditorDialog.vue';
 
 const { t } = useI18n();
+const router = useRouter();
 const tools = ref([]);
 const agents = ref([]);
 const loading = ref(true);
 const error = ref('');
 const busy = ref(false);
-const editor = ref(null);
 const deleting = ref(null);
 const deletion = ref(null);
 
@@ -37,12 +37,7 @@ const load = async () => {
     loading.value = false;
   }
 };
-const openEditor = tool => editor.value.open(tool);
-const onSaved = tool => {
-  tools.value = [...tools.value.filter(item => item.id !== tool.id), tool].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
-};
+const openEditor = tool => router.push(tool ? { name: 'ai_tool_edit', params: { toolId: tool.id } } : { name: 'ai_tool_new' });
 const toggle = async tool => {
   if (busy.value) return;
   busy.value = true;
@@ -108,13 +103,11 @@ onMounted(load);
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <Button variant="ghost" :label="t('AI_TOOLS.EDIT')" :disabled="busy" @click="openEditor(tool)" />
-          <Button variant="ghost" :label="t('AI_TOOLS.TEST')" :disabled="busy" @click="openEditor(tool)" />
           <Button variant="ghost" :label="tool.active ? t('AI_TOOLS.DEACTIVATE') : t('AI_TOOLS.ACTIVATE')" :disabled="busy" @click="toggle(tool)" />
           <Button variant="ghost" color="ruby" :label="t('AI_TOOLS.DELETE')" :disabled="busy" @click="requestDelete(tool)" />
         </div>
       </article>
     </div>
-    <ToolEditorDialog ref="editor" :agents="agents" @saved="onSaved" />
     <Dialog ref="deletion" type="alert" :title="t('AI_TOOLS.DELETE')" :description="t('AI_TOOLS.DELETE_CONFIRM', { name: deleting?.name })" :is-loading="busy" :disable-confirm-button="busy" :confirm-button-label="t('AI_TOOLS.DELETE')" :cancel-button-label="t('AI_TOOLS.CANCEL')" @confirm="remove" />
   </main>
 </template>
