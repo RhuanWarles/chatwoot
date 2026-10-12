@@ -53,8 +53,9 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
   def tool_attributes
     input = params.require(:ai_tool)
     permitted = input.permit(:name, :slug, :description, :tool_type, :active, :allow_in_playground,
-                             configuration: [:method, :url, :timeout_seconds, headers: {}, query_params: {}, body: {},
-                                             { parameters: [:name, :type, :description, :required, :sensitive, :value_source, enum_values: []] }],
+                             configuration: [:method, :url, :timeout_seconds,
+                                             { headers: {}, query_params: {}, body: {},
+                                               parameters: [:name, :type, :description, :required, :sensitive, :value_source, enum_values: []] }],
                              secret_headers: {}).to_h
     extracted = {}
     if input.key?('configuration')
