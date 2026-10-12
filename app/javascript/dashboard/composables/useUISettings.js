@@ -6,6 +6,7 @@ export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'conversation_actions' },
   { name: 'macros' },
   { name: 'conversation_info' },
+  { name: 'tool_executions' },
   { name: 'contact_attributes' },
   { name: 'contact_notes' },
   { name: 'shared_files' },
@@ -47,7 +48,14 @@ const useConversationSidebarItemsOrder = uiSettings => {
     // If the sidebar order doesn't have the new elements, then add them to the list.
     DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER.forEach(item => {
       if (!itemsOrderCopy.find(i => i.name === item.name)) {
-        itemsOrderCopy.push(item);
+        if (item.name === 'tool_executions') {
+          const index = itemsOrderCopy.findIndex(
+            existing => existing.name === 'conversation_info'
+          );
+          itemsOrderCopy.splice(index + 1, 0, item);
+        } else {
+          itemsOrderCopy.push(item);
+        }
       }
     });
     return itemsOrderCopy;

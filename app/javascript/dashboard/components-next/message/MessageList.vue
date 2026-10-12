@@ -9,6 +9,9 @@ import { useMapGetter } from 'dashboard/composables/store.js';
 import MessageApi from 'dashboard/api/inbox/message.js';
 import { provideGroupMentionParticipants } from 'dashboard/composables/useGroupMentionParticipants';
 import { formatMessageDaySeparator } from 'dashboard/helper/messagePresentation';
+import { useConversationToolExecutions } from 'dashboard/composables/useConversationToolExecutions';
+import { mergeToolExecutions } from 'dashboard/helper/conversationToolTimeline';
+import ToolExecutionItem from 'dashboard/routes/dashboard/conversation/ToolExecutionItem.vue';
 
 /**
  * Props definition for the component
@@ -49,6 +52,7 @@ const props = defineProps({
 
 const emit = defineEmits(['retry']);
 const { t, locale } = useI18n();
+const toolExecutions = useConversationToolExecutions();
 
 const allMessages = computed(() => {
   return useCamelCase(props.messages, {
@@ -77,8 +81,7 @@ const isGroupConversation = computed(() => {
   ];
 
   return identifiers.some(
-    identifier =>
-      typeof identifier === 'string' && identifier.endsWith('@g.us')
+    identifier => typeof identifier === 'string' && identifier.endsWith('@g.us')
   );
 });
 provideGroupMentionParticipants(currentChat, groupContact, accountId);
@@ -91,18 +94,21 @@ const timeline = computed(() => {
   }));
   const entries = props.campaignHistory.length
     ? [
-    ...messages,
-    ...props.campaignHistory.map(recipient => ({
-      key: `campaign-${recipient.id}`,
-      createdAt: recipient.sent_at,
-      recipient,
-    })),
+        ...messages,
+        ...props.campaignHistory.map(recipient => ({
+          key: `campaign-${recipient.id}`,
+          createdAt: recipient.sent_at,
+          recipient,
+        })),
       ].sort((a, b) => a.createdAt - b.createdAt)
     : messages;
 
   let lastDayKey = null;
   let lastDayValue = null;
-  return entries.reduce((result, entry) => {
+  return mergeToolExecutions(
+    entries,
+    toolExecutions?.executions.value || []
+  ).reduce((result, entry) => {
     const separator = formatMessageDaySeparator(entry.createdAt, locale.value);
     if (separator.key !== lastDayKey || separator.value !== lastDayValue) {
       result.push({
@@ -250,12 +256,31 @@ const getInReplyToMessage = parentMessage => {
         :data-day-value="entry.dayValue"
         :aria-label="daySeparatorLabel(entry)"
       >
-        <span class="px-3 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11">
+        <span
+          class="px-3 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11"
+        >
           {{ daySeparatorLabel(entry) }}
         </span>
       </li>
       <template v-if="!entry.isDaySeparator">
         <CampaignMessage v-if="entry.recipient" :recipient="entry.recipient" />
+        <li
+          v-else-if="entry.execution"
+          class="flex justify-center py-2"
+          data-tool-execution-event
+        >
+          <div
+            class="max-w-sm min-w-0 text-center rounded-lg bg-n-alpha-2 px-3 py-1"
+          >
+            <span class="text-xs text-n-slate-11">{{
+              $t('CONVERSATION.TOOL_EXECUTIONS.EVENT')
+            }}</span>
+            <ToolExecutionItem
+              :execution="entry.execution"
+              :interactive="false"
+            />
+          </div>
+        </li>
         <Message
           v-else
           v-bind="entry.message"

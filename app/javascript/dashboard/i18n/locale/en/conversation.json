@@ -45,11 +45,11 @@
     "OPERATION_ERROR": "Could not confirm the operation. Try again to check the same request."
   },
   "CONVERSATION": {
+    "404": "Sorry, we cannot find the conversation. Please try again",
     "DATE_SEPARATOR": {
       "TODAY": "Today",
       "YESTERDAY": "Yesterday"
     },
-    "404": "Sorry, we cannot find the conversation. Please try again",
     "GROUP_PARTICIPANTS": {
       "TITLE": "Group participants",
       "SEARCH": "Buscar participantes",
@@ -491,6 +491,26 @@
       "UNMUTE": "Unmute mic",
       "VIEW_CHAT_HISTORY": "View chat history",
       "GO_TO_CONVERSATION": "Go to conversation thread"
+    },
+    "TOOL_EXECUTIONS": {
+      "TITLE": "Tool executions",
+      "SUCCESS": "Success",
+      "FAILED": "Failed",
+      "EMPTY": "No tools have been executed in this conversation.",
+      "ERROR": "Unable to load tool executions.",
+      "RETRY": "Try again",
+      "LOADING": "Loading executions?",
+      "LESS": "Show less",
+      "ALL": "View all ({count})",
+      "AGENT": "Assistant",
+      "DATE": "Date and time",
+      "REQUEST_ID": "Request ID",
+      "EXECUTION_ID": "Execution ID",
+      "HTTP": "HTTP status",
+      "ERROR_CODE": "Error code",
+      "ARGUMENTS": "Sanitized arguments",
+      "NOT_STORED": "Full requests, headers and response bodies are not stored in these logs.",
+      "EVENT": "Tool executed"
     }
   },
   "EMAIL_TRANSCRIPT": {

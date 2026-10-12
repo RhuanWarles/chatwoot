@@ -45,11 +45,11 @@
     "OPERATION_ERROR": "Não foi possível confirmar a operação. Tente novamente para verificar a mesma solicitação."
   },
   "CONVERSATION": {
+    "404": "Desculpe, não conseguimos encontrar a conversa. Por favor, tente novamente",
     "DATE_SEPARATOR": {
       "TODAY": "Hoje",
       "YESTERDAY": "Ontem"
     },
-    "404": "Desculpe, não conseguimos encontrar a conversa. Por favor, tente novamente",
     "GROUP_PARTICIPANTS": {
       "TITLE": "Participantes do grupo",
       "SEARCH": "Buscar participantes",
@@ -458,6 +458,26 @@
       "UNMUTE": "Desilenciar microfone",
       "VIEW_CHAT_HISTORY": "Ver histórico da conversa",
       "GO_TO_CONVERSATION": "Ir para a conversa"
+    },
+    "TOOL_EXECUTIONS": {
+      "TITLE": "Execu??es de ferramentas",
+      "SUCCESS": "Sucesso",
+      "FAILED": "Falhou",
+      "EMPTY": "Nenhuma ferramenta foi executada nesta conversa.",
+      "ERROR": "N?o foi poss?vel carregar as execu??es de ferramentas.",
+      "RETRY": "Tentar novamente",
+      "LOADING": "Carregando execu??es?",
+      "LESS": "Ver menos",
+      "ALL": "Ver todas ({count})",
+      "AGENT": "Assistente",
+      "DATE": "Data e hora",
+      "REQUEST_ID": "Request ID",
+      "EXECUTION_ID": "Execution ID",
+      "HTTP": "Status HTTP",
+      "ERROR_CODE": "C?digo de erro",
+      "ARGUMENTS": "Argumentos sanitizados",
+      "NOT_STORED": "Requests completos, headers e corpos de resposta n?o s?o armazenados nestes logs.",
+      "EVENT": "Ferramenta executada"
     }
   },
   "EMAIL_TRANSCRIPT": {

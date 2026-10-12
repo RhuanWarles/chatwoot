@@ -14,16 +14,21 @@ class Saas::AiToolExecution < ApplicationRecord
   end
 
   def safe_arguments
-    sensitive_names = ai_tool.parameters.filter_map { |parameter| parameter['name'] if parameter['sensitive'] == true }
+    sensitive_names = ai_tool.parameters.filter_map { |parameter| parameter['name'].downcase if parameter['sensitive'] == true }
+    sensitive_names += %w[authorization apikey api_key x-api-key cookie cookies credentials password secret token]
     redact_arguments(arguments, sensitive_names)
   end
 
   private
 
   def redact_arguments(value, sensitive_names, key = nil)
-    return '***REDACTED***' if key.present? && sensitive_names.include?(key.to_s)
+    return '***REDACTED***' if key.present? && sensitive_names.include?(key.to_s.downcase)
     return value.map { |item| redact_arguments(item, sensitive_names) } if value.is_a?(Array)
-    return value.to_h.transform_values { |item| redact_arguments(item, sensitive_names) } if value.is_a?(Hash)
+    if value.is_a?(Hash)
+      return value.each_with_object({}) do |(name, item), result|
+        result[name.to_s] = redact_arguments(item, sensitive_names, name)
+      end
+    end
 
     value
   end

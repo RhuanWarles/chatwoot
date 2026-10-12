@@ -9,7 +9,13 @@ client.test = (id, agentId, argumentsPayload = {}, conversationId = null) =>
     conversation_id: conversationId,
   });
 
-client.executions = params => axios.get(`${client.url.replace('/ai_tools', '')}/ai_tool_executions`, { params });
-client.execution = id => axios.get(`${client.url.replace('/ai_tools', '')}/ai_tool_executions/${id}`);
+client.executions = params =>
+  axios.get(`${client.url.replace('/ai_tools', '')}/ai_tool_executions`, {
+    params,
+  });
+client.execution = (id, params = {}) =>
+  axios.get(`${client.url.replace('/ai_tools', '')}/ai_tool_executions/${id}`, {
+    params,
+  });
 
 export default client;

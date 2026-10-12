@@ -1,14 +1,15 @@
 class Api::V1::Accounts::AiToolExecutionsController < Api::V1::Accounts::BaseController
   include SaasAiAccess
   before_action -> { require_ai_feature('text') }
-  before_action :check_admin_authorization?
+  before_action :authorize_execution_access
 
   PER_PAGE = 25
   PERIODS = { 'today' => 1.day, '7d' => 7.days, '30d' => 30.days }.freeze
 
   def index
     executions = Current.account.saas_ai_tool_executions.includes(:ai_agent, :ai_tool, :conversation)
-                             .order(created_at: :desc)
+                             .order(created_at: :desc, id: :desc)
+    executions = executions.where(conversation_id: @conversation.id) if @conversation
     executions = executions.where(ai_agent_id: params[:ai_agent_id]) if params[:ai_agent_id].present?
     executions = executions.where(ai_tool_id: params[:ai_tool_id]) if params[:ai_tool_id].present?
     executions = executions.where(status: params[:status]) if %w[completed failed].include?(params[:status])
@@ -22,11 +23,20 @@ class Api::V1::Accounts::AiToolExecutionsController < Api::V1::Accounts::BaseCon
   end
 
   def show
-    execution = Current.account.saas_ai_tool_executions.includes(:ai_agent, :ai_tool, :conversation).find(params[:id])
+    scope = Current.account.saas_ai_tool_executions.includes(:ai_agent, :ai_tool, :conversation)
+    scope = scope.where(conversation_id: @conversation.id) if @conversation
+    execution = scope.find(params[:id])
     render json: { execution: execution_data(execution, detailed: true) }
   end
 
   private
+
+  def authorize_execution_access
+    return check_admin_authorization? if params[:conversation_id].blank?
+
+    @conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
+    authorize @conversation, :show?
+  end
 
   def filter_source(scope, source)
     case source

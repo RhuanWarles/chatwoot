@@ -7,6 +7,7 @@ import {
   useContactConversationNavigation,
 } from 'dashboard/composables/useContactConversationNavigation';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { provideConversationToolExecutions } from 'dashboard/composables/useConversationToolExecutions';
 import ChatList from '../../../components/ChatList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -59,6 +60,7 @@ export default {
     },
   },
   setup() {
+    provideConversationToolExecutions();
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();

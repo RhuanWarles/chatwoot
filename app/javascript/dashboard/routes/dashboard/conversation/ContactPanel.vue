@@ -17,6 +17,7 @@ import GroupParticipantsPanel from './GroupParticipantsPanel.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
+import ConversationToolExecutions from './ConversationToolExecutions.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
 import SharedFiles from './SharedFiles.vue';
 import Draggable from 'vuedraggable';
@@ -46,6 +47,7 @@ const {
 } = useUISettings();
 
 const dragging = ref(false);
+const toolsOpen = ref(false);
 const conversationSidebarItems = ref([]);
 
 const shopifyIntegration = useFunctionGetter(
@@ -221,6 +223,16 @@ onMounted(() => {
                 :conversation-attributes="conversationAdditionalAttributes"
                 :contact-attributes="contactAdditionalAttributes"
               />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'tool_executions'">
+            <AccordionItem
+              :title="$t('CONVERSATION.TOOL_EXECUTIONS.TITLE')"
+              :is-open="toolsOpen"
+              compact
+              @toggle="toolsOpen = !toolsOpen"
+            >
+              <ConversationToolExecutions />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_attributes'">
