@@ -6,6 +6,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 
 const props = defineProps({
   agents: { type: Array, default: () => [] },
@@ -19,6 +20,10 @@ const busy = ref(false);
 const testAgentId = ref(null);
 const testArguments = ref('{}');
 const testResult = ref(null);
+const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(value => ({
+  value,
+  label: value,
+}));
 
 const defaultTool = () => ({
   name: '',
@@ -72,8 +77,37 @@ const open = tool => {
 
 const close = () => dialog.value?.close();
 
+const validationError = computed(() => {
+  if (!draft.value) return '';
+  if (!draft.value.name.trim()) return t('AI_TOOLS.NAME_REQUIRED');
+  if (!draft.value.slug.trim()) return t('AI_TOOLS.SLUG_REQUIRED');
+  if (!draft.value.configuration.method) return t('AI_TOOLS.METHOD_REQUIRED');
+  if (!draft.value.configuration.url.trim()) return t('AI_TOOLS.URL_REQUIRED');
+  try {
+    const url = new URL(draft.value.configuration.url);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('protocol');
+  } catch {
+    return t('AI_TOOLS.URL_INVALID');
+  }
+  try {
+    JSON.parse(draft.value.configuration.parameters_json || '[]');
+    JSON.parse(draft.value.configuration.headers_json || '{}');
+    if (draft.value.secret_headers.trim()) JSON.parse(draft.value.secret_headers);
+  } catch {
+    return t('AI_TOOLS.JSON_INVALID');
+  }
+  if (
+    !Number.isInteger(draft.value.configuration.timeout_seconds) ||
+    draft.value.configuration.timeout_seconds < 1 ||
+    draft.value.configuration.timeout_seconds > 30
+  ) {
+    return t('AI_TOOLS.TIMEOUT_INVALID');
+  }
+  return '';
+});
+
 const save = async () => {
-  if (busy.value || !draft.value) return;
+  if (busy.value || !draft.value || validationError.value) return;
   busy.value = true;
   error.value = '';
   try {
@@ -134,36 +168,59 @@ defineExpose({ open });
     :cancel-button-label="t('AI_TOOLS.CANCEL')"
     @confirm="save"
   >
-    <div v-if="draft" class="flex flex-col gap-3 max-h-[65vh] overflow-y-auto p-1">
+    <div v-if="draft" class="flex flex-col gap-6 max-h-[65vh] overflow-y-auto p-1">
       <p v-if="error" role="alert" class="text-sm text-n-ruby-9">{{ error }}</p>
-      <Input v-model="draft.name" :label="t('AI_TOOLS.NAME')" :disabled="busy" />
-      <Input v-model="draft.slug" :label="t('AI_TOOLS.SLUG')" :disabled="busy" />
-      <Input v-model="draft.description" :label="t('AI_TOOLS.DESCRIPTION')" :disabled="busy" />
-      <label class="flex items-center gap-2 text-sm text-n-slate-12">
-        <input v-model="draft.active" type="checkbox" :disabled="busy" />
-        {{ t('AI_TOOLS.ACTIVE') }}
-      </label>
-      <label class="flex items-center gap-2 text-sm text-n-slate-12">
-        <input v-model="draft.allow_in_playground" type="checkbox" :disabled="busy" />
-        {{ t('AI_TOOLS.PLAYGROUND') }}
-      </label>
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Input v-model="draft.configuration.method" :label="t('AI_TOOLS.METHOD')" :disabled="busy" />
-        <Input v-model="draft.configuration.url" :label="t('AI_TOOLS.URL')" :disabled="busy" />
-        <Input v-model.number="draft.configuration.timeout_seconds" type="number" min="1" max="30" :label="t('AI_TOOLS.TIMEOUT')" :disabled="busy" />
-      </div>
-      <label class="flex flex-col gap-1 text-sm text-n-slate-12">
-        {{ t('AI_TOOLS.PARAMETERS') }}
-        <textarea v-model="draft.configuration.parameters_json" rows="5" :disabled="busy" class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" />
-      </label>
-      <label class="flex flex-col gap-1 text-sm text-n-slate-12">
-        {{ t('AI_TOOLS.HEADERS') }}
-        <textarea v-model="draft.configuration.headers_json" rows="3" :disabled="busy" class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" />
-      </label>
-      <label class="flex flex-col gap-1 text-sm text-n-slate-12">
-        {{ t('AI_TOOLS.SECRETS') }}
-        <textarea v-model="draft.secret_headers" rows="3" :disabled="busy" class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" />
-      </label>
+      <p v-if="validationError" role="alert" class="text-sm text-n-ruby-9">{{ validationError }}</p>
+      <section class="flex flex-col gap-3">
+        <div>
+          <h3 class="text-base font-medium text-n-slate-12">{{ t('AI_TOOLS.BASIC_INFO') }}</h3>
+          <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BASIC_INFO_HELP') }}</p>
+        </div>
+        <Input v-model="draft.name" :label="t('AI_TOOLS.NAME')" :placeholder="t('AI_TOOLS.NAME_PLACEHOLDER')" :message="t('AI_TOOLS.NAME_HELP')" :disabled="busy" />
+        <Input v-model="draft.slug" :label="t('AI_TOOLS.SLUG')" :placeholder="t('AI_TOOLS.SLUG_PLACEHOLDER')" :message="t('AI_TOOLS.SLUG_HELP')" :message-type="validationError === t('AI_TOOLS.SLUG_REQUIRED') ? 'error' : 'info'" :disabled="busy" />
+        <Input v-model="draft.description" :label="t('AI_TOOLS.DESCRIPTION')" :placeholder="t('AI_TOOLS.DESCRIPTION_PLACEHOLDER')" :message="t('AI_TOOLS.DESCRIPTION_HELP')" :disabled="busy" />
+        <div class="flex flex-col gap-3 p-3 rounded-lg bg-n-solid-2">
+          <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12">
+            <span>{{ t('AI_TOOLS.ACTIVE') }}<span class="block text-xs text-n-slate-11">{{ t('AI_TOOLS.ACTIVE_HELP') }}</span></span>
+            <Switch v-model="draft.active" :disabled="busy" />
+          </label>
+          <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12">
+            <span>{{ t('AI_TOOLS.PLAYGROUND') }}<span class="block text-xs text-n-slate-11">{{ t('AI_TOOLS.PLAYGROUND_HELP') }}</span></span>
+            <Switch v-model="draft.allow_in_playground" :disabled="busy" />
+          </label>
+        </div>
+      </section>
+      <section class="flex flex-col gap-3">
+        <div>
+          <h3 class="text-base font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST') }}</h3>
+          <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.REQUEST_HELP') }}</p>
+        </div>
+        <label class="flex flex-col gap-1 text-sm text-n-slate-12">
+          {{ t('AI_TOOLS.METHOD') }}
+          <ComboBox v-model="draft.configuration.method" :options="methodOptions" :disabled="busy" />
+        </label>
+        <Input v-model="draft.configuration.url" :label="t('AI_TOOLS.URL')" :placeholder="t('AI_TOOLS.URL_PLACEHOLDER')" :message="t('AI_TOOLS.URL_HELP')" :message-type="validationError === t('AI_TOOLS.URL_INVALID') || validationError === t('AI_TOOLS.URL_REQUIRED') ? 'error' : 'info'" :disabled="busy" />
+        <Input v-model.number="draft.configuration.timeout_seconds" type="number" min="1" max="30" :label="t('AI_TOOLS.TIMEOUT')" :message="t('AI_TOOLS.TIMEOUT_HELP')" :disabled="busy" />
+      </section>
+      <section class="flex flex-col gap-3">
+        <div>
+          <h3 class="text-base font-medium text-n-slate-12">{{ t('AI_TOOLS.PARAMETERS_SECTION') }}</h3>
+          <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.PARAMETERS_HELP') }}</p>
+        </div>
+        <textarea v-model="draft.configuration.parameters_json" rows="7" :disabled="busy" class="w-full p-3 font-mono text-sm rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" placeholder='[{"name":"order_id","type":"string","required":true}]' />
+      </section>
+      <section class="flex flex-col gap-3">
+        <div>
+          <h3 class="text-base font-medium text-n-slate-12">{{ t('AI_TOOLS.HEADERS_SECTION') }}</h3>
+          <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.HEADERS_HELP') }}</p>
+        </div>
+        <textarea v-model="draft.configuration.headers_json" rows="4" :disabled="busy" class="w-full p-3 font-mono text-sm rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" placeholder='{"Content-Type":"application/json"}' />
+        <label class="flex flex-col gap-1 text-sm text-n-slate-12">
+          {{ t('AI_TOOLS.SECRETS') }}
+          <span class="text-xs text-n-slate-11">{{ t('AI_TOOLS.SECRETS_HELP') }}</span>
+          <textarea v-model="draft.secret_headers" rows="4" :disabled="busy" class="w-full p-3 font-mono text-sm rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak" placeholder='{"Authorization":"Bearer ..."}' />
+        </label>
+      </section>
       <section v-if="draft.id" class="flex flex-col gap-3 p-3 rounded-lg bg-n-solid-2">
         <h3 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.TEST') }}</h3>
         <label class="flex flex-col gap-1 text-sm text-n-slate-12">
