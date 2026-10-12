@@ -35,12 +35,22 @@ const secretHeadersJson = ref('{}');
 const bodyJson = ref('{}');
 const queryJson = ref('{}');
 const headerRows = ref([]);
+const contextVariables = [
+  '{{contact_phone}}',
+  '{{contact_phone_e164}}',
+  '{{contact_name}}',
+  '{{contact_email}}',
+  '{{contact_id}}',
+  '{{conversation_id}}',
+  '{{account_id}}',
+  '{{agent_id}}',
+];
 const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(value => ({ value, label: value }));
 const typeOptions = ['string', 'number', 'integer', 'boolean', 'enum'].map(value => ({ value, label: value }));
 const isEdit = computed(() => Boolean(route.params.toolId));
 const showBody = computed(() => ['POST', 'PUT', 'PATCH'].includes(form.value.configuration.method));
 const agentOptions = computed(() => agents.value.map(agent => ({ value: agent.id, label: agent.name })));
-const descriptionMessage = computed(() => `${form.value.description.length} / 1000`);
+const descriptionMessage = computed(() => `${String(form.value.description || '').length} / 1000`);
 
 const syncVisualJson = () => {
   parametersJson.value = JSON.stringify(form.value.configuration.parameters || [], null, 2);
@@ -95,9 +105,9 @@ const parseJson = (value, fallback) => {
   try { return JSON.parse(value || fallback); } catch { return null; }
 };
 const validationError = computed(() => {
-  if (!form.value.name.trim()) return t('AI_TOOLS.NAME_REQUIRED');
-  if (!form.value.description.trim()) return t('AI_TOOLS.DESCRIPTION_REQUIRED');
-  if (!form.value.configuration.url.trim()) return t('AI_TOOLS.URL_REQUIRED');
+  if (!String(form.value.name || '').trim()) return t('AI_TOOLS.NAME_REQUIRED');
+  if (!String(form.value.description || '').trim()) return t('AI_TOOLS.DESCRIPTION_REQUIRED');
+  if (!String(form.value.configuration.url || '').trim()) return t('AI_TOOLS.URL_REQUIRED');
   try { if (!['http:', 'https:'].includes(new URL(form.value.configuration.url).protocol)) return t('AI_TOOLS.URL_INVALID'); } catch { return t('AI_TOOLS.URL_INVALID'); }
   if (!Number.isInteger(Number(form.value.configuration.timeout_seconds)) || Number(form.value.configuration.timeout_seconds) < 1 || Number(form.value.configuration.timeout_seconds) > 30) return t('AI_TOOLS.TIMEOUT_INVALID');
   if (!parseJson(parametersJson.value, '[]') || !parseJson(headersJson.value, '{}') || !parseJson(queryJson.value, '{}') || !parseJson(bodyJson.value, '{}')) return t('AI_TOOLS.JSON_INVALID');
@@ -109,7 +119,13 @@ const load = async () => {
     agents.value = agentsResponse.data.agents || [];
     if (toolResponse.data) {
       const tool = toolResponse.data;
-      form.value = { ...form.value, ...tool, configuration: { ...form.value.configuration, ...tool.configuration } };
+      form.value = {
+        ...form.value,
+        ...tool,
+        name: tool.name || '',
+        description: tool.description || '',
+        configuration: { ...form.value.configuration, ...(tool.configuration || {}) },
+      };
       secretHeadersJson.value = '{}';
       bodyMode.value = Object.keys(tool.configuration?.body || {}).length ? 'custom' : 'automatic';
     }
@@ -168,7 +184,7 @@ onMounted(load);
     </section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.REQUEST_HELP') }}</p></div><label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_TOOLS.METHOD') }}<ComboBox v-model="form.configuration.method" :options="methodOptions" /></label><Input v-model="form.configuration.url" :label="t('AI_TOOLS.URL')" :placeholder="t('AI_TOOLS.URL_PLACEHOLDER')" :message="t('AI_TOOLS.URL_HELP')" /><Input v-model.number="form.configuration.timeout_seconds" type="number" min="1" max="30" :label="t('AI_TOOLS.TIMEOUT')" :message="t('AI_TOOLS.TIMEOUT_HELP')" /></section>
     <section class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div class="flex items-center justify-between"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.HEADERS_SECTION') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.HEADERS_HELP') }}</p></div><div class="flex gap-1"><Button variant="faded" :label="t('AI_TOOLS.VISUAL')" :disabled="headerMode === 'visual'" @click="headerMode = 'visual'; syncVisualJson()" /><Button variant="faded" :label="t('AI_TOOLS.JSON_MODE')" :disabled="headerMode === 'json'" @click="headerMode = 'json'" /></div></div><div v-if="headerMode === 'visual'" class="flex flex-col gap-2"><div v-for="(row, index) in headerRows" :key="index" class="flex flex-wrap items-end gap-2"><Input v-model="row.name" label="Header name" /><Input v-model="row.value" label="Value" /><Button variant="ghost" color="ruby" :label="t('AI_TOOLS.DELETE')" @click="removeHeader(index)" /></div><Button variant="faded" :label="t('AI_TOOLS.ADD_HEADER')" icon="i-lucide-plus" @click="addHeader" /></div><TextArea v-else v-model="headersJson" :label="t('AI_TOOLS.HEADERS')" :auto-height="true" :min-height="'8rem'" /><TextArea v-model="secretHeadersJson" :label="t('AI_TOOLS.SECRETS')" :message="t('AI_TOOLS.SECRETS_HELP')" :auto-height="true" :min-height="'6rem'" /><TextArea v-model="queryJson" :label="t('AI_TOOLS.QUERY_PARAMS')" :message="t('AI_TOOLS.QUERY_HELP')" :auto-height="true" :min-height="'6rem'" /></section>
-    <section v-if="showBody" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST_BODY') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BODY_MODE_HELP') }}</p></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.AUTOMATIC')" :disabled="bodyMode === 'automatic'" @click="bodyMode = 'automatic'" /><Button variant="faded" :label="t('AI_TOOLS.CUSTOM')" :disabled="bodyMode === 'custom'" @click="bodyMode = 'custom'" /></div><div v-if="bodyMode === 'custom'" class="flex flex-col gap-2"><p class="text-xs text-n-slate-11">{{ t('AI_TOOLS.CONTEXT_VARIABLES') }}: {{ t('AI_TOOLS.CONTEXT_VARIABLES_HELP') }}</p><TextArea v-model="bodyJson" :label="t('AI_TOOLS.BODY_JSON')" :auto-height="true" :min-height="'10rem'" /></div></section>
+    <section v-if="showBody" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><div><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.REQUEST_BODY') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BODY_MODE_HELP') }}</p></div><div class="flex gap-2"><Button variant="faded" :label="t('AI_TOOLS.AUTOMATIC')" :disabled="bodyMode === 'automatic'" @click="bodyMode = 'automatic'" /><Button variant="faded" :label="t('AI_TOOLS.CUSTOM')" :disabled="bodyMode === 'custom'" @click="bodyMode = 'custom'" /></div><div v-if="bodyMode === 'custom'" class="flex flex-col gap-2"><p class="text-xs text-n-slate-11">{{ t('AI_TOOLS.CONTEXT_VARIABLES') }}: {{ t('AI_TOOLS.CONTEXT_VARIABLES_HELP') }} <code>{{ contextVariables.join(', ') }}</code></p><TextArea v-model="bodyJson" :label="t('AI_TOOLS.BODY_JSON')" :auto-height="true" :min-height="'10rem'" /></div></section>
     <section v-if="isEdit" class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_TOOLS.TEST') }}</h2><TextArea v-model="testArguments" :label="t('AI_TOOLS.TEST_ARGUMENTS')" :auto-height="true" /><Button :label="t('AI_TOOLS.RUN_TEST')" :disabled="busy" @click="runTest" /><pre v-if="testResult" class="p-3 overflow-x-auto text-xs rounded-lg bg-n-solid-1">{{ JSON.stringify(testResult, null, 2) }}</pre></section>
   </main>
 </template>

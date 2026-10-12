@@ -269,7 +269,7 @@
     ,"CUSTOM": "Custom"
     ,"BODY_MODE_HELP": "Write methods send tool arguments automatically. Use Custom to define a template body."
     ,"CONTEXT_VARIABLES": "Available context variables"
-    ,"CONTEXT_VARIABLES_HELP": "{{contact_phone}}, {{contact_phone_e164}}, {{contact_name}}, {{contact_email}}, {{contact_id}}, {{conversation_id}}, {{account_id}}, {{agent_id}}"
+    ,"CONTEXT_VARIABLES_HELP": "Use these variables in a custom request body."
     ,"QUERY_PARAMS": "Query parameters JSON"
     ,"QUERY_HELP": "Add query values or templates supported by the tool."
     ,"TEST_ARGUMENTS": "Test arguments JSON"
