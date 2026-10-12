@@ -69,8 +69,8 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
     end
     supplied_secrets = input[:secret_headers].respond_to?(:to_h) ? input[:secret_headers].to_h : {}
     secrets = extracted.merge(supplied_secrets.stringify_keys)
-    permitted[:secret_headers] = JSON.generate(secrets) if secrets.present?
-    permitted.delete(:secret_headers) if secrets.blank?
+    permitted[:secret_headers] = JSON.generate(secrets) if secrets.present? || input.key?('secret_headers')
+    permitted.delete(:secret_headers) if secrets.blank? && !input.key?('secret_headers')
     permitted
   end
 

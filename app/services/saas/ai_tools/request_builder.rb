@@ -22,7 +22,7 @@ class Saas::AiTools::RequestBuilder
     parsed.query = URI.encode_www_form(URI.decode_www_form(parsed.query.to_s) + query.to_a) if query.present?
 
     headers = config.fetch('headers', {}).to_h.transform_values { |value| render(value, resolved) }
-    headers.merge!(JSON.parse(@tool.secret_headers)) if @tool.secret_headers.present?
+    headers.merge!(secret_headers)
     request = Net::HTTP.const_get(method.capitalize).new(parsed)
     headers.each { |name, value| request[name] = value.to_s }
 
@@ -77,5 +77,14 @@ class Saas::AiTools::RequestBuilder
 
   def context
     @context ||= Saas::AiTools::ParameterResolver.new(tool: @tool, account: @account, agent: @agent, conversation: @conversation).context
+  end
+
+  def secret_headers
+    value = @tool.secret_headers
+    return {} if value.blank?
+
+    value.is_a?(String) ? JSON.parse(value) : value.to_h
+  rescue JSON::ParserError
+    {}
   end
 end

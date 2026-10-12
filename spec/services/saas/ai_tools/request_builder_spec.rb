@@ -16,6 +16,23 @@ RSpec.describe Saas::AiTools::RequestBuilder do
     expect(request['Content-Type']).to eq('application/json')
   end
 
+  it 'sends public headers from the tool configuration' do
+    tool_configuration = configuration.merge('headers' => { 'X-Webhook-Token' => 'public-token' })
+    allow(tool).to receive(:configuration).and_return(tool_configuration)
+
+    request, = builder.build({})
+
+    expect(request['X-Webhook-Token']).to eq('public-token')
+  end
+
+  it 'sends encrypted secret headers without exposing them in configuration' do
+    allow(tool).to receive(:secret_headers).and_return('{"Authorization":"Bearer test-token"}')
+
+    request, = builder.build({})
+
+    expect(request['Authorization']).to eq('Bearer test-token')
+  end
+
   it 'uses arguments as query parameters for GET requests' do
     tool_configuration = configuration.merge('method' => 'GET')
     allow(tool).to receive(:configuration).and_return(tool_configuration)
