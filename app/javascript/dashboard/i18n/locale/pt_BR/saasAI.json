@@ -1,4 +1,16 @@
 {
+  "AI_AGENTS": {
+    "BACK": "Voltar para assistentes de texto",
+    "EDITOR_HELP": "Configure o comportamento, os acessos e os canais deste assistente.",
+    "SETTINGS_SECTION": "Configurações do assistente",
+    "SETTINGS_HELP": "Defina a identidade do assistente e o comportamento do modelo.",
+    "PROMPT_SECTION": "Prompt do sistema",
+    "PROMPT_HELP": "Instruções que orientam o assistente em todas as respostas.",
+    "BEHAVIOR_SECTION": "Comportamento da conversa",
+    "BEHAVIOR_HELP": "Controle o contexto, grupos, transferência e memória do cliente.",
+    "CONNECTIONS_SECTION": "Conexões",
+    "CONNECTIONS_HELP": "Escolha as caixas de entrada, ferramentas e bases de conhecimento disponíveis."
+  },
   "AI_TOOLS": {
     "TOOLS_TAB": "Ferramentas",
     "LOGS_TAB": "Logs",

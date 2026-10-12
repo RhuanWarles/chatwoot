@@ -2,6 +2,7 @@ import { frontendURL } from '../../../../helper/URLHelper';
 import SettingsWrapper from '../SettingsWrapper.vue';
 import Index from './Index.vue';
 import Playground from './Playground.vue';
+import AgentEditorPage from './AgentEditorPage.vue';
 
 export default {
   routes: [
@@ -20,6 +21,18 @@ export default {
           path: ':agentId/playground',
           name: 'ai_agent_playground',
           component: Playground,
+          meta: { permissions: ['administrator'] },
+        },
+        {
+          path: 'new',
+          name: 'ai_agent_new',
+          component: AgentEditorPage,
+          meta: { permissions: ['administrator'] },
+        },
+        {
+          path: ':agentId/edit',
+          name: 'ai_agent_edit',
+          component: AgentEditorPage,
           meta: { permissions: ['administrator'] },
         },
       ],

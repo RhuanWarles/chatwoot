@@ -1,30 +1,22 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
-import { useStore } from 'vuex';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
-import knowledgeAPI from 'dashboard/api/knowledgeBases';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-import { suggestedModelsForProvider } from './models';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
-import { agentPayload, newAgent, validAgent } from './form';
+import { useAccount } from 'dashboard/composables/useAccount';
 import TextCredentials from './TextCredentials.vue';
 
 const { t, locale } = useI18n();
-const store = useStore();
+const router = useRouter();
+const { accountId } = useAccount();
 const agents = ref([]);
-const providers = ref([]);
 const textSettings = ref(null);
 const loading = ref(true);
 const busy = ref(false);
 const loadError = ref('');
 const actionError = ref('');
-const tools = ref([]);
-const knowledgeBases = ref([]);
-const editorError = ref('');
-const editor = ref(null);
 const deletion = ref(null);
 const memoryDialog = ref(null);
 const memoryAgent = ref(null);
@@ -32,11 +24,9 @@ const memories = ref([]);
 const memoryLoading = ref(false);
 const memoryError = ref('');
 const deleting = ref(null);
-const draft = ref(newAgent());
-const previousProvider = ref(draft.value.provider);
-const editingId = ref(null);
-const inboxes = computed(() => store.getters['inboxes/getInboxes']);
-const canSave = computed(() => validAgent(draft.value));
+const platformMode = computed(() => textSettings.value?.mode === 'platform');
+const effectivePlatformProvider = computed(() => textSettings.value?.platform_provider || '');
+const effectivePlatformModel = computed(() => textSettings.value?.platform_model || '');
 const providerLabels = computed(() => ({
   openai: t('AI_AGENTS.PROVIDERS.openai'),
   anthropic: t('AI_AGENTS.PROVIDERS.anthropic'),
@@ -44,143 +34,39 @@ const providerLabels = computed(() => ({
   openrouter: t('AI_AGENTS.PROVIDERS.openrouter'),
   groq: t('AI_AGENTS.PROVIDERS.groq'),
 }));
-const providerOptions = computed(() =>
-  providers.value.map(value => ({
-    value,
-    label: providerLabels.value[value],
-  }))
-);
-const modelOptions = computed(() =>
-  suggestedModelsForProvider(draft.value.provider).map(value => ({
-    value,
-    label: value,
-  }))
-);
-const platformMode = computed(() => textSettings.value?.mode === 'platform');
-const effectivePlatformProvider = computed(
-  () => textSettings.value?.platform_provider || ''
-);
-const effectivePlatformModel = computed(
-  () => textSettings.value?.platform_model || ''
-);
-const platformTextReady = computed(
-  () => textSettings.value?.platform_ready === true
-);
-
-const formatUpdatedAt = timestamp => {
-  if (!timestamp) return '';
-  return new Intl.DateTimeFormat(locale.value?.replace('_', '-') || undefined, {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(timestamp));
-};
-
-const normalizeAgent = agent => ({
-  ...agent,
-  customer_memory_enabled: agent?.customer_memory_enabled === true,
-  inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
-});
-
-watch(
-  () => draft.value.provider,
-  provider => {
-    if (provider === previousProvider.value) return;
-    previousProvider.value = provider;
-    const suggestions = suggestedModelsForProvider(provider);
-    if (draft.value.model && !suggestions.includes(draft.value.model)) {
-      draft.value.model = '';
-    }
-  }
-);
-
-const unavailableInbox = inbox =>
-  draft.value.active &&
-  agents.value.some(
-    agent =>
-      agent.id !== editingId.value &&
-      agent.active &&
-      (agent.inboxes || []).some(item => item.id === inbox.id)
-  );
+const formatUpdatedAt = timestamp => timestamp
+  ? new Intl.DateTimeFormat(locale.value?.replace('_', '-') || undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(timestamp))
+  : '';
+const normalizeAgent = agent => ({ ...agent, inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [] });
 
 const load = async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    const [response, inboxesLoaded, toolsResponse, knowledgeResponse] = await Promise.all([
-      aiAgentsAPI.get(),
-      store.dispatch('inboxes/get'),
-      aiAgentsAPI.tools(),
-      knowledgeAPI.get(),
-    ]);
-    if (!inboxesLoaded) {
-      loadError.value = t('AI_AGENTS.LOAD_ERROR');
-      return;
-    }
-    agents.value = Array.isArray(response.data.agents)
-      ? response.data.agents.map(normalizeAgent)
-      : [];
-    providers.value = response.data.providers;
-    textSettings.value = response.data.text;
-    tools.value = toolsResponse.data.tools || [];
-    knowledgeBases.value = knowledgeResponse.data.bases;
+    const { data } = await aiAgentsAPI.get();
+    agents.value = (data.agents || []).map(normalizeAgent);
+    textSettings.value = data.text;
   } catch {
     loadError.value = t('AI_AGENTS.LOAD_ERROR');
   } finally {
     loading.value = false;
   }
 };
-const openEditor = agent => {
-  editingId.value = agent?.id ?? null;
-  draft.value = agent
-    ? agentPayload({
-        ...agent,
-        description: agent.description ?? '',
-        inbox_ids: (agent.inboxes || []).map(inbox => inbox.id),
-      })
-    : newAgent();
-  if (platformMode.value) {
-    draft.value.provider =
-      effectivePlatformProvider.value || draft.value.provider;
-    draft.value.model = effectivePlatformModel.value || draft.value.model;
-  }
-  previousProvider.value = draft.value.provider;
-  editorError.value = '';
-  editor.value.open();
-};
-const errorText = error =>
-  error.response?.data?.error === 'inbox_conflict'
-    ? t('AI_AGENTS.INBOX_CONFLICT')
-    : t('AI_AGENTS.SAVE_ERROR');
-const save = async () => {
-  if (!canSave.value || busy.value) return;
-  busy.value = true;
-  editorError.value = '';
-  try {
-    const payload = { ai_agent: agentPayload(draft.value) };
-    const response = editingId.value
-      ? await aiAgentsAPI.update(editingId.value, payload)
-      : await aiAgentsAPI.create(payload);
-    agents.value = agents.value.filter(agent => agent.id !== response.data.id);
-    agents.value.push(normalizeAgent(response.data));
-    editor.value.close();
-    window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
-  } catch (error) {
-    editorError.value = errorText(error);
-  } finally {
-    busy.value = false;
-  }
-};
+const openEditor = agent => router.push({
+  name: agent ? 'ai_agent_edit' : 'ai_agent_new',
+  params: { accountId: accountId.value, ...(agent ? { agentId: agent.id } : {}) },
+  query: { type: 'text' },
+});
+const errorText = error => error.response?.data?.error === 'inbox_conflict'
+  ? t('AI_AGENTS.INBOX_CONFLICT')
+  : t('AI_AGENTS.SAVE_ERROR');
 const toggle = async agent => {
   if (busy.value) return;
   busy.value = true;
   actionError.value = '';
   try {
-    const { data } = await aiAgentsAPI.update(agent.id, {
-      ai_agent: { active: !agent.active },
-    });
-    agents.value = agents.value.map(item =>
-      item.id === data.id ? data : item
-    );
+    const { data } = await aiAgentsAPI.update(agent.id, { ai_agent: { active: !agent.active } });
+    agents.value = agents.value.map(item => item.id === data.id ? normalizeAgent(data) : item);
     window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch (error) {
     actionError.value = errorText(error);
@@ -225,7 +111,7 @@ const remove = async () => {
   busy.value = true;
   try {
     await aiAgentsAPI.delete(deleting.value.id);
-    agents.value = agents.value.filter(agent => agent.id !== deleting.value.id);
+    agents.value = agents.value.filter(item => item.id !== deleting.value.id);
     deletion.value.close();
     window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch {
@@ -241,335 +127,41 @@ onMounted(load);
   <section class="flex flex-col min-w-0">
     <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <h2 class="text-heading-3 text-n-slate-12">{{ t('AI_HUB.TEXT') }}</h2>
-      <Button
-        :label="t('AI_HUB.NEW_TEXT')"
-        icon="i-lucide-plus"
-        :disabled="loading || !!loadError || busy"
-        @click="openEditor()"
-      />
+      <Button :label="t('AI_HUB.NEW_TEXT')" icon="i-lucide-plus" :disabled="loading || !!loadError || busy" @click="openEditor()" />
     </header>
     <p class="mb-4 text-sm text-n-slate-11">{{ t('AI_AGENTS.CONFIG_ONLY') }}</p>
-    <p v-if="loading" role="status" class="text-n-slate-11">
-      {{ t('AI_AGENTS.LOADING') }}
-    </p>
-    <div
-      v-else-if="loadError"
-      role="alert"
-      class="flex items-center gap-3 text-n-ruby-9"
-    >
-      {{ loadError }}
-      <Button :label="t('AI_AGENTS.RETRY')" @click="load" />
-    </div>
+    <p v-if="loading" role="status" class="text-n-slate-11">{{ t('AI_AGENTS.LOADING') }}</p>
+    <div v-else-if="loadError" role="alert" class="flex items-center gap-3 text-n-ruby-9">{{ loadError }}<Button :label="t('AI_AGENTS.RETRY')" @click="load" /></div>
     <div v-else class="flex flex-col gap-3">
-      <p v-if="actionError" role="alert" class="text-sm text-n-ruby-9">
-        {{ actionError }}
-      </p>
-      <p v-if="!agents.length" class="text-n-slate-11">
-        {{ t('AI_AGENTS.EMPTY') }}
-      </p>
-      <article
-        v-for="agent in agents"
-        :key="agent.id"
-        class="flex flex-wrap justify-between gap-4 p-4 rounded-lg bg-n-solid-2"
-      >
+      <p v-if="actionError" role="alert" class="text-sm text-n-ruby-9">{{ actionError }}</p>
+      <p v-if="!agents.length" class="text-n-slate-11">{{ t('AI_AGENTS.EMPTY') }}</p>
+      <article v-for="agent in agents" :key="agent.id" class="flex flex-wrap justify-between gap-4 p-4 rounded-lg bg-n-solid-2">
         <div class="min-w-0">
-          <h2 class="font-medium break-words text-n-slate-12">
-            {{ agent.name }}
-          </h2>
-          <p class="text-sm text-n-slate-11">
-            {{ agent.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE') }}
-          </p>
-          <p v-if="platformMode" class="text-sm text-n-slate-11">
-            {{ t('AI_AGENTS.PLATFORM_MODE') }} ·
-            {{ effectivePlatformProvider || t('AI_AGENTS.NOT_CONFIGURED') }} ·
-            {{ effectivePlatformModel || t('AI_AGENTS.NOT_CONFIGURED') }}
-          </p>
-          <p v-else class="text-sm break-all text-n-slate-11">
-            {{ providerLabels[agent.provider] }} · {{ agent.model }}
-          </p>
-          <p class="text-sm text-n-slate-11">
-            {{ t('AI_AGENTS.INBOXES') }}:
-            {{
-              (agent.inboxes || []).map(inbox => inbox.name).join(', ') ||
-              t('AI_AGENTS.NO_INBOXES')
-            }}
-          </p>
-          <p class="text-xs text-n-slate-11">
-            {{ t('AI_AGENTS.UPDATED') }}:
-            {{ formatUpdatedAt(agent.updated_at) }}
-          </p>
+          <h2 class="font-medium break-words text-n-slate-12">{{ agent.name }}</h2>
+          <p class="text-sm text-n-slate-11">{{ agent.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE') }}</p>
+          <p v-if="platformMode" class="text-sm text-n-slate-11">{{ t('AI_AGENTS.PLATFORM_MODE') }} · {{ effectivePlatformProvider || t('AI_AGENTS.NOT_CONFIGURED') }} · {{ effectivePlatformModel || t('AI_AGENTS.NOT_CONFIGURED') }}</p>
+          <p v-else class="text-sm break-all text-n-slate-11">{{ providerLabels[agent.provider] }} · {{ agent.model }}</p>
+          <p class="text-sm text-n-slate-11">{{ t('AI_AGENTS.INBOXES') }}: {{ agent.inboxes.map(inbox => inbox.name).join(', ') || t('AI_AGENTS.NO_INBOXES') }}</p>
+          <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.UPDATED') }}: {{ formatUpdatedAt(agent.updated_at) }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <Button
-            variant="ghost"
-            :label="t('AI_PLAYGROUND.OPEN')"
-            :disabled="busy"
-            @click="
-              $router.push({
-                name: 'ai_agent_playground',
-                params: { accountId, agentId: agent.id },
-              })
-            "
-          />
-          <Button
-            variant="ghost"
-            :label="t('AI_AGENTS.MEMORIES')"
-            :disabled="busy"
-            @click="openMemories(agent)"
-          />
-          <Button
-            variant="ghost"
-            :label="t('AI_AGENTS.EDIT')"
-            :disabled="busy"
-            @click="openEditor(agent)"
-          />
-          <Button
-            variant="ghost"
-            :label="
-              agent.active ? t('AI_AGENTS.DEACTIVATE') : t('AI_AGENTS.ACTIVATE')
-            "
-            :disabled="busy"
-            @click="toggle(agent)"
-          />
-          <Button
-            variant="ghost"
-            color="ruby"
-            :label="t('AI_AGENTS.DELETE')"
-            :disabled="busy"
-            @click="requestDelete(agent)"
-          />
+          <Button variant="ghost" :label="t('AI_PLAYGROUND.OPEN')" :disabled="busy" @click="router.push({ name: 'ai_agent_playground', params: { accountId: accountId.value, agentId: agent.id } })" />
+          <Button variant="ghost" :label="t('AI_AGENTS.MEMORIES')" :disabled="busy" @click="openMemories(agent)" />
+          <Button variant="ghost" :label="t('AI_AGENTS.EDIT')" :disabled="busy" @click="openEditor(agent)" />
+          <Button variant="ghost" :label="agent.active ? t('AI_AGENTS.DEACTIVATE') : t('AI_AGENTS.ACTIVATE')" :disabled="busy" @click="toggle(agent)" />
+          <Button variant="ghost" color="ruby" :label="t('AI_AGENTS.DELETE')" :disabled="busy" @click="requestDelete(agent)" />
         </div>
       </article>
-
     </div>
     <TextCredentials class="mt-6" @saved="load" />
-    <Dialog
-      ref="editor"
-      width="2xl"
-      overflow-y-auto
-      :title="editingId ? t('AI_AGENTS.EDIT') : t('AI_HUB.NEW_TEXT')"
-      :is-loading="busy"
-      :disable-confirm-button="!canSave || busy"
-      :confirm-button-label="t('AI_AGENTS.SAVE')"
-      :cancel-button-label="t('AI_AGENTS.CANCEL')"
-      @confirm="save"
-    >
-      <div class="flex flex-col gap-4 max-h-[65vh] overflow-y-auto p-1">
-        <p v-if="editorError" role="alert" class="text-sm text-n-ruby-9">
-          {{ editorError }}
-        </p>
-        <Input
-          v-model="draft.name"
-          :label="t('AI_AGENTS.NAME')"
-          :disabled="busy"
-        />
-        <Input
-          v-model="draft.description"
-          :label="t('AI_AGENTS.DESCRIPTION')"
-          :disabled="busy"
-        />
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"
-          ><input v-model="draft.active" type="checkbox" :disabled="busy" />{{
-            t('AI_AGENTS.ACTIVE')
-          }}</label
-        >
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label class="text-sm text-n-slate-12">{{
-              t('AI_AGENTS.PROVIDER')
-            }}</label
-            ><ComboBox
-              v-model="draft.provider"
-              :options="providerOptions"
-              :disabled="busy || platformMode"
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-sm text-n-slate-12">
-              {{ t('AI_AGENTS.MODEL_SUGGESTION') }}
-            </label>
-            <ComboBox
-              v-model="draft.model"
-              :options="modelOptions"
-              :placeholder="t('AI_AGENTS.MODEL_PLACEHOLDER')"
-              :search-placeholder="t('AI_AGENTS.MODEL_SEARCH')"
-              :empty-state="t('AI_AGENTS.MODEL_EMPTY')"
-              :disabled="busy || platformMode"
-            />
-          </div>
-          <Input
-            v-model="draft.model"
-            :label="t('AI_AGENTS.MODEL')"
-            :placeholder="t('AI_AGENTS.MODEL_CUSTOM_PLACEHOLDER')"
-            :disabled="busy || platformMode"
-          />
-          <p class="text-xs text-n-slate-11 sm:col-span-2">
-            {{
-              platformMode
-                ? t('AI_AGENTS.PLATFORM_MODEL_HELP', {
-                    provider:
-                      effectivePlatformProvider ||
-                      t('AI_AGENTS.NOT_CONFIGURED'),
-                    model:
-                      effectivePlatformModel || t('AI_AGENTS.NOT_CONFIGURED'),
-                  })
-                : t('AI_AGENTS.MODEL_HELP')
-            }}
-          </p>
-        </div>
-        <div
-          v-if="platformMode"
-          class="rounded-lg bg-n-solid-2 p-3 text-sm text-n-slate-11"
-        >
-          <p>
-            {{
-              t('AI_AGENTS.PLATFORM_CREDITS', {
-                amount: textSettings?.available_credits ?? 0,
-              })
-            }}
-          </p>
-          <p>
-            {{
-              t('AI_AGENTS.PLATFORM_COST', {
-                count: textSettings?.credits_per_request ?? 1,
-              })
-            }}
-          </p>
-          <p v-if="!platformTextReady" class="mt-1 text-n-amber-11">
-            {{ t('AI_AGENTS.PLATFORM_NOT_READY') }}
-          </p>
-        </div>
-        <label class="flex flex-col gap-2 text-sm text-n-slate-12"
-          >{{ t('AI_AGENTS.TEMPERATURE')
-          }}<input
-            v-model.number="draft.temperature"
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            :disabled="busy"
-            class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak focus:border-n-brand"
-        /></label>
-        <label class="flex flex-col gap-2 text-sm text-n-slate-12"
-          >{{ t('AI_AGENTS.PROMPT')
-          }}<textarea
-            v-model="draft.system_prompt"
-            rows="12"
-            :disabled="busy"
-            class="w-full p-3 rounded-lg resize-y min-h-48 bg-n-solid-2 text-n-slate-12 border border-n-weak focus:border-n-brand"
-          />
-        </label>
-        <label class="flex flex-col gap-2 text-sm text-n-slate-12">
-          {{ t('AI_AGENTS.CONTEXT_MESSAGES_LIMIT') }}
-          <input
-            v-model.number="draft.context_messages_limit"
-            type="number"
-            min="1"
-            max="100"
-            step="1"
-            :disabled="busy"
-            class="w-full p-3 rounded-lg bg-n-solid-2 text-n-slate-12 border border-n-weak focus:border-n-brand"
-          />
-          <span class="text-xs text-n-slate-11">{{ t('AI_AGENTS.CONTEXT_MESSAGES_LIMIT_HELP') }}</span>
-        </label>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-2 text-sm text-n-slate-12">
-            {{ t('AI_AGENTS.INBOXES') }}
-          </legend>
-          <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.INBOX_HELP') }}</p>
-          <label
-            v-for="inbox in inboxes"
-            :key="inbox.id"
-            class="flex items-center gap-2 text-sm text-n-slate-12"
-            ><input
-              v-model="draft.inbox_ids"
-              type="checkbox"
-              :value="inbox.id"
-              :disabled="
-                busy ||
-                (unavailableInbox(inbox) && !draft.inbox_ids.includes(inbox.id))
-              "
-            />{{ inbox.name
-            }}<span v-if="unavailableInbox(inbox)" class="text-n-ruby-9">{{
-              t('AI_AGENTS.OCCUPIED')
-            }}</span></label
-          >
-          <p v-if="!inboxes.length" class="text-sm text-n-slate-11">
-            {{ t('AI_AGENTS.NO_INBOXES') }}
-          </p>
-        </fieldset>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-2 text-sm text-n-slate-12">{{ t('AI_AGENTS.ASSIGNED_TOOLS') }}</legend>
-          <label v-for="tool in tools" :key="tool.id" class="flex items-center gap-2 text-sm text-n-slate-12">
-            <input v-model="draft.tool_ids" type="checkbox" :value="tool.id" :disabled="busy" />{{ tool.name }}
-            <span v-if="!tool.active" class="text-n-slate-11">({{ t('AI_AGENTS.INACTIVE') }})</span>
-          </label>
-        </fieldset>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-2 text-sm text-n-slate-12">{{ t('KNOWLEDGE.TITLE') }}</legend>
-          <p class="text-xs text-n-slate-11">{{ t('KNOWLEDGE.AGENT_HELP') }}</p>
-          <label v-for="base in knowledgeBases" :key="base.id" class="flex items-center gap-2 text-sm text-n-slate-12">
-            <input v-model="draft.knowledge_base_ids" type="checkbox" :value="base.id" :disabled="busy" />{{ base.name }}
-            <span v-if="!base.active" class="text-n-slate-11">({{ t('KNOWLEDGE.INACTIVE') }})</span>
-          </label>
-        </fieldset>
-        <label class="flex items-center gap-2 text-sm text-n-slate-12">
-          <input
-            v-model="draft.respond_to_groups"
-            type="checkbox"
-            :disabled="busy"
-          />
-          {{ t('AI_AGENTS.RESPOND_TO_GROUPS') }}
-        </label>
-        <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.GROUP_HELP') }}</p>
-        <label class="flex items-center gap-2 text-sm text-n-slate-12">
-          <input v-model="draft.customer_memory_enabled" type="checkbox" :disabled="busy" />
-          {{ t('AI_AGENTS.CUSTOMER_MEMORY') }}
-        </label>
-        <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.CUSTOMER_MEMORY_HELP') }}</p>
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"
-          ><input
-            v-model="draft.handoff_enabled"
-            type="checkbox"
-            :disabled="busy"
-          />{{ t('AI_AGENTS.HANDOFF') }}</label
-        >
-        <p class="text-xs text-n-slate-11">{{ t('AI_AGENTS.HANDOFF_HELP') }}</p>
-      </div>
-    </Dialog>
-    <Dialog
-      ref="memoryDialog"
-      width="2xl"
-      :title="t('AI_AGENTS.MEMORIES')"
-      :cancel-button-label="t('AI_AGENTS.CLOSE')"
-    >
+    <Dialog ref="memoryDialog" width="2xl" :title="t('AI_AGENTS.MEMORIES')" :cancel-button-label="t('AI_AGENTS.CLOSE')">
       <div class="flex flex-col gap-3 max-h-[65vh] overflow-y-auto">
         <p v-if="memoryError" role="alert" class="text-sm text-n-ruby-9">{{ memoryError }}</p>
         <p v-if="memoryLoading" class="text-sm text-n-slate-11">{{ t('AI_AGENTS.LOADING') }}</p>
         <p v-else-if="!memories.length" class="text-sm text-n-slate-11">{{ t('AI_AGENTS.NO_MEMORIES') }}</p>
-        <article v-for="memory in memories" :key="memory.id" class="p-3 rounded-lg bg-n-solid-2">
-          <div class="flex items-center justify-between gap-3">
-            <strong class="text-sm text-n-slate-12">{{ memory.contact_name || memory.contact_id }}</strong>
-            <Button variant="ghost" color="ruby" :label="t('AI_AGENTS.CLEAR_MEMORY')" @click="clearMemory(memory)" />
-          </div>
-          <p class="mt-2 text-sm whitespace-pre-wrap text-n-slate-11">{{ memory.content }}</p>
-        </article>
+        <article v-for="memory in memories" :key="memory.id" class="p-3 rounded-lg bg-n-solid-2"><div class="flex items-center justify-between gap-3"><strong class="text-sm text-n-slate-12">{{ memory.contact_name || memory.contact_id }}</strong><Button variant="ghost" color="ruby" :label="t('AI_AGENTS.CLEAR_MEMORY')" @click="clearMemory(memory)" /></div><p class="mt-2 text-sm whitespace-pre-wrap text-n-slate-11">{{ memory.content }}</p></article>
       </div>
     </Dialog>
-    <Dialog
-      ref="deletion"
-      type="alert"
-      :title="t('AI_AGENTS.DELETE')"
-      :description="t('AI_AGENTS.DELETE_CONFIRM', { name: deleting?.name })"
-      :is-loading="busy"
-      :disable-confirm-button="busy"
-      :confirm-button-label="t('AI_AGENTS.DELETE')"
-      :cancel-button-label="t('AI_AGENTS.CANCEL')"
-      @confirm="remove"
-    >
-      <p v-if="actionError" role="alert" class="text-sm text-n-ruby-9">
-        {{ actionError }}
-      </p>
-    </Dialog>
+    <Dialog ref="deletion" type="alert" :title="t('AI_AGENTS.DELETE')" :description="t('AI_AGENTS.DELETE_CONFIRM', { name: deleting?.name })" :is-loading="busy" :disable-confirm-button="busy" :confirm-button-label="t('AI_AGENTS.DELETE')" :cancel-button-label="t('AI_AGENTS.CANCEL')" @confirm="remove"><p v-if="actionError" role="alert" class="text-sm text-n-ruby-9">{{ actionError }}</p></Dialog>
   </section>
 </template>
