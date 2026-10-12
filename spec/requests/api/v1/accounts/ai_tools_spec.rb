@@ -22,4 +22,15 @@ RSpec.describe 'AI Tools API', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
     expect(response.parsed_body['message']).to be_present
   end
+
+  it 'persists public headers and extracts sensitive headers from the configuration' do
+    post url, params: { ai_tool: { name: 'SendLink', description: 'Sends a link',
+                                  configuration: configuration.merge(method: 'POST', headers: { 'X-Test' => 'value', 'Authorization' => 'Bearer secret' }) } },
+         headers: headers, as: :json
+
+    expect(response).to have_http_status(:created)
+    tool = account.saas_ai_tools.find_by!(slug: 'send_link')
+    expect(tool.configuration['headers']).to eq('X-Test' => 'value')
+    expect(tool.secret_header_names).to contain_exactly('Authorization')
+  end
 end
