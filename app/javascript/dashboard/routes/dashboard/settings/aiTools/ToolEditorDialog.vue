@@ -80,7 +80,6 @@ const close = () => dialog.value?.close();
 const validationError = computed(() => {
   if (!draft.value) return '';
   if (!draft.value.name.trim()) return t('AI_TOOLS.NAME_REQUIRED');
-  if (!draft.value.slug.trim()) return t('AI_TOOLS.SLUG_REQUIRED');
   if (!draft.value.configuration.method) return t('AI_TOOLS.METHOD_REQUIRED');
   if (!draft.value.configuration.url.trim()) return t('AI_TOOLS.URL_REQUIRED');
   try {
@@ -118,17 +117,20 @@ const save = async () => {
     };
     delete configuration.parameters_json;
     delete configuration.headers_json;
-    const payload = { ai_tool: { ...draft.value, configuration } };
+    const toolPayload = { ...draft.value, configuration };
+    delete toolPayload.secret_headers;
+    if (!draft.value.id) delete toolPayload.slug;
     if (draft.value.secret_headers.trim()) {
-      payload.ai_tool.secret_headers = JSON.parse(draft.value.secret_headers);
+      toolPayload.secret_headers = JSON.parse(draft.value.secret_headers);
     }
+    const payload = { ai_tool: toolPayload };
     const response = draft.value.id
       ? await aiToolsAPI.update(draft.value.id, payload)
       : await aiToolsAPI.create(payload);
     emit('saved', response.data);
     close();
   } catch (saveError) {
-    error.value = saveError.response?.data?.error || t('AI_TOOLS.SAVE_ERROR');
+    error.value = saveError.response?.data?.message || t('AI_TOOLS.SAVE_ERROR');
   } finally {
     busy.value = false;
   }
@@ -177,7 +179,6 @@ defineExpose({ open });
           <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.BASIC_INFO_HELP') }}</p>
         </div>
         <Input v-model="draft.name" :label="t('AI_TOOLS.NAME')" :placeholder="t('AI_TOOLS.NAME_PLACEHOLDER')" :message="t('AI_TOOLS.NAME_HELP')" :disabled="busy" />
-        <Input v-model="draft.slug" :label="t('AI_TOOLS.SLUG')" :placeholder="t('AI_TOOLS.SLUG_PLACEHOLDER')" :message="t('AI_TOOLS.SLUG_HELP')" :message-type="validationError === t('AI_TOOLS.SLUG_REQUIRED') ? 'error' : 'info'" :disabled="busy" />
         <Input v-model="draft.description" :label="t('AI_TOOLS.DESCRIPTION')" :placeholder="t('AI_TOOLS.DESCRIPTION_PLACEHOLDER')" :message="t('AI_TOOLS.DESCRIPTION_HELP')" :disabled="busy" />
         <div class="flex flex-col gap-3 p-3 rounded-lg bg-n-solid-2">
           <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12">

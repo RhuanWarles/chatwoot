@@ -201,7 +201,6 @@
     "SAVE": "Save",
     "CANCEL": "Cancel",
     "NAME": "Name",
-    "SLUG": "Function identifier",
     "DESCRIPTION": "Description",
     "ACTIVE": "Active",
     "INACTIVE": "Inactive",
@@ -237,9 +236,7 @@
     ,"HEADERS_SECTION": "Headers"
     ,"HEADERS_HELP": "Add public headers and sensitive credentials separately."
     ,"NAME_PLACEHOLDER": "e.g. Send order link"
-    ,"NAME_HELP": "Internal name used to organize this account's tools."
-    ,"SLUG_PLACEHOLDER": "e.g. send_link"
-    ,"SLUG_HELP": "Technical identifier used by the model. Use lowercase letters, numbers and underscores."
+    ,"NAME_HELP": "Name used to identify this tool to assistants."
     ,"DESCRIPTION_PLACEHOLDER": "When should the assistant use this tool?"
     ,"DESCRIPTION_HELP": "Explain what the tool does and when the assistant should call it."
     ,"URL_PLACEHOLDER": "https://api.example.com/send-link"
@@ -249,7 +246,6 @@
     ,"PLAYGROUND_HELP": "Allows the Playground to make real requests with this tool."
     ,"SECRETS_HELP": "Sensitive values such as Authorization are stored securely and are not shown after saving."
     ,"NAME_REQUIRED": "Enter a name for the tool."
-    ,"SLUG_REQUIRED": "Enter a function identifier."
     ,"METHOD_REQUIRED": "Choose an HTTP method."
     ,"URL_REQUIRED": "Enter an endpoint URL."
     ,"URL_INVALID": "Enter a valid HTTP or HTTPS URL."

@@ -16,6 +16,7 @@ class Saas::AiTool < ApplicationRecord
   validates :tool_type, inclusion: { in: TOOL_TYPES }
   validate :valid_configuration
   validate :secrets_require_encryption
+  before_validation :generate_slug, on: :create
 
   def parameters
     Array(configuration['parameters']).map { |item| item.stringify_keys }
@@ -48,6 +49,17 @@ class Saas::AiTool < ApplicationRecord
 
   private
 
+  def generate_slug
+    return if slug.present?
+
+    self.slug = I18n.transliterate(name.to_s)
+                      .downcase
+                      .gsub(/[^a-z0-9]+/, '_')
+                      .gsub(/_+/, '_')
+                      .sub(/\A_+/, '')
+                      .sub(/_+\z/, '')
+  end
+
   def valid_configuration
     return unless tool_type == 'http'
 
@@ -56,7 +68,8 @@ class Saas::AiTool < ApplicationRecord
     timeout = config['timeout_seconds'].to_i
     errors.add(:configuration, :invalid) unless timeout.between?(1, 30)
     parameters.each do |parameter|
-      errors.add(:configuration, :invalid) unless PARAMETER_TYPES.include?(parameter['type']) && parameter['name'].to_s.match?(/\A[a-zA-Z][a-zA-Z0-9_]*\z/)
+      valid_name = parameter['name'].to_s.match?(/\A[a-zA-Z][a-zA-Z0-9_]*\z/)
+      errors.add(:configuration, :invalid) unless PARAMETER_TYPES.include?(parameter['type']) && valid_name
     end
   end
 
