@@ -97,7 +97,7 @@ class Saas::Knowledge::Retrieval
   def self.eligible_chunks(account, bases)
     Saas::KnowledgeChunk.where(account_id: account.id).joins(knowledge_document: :knowledge_base)
                         .where(saas_knowledge_documents: { status: 'ready', embedding_model: Saas::Knowledge::Embeddings.model })
-                        .where(saas_knowledge_bases: { id: bases.select(:id), account_id: account.id })
+                        .where(saas_knowledge_bases: { id: bases.map(&:id), account_id: account.id })
   end
   private_class_method :eligible_chunks
 end
