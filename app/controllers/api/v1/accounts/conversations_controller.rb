@@ -45,7 +45,16 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def update
-    @conversation.update!(permitted_update_params)
+    attributes = permitted_update_params
+    preferences_param = attributes.delete(:ai_timeline_preferences) || attributes.delete('ai_timeline_preferences')
+    if preferences_param
+      preferences = preferences_param.to_h.stringify_keys
+      validate_ai_timeline_preferences!(preferences)
+      @conversation.additional_attributes = @conversation.additional_attributes.merge(
+        'ai_timeline_preferences' => preferences
+      )
+    end
+    @conversation.update!(attributes)
   end
 
   def ai_state
@@ -157,7 +166,17 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     # TODO: Move the other conversation attributes to this method and remove specific endpoints for each attribute
     raise ActionController::ParameterMissing, :priority unless params[:priority].nil? || Conversation.priorities.key?(params[:priority])
 
-    params.permit(:priority)
+    params.permit(
+      :priority,
+      ai_timeline_preferences: [:show_tool_executions, :show_knowledge_retrievals]
+    )
+  end
+
+  def validate_ai_timeline_preferences!(preferences)
+    allowed = %w[show_tool_executions show_knowledge_retrievals]
+    valid = preferences.keys.all? { |key| allowed.include?(key) } &&
+      preferences.values.all? { |value| value == true || value == false }
+    raise ActionController::BadRequest, 'invalid_ai_timeline_preferences' unless valid
   end
 
   def ai_state_data(agent)

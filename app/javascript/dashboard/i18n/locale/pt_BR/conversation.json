@@ -50,6 +50,12 @@
       "TODAY": "Hoje",
       "YESTERDAY": "Ontem"
     },
+    "AI_LOGS": {
+      "TITLE": "Logs da IA",
+      "DESCRIPTION": "Controle quais eventos técnicos da IA aparecem na timeline desta conversa.",
+      "SHOW_TOOLS": "Mostrar execuções de ferramentas na timeline",
+      "SHOW_KNOWLEDGE": "Mostrar consultas à base de conhecimento na timeline"
+    },
     "GROUP_PARTICIPANTS": {
       "TITLE": "Participantes do grupo",
       "SEARCH": "Buscar participantes",
@@ -506,6 +512,12 @@
       "DATE": "Data e hora",
       "AGENT": "Assistente",
       "USED_CHUNKS": "Trechos utilizados"
+      ,"TITLE": "Consultas à base de conhecimento"
+      ,"EMPTY": "Nenhuma consulta à base de conhecimento nesta conversa."
+      ,"ERROR": "Não foi possível carregar as consultas à base de conhecimento."
+      ,"RETRY": "Tentar novamente"
+      ,"LESS": "Ver menos"
+      ,"ALL": "Ver todas ({count})"
     }
   },
   "EMAIL_TRANSCRIPT": {

@@ -50,6 +50,12 @@
       "TODAY": "Today",
       "YESTERDAY": "Yesterday"
     },
+    "AI_LOGS": {
+      "TITLE": "AI logs",
+      "DESCRIPTION": "Choose which technical AI events appear in this conversation timeline.",
+      "SHOW_TOOLS": "Show tool executions in timeline",
+      "SHOW_KNOWLEDGE": "Show knowledge base lookups in timeline"
+    },
     "GROUP_PARTICIPANTS": {
       "TITLE": "Group participants",
       "SEARCH": "Buscar participantes",
@@ -539,6 +545,12 @@
       "DATE": "Date and time",
       "AGENT": "Assistant",
       "USED_CHUNKS": "Chunks used"
+      ,"TITLE": "Knowledge base lookups"
+      ,"EMPTY": "No knowledge base lookups in this conversation."
+      ,"ERROR": "Unable to load knowledge base lookups."
+      ,"RETRY": "Try again"
+      ,"LESS": "Show less"
+      ,"ALL": "View all ({count})"
     }
   },
   "EMAIL_TRANSCRIPT": {

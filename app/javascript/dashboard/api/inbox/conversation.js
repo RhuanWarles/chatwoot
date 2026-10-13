@@ -144,6 +144,12 @@ class ConversationApi extends ApiClient {
     return axios.patch(`${this.url}/${conversationId}/ai_state`, { state });
   }
 
+  updateAiTimelinePreferences({ conversationId, preferences }) {
+    return axios.patch(`${this.url}/${conversationId}`, {
+      ai_timeline_preferences: preferences,
+    });
+  }
+
   fetchParticipants(conversationId) {
     return axios.get(`${this.url}/${conversationId}/participants`);
   }

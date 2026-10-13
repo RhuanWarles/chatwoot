@@ -18,6 +18,7 @@ import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
 import ConversationToolExecutions from './ConversationToolExecutions.vue';
+import { useConversationAiLogPreferences } from 'dashboard/composables/useConversationAiLogPreferences';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
 import SharedFiles from './SharedFiles.vue';
 import Draggable from 'vuedraggable';
@@ -26,6 +27,7 @@ import ShopifyOrdersList from 'dashboard/components/widgets/conversation/Shopify
 import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader.vue';
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
+import ConversationKnowledgeRetrievals from './ConversationKnowledgeRetrievals.vue';
 
 const props = defineProps({
   conversationId: {
@@ -48,7 +50,9 @@ const {
 
 const dragging = ref(false);
 const toolsOpen = ref(false);
+const aiLogsOpen = ref(false);
 const conversationSidebarItems = ref([]);
+const aiLogPreferences = useConversationAiLogPreferences();
 
 const shopifyIntegration = useFunctionGetter(
   'integrations/getIntegration',
@@ -233,6 +237,20 @@ onMounted(() => {
               @toggle="toolsOpen = !toolsOpen"
             >
               <ConversationToolExecutions />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'ai_logs'">
+            <AccordionItem :title="$t('CONVERSATION.AI_LOGS.TITLE')" :is-open="aiLogsOpen" compact @toggle="aiLogsOpen = !aiLogsOpen">
+              <div class="flex flex-col gap-3 p-3 min-w-0">
+                <p class="text-xs text-n-slate-11">{{ $t('CONVERSATION.AI_LOGS.DESCRIPTION') }}</p>
+                <label class="flex items-start justify-between gap-3 text-sm text-n-slate-12"><span class="min-w-0">{{ $t('CONVERSATION.AI_LOGS.SHOW_TOOLS') }}</span><Switch :model-value="aiLogPreferences.showToolExecutions.value" :disabled="aiLogPreferences.saving.value" @update:model-value="aiLogPreferences.update('show_tool_executions', $event)" /></label>
+                <label class="flex items-start justify-between gap-3 text-sm text-n-slate-12"><span class="min-w-0">{{ $t('CONVERSATION.AI_LOGS.SHOW_KNOWLEDGE') }}</span><Switch :model-value="aiLogPreferences.showKnowledgeRetrievals.value" :disabled="aiLogPreferences.saving.value" @update:model-value="aiLogPreferences.update('show_knowledge_retrievals', $event)" /></label>
+              </div>
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'knowledge_retrievals'">
+            <AccordionItem :title="$t('CONVERSATION.KNOWLEDGE_RETRIEVAL.TITLE')" :is-open="isContactSidebarItemOpen('is_knowledge_retrievals_open')" compact @toggle="value => toggleSidebarUIState('is_knowledge_retrievals_open', value)">
+              <ConversationKnowledgeRetrievals />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'contact_attributes'">

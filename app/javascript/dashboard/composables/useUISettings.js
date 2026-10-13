@@ -6,7 +6,9 @@ export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'conversation_actions' },
   { name: 'macros' },
   { name: 'conversation_info' },
+  { name: 'ai_logs' },
   { name: 'tool_executions' },
+  { name: 'knowledge_retrievals' },
   { name: 'contact_attributes' },
   { name: 'contact_notes' },
   { name: 'shared_files' },
@@ -52,6 +54,12 @@ const useConversationSidebarItemsOrder = uiSettings => {
           const index = itemsOrderCopy.findIndex(
             existing => existing.name === 'conversation_info'
           );
+          itemsOrderCopy.splice(index + 1, 0, item);
+        } else if (item.name === 'ai_logs') {
+          const index = itemsOrderCopy.findIndex(existing => existing.name === 'conversation_info');
+          itemsOrderCopy.splice(index + 1, 0, item);
+        } else if (item.name === 'knowledge_retrievals') {
+          const index = itemsOrderCopy.findIndex(existing => existing.name === 'tool_executions');
           itemsOrderCopy.splice(index + 1, 0, item);
         } else {
           itemsOrderCopy.push(item);

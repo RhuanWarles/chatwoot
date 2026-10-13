@@ -5,7 +5,6 @@ class Api::V1::Accounts::Conversations::KnowledgeRetrievalsController < Api::V1:
 
   def index
     records = Current.account.saas_usage_records.where(conversation_id: @conversation.id, source: 'knowledge_retrieval')
-                             .where("(metadata -> 'retrieval' ->> 'accepted_count')::integer > 0")
                              .order(created_at: :asc, id: :asc)
     render json: { retrievals: records.map { |record| retrieval_data(record) } }
   end

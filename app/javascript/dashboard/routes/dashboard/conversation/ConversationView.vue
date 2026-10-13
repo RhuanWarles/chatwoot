@@ -9,6 +9,7 @@ import {
 import { useAccount } from 'dashboard/composables/useAccount';
 import { provideConversationToolExecutions } from 'dashboard/composables/useConversationToolExecutions';
 import { provideConversationKnowledgeRetrievals } from 'dashboard/composables/useConversationKnowledgeRetrievals';
+import { provideConversationAiLogPreferences } from 'dashboard/composables/useConversationAiLogPreferences';
 import ChatList from '../../../components/ChatList.vue';
 import ConversationBox from '../../../components/widgets/conversation/ConversationBox.vue';
 import wootConstants from 'dashboard/constants/globals';
@@ -67,6 +68,7 @@ export default {
   setup() {
     const toolExecutions = provideConversationToolExecutions();
     const knowledgeRetrievals = provideConversationKnowledgeRetrievals();
+    const aiLogPreferences = provideConversationAiLogPreferences();
     const { uiSettings, updateUISettings, isOnExpandedLayout } =
       useUISettings();
     const { accountId } = useAccount();
@@ -82,6 +84,7 @@ export default {
       accountId,
       toolExecutions,
       knowledgeRetrievals,
+      aiLogPreferences,
     };
   },
   data() {

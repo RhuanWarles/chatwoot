@@ -14,6 +14,7 @@ import { mergeConversationEvents } from 'dashboard/helper/conversationToolTimeli
 import ToolExecutionItem from 'dashboard/routes/dashboard/conversation/ToolExecutionItem.vue';
 import KnowledgeRetrievalItem from 'dashboard/routes/dashboard/conversation/KnowledgeRetrievalItem.vue';
 import { useConversationKnowledgeRetrievals } from 'dashboard/composables/useConversationKnowledgeRetrievals';
+import { useConversationAiLogPreferences } from 'dashboard/composables/useConversationAiLogPreferences';
 
 /**
  * Props definition for the component
@@ -56,6 +57,7 @@ const emit = defineEmits(['retry']);
 const { t, locale } = useI18n();
 const toolExecutions = useConversationToolExecutions();
 const knowledgeRetrievals = useConversationKnowledgeRetrievals();
+const aiLogPreferences = useConversationAiLogPreferences();
 
 const allMessages = computed(() => {
   return useCamelCase(props.messages, {
@@ -110,8 +112,10 @@ const timeline = computed(() => {
   let lastDayValue = null;
   return mergeConversationEvents(
     entries,
-    toolExecutions?.executions.value || [],
-    knowledgeRetrievals?.retrievals.value || []
+    aiLogPreferences?.showToolExecutions.value ? toolExecutions?.executions.value || [] : [],
+    aiLogPreferences?.showKnowledgeRetrievals.value
+      ? (knowledgeRetrievals?.retrievals.value || []).filter(retrieval => retrieval.accepted_count > 0)
+      : []
   ).reduce((result, entry) => {
     const separator = formatMessageDaySeparator(entry.createdAt, locale.value);
     if (separator.key !== lastDayKey || separator.value !== lastDayValue) {
