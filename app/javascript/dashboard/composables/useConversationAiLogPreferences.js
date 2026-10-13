@@ -4,8 +4,8 @@ import ConversationApi from 'dashboard/api/inbox/conversation';
 
 const AI_LOG_PREFERENCES = Symbol('conversation-ai-log-preferences');
 const DEFAULT_PREFERENCES = Object.freeze({
-  show_tool_executions: false,
-  show_knowledge_retrievals: false,
+  show_tool_executions: true,
+  show_knowledge_retrievals: true,
 });
 
 export const provideConversationAiLogPreferences = () => {
