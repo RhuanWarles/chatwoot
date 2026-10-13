@@ -1,16 +1,28 @@
 # Docker Swarm Stack: local PostgreSQL and Redis with persistent local volumes.
 #
-# Before deploying, keep the same encryption keys and database credentials when
-# migrating. The stack creates its local volumes and overlay network itself.
+# Before deploying:
+#   1. Keep the same encryption keys and database credentials when migrating.
+#   2. Configure the required variables in Portainer Stack environment.
+#   3. Set the optional BOOTSTRAP_ADMIN_* variables to create the first admin.
+#
+# The stack creates its local volumes and overlay network itself.
 # For multi-node Swarm installations, use shared storage or add a placement
 # constraint for the node that owns these local volumes.
 #
 # This stack intentionally does not use depends_on. Swarm ignores Compose
 # startup conditions; prepare runs as a one-shot service and web/worker wait
 # until no Rails migrations are pending.
+#
+# Services:
+#   prepare: runs Chatwoot database migrations once.
+#   bootstrap_admin: creates the initial confirmed SuperAdmin once.
+#   web: exposes Chatwoot on WEB_PORT (3000 by default).
+#   worker: runs Sidekiq jobs.
+#   postgres/redis: local persistent dependencies.
 
 x-app: &app
-  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.1.1}
+  # This image must contain lib/tasks/bootstrap_admin.rake.
+  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.1.8}
   environment: &app-env
     RAILS_ENV: production
     NODE_ENV: production
@@ -60,6 +72,8 @@ services:
   prepare:
     <<: *app
     entrypoint: [/bin/sh, -c]
+    # Wait for PostgreSQL before running migrations. This service is intended
+    # to finish successfully and remain stopped afterwards.
     command:
       - |
         set -eu
@@ -80,9 +94,48 @@ services:
           cpus: '1.0'
           memory: 1024M
 
+  # Creates a confirmed SuperAdmin after migrations. The task is idempotent:
+  # an existing user with the same e-mail is not duplicated or modified.
+  # Leave BOOTSTRAP_ADMIN_EMAIL/PASSWORD empty to skip this step.
+  bootstrap_admin:
+    <<: *app
+    entrypoint: [/bin/sh, -c]
+    command:
+      - |
+        set -eu
+        echo 'Waiting for PostgreSQL before bootstrapping the admin...'
+        until pg_isready -h "$${POSTGRES_HOST}" -p "$${POSTGRES_PORT}" -U "$${POSTGRES_USERNAME}"; do
+          sleep 5
+        done
+        echo 'Waiting for Chatwoot migrations before bootstrapping the admin...'
+        until bundle exec rails db:abort_if_pending_migrations >/dev/null 2>&1; do
+          sleep 10
+        done
+        exec bundle exec rails db:bootstrap_admin
+    environment:
+      <<: *app-env
+      # These credentials are used only during this one-shot bootstrap task.
+      # Remove them from Portainer after the account is created.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Administrador}
+      BOOTSTRAP_ADMIN_ACCOUNT_NAME: ${BOOTSTRAP_ADMIN_ACCOUNT_NAME:-Chatwoot}
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: none
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
   web:
     <<: *app
     entrypoint: [/bin/sh, -c]
+    # Do not start Rails while migrations are still pending.
     command:
       - |
         set -eu
@@ -132,6 +185,7 @@ services:
   worker:
     <<: *app
     entrypoint: [/bin/sh, -c]
+    # Do not start Sidekiq while migrations are still pending.
     command:
       - |
         set -eu
