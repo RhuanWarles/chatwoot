@@ -1,5 +1,12 @@
 # Changelog do CRM
 
+## v1.1.1 — preparada em 13/10/2026
+
+- Controle de acesso de Text AI e Voice AI por Account, com gestão no Super Admin, auditoria e bloqueios de API/runtime.
+- Créditos, reservas, ajustes manuais e consumo de agentes de IA com suporte a ferramentas, memória, Knowledge Base e RAG.
+- Melhorias de agentes, playground, logs de execução, visibilidade do histórico de IA e divisão de respostas.
+- Stack bundled e app-only atualizadas para usar a imagem `ghcr.io/rhuanwarles/chatwoot:v1.1.1`.
+
 ## v1.1.0 — preparada em 08/10/2026
 
 - Consolida os ajustes atuais de AI Agents, envio de áudio e texto e confirmação nativa de mensagens.

@@ -1,4 +1,4 @@
-# Validação da release v1.1.0
+# Validação da release v1.1.1
 
 Estado: preparação local; publicação da imagem ainda pendente.
 

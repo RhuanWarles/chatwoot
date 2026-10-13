@@ -1,4 +1,4 @@
-# Release CRM v1.1.0: GHCR e Portainer
+# Release CRM v1.1.1: GHCR e Portainer
 
 Veja a [auditoria técnica](AUDITORIA.md) antes do primeiro deploy: inclui correção de `DATABASE_URL` vazia, geração de chaves, variáveis exatas, comandos de preparação/update e limites dos testes realizados.
 
@@ -12,7 +12,7 @@ Este pacote reutiliza `docker/Dockerfile`. A mesma imagem executa Web e Sidekiq.
 - `../../docker/Dockerfile`: Ruby 3.4.4, Node 24, pnpm 10.2.0, gems e assets compilados.
 - `../../.github/workflows/crm-image.yml`: build linux/amd64; publicação exclusivamente ao enviar tag `vX.Y.Z`.
 
-Imagem da release: **`ghcr.io/rhuanwarles/chatwoot:v1.1.0`** (linux/amd64).
+Imagem da release: **`ghcr.io/rhuanwarles/chatwoot:v1.1.1`** (linux/amd64).
 Publicação e digest: consulte [VALIDATION.md](VALIDATION.md).
 Inicialização e homologação em instalação nova permanecem pendentes.
 Não usar a imagem oficial pura ou `latest` como referência de release. Para ARM,
@@ -21,7 +21,7 @@ preparar/testar build adicional antes de usar; o workflow publica apenas amd64.
 Esta versão consolida o estado atual: CRM, navegação horizontal do Kanban, AI Agents, envio de áudio/texto, menções e gestão de grupos WhatsApp. A seção de grupos reúne informações, modal de nome/foto, participantes compactos e zona de perigo.
 Gerar/publicar esta stack não substitui a instalação existente da VPS.
 
-`v1.1.0` versiona este CRM/fork, não substitui a versão upstream registrada em `VERSION_CW`/`package.json`.
+`v1.1.1` versiona este CRM/fork, não substitui a versão upstream registrada em `VERSION_CW`/`package.json`.
 
 ## 1. Revisão antes da tag
 
@@ -29,7 +29,7 @@ Confira `git status`, `git diff` e o [changelog](../../CHANGELOG.md). As mudanç
 
 O Dockerfile escreve `.git_sha` a partir de `SOURCE_REVISION`, aceita `CRM_VERSION` e não precisa copiar `.git` para a imagem. Normaliza scripts recebidos com CRLF. O build é feito do código completo; não usa uma camada improvisada sobre a imagem de produção da VPS.
 
-Antes de publicar, faça build completo e teste login, Kanban, Deal, campos inline, Activities, histórico e integração configurada num ambiente separado. O rótulo v1.1.0 não substitui homologação. As bases Docker e repositórios de pacotes usam tags: a mesma tag de source não garante bytes idênticos em rebuilds futuros. Depois de publicar, registre o digest e use-o para pinning quando precisar de identidade exata.
+Antes de publicar, faça build completo e teste login, Kanban, Deal, campos inline, Activities, histórico e integração configurada num ambiente separado. O rótulo v1.1.1 não substitui homologação. As bases Docker e repositórios de pacotes usam tags: a mesma tag de source não garante bytes idênticos em rebuilds futuros. Depois de publicar, registre o digest e use-o para pinning quando precisar de identidade exata.
 
 ## 2. Build local sem publicar
 
@@ -40,8 +40,8 @@ REVISION=$(git rev-parse HEAD)
 docker build --check -f docker/Dockerfile .
 docker build -f docker/Dockerfile \
   --build-arg SOURCE_REVISION="$REVISION" \
-  --build-arg CRM_VERSION=v1.1.0 \
-  -t ghcr.io/rhuanwarles/chatwoot:v1.1.0 .
+  --build-arg CRM_VERSION=v1.1.1 \
+  -t ghcr.io/rhuanwarles/chatwoot:v1.1.1 .
 ```
 
 Não fazer build pesado na VPS com pouco disco/RAM. O build usa lockfiles, mas precisa acessar os repositórios Ruby/Node/Alpine. Não passe segredos de produção como build args. Instalações reais recebem ENV somente em runtime.
@@ -55,13 +55,13 @@ git status --short
 git diff --check
 # Revise todos os arquivos; não inclua .env real, dumps ou chaves.
 git add .
-git commit -m "release: CRM v1.1.0"
-git tag -a v1.1.0 -m "CRM v1.1.0"
-git push origin release/crm-v1.1.0
-git push origin v1.1.0
+git commit -m "release: CRM v1.1.1"
+git tag -a v1.1.1 -m "CRM v1.1.1"
+git push origin release/crm-v1.1.1
+git push origin v1.1.1
 ```
 
-Verifique se `v1.1.0` já existe antes de criá-la. Não mover tags de release publicadas. O workflow usa `GITHUB_TOKEN`, `contents: read` e `packages: write`, publica `v1.1.0` e `sha-<commit-completo>`, preserva o código do fork e não chama Portainer. Os workflows herdados de publicação DockerHub foram limitados ao upstream `chatwoot/chatwoot`, evitando publicação paralela errada neste fork.
+Verifique se `v1.1.1` já existe antes de criá-la. Não mover tags de release publicadas. O workflow usa `GITHUB_TOKEN`, `contents: read` e `packages: write`, publica `v1.1.1` e `sha-<commit-completo>`, preserva o código do fork e não chama Portainer. Os workflows herdados de publicação DockerHub foram limitados ao upstream `chatwoot/chatwoot`, evitando publicação paralela errada neste fork.
 
 No GitHub, habilite Actions e confira permissão de escrita em Packages. Para repositórios/organizações com restrições, conceda acesso do workflow ao pacote. A visibilidade inicial do pacote pode exigir ajuste no GHCR. Aguarde sucesso e registre o digest antes de criar a Stack.
 
@@ -69,7 +69,7 @@ Alternativa manual, **somente quando autorizado**:
 
 ```sh
 printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u SEU_USUARIO --password-stdin
-docker push ghcr.io/rhuanwarles/chatwoot:v1.1.0
+docker push ghcr.io/rhuanwarles/chatwoot:v1.1.1
 ```
 
 Para pull privado, use PAT com permissão de leitura de packages e autorização SSO se aplicável. Nunca commitar tokens. Para publish via Actions não é necessário colocar PAT pessoal no workflow. Referência: [GitHub — publicação de imagens](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images).
