@@ -23,7 +23,7 @@ class AiAgentsConfiguration
 
     def installation_configs_available?
       ActiveRecord::Base.connection.table_exists?('installation_configs')
-    rescue ActiveRecord::NoDatabaseError
+    rescue ActiveRecord::ConnectionNotEstablished,  ActiveRecord::NoDatabaseError
       false
     end
 
