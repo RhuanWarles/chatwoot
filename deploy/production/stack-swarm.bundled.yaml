@@ -67,7 +67,7 @@ services:
         until pg_isready -h "$${POSTGRES_HOST}" -p "$${POSTGRES_PORT}" -U "$${POSTGRES_USERNAME}"; do
           sleep 5
         done
-        exec bundle exec rails runner 'Rails.application.eager_load!; Rails.application.load_tasks; Rake::Task["db:chatwoot_prepare"].invoke'
+        exec bundle exec rails db:chatwoot_prepare
     deploy:
       replicas: 1
       placement:
