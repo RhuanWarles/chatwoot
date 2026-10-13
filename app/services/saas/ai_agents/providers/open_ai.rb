@@ -36,7 +36,7 @@ class Saas::AiAgents::Providers::OpenAi
         tool_names << name
         args = JSON.parse(call.dig('function', 'arguments').to_s)
         result = tool_handler.call(name, args)
-        current_messages << { 'role' => 'tool', 'tool_call_id' => call['id'], 'content' => JSON.generate(result) }
+        current_messages << { 'role' => 'tool', 'tool_call_id' => call['id'], 'content' => tool_message_content(result) }
       end
     end
     text = message['content']
@@ -52,6 +52,15 @@ class Saas::AiAgents::Providers::OpenAi
   end
 
   private
+
+  def tool_message_content(result)
+    return result['result'] if result.is_a?(Hash) && result['success'] == true && result['result'].is_a?(String) && result['result'].strip.present?
+
+    failure = result.is_a?(Hash) ? result.merge('success' => false) : { 'success' => false }
+    failure['error'] = result['error'].presence if result.is_a?(Hash) && result['error'].present?
+    failure['error'] ||= 'The tool did not complete successfully.'
+    JSON.generate(failure)
+  end
 
   def raise_http_error(error)
     status = error.response&.dig(:status)

@@ -32,12 +32,16 @@ class Saas::AiTools::Executor
     validate_uri!(uri)
     response = perform_request(request, uri, tool.configuration['timeout_seconds'].to_i)
     normalized = normalize_response(response)
-    status = response.code.to_i.between?(200, 299) ? 'completed' : 'failed'
-    persist_execution(tool, request_id, masked_arguments(tool, resolved), status, response.code.to_i, started, status == 'failed' ? 'tool_http_error' : nil)
+    status = normalized[:valid] ? 'completed' : 'failed'
+    error_code = normalized[:valid] ? nil : normalized[:error_code]
+    persist_execution(tool, request_id, masked_arguments(tool, resolved), status, response.code.to_i, started, error_code)
     Rails.logger.info({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id, conversation_id: @conversation&.id,
                         ai_tool_id: tool.id, tool_name: tool.slug, execution_id: request_id, status: status,
-                        duration_ms: elapsed_ms(started) }.compact.to_json)
-    { 'success' => status == 'completed', 'status' => response.code.to_i, 'duration_ms' => elapsed_ms(started), 'data' => normalized }
+                        response_contract_valid: normalized[:valid], tool_result_preview: normalized[:result].to_s.byteslice(0, 200),
+                        error_code: error_code, duration_ms: elapsed_ms(started) }.compact.to_json)
+    { 'success' => normalized[:valid], 'status' => response.code.to_i, 'http_status' => response.code.to_i, 'duration_ms' => elapsed_ms(started),
+      'response_contract_valid' => normalized[:valid], 'result' => normalized[:result], 'error_code' => error_code,
+      'error' => normalized[:error] }.compact
   rescue URI::InvalidURIError, CustomExceptions::SaasError => error
     record_failure(tool, request_id || SecureRandom.uuid, error.respond_to?(:code) ? error.code : 'invalid_tool_request', started)
   rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH
@@ -99,10 +103,33 @@ class Saas::AiTools::Executor
 
   def normalize_response(response)
     body = response.body.to_s.byteslice(0, MAX_RESPONSE_BYTES)
-    return { 'truncated' => true, 'content_type' => response['content-type'] } if response['content-type'].to_s.match?(/image|audio|video|octet-stream/i)
-    JSON.parse(body)
+    return failure_response(response, 'invalid_tool_response', 'The tool response must be valid JSON.') unless response.code.to_i.between?(200, 299)
+
+    parsed = JSON.parse(body)
+    return failure_response(response, 'invalid_tool_response', 'The tool response must be a JSON object.') unless parsed.is_a?(Hash)
+    return failure_response(response, 'success_field_missing', 'The tool response is missing the success field.') unless parsed.key?('success')
+    return failure_response(response, 'success_false', parsed['error'].presence || parsed['result'].presence || 'The tool reported failure.') unless parsed['success'] == true
+    return failure_response(response, 'result_field_missing', 'The tool response is missing the result field.') unless parsed.key?('result')
+    return failure_response(response, 'result_invalid', 'The tool result must be a non-empty string.') unless parsed['result'].is_a?(String) && parsed['result'].strip.present?
+
+    { valid: true, result: parsed['result'] }
   rescue JSON::ParserError
-    { 'text' => body, 'truncated' => response.body.to_s.bytesize > MAX_RESPONSE_BYTES }
+    failure_response(response, 'invalid_tool_response', 'The tool response must be valid JSON.')
+  rescue StandardError
+    failure_response(response, 'invalid_tool_response', 'The tool response could not be validated.')
+  end
+
+  def failure_response(response, error_code, error)
+    return { valid: false, error_code: error_code, error: error } if response.code.to_i.between?(200, 299)
+
+    body = response.body.to_s.byteslice(0, MAX_RESPONSE_BYTES)
+    message = begin
+      parsed = JSON.parse(body)
+      parsed.is_a?(Hash) ? parsed['error'].to_s.presence : nil
+    rescue JSON::ParserError
+      nil
+    end
+    { valid: false, error_code: 'http_error', error: message || "Tool request failed with HTTP #{response.code.to_i}." }
   end
 
   def masked_arguments(tool, args)
