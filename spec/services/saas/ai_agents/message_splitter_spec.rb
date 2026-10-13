@@ -5,6 +5,10 @@ RSpec.describe Saas::AiAgents::MessageSplitter do
     expect(described_class.call('Tudo certo.', 3)).to eq(['Tudo certo.'])
   end
 
+  it 'keeps short paragraphs as separate messages' do
+    expect(described_class.call("Olá!\n\nComo posso ajudar hoje?", 4)).to eq(['Olá!', 'Como posso ajudar hoje?'])
+  end
+
   it 'splits paragraphs without exceeding the configured maximum' do
     content = "Primeiro parágrafo com informação suficiente para uma resposta mais longa e legível.\n\nSegundo parágrafo com outra informação importante para o cliente.\n\nTerceiro parágrafo com a conclusão da resposta."
     chunks = described_class.call(content, 2)

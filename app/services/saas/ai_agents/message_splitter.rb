@@ -12,9 +12,11 @@ class Saas::AiAgents::MessageSplitter
   end
 
   def call
-    return [@content] if @content.blank? || @maximum == 1 || @content.length < MIN_SPLIT_LENGTH
+    return [@content] if @content.blank? || @maximum == 1
 
     parts = split_paragraphs
+    return [@content] if parts.length == 1 && @content.length < MIN_SPLIT_LENGTH
+
     parts = split_sentences(parts) if parts.length == 1 && !list_content?
     parts = merge_parts(parts)
     parts.first(@maximum).reject(&:blank?)
