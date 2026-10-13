@@ -1,0 +1,303 @@
+# Docker Swarm Stack: local PostgreSQL and Redis with persistent local volumes.
+#
+# Before deploying:
+#   1. Keep the same encryption keys and database credentials when migrating.
+#   2. Configure the required variables in Portainer Stack environment.
+#   3. Set the optional BOOTSTRAP_ADMIN_* variables to create the first admin.
+#
+# The stack creates its local volumes and overlay network itself.
+# For multi-node Swarm installations, use shared storage or add a placement
+# constraint for the node that owns these local volumes.
+#
+# This stack intentionally does not use depends_on. Swarm ignores Compose
+# startup conditions; prepare runs as a one-shot service and web/worker wait
+# until no Rails migrations are pending.
+#
+# Services:
+#   prepare: runs Chatwoot database migrations once.
+#   bootstrap_admin: creates the initial confirmed SuperAdmin once.
+#   web: exposes Chatwoot on WEB_PORT (3000 by default).
+#   worker: runs Sidekiq jobs.
+#   postgres/redis: local persistent dependencies.
+
+x-app: &app
+  # This image must contain lib/tasks/bootstrap_admin.rake.
+  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.1.8}
+  environment: &app-env
+    RAILS_ENV: production
+    NODE_ENV: production
+    INSTALLATION_ENV: docker
+    RAILS_LOG_TO_STDOUT: enabled
+    RAILS_SERVE_STATIC_FILES: 'true'
+    FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL}
+    SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE}
+    ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY:?Set encryption key}
+    ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY:?Set encryption key}
+    ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT:?Set encryption salt}
+    FORCE_SSL: ${FORCE_SSL:-true}
+    ENABLE_ACCOUNT_SIGNUP: ${ENABLE_ACCOUNT_SIGNUP:-true}
+    DEFAULT_LOCALE: ${DEFAULT_LOCALE:-pt_BR}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: '5432'
+    POSTGRES_DATABASE: ${POSTGRES_DATABASE:-chatwoot}
+    POSTGRES_USERNAME: ${POSTGRES_USERNAME:-postgres}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    REDIS_URL: redis://redis:6379
+    REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
+    S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    AWS_REGION: ${AWS_REGION:-}
+    MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL:-Atendimento <atendimento@example.com>}
+    SMTP_ADDRESS: ${SMTP_ADDRESS:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_DOMAIN: ${SMTP_DOMAIN:-example.com}
+    SMTP_USERNAME: ${SMTP_USERNAME:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-plain}
+    SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO:-true}
+    SMTP_OPENSSL_VERIFY_MODE: ${SMTP_OPENSSL_VERIFY_MODE:-peer}
+    GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+    GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+    EVOLUTION_API_URL: ${EVOLUTION_API_URL:-}
+    EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+    EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME:-}
+  volumes:
+    - storage_data:/app/storage
+  networks:
+    - chatwoot_internal
+
+services:
+  prepare:
+    <<: *app
+    entrypoint: [/bin/sh, -c]
+    # Wait for PostgreSQL before running migrations. This service is intended
+    # to finish successfully and remain stopped afterwards.
+    command:
+      - |
+        set -eu
+        echo 'Waiting for PostgreSQL to become ready...'
+        until pg_isready -h "$${POSTGRES_HOST}" -p "$${POSTGRES_PORT}" -U "$${POSTGRES_USERNAME}"; do
+          sleep 5
+        done
+        exec bundle exec rails db:chatwoot_prepare
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: none
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
+  # Creates a confirmed SuperAdmin after migrations. The task is idempotent:
+  # an existing user with the same e-mail is not duplicated or modified.
+  # Leave BOOTSTRAP_ADMIN_EMAIL/PASSWORD empty to skip this step.
+  bootstrap_admin:
+    <<: *app
+    entrypoint: [/bin/sh, -c]
+    command:
+      - |
+        set -eu
+        echo 'Waiting for PostgreSQL before bootstrapping the admin...'
+        until pg_isready -h "$${POSTGRES_HOST}" -p "$${POSTGRES_PORT}" -U "$${POSTGRES_USERNAME}"; do
+          sleep 5
+        done
+        echo 'Waiting for Chatwoot migrations before bootstrapping the admin...'
+        until bundle exec rails db:abort_if_pending_migrations >/dev/null 2>&1; do
+          sleep 10
+        done
+        exec bundle exec rails db:bootstrap_admin
+    environment:
+      <<: *app-env
+      # These credentials are used only during this one-shot bootstrap task.
+      # Remove them from Portainer after the account is created.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Administrador}
+      BOOTSTRAP_ADMIN_ACCOUNT_NAME: ${BOOTSTRAP_ADMIN_ACCOUNT_NAME:-Chatwoot}
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: none
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
+  web:
+    <<: *app
+    entrypoint: [/bin/sh, -c]
+    # Do not start Rails while migrations are still pending.
+    command:
+      - |
+        set -eu
+        echo 'Waiting for Chatwoot migrations...'
+        until bundle exec rails db:abort_if_pending_migrations; do
+          sleep 10
+        done
+        echo 'Waiting for Redis to become ready...'
+        until bundle exec ruby -rredis -e 'Redis.new(url: ENV.fetch("REDIS_URL"), password: ENV.fetch("REDIS_PASSWORD")).ping' >/dev/null 2>&1; do
+          sleep 5
+        done
+        exec /app/docker/entrypoints/rails.sh bundle exec rails s -p 3000 -b 0.0.0.0
+    environment:
+      <<: *app-env
+      PIDFILE: /tmp/chatwoot-server.pid
+    ports:
+      - target: 3000
+        published: ${WEB_PORT:-3000}
+        protocol: tcp
+        mode: host
+    healthcheck:
+      test: [CMD, ruby, -rnet/http, -e, 'u=URI("http://127.0.0.1:3000/health");r=Net::HTTP.start(u.host,u.port,open_timeout:2,read_timeout:3){|h|q=Net::HTTP::Get.new(u);q["X-Forwarded-Proto"]="https";h.request(q)};exit(r.code=="200" ? 0 : 1)']
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        order: stop-first
+        parallelism: 1
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          memory: 512M
+
+  worker:
+    <<: *app
+    entrypoint: [/bin/sh, -c]
+    # Do not start Sidekiq while migrations are still pending.
+    command:
+      - |
+        set -eu
+        echo 'Waiting for Chatwoot migrations...'
+        until bundle exec rails db:abort_if_pending_migrations; do
+          sleep 10
+        done
+        echo 'Waiting for Redis to become ready...'
+        until bundle exec ruby -rredis -e 'Redis.new(url: ENV.fetch("REDIS_URL"), password: ENV.fetch("REDIS_PASSWORD")).ping' >/dev/null 2>&1; do
+          sleep 5
+        done
+        exec bundle exec sidekiq -C config/sidekiq.yml
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        order: stop-first
+        parallelism: 1
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          memory: 256M
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:-chatwoot}
+      POSTGRES_USER: ${POSTGRES_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - chatwoot_internal
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        order: stop-first
+        parallelism: 1
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    volumes:
+      - redis_data:/data
+    networks:
+      - chatwoot_internal
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        order: stop-first
+        parallelism: 1
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+
+volumes:
+  # Explicit names preserve data across stack redeploys. Docker creates them
+  # automatically when they do not exist.
+  storage_data:
+    name: ${STORAGE_VOLUME:-chatwoot_crm_storage}
+  postgres_data:
+    name: ${POSTGRES_VOLUME:-chatwoot_crm_postgres}
+  redis_data:
+    name: ${REDIS_VOLUME:-chatwoot_crm_redis}
+
+networks:
+  chatwoot_internal:
+    driver: overlay
+    attachable: true
