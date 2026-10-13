@@ -72,7 +72,7 @@ class Saas::AiAgents::Respond
       end
       next false if @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i >= @incoming.id
 
-      chunks = Saas::AiAgents::MessageSplitter.call(result.fetch(:content), @agent.max_messages_per_response)
+      chunks = Saas::AiAgents::MessageSplitter.call(result.fetch(:content), @agent.split_response_messages)
       batch_id = SecureRandom.uuid
       content_attributes = {
         'generated_by_ai' => true, 'ai_agent_id' => @agent.id, 'ai_agent_incoming_message_id' => @incoming.id,

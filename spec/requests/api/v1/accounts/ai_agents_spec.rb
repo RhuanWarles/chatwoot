@@ -17,6 +17,8 @@ RSpec.describe 'AI Agents API', type: :request do
     expect(response.parsed_body['inboxes'].pluck('id')).to eq([inbox.id])
     expect(response.parsed_body['respond_to_groups']).to be(false)
     expect(response.parsed_body['context_messages_limit']).to eq(20)
+    expect(response.parsed_body['split_response_messages']).to be(true)
+    expect(response.parsed_body).not_to have_key('max_messages_per_response')
     expect(response.parsed_body.keys).not_to include('api_key')
     patch "#{url}/#{id}", params: { ai_agent: { active: true, description: 'Updated', respond_to_groups: true } }, headers: headers, as: :json
     expect(response).to have_http_status(:ok)

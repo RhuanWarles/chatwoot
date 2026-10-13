@@ -54,6 +54,7 @@ watch(() => draft.value.provider, provider => {
 const normalizeAgent = agent => ({
   ...agent,
   customer_memory_enabled: agent?.customer_memory_enabled === true,
+  split_response_messages: agent?.split_response_messages !== false,
   inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
 });
 
@@ -158,7 +159,7 @@ onMounted(load);
         <div><h2 class="font-medium text-n-slate-12">{{ t('AI_AGENTS.BEHAVIOR_SECTION') }}</h2><p class="text-sm text-n-slate-11">{{ t('AI_AGENTS.BEHAVIOR_HELP') }}</p></div>
         <label class="flex flex-col gap-2 text-sm text-n-slate-12">{{ t('AI_AGENTS.CONTEXT_MESSAGES_LIMIT') }}<input v-model.number="draft.context_messages_limit" type="number" min="1" max="100" step="1" :disabled="busy" class="w-full p-3 rounded-lg bg-n-solid-1 text-n-slate-12 border border-n-weak focus:border-n-brand" /><span class="text-xs text-n-slate-11">{{ t('AI_AGENTS.CONTEXT_MESSAGES_LIMIT_HELP') }}</span></label>
         <label class="flex flex-col gap-2 text-sm text-n-slate-12">{{ t('AI_AGENTS.RESPONSE_DELAY_SECONDS') }}<input v-model.number="draft.response_delay_seconds" type="number" min="0" max="10" step="1" :disabled="busy" class="w-full p-3 rounded-lg bg-n-solid-1 text-n-slate-12 border border-n-weak focus:border-n-brand" /><span class="text-xs text-n-slate-11">{{ t('AI_AGENTS.RESPONSE_DELAY_SECONDS_HELP') }}</span></label>
-        <label class="flex flex-col gap-2 text-sm text-n-slate-12">{{ t('AI_AGENTS.MAX_MESSAGES_PER_RESPONSE') }}<input v-model.number="draft.max_messages_per_response" type="number" min="1" max="5" step="1" :disabled="busy" class="w-full p-3 rounded-lg bg-n-solid-1 text-n-slate-12 border border-n-weak focus:border-n-brand" /><span class="text-xs text-n-slate-11">{{ t('AI_AGENTS.MAX_MESSAGES_PER_RESPONSE_HELP') }}</span></label>
+        <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12"><span>{{ t('AI_AGENTS.SPLIT_RESPONSE_MESSAGES') }}<small class="block text-xs text-n-slate-11">{{ t('AI_AGENTS.SPLIT_RESPONSE_MESSAGES_HELP') }}</small></span><Switch v-model="draft.split_response_messages" :disabled="busy" /></label>
         <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12"><span>{{ t('AI_AGENTS.RESPOND_TO_GROUPS') }}<small class="block text-xs text-n-slate-11">{{ t('AI_AGENTS.GROUP_HELP') }}</small></span><Switch v-model="draft.respond_to_groups" :disabled="busy" /></label>
         <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12"><span>{{ t('AI_AGENTS.HANDOFF') }}<small class="block text-xs text-n-slate-11">{{ t('AI_AGENTS.HANDOFF_HELP') }}</small></span><Switch v-model="draft.handoff_enabled" :disabled="busy" /></label>
         <label class="flex items-center justify-between gap-3 text-sm text-n-slate-12"><span>{{ t('AI_AGENTS.CUSTOMER_MEMORY') }}<small class="block text-xs text-n-slate-11">{{ t('AI_AGENTS.CUSTOMER_MEMORY_HELP') }}</small></span><Switch v-model="draft.customer_memory_enabled" :disabled="busy" /></label>

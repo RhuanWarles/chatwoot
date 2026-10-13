@@ -6,7 +6,7 @@ export const newAgent = () => ({
   temperature: 0.7,
   context_messages_limit: 20,
   response_delay_seconds: 2,
-  max_messages_per_response: 3,
+  split_response_messages: true,
   system_prompt: '',
   inbox_ids: [],
   handoff_enabled: true,
@@ -25,7 +25,7 @@ export const agentPayload = agent => ({
   temperature: agent.temperature,
   context_messages_limit: agent.context_messages_limit ?? 20,
   response_delay_seconds: agent.response_delay_seconds ?? 2,
-  max_messages_per_response: agent.max_messages_per_response ?? 3,
+  split_response_messages: agent.split_response_messages ?? true,
   system_prompt: agent.system_prompt,
   inbox_ids: [...agent.inbox_ids],
   handoff_enabled: agent.handoff_enabled,
@@ -52,5 +52,5 @@ export const validAgent = agent =>
       agent.context_messages_limit >= 1 &&
       agent.context_messages_limit <= 100
       && Number.isInteger(agent.response_delay_seconds) && agent.response_delay_seconds >= 0 && agent.response_delay_seconds <= 10
-      && Number.isInteger(agent.max_messages_per_response) && agent.max_messages_per_response >= 1 && agent.max_messages_per_response <= 5
+      && typeof agent.split_response_messages === 'boolean'
   );

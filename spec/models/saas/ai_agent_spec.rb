@@ -56,10 +56,10 @@ RSpec.describe Saas::AiAgent do
   it 'uses safe response behavior defaults and validates their ranges' do
     agent.assign_attributes(attributes)
     expect(agent.response_delay_seconds).to eq(2)
-    expect(agent.max_messages_per_response).to eq(3)
+    expect(agent.split_response_messages).to be(true)
     agent.response_delay_seconds = 11
-    agent.max_messages_per_response = 6
+    agent.split_response_messages = nil
     expect(agent).not_to be_valid
-    expect(agent.errors.attribute_names).to include(:response_delay_seconds, :max_messages_per_response)
+    expect(agent.errors.attribute_names).to include(:response_delay_seconds, :split_response_messages)
   end
 end

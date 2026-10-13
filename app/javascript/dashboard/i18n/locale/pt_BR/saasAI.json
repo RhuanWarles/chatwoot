@@ -10,8 +10,8 @@
     "BEHAVIOR_HELP": "Controle o contexto, grupos, transferência e memória do cliente.",
     "RESPONSE_DELAY_SECONDS": "Atraso antes de responder (segundos)",
     "RESPONSE_DELAY_SECONDS_HELP": "Aguarda este tempo para agrupar mensagens consecutivas antes de gerar a resposta.",
-    "MAX_MESSAGES_PER_RESPONSE": "Máximo de mensagens por resposta",
-    "MAX_MESSAGES_PER_RESPONSE_HELP": "Divide respostas longas em até esta quantidade de mensagens naturais.",
+    "SPLIT_RESPONSE_MESSAGES": "Separar respostas em múltiplas mensagens",
+    "SPLIT_RESPONSE_MESSAGES_HELP": "Quando ativado, cada parágrafo da resposta da IA é enviado como uma mensagem separada.",
     "CONNECTIONS_SECTION": "Conexões",
     "CONNECTIONS_HELP": "Escolha as caixas de entrada, ferramentas e bases de conhecimento disponíveis."
   },

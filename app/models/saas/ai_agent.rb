@@ -22,7 +22,7 @@ class Saas::AiAgent < ApplicationRecord
   validates :context_messages_limit, numericality: { only_integer: true, in: 1..100 }
   validates :response_delay_seconds, numericality: { only_integer: true, in: 0..10 }
   validates :max_messages_per_response, numericality: { only_integer: true, in: 1..5 }
-  validates :active, :handoff_enabled, :respond_to_groups, :customer_memory_enabled, inclusion: { in: [true, false] }
+  validates :split_response_messages, :active, :handoff_enabled, :respond_to_groups, :customer_memory_enabled, inclusion: { in: [true, false] }
   validate :validate_inboxes
   validate :validate_runtime_provider
 
@@ -43,7 +43,7 @@ class Saas::AiAgent < ApplicationRecord
 
   def public_data
     attributes.slice('id', 'account_id', 'name', 'description', 'system_prompt', 'provider', 'model',
-                     'temperature', 'context_messages_limit', 'response_delay_seconds', 'max_messages_per_response', 'active', 'handoff_enabled', 'respond_to_groups', 'customer_memory_enabled', 'created_at', 'updated_at').merge(
+                     'temperature', 'context_messages_limit', 'response_delay_seconds', 'split_response_messages', 'active', 'handoff_enabled', 'respond_to_groups', 'customer_memory_enabled', 'created_at', 'updated_at').merge(
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } },
                        'knowledge_bases' => knowledge_bases.map { |base| { id: base.id, name: base.name, active: base.active } },

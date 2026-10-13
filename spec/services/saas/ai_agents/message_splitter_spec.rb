@@ -2,22 +2,32 @@ require 'rails_helper'
 
 RSpec.describe Saas::AiAgents::MessageSplitter do
   it 'keeps short replies as one message' do
-    expect(described_class.call('Tudo certo.', 3)).to eq(['Tudo certo.'])
+    expect(described_class.call('Tudo certo.', true)).to eq(['Tudo certo.'])
   end
 
-  it 'keeps short paragraphs as separate messages' do
-    expect(described_class.call("Olá!\n\nComo posso ajudar hoje?", 4)).to eq(['Olá!', 'Como posso ajudar hoje?'])
+  it 'splits paragraphs while preserving list items in one block' do
+    content = "Olá!\n\nComo posso ajudar hoje?"
+    expect(described_class.call(content, true)).to eq(['Olá!', 'Como posso ajudar hoje?'])
   end
 
-  it 'splits paragraphs without exceeding the configured maximum' do
-    content = "Primeiro parágrafo com informação suficiente para uma resposta mais longa e legível.\n\nSegundo parágrafo com outra informação importante para o cliente.\n\nTerceiro parágrafo com a conclusão da resposta."
-    chunks = described_class.call(content, 2)
-    expect(chunks.length).to eq(2)
-    expect(chunks.join).to include('Primeiro parágrafo', 'Terceiro parágrafo')
-  end
-
-  it 'does not split list items independently' do
+  it 'keeps list items together when there are no blank lines' do
     content = "Confira as opções:\n- Primeiro item\n- Segundo item\n- Terceiro item"
-    expect(described_class.call(content, 3)).to eq([content])
+    expect(described_class.call(content, true)).to eq([content])
+  end
+
+  it 'keeps the complete response in one message when disabled' do
+    content = "Primeiro parágrafo.\n\nSegundo parágrafo."
+    expect(described_class.call(content, false)).to eq([content])
+  end
+
+  it 'removes empty paragraph blocks' do
+    expect(described_class.call("Um.\n\n\nDois.", true)).to eq(['Um.', 'Dois.'])
+  end
+
+  it 'groups excess paragraphs into the final safeguard message' do
+    content = (1..10).map { |index| "Parágrafo #{index}" }.join("\n\n")
+    chunks = described_class.call(content, true)
+    expect(chunks.length).to eq(8)
+    expect(chunks.last).to include('Parágrafo 8', 'Parágrafo 10')
   end
 end

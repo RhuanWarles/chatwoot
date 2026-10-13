@@ -20,7 +20,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'temperature' => ->(value) { value.is_a?(Numeric) && value.finite? && Saas::AiAgent::TEMPERATURE_RANGE.cover?(value) },
     'context_messages_limit' => ->(value) { value.is_a?(Integer) && (1..100).cover?(value) },
     'response_delay_seconds' => ->(value) { value.is_a?(Integer) && (0..10).cover?(value) },
-    'max_messages_per_response' => ->(value) { value.is_a?(Integer) && (1..5).cover?(value) },
+    'split_response_messages' => ->(value) { [true, false].include?(value) },
     'active' => ->(value) { [true, false].include?(value) },
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
