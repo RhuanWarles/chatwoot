@@ -5,6 +5,8 @@ describe('AI agent configuration', () => {
     expect(newAgent().active).toBe(false);
     expect(newAgent().respond_to_groups).toBe(false);
     expect(newAgent().context_messages_limit).toBe(20);
+    expect(newAgent().response_delay_seconds).toBe(2);
+    expect(newAgent().max_messages_per_response).toBe(3);
     expect(validAgent(newAgent())).toBe(false);
   });
 

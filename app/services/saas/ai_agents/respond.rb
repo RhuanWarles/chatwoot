@@ -72,24 +72,40 @@ class Saas::AiAgents::Respond
       end
       next false if @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i >= @incoming.id
 
+      chunks = Saas::AiAgents::MessageSplitter.call(result.fetch(:content), @agent.max_messages_per_response)
+      batch_id = SecureRandom.uuid
+      content_attributes = {
+        'generated_by_ai' => true, 'ai_agent_id' => @agent.id, 'ai_agent_incoming_message_id' => @incoming.id,
+        'ai_provider' => effective_provider(mode), 'ai_model' => effective_model(mode), 'ai_duration_ms' => duration,
+        'ai_token_usage' => result.fetch(:usage), 'tool_calls_count' => result.fetch(:tool_calls_count, 0),
+        'tool_names' => result.fetch(:tool_names, []), 'ai_response_batch_id' => batch_id,
+        'ai_response_chunk_index' => 0, 'ai_response_chunk_count' => chunks.length
+      }
       Messages::MessageBuilder.new(@agent, @conversation, {
-                                     content: result.fetch(:content), message_type: 'outgoing', private: false, content_type: 'text',
-                                     content_attributes: {
-                                       generated_by_ai: true, ai_agent_id: @agent.id, ai_agent_incoming_message_id: @incoming.id,
-                                       ai_provider: effective_provider(mode), ai_model: effective_model(mode),
-                                       ai_duration_ms: duration, ai_token_usage: result.fetch(:usage),
-                                       tool_calls_count: result.fetch(:tool_calls_count, 0), tool_names: result.fetch(:tool_names, [])
-                                     }
+                                     content: chunks.first, message_type: 'outgoing', private: false, content_type: 'text',
+                                     content_attributes: content_attributes
                                    }).perform
+      schedule_response_chunks(chunks, batch_id) if chunks.length > 1
       usage&.wallet&.settle!(usage, units: usage.reserved_units, metadata: usage_metadata(result, mode))
       @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
-        Saas::AiAgents::Runtime::STATE_KEY => 'active', CURSOR_KEY => @incoming.id
+        Saas::AiAgents::Runtime::STATE_KEY => 'active', CURSOR_KEY => @incoming.id,
+        Saas::AiAgents::ResponseBatch::KEY => { 'id' => batch_id, 'agent_id' => @agent.id, 'incoming_message_id' => @incoming.id,
+                                                'chunks' => chunks, 'sent_count' => 1, 'status' => chunks.length > 1 ? 'pending' : 'completed',
+                                                'content_attributes' => content_attributes }
       ))
       log('replied')
       true
     end
     release_usage(usage) unless persisted || usage.nil?
     enqueue_memory_update if persisted
+  end
+
+  def schedule_response_chunks(chunks, batch_id)
+    chunks.drop(1).each_with_index do |_chunk, index|
+      Saas::AiAgents::ResponseChunkJob.set(wait: Saas::AiAgents::MessageSplitter.delay_for(index + 1).seconds * (index + 1)).perform_later(
+        @conversation.account_id, @conversation.id, batch_id, index + 1
+      )
+    end
   end
 
   def enqueue_memory_update

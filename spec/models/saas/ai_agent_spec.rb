@@ -52,4 +52,14 @@ RSpec.describe Saas::AiAgent do
     expect(agent).not_to be_valid
     expect(agent.errors.attribute_names).to include(:temperature, :active)
   end
+
+  it 'uses safe response behavior defaults and validates their ranges' do
+    agent.assign_attributes(attributes)
+    expect(agent.response_delay_seconds).to eq(2)
+    expect(agent.max_messages_per_response).to eq(3)
+    agent.response_delay_seconds = 11
+    agent.max_messages_per_response = 6
+    expect(agent).not_to be_valid
+    expect(agent.errors.attribute_names).to include(:response_delay_seconds, :max_messages_per_response)
+  end
 end

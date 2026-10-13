@@ -150,6 +150,7 @@ class Message < ApplicationRecord
   def pause_ai_agent_for_human_response
     return unless human_response? && !private? && content_attributes['generated_by_ai'] != true
 
+    conversation.with_lock { Saas::AiAgents::ResponseBatch.cancel!(conversation, reason: 'human_response') }
     Saas::AiAgents::Runtime.pause_for_human!(self)
   end
 
