@@ -3,7 +3,11 @@ class Api::V1::Accounts::KnowledgeBasesController < Api::V1::Accounts::BaseContr
   VALIDATORS = {
     'name' => ->(value) { value.is_a?(String) && value.strip.present? && value.length <= 100 },
     'description' => ->(value) { value.is_a?(String) && value.length <= 2000 },
-    'active' => ->(value) { [true, false].include?(value) }
+    'active' => ->(value) { [true, false].include?(value) },
+    'similarity_threshold' => ->(value) { value.is_a?(Numeric) && value.between?(0, 1) },
+    'retrieval_top_k' => ->(value) { value.is_a?(Integer) && value.between?(1, 10) },
+    'chunk_size' => ->(value) { value.is_a?(Integer) && value.between?(400, 10_000) },
+    'chunk_overlap' => ->(value) { value.is_a?(Integer) && value.between?(0, 9_999) }
   }.freeze
   before_action -> { require_ai_feature('text') }
   before_action :check_admin_authorization?
@@ -42,8 +46,9 @@ class Api::V1::Accounts::KnowledgeBasesController < Api::V1::Accounts::BaseContr
     query = params[:query]
     raise CustomExceptions::SaasError, 'invalid_query' unless query.is_a?(String) && query.strip.present? && query.length <= 8000
 
-    render json: { sources: Saas::Knowledge::Retrieval.search(account: Current.account,
-                                                              bases: Current.account.saas_knowledge_bases.where(id: @base.id), query: query) }
+    result = Saas::Knowledge::Retrieval.search_debug(account: Current.account,
+                                                     bases: Current.account.saas_knowledge_bases.where(id: @base.id), query: query)
+    render json: { sources: result[:sources], candidates: result[:candidates] }
   end
 
   private
@@ -58,6 +63,6 @@ class Api::V1::Accounts::KnowledgeBasesController < Api::V1::Accounts::BaseContr
             input.each_pair.all? { |key, value| VALIDATORS.fetch(key).call(value) }
     raise CustomExceptions::SaasError, 'invalid_knowledge' unless valid
 
-    input.permit(:name, :description, :active)
+    input.permit(:name, :description, :active, :similarity_threshold, :retrieval_top_k, :chunk_size, :chunk_overlap)
   end
 end

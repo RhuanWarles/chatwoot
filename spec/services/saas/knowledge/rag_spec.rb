@@ -67,7 +67,7 @@ RSpec.describe 'Text agent knowledge retrieval' do
     details = record.reload.metadata.fetch('retrieval')
     expect(record.conversation_id).to eq(conversation.id)
     expect(record.incoming_message_id).to eq(incoming.id)
-    expect(details).to include('accepted_count' => 1, 'top_k' => 5, 'threshold' => 0.5)
+    expect(details).to include('accepted_count' => 1, 'top_k' => 5, 'threshold' => 0.35)
     expect(details.fetch('chunks').first.fetch('content')).to include('12 months')
   end
 

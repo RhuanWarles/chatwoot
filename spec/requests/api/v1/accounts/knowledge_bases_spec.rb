@@ -26,6 +26,17 @@ RSpec.describe 'Knowledge API', type: :request do
     expect(response).to have_http_status(:no_content)
   end
 
+  it 'persists retrieval and chunking settings with safe defaults' do
+    post url, params: { knowledge_base: { name: 'Configured', similarity_threshold: 0.42, retrieval_top_k: 7,
+                                          chunk_size: 1800, chunk_overlap: 180 } }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    expect(response.parsed_body).to include('similarity_threshold' => '0.42', 'retrieval_top_k' => 7,
+                                             'chunk_size' => 1800, 'chunk_overlap' => 180)
+    post url, params: { knowledge_base: { name: 'Invalid', chunk_size: 400, chunk_overlap: 400 } },
+         headers: headers, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
   it 'denies foreign bases and foreign agent assignments' do
     foreign = create(:account).saas_knowledge_bases.create!(name: 'Private')
     get "#{url}/#{foreign.id}", headers: headers

@@ -37,7 +37,9 @@ class Saas::Knowledge::IndexJob < ApplicationJob
       return
     end
 
-    chunks = Saas::Knowledge::Chunking.call(pages)
+    base = document.knowledge_base
+    chunks = Saas::Knowledge::Chunking.call(pages, chunk_size: base.effective_chunk_size,
+                                            chunk_overlap: base.effective_chunk_overlap)
     vectors = chunks.each_slice(32).flat_map do |batch|
       Saas::Knowledge::Embeddings.call(account: document.knowledge_base.account, texts: batch.pluck(:content),
                                        source: 'knowledge_embedding', document_id: document.id)

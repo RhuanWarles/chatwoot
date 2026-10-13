@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_13_020000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_13_030000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1173,6 +1173,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_13_020000) do
     t.string "name", null: false
     t.text "description"
     t.boolean "active", default: true, null: false
+    t.decimal "similarity_threshold", precision: 4, scale: 3
+    t.integer "retrieval_top_k"
+    t.integer "chunk_size"
+    t.integer "chunk_overlap"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id", "name"], name: "index_crm_pipelines_on_account_id_and_name", unique: true
