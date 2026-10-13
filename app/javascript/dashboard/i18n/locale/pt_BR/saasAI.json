@@ -42,5 +42,8 @@
     "LOGS_EXECUTION_ID": "ID da execução",
     "LOGS_ERROR_CODE": "Código do erro",
     "CLOSE": "Fechar"
+    ,"RESPONSE_CONTRACT": "Formato esperado da resposta"
+    ,"RESPONSE_CONTRACT_DESCRIPTION": "Para que a ferramenta seja considerada concluída com sucesso, o endpoint deve retornar HTTP 2xx e um JSON neste formato:"
+    ,"RESPONSE_CONTRACT_NOTE": "Se success não for true, se result estiver ausente ou vazio, ou se a resposta não for um JSON válido, a execução será considerada uma falha."
   }
 }
