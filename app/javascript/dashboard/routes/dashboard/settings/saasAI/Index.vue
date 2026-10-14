@@ -133,7 +133,7 @@ watch(perPage, () => {
       </div>
       <div
         v-else-if="data"
-        class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+        class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden"
       >
         <RouterLink
           :to="{ name: 'ai_agents_settings' }"
@@ -145,7 +145,7 @@ watch(perPage, () => {
           <section
             v-for="wallet in wallets"
             :key="wallet.resource"
-            class="min-w-0 rounded-xl border border-n-weak bg-n-solid-2 p-3"
+            class="min-w-0 rounded-xl border border-n-weak bg-n-solid-2 p-2"
           >
             <h2 class="text-heading-3 text-n-slate-12">
               {{
@@ -178,12 +178,14 @@ watch(perPage, () => {
             </p>
           </section>
         </div>
-        <div class="flex shrink-0 flex-wrap items-center justify-between gap-2">
-          <p class="text-body-main text-n-slate-11">
+        <div class="flex shrink-0 items-center justify-between gap-2">
+          <p class="min-w-0 flex-1 text-body-main text-n-slate-11">
             {{ t('SAAS_AI.BALANCE_HELP') }}
           </p>
           <Button
             outline
+            size="sm"
+            class="shrink-0"
             :label="t('SAAS_AI.REFRESH')"
             :is-loading="refreshing"
             @click="load()"
@@ -192,7 +194,7 @@ watch(perPage, () => {
 
         <section
           v-if="currentAccount?.features?.voice_ai"
-          class="flex shrink-0 flex-col gap-2"
+          class="flex shrink-0 flex-col gap-1"
         >
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.CALLS_TITLE') }}
@@ -236,7 +238,7 @@ watch(perPage, () => {
           </article>
         </section>
 
-        <section class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+        <section class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.USAGE_TITLE') }}
           </h2>
@@ -246,7 +248,7 @@ watch(perPage, () => {
             {{ t('SAAS_AI.PER_PAGE') }}
             <select
               v-model="perPage"
-              class="!w-auto rounded-lg border border-n-weak bg-n-solid-2 px-3 py-2"
+              class="!mb-0 !w-auto rounded-lg border border-n-weak bg-n-solid-2 px-3 py-2"
             >
               <option v-for="size in PAGE_SIZES" :key="size" :value="size">
                 {{ size }}
