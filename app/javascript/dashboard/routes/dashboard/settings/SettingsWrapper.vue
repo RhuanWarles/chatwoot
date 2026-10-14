@@ -3,6 +3,10 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 defineProps({
+  fullHeight: {
+    type: Boolean,
+    default: false,
+  },
   keepAlive: {
     type: Boolean,
     default: true,
@@ -20,9 +24,13 @@ const routeKey = computed(() =>
 
 <template>
   <div
-    class="flex flex-col w-full h-full m-0 pb-8 pt-4 px-6 overflow-auto bg-n-surface-1"
+    class="flex flex-col w-full h-full m-0 pt-4 px-6 bg-n-surface-1"
+    :class="fullHeight ? 'min-h-0 overflow-hidden pb-4' : 'overflow-auto pb-8'"
   >
-    <div class="flex items-start w-full max-w-5xl mx-auto">
+    <div
+      class="flex items-start w-full max-w-5xl mx-auto"
+      :class="{ 'flex-1 min-h-0 overflow-hidden': fullHeight }"
+    >
       <router-view v-slot="{ Component }">
         <keep-alive v-if="keepAlive">
           <component :is="Component" :key="routeKey" />

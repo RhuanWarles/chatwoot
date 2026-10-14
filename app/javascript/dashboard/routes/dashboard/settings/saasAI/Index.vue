@@ -105,11 +105,16 @@ watch(perPage, () => {
 </script>
 
 <template>
-  <SettingsLayout :is-loading="loading" :loading-message="t('SAAS_AI.LOADING')">
+  <SettingsLayout
+    full-height
+    :is-loading="loading"
+    :loading-message="t('SAAS_AI.LOADING')"
+  >
     <template #header>
       <BaseSettingsHeader
         :title="t('AI_HUB.USAGE')"
         :description="t('AI_HUB.USAGE_HELP')"
+        class="shrink-0"
       />
     </template>
     <template #body>
@@ -126,18 +131,21 @@ watch(perPage, () => {
         <p role="alert">{{ t('SAAS_AI.LOAD_ERROR') }}</p>
         <Button :label="t('SAAS_AI.RETRY')" @click="load()" />
       </div>
-      <div v-else-if="data" class="flex flex-col gap-6 pb-8">
+      <div
+        v-else-if="data"
+        class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+      >
         <RouterLink
           :to="{ name: 'ai_agents_settings' }"
-          class="text-sm text-n-blue-11 hover:underline"
+          class="shrink-0 text-sm text-n-blue-11 hover:underline"
         >
           {{ t('AI_HUB.BACK') }}
         </RouterLink>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid shrink-0 grid-cols-2 gap-3">
           <section
             v-for="wallet in wallets"
             :key="wallet.resource"
-            class="rounded-xl border border-n-weak bg-n-solid-2 p-5"
+            class="min-w-0 rounded-xl border border-n-weak bg-n-solid-2 p-3"
           >
             <h2 class="text-heading-3 text-n-slate-12">
               {{
@@ -146,7 +154,7 @@ watch(perPage, () => {
                   : t('SAAS_AI.TEXT_BALANCE')
               }}
             </h2>
-            <p class="my-3 text-3xl font-semibold text-n-slate-12">
+            <p class="my-1 text-2xl font-semibold text-n-slate-12">
               {{
                 formatNumber(
                   wallet.available_units /
@@ -170,7 +178,7 @@ watch(perPage, () => {
             </p>
           </section>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex shrink-0 flex-wrap items-center justify-between gap-2">
           <p class="text-body-main text-n-slate-11">
             {{ t('SAAS_AI.BALANCE_HELP') }}
           </p>
@@ -184,7 +192,7 @@ watch(perPage, () => {
 
         <section
           v-if="currentAccount?.features?.voice_ai"
-          class="flex flex-col gap-4"
+          class="flex shrink-0 flex-col gap-2"
         >
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.CALLS_TITLE') }}
@@ -228,15 +236,17 @@ watch(perPage, () => {
           </article>
         </section>
 
-        <section class="flex flex-col gap-4">
+        <section class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.USAGE_TITLE') }}
           </h2>
-          <label class="flex items-center gap-3 text-body-main text-n-slate-11">
+          <label
+            class="flex shrink-0 items-center gap-3 text-body-main text-n-slate-11"
+          >
             {{ t('SAAS_AI.PER_PAGE') }}
             <select
               v-model="perPage"
-              class="rounded-lg border border-n-weak bg-n-solid-2 px-3 py-2"
+              class="!w-auto rounded-lg border border-n-weak bg-n-solid-2 px-3 py-2"
             >
               <option v-for="size in PAGE_SIZES" :key="size" :value="size">
                 {{ size }}
@@ -246,9 +256,12 @@ watch(perPage, () => {
           <p v-if="!usage.length" class="text-body-main text-n-slate-11">
             {{ t('SAAS_AI.USAGE_EMPTY') }}
           </p>
-          <div v-else class="overflow-x-auto rounded-xl border border-n-weak">
+          <div
+            v-else
+            class="min-h-0 flex-1 overflow-auto rounded-xl border border-n-weak"
+          >
             <table class="w-full text-start text-body-main">
-              <thead class="bg-n-solid-2">
+              <thead class="sticky top-0 z-10 bg-n-solid-2">
                 <tr>
                   <th class="p-3 text-start">{{ t('SAAS_AI.DATE') }}</th>
                   <th class="p-3 text-start">{{ t('SAAS_AI.RESOURCE') }}</th>
@@ -300,7 +313,7 @@ watch(perPage, () => {
             v-model:current-page="page"
             :total-items="data.usage_meta.total_count"
             :items-per-page="data.usage_meta.per_page"
-            class="relative"
+            class="relative shrink-0"
           />
         </section>
       </div>
