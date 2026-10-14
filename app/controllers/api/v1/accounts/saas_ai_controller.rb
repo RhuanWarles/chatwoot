@@ -20,11 +20,15 @@ class Api::V1::Accounts::SaasAiController < Api::V1::Accounts::BaseController
     resources << 'text_credits' if Current.account.feature_enabled?(:text_ai)
     resources << 'voice_seconds' if Current.account.feature_enabled?(:voice_ai)
     wallets = resources.map { |resource| Saas::Wallet.for_account(Current.account, resource) }
+    page = params[:page].to_s.match?(/\A[1-9]\d*\z/) ? params[:page].to_i : 1
+    per_page = params[:per_page].to_s.presence_in(%w[10 20 50 100])&.to_i || 20
+    usage = Saas::UsageRecord.where(wallet: wallets).includes(:wallet).order(created_at: :desc, id: :desc).page(page).per(per_page)
     render json: {
       settings: permitted_config(settings), wallets: wallets.map(&:public_data),
       text_credits_per_request: Saas::TextService.credits_per_request,
       calls: recent_calls,
-      usage: recent_usage(wallets)
+      usage: usage.map { |record| record.public_data.merge(resource: record.wallet.resource) },
+      usage_meta: { current_page: usage.current_page, total_pages: usage.total_pages, total_count: usage.total_count, per_page: usage.limit_value }
     }
   end
 
@@ -85,12 +89,6 @@ class Api::V1::Accounts::SaasAiController < Api::V1::Accounts::BaseController
     return config if Current.account.feature_enabled?(:text_ai)
 
     config.except(:text_mode, :text_provider, :text_model, :api_key_configured, :encryption_ready, :platform_text_ready)
-  end
-
-  def recent_usage(wallets)
-    Saas::UsageRecord.where(wallet: wallets).includes(:wallet).order(id: :desc).limit(30).map do |record|
-      record.public_data.merge(resource: record.wallet.resource)
-    end
   end
 
   def recent_calls

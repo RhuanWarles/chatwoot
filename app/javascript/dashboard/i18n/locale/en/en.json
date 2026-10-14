@@ -46,6 +46,7 @@
     "CALL_META": "{date} · {minutes} minutes used",
     "CALLS_EMPTY": "No calls yet. Incoming and outgoing calls will appear here.",
     "USAGE_TITLE": "Recent usage",
+    "PER_PAGE": "Records per page",
     "USAGE_EMPTY": "No usage yet. Credits, reservations and completed usage will appear here.",
     "DATE": "Date",
     "DIRECTION": "Direction",

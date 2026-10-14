@@ -78,13 +78,13 @@ RSpec.describe 'Super Admin accounts API', type: :request do
 
       get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'runtime' }
       rows = Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]')
-      expect(rows.map { |row| row['data-usage-id'].to_i }).to eq(records.reverse.first(25).map(&:id))
+      expect(rows.map { |row| row['data-usage-id'].to_i }).to eq(records.reverse.first(20).map(&:id))
       expect(response.body).to include('Page 1 of 2', '26 records')
       expect(rows.map { |row| row['data-usage-id'].to_i }).not_to include(other.id)
 
       get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'runtime', page: 2 }
       rows = Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]')
-      expect(rows.map { |row| row['data-usage-id'].to_i }).to eq([records.first.id])
+      expect(rows.map { |row| row['data-usage-id'].to_i }).to eq(records.reverse.drop(20).map(&:id))
 
       get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'runtime', per_page: 50 }
       expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]').length).to eq(26)
@@ -94,7 +94,7 @@ RSpec.describe 'Super Admin accounts API', type: :request do
       expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]')).to be_empty
 
       get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', page: '-1', per_page: '9999' }
-      expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]').length).to eq(25)
+      expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]').length).to eq(20)
       expect(response.body).to include('Page 1 of 2')
     end
 

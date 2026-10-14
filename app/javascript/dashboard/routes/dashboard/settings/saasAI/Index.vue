@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import SaasAI from 'dashboard/api/saasAI';
 import Button from 'dashboard/components-next/button/Button.vue';
+import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -17,6 +18,9 @@ const data = ref(null);
 const loading = ref(true);
 const loadFailed = ref(false);
 const refreshing = ref(false);
+const page = ref(1);
+const perPage = ref(20);
+const PAGE_SIZES = [10, 20, 50, 100];
 const formattingLocale = computed(() => locale.value.replaceAll('_', '-'));
 const formatNumber = value =>
   new Intl.NumberFormat(formattingLocale.value, {
@@ -39,19 +43,38 @@ const usage = computed(() =>
 );
 async function load() {
   const requestedAccount = route.params.accountId;
+  const requestedPage = page.value;
+  const requestedPerPage = perPage.value;
   refreshing.value = true;
   try {
-    const response = await SaasAI.get();
-    if (requestedAccount !== route.params.accountId) return;
+    const response = await SaasAI.get({
+      page: requestedPage,
+      per_page: requestedPerPage,
+    });
+    if (
+      requestedAccount !== route.params.accountId ||
+      requestedPage !== page.value ||
+      requestedPerPage !== perPage.value
+    )
+      return;
     data.value = response.data;
     loadFailed.value = false;
   } catch (error) {
-    if (requestedAccount !== route.params.accountId) return;
+    if (
+      requestedAccount !== route.params.accountId ||
+      requestedPage !== page.value ||
+      requestedPerPage !== perPage.value
+    )
+      return;
     if (!data.value) loadFailed.value = true;
     const messages = tm('SAAS_AI.ERRORS');
     useAlert(rt(messages[error.response?.data?.error] || messages.generic));
   } finally {
-    if (requestedAccount === route.params.accountId) {
+    if (
+      requestedAccount === route.params.accountId &&
+      requestedPage === page.value &&
+      requestedPerPage === perPage.value
+    ) {
       loading.value = false;
       refreshing.value = false;
     }
@@ -64,6 +87,7 @@ watch(
     () => currentAccount.value?.features?.voice_ai,
   ],
   ([, text, voice]) => {
+    page.value = 1;
     data.value = null;
     loadFailed.value = false;
     loading.value = !!(text || voice);
@@ -71,6 +95,13 @@ watch(
   },
   { immediate: true }
 );
+watch(page, () => {
+  if (data.value) load();
+});
+watch(perPage, () => {
+  if (page.value === 1) load();
+  else page.value = 1;
+});
 </script>
 
 <template>
@@ -201,6 +232,17 @@ watch(
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.USAGE_TITLE') }}
           </h2>
+          <label class="flex items-center gap-3 text-body-main text-n-slate-11">
+            {{ t('SAAS_AI.PER_PAGE') }}
+            <select
+              v-model="perPage"
+              class="rounded-lg border border-n-weak bg-n-solid-2 px-3 py-2"
+            >
+              <option v-for="size in PAGE_SIZES" :key="size" :value="size">
+                {{ size }}
+              </option>
+            </select>
+          </label>
           <p v-if="!usage.length" class="text-body-main text-n-slate-11">
             {{ t('SAAS_AI.USAGE_EMPTY') }}
           </p>
@@ -253,6 +295,13 @@ watch(
               </tbody>
             </table>
           </div>
+          <PaginationFooter
+            v-if="data.usage_meta?.total_count"
+            v-model:current-page="page"
+            :total-items="data.usage_meta.total_count"
+            :items-per-page="data.usage_meta.per_page"
+            class="relative"
+          />
         </section>
       </div>
     </template>

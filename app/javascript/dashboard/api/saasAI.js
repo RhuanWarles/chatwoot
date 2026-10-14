@@ -6,6 +6,10 @@ class SaasAI extends ApiClient {
     super('saas_ai', { accountScoped: true });
   }
 
+  get(params = {}) {
+    return axios.get(this.url, { params });
+  }
+
   save(settings) {
     return axios.patch(this.url, { settings });
   }

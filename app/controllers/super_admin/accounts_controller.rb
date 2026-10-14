@@ -74,8 +74,10 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     @saas_wallets = Saas::Wallet::RESOURCES.index_with do |resource|
       Saas::Wallet.for_account(@saas_account, resource)
     end
+    history_page = params[:history_page].to_s.match?(/\A[1-9]\d*\z/) ? params[:history_page].to_i : 1
+    history_per_page = params[:history_per_page].to_s.presence_in(%w[10 20 50 100])&.to_i || 20
     @saas_usage_records = Saas::UsageRecord.where(wallet: @saas_wallets.values)
-                                           .includes(:wallet).order(created_at: :desc).limit(100)
+                                         .includes(:wallet).order(created_at: :desc, id: :desc).page(history_page).per(history_per_page)
     @ai_usage_period = params[:period].presence_in(%w[today seven_days thirty_days total]) || 'thirty_days'
     @ai_usage_source = params[:source].presence_in(%w[runtime playground memory])
     @ai_usage_provider = params[:provider].presence
@@ -94,7 +96,7 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     ).to_h { |row| [row[0], { generations: row[1], prompt_tokens: row[2], completion_tokens: row[3],
                               total_tokens: row[4], estimated_cost_usd: row[5], credits: row[6] }] }
     page = params[:page].to_s.match?(/\A[1-9]\d*\z/) ? params[:page].to_i : 1
-    per_page = params[:per_page].to_s.presence_in(%w[25 50])&.to_i || 25
+    per_page = params[:per_page].to_s.presence_in(%w[10 20 50 100])&.to_i || 20
     @ai_usage_records = @ai_usage_scope.includes(:wallet).order(created_at: :desc, id: :desc).page(page).per(per_page)
     @ai_usage_agents = @saas_account.saas_ai_agents.order(:name)
   end

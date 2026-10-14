@@ -79,9 +79,11 @@
       <%= form_with url: saas_usage_super_admin_account_path(@saas_account), method: :get, class: 'flex flex-wrap items-end gap-2' do |form| %>
         <%= form.hidden_field :provider, value: @ai_usage_provider %>
         <%= form.hidden_field :model, value: @ai_usage_model %>
+        <%= form.hidden_field :history_page, value: @saas_usage_records.current_page %>
+        <%= form.hidden_field :history_per_page, value: @saas_usage_records.limit_value %>
         <div>
           <%= form.label :per_page, t('super_admin.saas_usage.ai_usage.per_page'), class: 'block text-xs' %>
-          <%= form.select :per_page, [25, 50], { selected: @ai_usage_records.limit_value }, class: 'mt-1' %>
+          <%= form.select :per_page, [10, 20, 50, 100], { selected: @ai_usage_records.limit_value }, class: 'mt-1' %>
         </div>
         <div>
           <%= form.label :period, t('super_admin.saas_usage.ai_usage.period'), class: 'block text-xs' %>
@@ -146,8 +148,18 @@
     </div>
   </section>
 
-  <section class="mt-8">
+  <section id="usage-history" class="mt-8">
     <h2 class="text-lg font-medium"><%= t('super_admin.saas_usage.history') %></h2>
+    <%= form_with url: saas_usage_super_admin_account_path(@saas_account), method: :get, class: 'mt-3 flex flex-wrap items-end gap-2' do |form| %>
+      <% request.query_parameters.except('history_page', 'history_per_page').each do |key, value| %>
+        <%= form.hidden_field key, value: value %>
+      <% end %>
+      <div>
+        <%= form.label :history_per_page, t('super_admin.saas_usage.ai_usage.per_page'), class: 'block text-xs' %>
+        <%= form.select :history_per_page, [10, 20, 50, 100], { selected: @saas_usage_records.limit_value }, class: 'mt-1' %>
+      </div>
+      <%= form.submit t('super_admin.saas_usage.ai_usage.apply'), class: 'button' %>
+    <% end %>
     <% if @saas_usage_records.empty? %>
       <p class="mt-3 text-sm text-n-slate-11"><%= t('super_admin.saas_usage.no_history') %></p>
     <% else %>
@@ -172,7 +184,7 @@
               <% delta = -record.units if delta.nil? && record.kind == 'adjustment' %>
               <% delta = 0 if delta.nil? %>
               <% delta /= 60.0 if record.wallet.resource == 'voice_seconds' %>
-              <tr class="border-b border-n-weak">
+              <tr data-usage-id="<%= record.id %>" class="border-b border-n-weak">
                 <td class="p-2"><%= l(record.created_at, format: :short) %></td>
                 <td class="p-2"><%= t("super_admin.saas_usage.resources.#{record.wallet.resource == 'text_credits' ? 'text' : 'voice'}") %></td>
                 <td class="p-2"><%= delta.positive? ? '+' : '' %><%= delta %></td>
@@ -185,6 +197,10 @@
         </table>
       </div>
     <% end %>
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <p class="text-sm text-n-slate-11"><%= t('super_admin.saas_usage.ai_usage.pagination_summary', page: @saas_usage_records.current_page, pages: [@saas_usage_records.total_pages, 1].max, count: @saas_usage_records.total_count) %></p>
+      <%= paginate @saas_usage_records, param_name: :history_page %>
+    </div>
   </section>
   <% history = @saas_account.internal_attributes.fetch('ai_feature_history', []) %>
   <% if history.any? %>
