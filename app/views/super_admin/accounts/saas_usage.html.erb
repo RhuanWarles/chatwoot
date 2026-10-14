@@ -77,6 +77,12 @@
         <p class="text-sm text-n-slate-11"><%= t('super_admin.saas_usage.ai_usage.description') %></p>
       </div>
       <%= form_with url: saas_usage_super_admin_account_path(@saas_account), method: :get, class: 'flex flex-wrap items-end gap-2' do |form| %>
+        <%= form.hidden_field :provider, value: @ai_usage_provider %>
+        <%= form.hidden_field :model, value: @ai_usage_model %>
+        <div>
+          <%= form.label :per_page, t('super_admin.saas_usage.ai_usage.per_page'), class: 'block text-xs' %>
+          <%= form.select :per_page, [25, 50], { selected: @ai_usage_records.limit_value }, class: 'mt-1' %>
+        </div>
         <div>
           <%= form.label :period, t('super_admin.saas_usage.ai_usage.period'), class: 'block text-xs' %>
           <%= form.select :period, [[t('super_admin.saas_usage.ai_usage.periods.today'), 'today'], [t('super_admin.saas_usage.ai_usage.periods.seven_days'), 'seven_days'], [t('super_admin.saas_usage.ai_usage.periods.thirty_days'), 'thirty_days'], [t('super_admin.saas_usage.ai_usage.periods.total'), 'total']], { selected: @ai_usage_period }, class: 'mt-1' %>
@@ -115,7 +121,7 @@
       </article>
     </div>
 
-    <div class="mt-6 overflow-x-auto">
+    <div id="ai-usage-records" class="mt-6 overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead><tr class="border-b border-n-weak">
           <% %w[date agent source provider model prompt_tokens completion_tokens total_tokens credits estimated_cost status].each do |column| %><th class="p-2"><%= t("super_admin.saas_usage.ai_usage.columns.#{column}") %></th><% end %>
@@ -123,7 +129,7 @@
         <tbody>
           <% @ai_usage_records.each do |record| %>
             <% metadata = record.metadata || {} %>
-            <tr class="border-b border-n-weak">
+            <tr data-usage-id="<%= record.id %>" class="border-b border-n-weak">
               <td class="p-2"><%= l(record.created_at, format: :short) %></td>
               <td class="p-2"><%= @ai_usage_agents.find { |agent| agent.id.to_s == metadata['ai_agent_id'].to_s }&.name || '—' %></td>
               <td class="p-2"><%= record.source %></td><td class="p-2"><%= record.provider || '—' %></td><td class="p-2"><%= record.model || '—' %></td>
@@ -133,6 +139,10 @@
           <% end %>
         </tbody>
       </table>
+    </div>
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <p class="text-sm text-n-slate-11"><%= t('super_admin.saas_usage.ai_usage.pagination_summary', page: @ai_usage_records.current_page, pages: [@ai_usage_records.total_pages, 1].max, count: @ai_usage_records.total_count) %></p>
+      <%= paginate @ai_usage_records %>
     </div>
   </section>
 

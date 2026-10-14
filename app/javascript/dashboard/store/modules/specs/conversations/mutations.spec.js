@@ -831,6 +831,34 @@ describe('#mutations', () => {
   });
 
   describe('#UPDATE_CONVERSATION', () => {
+    it('applies realtime AI pause metadata without replacing messages', () => {
+      const state = {
+        allConversations: [
+          {
+            id: 1,
+            updated_at: 100,
+            additional_attributes: { ai_agent_state: 'ai' },
+            messages: [{ id: 'msg1' }],
+          },
+        ],
+      };
+
+      mutations[types.UPDATE_CONVERSATION](state, {
+        id: 1,
+        updated_at: 200,
+        additional_attributes: {
+          ai_agent_state: 'human',
+          ai_agent_paused_by_id: 2,
+        },
+      });
+
+      expect(state.allConversations[0].additional_attributes).toEqual({
+        ai_agent_state: 'human',
+        ai_agent_paused_by_id: 2,
+      });
+      expect(state.allConversations[0].messages).toEqual([{ id: 'msg1' }]);
+    });
+
     it('should update existing conversation', () => {
       const state = {
         allConversations: [

@@ -722,6 +722,8 @@ en:
         estimated_cost: 'Estimated cost'
         not_configured: 'Price not configured'
         period: 'Period'
+        per_page: 'Records per page'
+        pagination_summary: 'Page %{page} of %{pages} · %{count} records'
         source: 'Source'
         agent: 'Agent'
         all: 'All'

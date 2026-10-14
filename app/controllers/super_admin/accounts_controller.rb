@@ -93,7 +93,9 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
       Arel.sql('COALESCE(SUM(estimated_cost_usd), 0)'), Arel.sql('COALESCE(SUM(units), 0)')
     ).to_h { |row| [row[0], { generations: row[1], prompt_tokens: row[2], completion_tokens: row[3],
                               total_tokens: row[4], estimated_cost_usd: row[5], credits: row[6] }] }
-    @ai_usage_records = @ai_usage_scope.includes(:wallet).order(created_at: :desc).limit(100)
+    page = params[:page].to_s.match?(/\A[1-9]\d*\z/) ? params[:page].to_i : 1
+    per_page = params[:per_page].to_s.presence_in(%w[25 50])&.to_i || 25
+    @ai_usage_records = @ai_usage_scope.includes(:wallet).order(created_at: :desc, id: :desc).page(page).per(per_page)
     @ai_usage_agents = @saas_account.saas_ai_agents.order(:name)
   end
 

@@ -39,14 +39,19 @@ const { isAWebWidgetInbox, isAnEmailChannel } = useInbox();
 
 const currentChat = computed(() => store.getters.getSelectedChat);
 const accountId = computed(() => store.getters.getCurrentAccountId);
-const aiState = ref(null);
+const aiAvailable = ref(false);
 const aiStateLoading = ref(false);
 const aiStateBusy = ref(false);
 
-const aiAvailable = computed(() => aiState.value?.available === true);
-const aiEnabled = computed(() => aiState.value?.state === 'ai');
+const aiEnabled = computed(() =>
+  ['ai', 'active'].includes(
+    currentChat.value.additional_attributes?.ai_agent_state ?? 'ai'
+  )
+);
 const aiLabel = computed(() =>
-  aiEnabled.value ? t('CONVERSATION.HEADER.AI_ACTIVE') : t('CONVERSATION.HEADER.AI_PAUSED')
+  aiEnabled.value
+    ? t('CONVERSATION.HEADER.AI_ACTIVE')
+    : t('CONVERSATION.HEADER.AI_PAUSED')
 );
 const aiHelp = computed(() =>
   aiEnabled.value
@@ -55,14 +60,14 @@ const aiHelp = computed(() =>
 );
 
 const loadAiState = async conversationId => {
-  aiState.value = null;
+  aiAvailable.value = false;
   if (!conversationId) return;
   aiStateLoading.value = true;
   try {
     const { data } = await ConversationApi.getAiState(conversationId);
-    aiState.value = data;
+    aiAvailable.value = data.available === true;
   } catch {
-    aiState.value = null;
+    aiAvailable.value = false;
   } finally {
     aiStateLoading.value = false;
   }
@@ -84,7 +89,7 @@ const toggleAiState = async () => {
       conversationId: currentChat.value.id,
       state,
     });
-    aiState.value = data;
+    aiAvailable.value = data.available === true;
     updateLocalConversation(data.additional_attributes);
   } catch {
     useAlert(t('CONVERSATION.HEADER.AI_UPDATE_ERROR'));

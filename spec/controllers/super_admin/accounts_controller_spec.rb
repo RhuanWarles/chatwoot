@@ -67,6 +67,37 @@ RSpec.describe 'Super Admin accounts API', type: :request do
   end
 
   describe 'AI credits' do
+    it 'paginates filtered AI usage with stable ordering and account isolation' do
+      records = 26.times.map do |index|
+        Saas::UsageRecord.create!(account: account, reference: "usage-page-#{index}", kind: 'consumption', status: 'completed',
+                                 source: 'runtime', units: 0, reserved_units: 0, created_at: Time.current.beginning_of_day)
+      end
+      other = Saas::UsageRecord.create!(account: create(:account), reference: 'other-usage', kind: 'consumption', status: 'completed',
+                                       source: 'runtime', units: 0, reserved_units: 0)
+      sign_in(super_admin, scope: :super_admin)
+
+      get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'runtime' }
+      rows = Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]')
+      expect(rows.map { |row| row['data-usage-id'].to_i }).to eq(records.reverse.first(25).map(&:id))
+      expect(response.body).to include('Page 1 of 2', '26 records')
+      expect(rows.map { |row| row['data-usage-id'].to_i }).not_to include(other.id)
+
+      get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'runtime', page: 2 }
+      rows = Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]')
+      expect(rows.map { |row| row['data-usage-id'].to_i }).to eq([records.first.id])
+
+      get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'runtime', per_page: 50 }
+      expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]').length).to eq(26)
+      expect(response.body).to include('Page 1 of 1', '26 records')
+
+      get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', source: 'playground', page: 1 }
+      expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]')).to be_empty
+
+      get "/super_admin/accounts/#{account.id}/saas_usage", params: { period: 'total', page: '-1', per_page: '9999' }
+      expect(Nokogiri::HTML(response.body).css('#ai-usage-records [data-usage-id]').length).to eq(25)
+      expect(response.body).to include('Page 1 of 2')
+    end
+
     it 'shows balances only to authenticated Super Admins' do
       get "/super_admin/accounts/#{account.id}/saas_usage"
       expect(response).to have_http_status(:redirect)
