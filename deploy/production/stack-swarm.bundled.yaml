@@ -1,13 +1,11 @@
-# Docker Swarm Stack: local PostgreSQL and Redis with persistent local volumes.
+# Docker Swarm Stack: local PostgreSQL and Redis without persistent volumes.
 #
 # Before deploying:
 #   1. Keep the same encryption keys and database credentials when migrating.
 #   2. Configure the required variables in Portainer Stack environment.
 #   3. Set the optional BOOTSTRAP_ADMIN_* variables to create the first admin.
 #
-# The stack creates its local volumes and overlay network itself.
-# For multi-node Swarm installations, use shared storage or add a placement
-# constraint for the node that owns these local volumes.
+# The stack creates its overlay network itself.
 #
 # This stack intentionally does not use depends_on. Swarm ignores Compose
 # startup conditions; prepare runs as a one-shot service and web/worker wait
@@ -18,11 +16,11 @@
 #   bootstrap_admin: creates the initial confirmed SuperAdmin once.
 #   web: exposes Chatwoot on WEB_PORT (3000 by default).
 #   worker: runs Sidekiq jobs.
-#   postgres/redis: local persistent dependencies.
+#   postgres/redis: local ephemeral dependencies.
 
 x-app: &app
   # This image must contain lib/tasks/bootstrap_admin.rake.
-  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.1.8}
+  image: ${CHATWOOT_IMAGE:-ghcr.io/rhuanwarles/chatwoot:v1.1.11}
   environment: &app-env
     RAILS_ENV: production
     NODE_ENV: production
@@ -68,8 +66,6 @@ x-app: &app
     SAAS_TEXT_MODEL: ${SAAS_TEXT_MODEL:-gpt-4.1}
     SAAS_TEXT_API_KEY: ${SAAS_TEXT_API_KEY:-}
     SAAS_TEXT_CREDITS_PER_REQUEST: ${SAAS_TEXT_CREDITS_PER_REQUEST:-1}
-  volumes:
-    - storage_data:/app/storage
   networks:
     - chatwoot_internal
 
@@ -229,8 +225,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DATABASE:-chatwoot}
       POSTGRES_USER: ${POSTGRES_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     networks:
       - chatwoot_internal
     healthcheck:
@@ -263,8 +257,6 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
-    volumes:
-      - redis_data:/data
     networks:
       - chatwoot_internal
     healthcheck:
@@ -291,16 +283,6 @@ services:
           memory: 512M
         reservations:
           memory: 128M
-
-volumes:
-  # Explicit names preserve data across stack redeploys. Docker creates them
-  # automatically when they do not exist.
-  storage_data:
-    name: ${STORAGE_VOLUME:-chatwoot_crm_storage}
-  postgres_data:
-    name: ${POSTGRES_VOLUME:-chatwoot_crm_postgres}
-  redis_data:
-    name: ${REDIS_VOLUME:-chatwoot_crm_redis}
 
 networks:
   chatwoot_internal:
