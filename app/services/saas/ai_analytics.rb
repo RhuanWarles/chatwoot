@@ -62,16 +62,16 @@ class Saas::AiAnalytics
 
   def ai_messages
     scope = Message.where(account_id: @account.id, message_type: :outgoing, created_at: @range)
-                   .where("content_attributes ->> 'generated_by_ai' = 'true'")
+                   .where("(content_attributes #>> '{}')::json ->> 'generated_by_ai' = 'true'")
     scope = scope.where(inbox_id: @inbox_id) if @inbox_id
-    scope = scope.where("content_attributes ->> 'ai_agent_id' = ?", @agent_id.to_s) if @agent_id
+    scope = scope.where("(content_attributes #>> '{}')::json ->> 'ai_agent_id' = ?", @agent_id.to_s) if @agent_id
     scope.reorder(nil)
   end
 
   def runtime_usage
     scope = @account.saas_usage_records.where(source: 'runtime', kind: 'consumption', status: 'settled', created_at: @range)
-    scope = scope.where(conversation_id: ai_messages.select(:conversation_id))
-    scope = scope.where(conversation_id: Conversation.where(inbox_id: @inbox_id).select(:id)) if @inbox_id
+    scope = scope.where("(metadata ->> 'conversation_id')::bigint IN (?)", ai_messages.select(:conversation_id))
+    scope = scope.where("(metadata ->> 'conversation_id')::bigint IN (?)", Conversation.where(inbox_id: @inbox_id).select(:id)) if @inbox_id
     scope = scope.where("metadata ->> 'ai_agent_id' = ?", @agent_id.to_s) if @agent_id
     scope.joins(:wallet).where(saas_wallets: { resource: 'text_credits' })
   end
@@ -85,8 +85,8 @@ class Saas::AiAnalytics
 
   def knowledge_retrievals
     scope = @account.saas_usage_records.where(source: 'knowledge_retrieval', created_at: @range)
-    scope = scope.where(conversation_id: ai_messages.select(:conversation_id))
-    scope = scope.where(conversation_id: Conversation.where(inbox_id: @inbox_id).select(:id)) if @inbox_id
+    scope = scope.where("(metadata ->> 'conversation_id')::bigint IN (?)", ai_messages.select(:conversation_id))
+    scope = scope.where("(metadata ->> 'conversation_id')::bigint IN (?)", Conversation.where(inbox_id: @inbox_id).select(:id)) if @inbox_id
     scope = scope.where("metadata ->> 'ai_agent_id' = ?", @agent_id.to_s) if @agent_id
     scope
   end
@@ -99,7 +99,7 @@ class Saas::AiAnalytics
   end
 
   def turn_count(messages)
-    messages.distinct.count("COALESCE(content_attributes ->> 'ai_response_batch_id', id::text)")
+    messages.distinct.count("COALESCE((content_attributes #>> '{}')::json ->> 'ai_response_batch_id', id::text)")
   end
 
   def tool_data(scope)
@@ -118,7 +118,7 @@ class Saas::AiAnalytics
   def knowledge_data(scope)
     accepted = scope.where("COALESCE(NULLIF(metadata -> 'retrieval' ->> 'accepted_count', ''), '0')::integer > 0")
     { queries: scope.count, hits: accepted.count, hit_rate: percentage(accepted.count, scope.count),
-      conversations: accepted.where.not(conversation_id: nil).distinct.count(:conversation_id) }
+      conversations: accepted.where("(metadata ->> 'conversation_id') IS NOT NULL").distinct.count("metadata ->> 'conversation_id'") }
   end
 
   def billing_data(scope)
