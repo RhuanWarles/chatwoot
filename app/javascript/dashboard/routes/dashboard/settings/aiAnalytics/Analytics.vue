@@ -3,11 +3,13 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useElementSize } from '@vueuse/core';
 import { LineChart } from '@chatwoot/viz';
+import { useLocale } from 'shared/composables/useLocale';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import aiAnalyticsAPI from 'dashboard/api/aiAnalytics';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { resolvedLocale } = useLocale();
 const loading = ref(true);
 const error = ref('');
 const chartContainer = ref(null);
@@ -21,10 +23,12 @@ const key = name => t(`AI_ANALYTICS.${name}`);
 const number = value =>
   value == null
     ? '—'
-    : Number(value).toLocaleString(locale.value, { maximumFractionDigits: 2 });
+    : Number(value).toLocaleString(resolvedLocale.value, {
+        maximumFractionDigits: 2,
+      });
 const percent = value => `${number(value)}%`;
 const date = value =>
-  new Intl.DateTimeFormat(locale.value, {
+  new Intl.DateTimeFormat(resolvedLocale.value, {
     day: '2-digit',
     month: '2-digit',
     timeZone: 'UTC',
