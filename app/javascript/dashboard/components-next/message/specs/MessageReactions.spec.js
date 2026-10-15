@@ -25,6 +25,13 @@ vi.mock('dashboard/components-next/button/Button.vue', () => ({
 vi.mock('dashboard/components-next/avatar/Avatar.vue', () => ({
   default: { template: '<span />' },
 }));
+vi.mock('dashboard/components-next/popover/Popover.vue', () => ({
+  default: {
+    template:
+      '<div><slot :is-open="true" /><div><slot name="content" /></div></div>',
+    methods: { show() {}, hide() {} },
+  },
+}));
 vi.mock(
   'dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue',
   () => ({

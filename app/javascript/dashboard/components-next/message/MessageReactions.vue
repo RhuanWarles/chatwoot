@@ -6,6 +6,7 @@ import { useAlert } from 'dashboard/composables';
 import messageReactionsAPI from 'dashboard/api/conversations/messageReactionsAPI';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import EmojiIconPicker from 'dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue';
 
@@ -16,7 +17,7 @@ const props = defineProps({
   reactions: { type: Array, default: () => [] },
 });
 const { t } = useI18n();
-const pickerOpen = ref(false);
+const pickerPopover = ref(null);
 const participantsDialog = ref(null);
 const selectedEmoji = ref('');
 const localReactions = ref([]);
@@ -47,10 +48,10 @@ const selectedParticipants = computed(() =>
   active.value.filter(reaction => reaction.emoji === selectedEmoji.value)
 );
 const openPicker = () => {
-  pickerOpen.value = true;
+  if (!busy.value) pickerPopover.value?.show();
 };
 const closePicker = () => {
-  pickerOpen.value = false;
+  pickerPopover.value?.hide();
 };
 const showParticipants = emoji => {
   selectedEmoji.value = emoji;
@@ -95,7 +96,6 @@ defineExpose({ openPicker });
 
 <template>
   <div
-    v-on-click-outside="closePicker"
     class="relative flex flex-wrap items-center gap-1"
   >
     <button
@@ -111,25 +111,30 @@ defineExpose({ openPicker });
       <span>{{ group.emoji }}</span>
       <span>{{ group.count }}</span>
     </button>
-    <Button
-      icon="i-lucide-smile-plus"
-      size="xs"
-      variant="ghost"
-      color="slate"
-      class="md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-      :aria-label="t('MESSAGE_REACTIONS.ADD')"
-      :disabled="busy"
-      @click="openPicker"
-    />
-    <EmojiIconPicker
-      v-if="pickerOpen"
-      mode="emoji"
-      :value="own?.emoji || ''"
-      :show-remove-button="canRemove"
-      class="!absolute !z-50 bottom-full end-0 mb-1 w-[22rem] max-w-[calc(100vw-1rem)]"
-      @select="choose($event.value)"
-      @remove="send('')"
-    />
+    <Popover ref="pickerPopover" align="end">
+      <template #default>
+        <Button
+          icon="i-lucide-smile-plus"
+          size="xs"
+          variant="ghost"
+          color="slate"
+          class="md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+          :aria-label="t('MESSAGE_REACTIONS.ADD')"
+          :disabled="busy"
+          @click.stop="openPicker"
+        />
+      </template>
+      <template #content>
+        <EmojiIconPicker
+          mode="emoji"
+          :value="own?.emoji || ''"
+          :show-remove-button="canRemove"
+          class="!relative !z-0 w-[22rem] max-w-[calc(100vw-1rem)]"
+          @select="choose($event.value)"
+          @remove="send('')"
+        />
+      </template>
+    </Popover>
     <Dialog
       ref="participantsDialog"
       width="sm"
