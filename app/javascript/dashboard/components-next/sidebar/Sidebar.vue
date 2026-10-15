@@ -721,6 +721,12 @@ const menuItems = computed(() => {
                       to: accountScopedRoute('knowledge_bases_settings'),
                       activeOn: ['knowledge_bases_settings'],
                     },
+                    {
+                      name: 'Analytics',
+                      label: t('AI_HUB.ANALYTICS'),
+                      to: accountScopedRoute('ai_analytics_settings'),
+                      activeOn: ['ai_analytics_settings'],
+                    },
                   ]
                 : []),
             ],
