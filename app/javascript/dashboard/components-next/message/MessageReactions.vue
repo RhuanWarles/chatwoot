@@ -7,6 +7,7 @@ import messageReactionsAPI from 'dashboard/api/conversations/messageReactionsAPI
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
+import EmojiIconPicker from 'dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue';
 
 const props = defineProps({
   messageId: { type: Number, required: true },
@@ -14,9 +15,8 @@ const props = defineProps({
   currentUserId: { type: Number, required: true },
   reactions: { type: Array, default: () => [] },
 });
-const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '✅'];
 const { t } = useI18n();
-const picker = ref(null);
+const pickerOpen = ref(false);
 const participantsDialog = ref(null);
 const selectedEmoji = ref('');
 const localReactions = ref([]);
@@ -46,7 +46,12 @@ const groups = computed(() =>
 const selectedParticipants = computed(() =>
   active.value.filter(reaction => reaction.emoji === selectedEmoji.value)
 );
-const openPicker = () => picker.value.open();
+const openPicker = () => {
+  pickerOpen.value = true;
+};
+const closePicker = () => {
+  pickerOpen.value = false;
+};
 const showParticipants = emoji => {
   selectedEmoji.value = emoji;
   participantsDialog.value.open();
@@ -54,7 +59,7 @@ const showParticipants = emoji => {
 const send = async emoji => {
   if (busy.value) return;
   busy.value = true;
-  picker.value.close();
+  closePicker();
   const previous = localReactions.value;
   const next = localReactions.value.filter(reaction => !reaction.fromMe);
   if (emoji)
@@ -89,7 +94,10 @@ defineExpose({ openPicker });
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1">
+  <div
+    v-on-click-outside="closePicker"
+    class="relative flex flex-wrap items-center gap-1"
+  >
     <button
       v-for="group in groups"
       :key="group.emoji"
@@ -113,34 +121,15 @@ defineExpose({ openPicker });
       :disabled="busy"
       @click="openPicker"
     />
-    <Dialog
-      ref="picker"
-      width="sm"
-      :title="t('MESSAGE_REACTIONS.ADD')"
-      :show-confirm-button="false"
-      :show-cancel-button="false"
-    >
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="emoji in EMOJIS"
-          :key="emoji"
-          type="button"
-          class="rounded-lg p-2 text-2xl hover:bg-n-solid-2"
-          :aria-label="emoji"
-          :disabled="busy"
-          @click="choose(emoji)"
-        >
-          {{ emoji }}
-        </button>
-      </div>
-      <Button
-        v-if="canRemove"
-        class="mt-3"
-        variant="ghost"
-        :label="t('MESSAGE_REACTIONS.REMOVE')"
-        @click="send('')"
-      />
-    </Dialog>
+    <EmojiIconPicker
+      v-if="pickerOpen"
+      mode="emoji"
+      :value="own?.emoji || ''"
+      :show-remove-button="canRemove"
+      class="!absolute bottom-full end-0 z-30 mb-1"
+      @select="choose($event.value)"
+      @remove="send('')"
+    />
     <Dialog
       ref="participantsDialog"
       width="sm"

@@ -25,6 +25,16 @@ vi.mock('dashboard/components-next/button/Button.vue', () => ({
 vi.mock('dashboard/components-next/avatar/Avatar.vue', () => ({
   default: { template: '<span />' },
 }));
+vi.mock(
+  'dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue',
+  () => ({
+    default: {
+      props: ['showRemoveButton'],
+      template:
+        '<div data-testid="emoji-picker"><button aria-label="🧑🏽‍💻" @click="$emit(\'select\', { value: \'🧑🏽‍💻\' })">🧑🏽‍💻</button><button v-if="showRemoveButton" aria-label="Remove my reaction" @click="$emit(\'remove\')">Remove my reaction</button></div>',
+    },
+  })
+);
 vi.mock('dashboard/components-next/dialog/Dialog.vue', () => ({
   default: {
     name: 'Dialog',
@@ -74,6 +84,7 @@ describe('Message reactions', () => {
         currentUserId: 7,
         reactions: [own, participant],
       },
+      global: { directives: { 'on-click-outside': {} } },
     });
   });
   afterEach(() => wrapper.unmount());
@@ -104,32 +115,32 @@ describe('Message reactions', () => {
     );
     wrapper.vm.openPicker();
     await flushPromises();
-    await findButton('✅').trigger('click');
-    expect(findButton('✅ 1')).toBeTruthy();
-    expect(messageReactionsAPI.react).toHaveBeenCalledWith(36, 12, '✅');
-    resolve({ data: { reactions: [{ ...own, emoji: '✅' }, participant] } });
+    await findButton('🧑🏽‍💻').trigger('click');
+    expect(findButton('🧑🏽‍💻 1')).toBeTruthy();
+    expect(messageReactionsAPI.react).toHaveBeenCalledWith(36, 12, '🧑🏽‍💻');
+    resolve({ data: { reactions: [{ ...own, emoji: '🧑🏽‍💻' }, participant] } });
     await flushPromises();
-    expect(findButton('✅ 1')).toBeTruthy();
+    expect(findButton('🧑🏽‍💻 1')).toBeTruthy();
   });
 
   it('restores the previous own reaction when the provider fails', async () => {
     messageReactionsAPI.react.mockRejectedValue(new Error('Provider failed'));
     wrapper.vm.openPicker();
     await flushPromises();
-    await findButton('❤️').trigger('click');
+    await findButton('🧑🏽‍💻').trigger('click');
     await flushPromises();
     expect(findButton('👍 2')).toBeTruthy();
-    expect(findButton('❤️ 1')).toBeUndefined();
+    expect(findButton('🧑🏽‍💻 1')).toBeUndefined();
     expect(useAlert).toHaveBeenCalledWith('MESSAGE_REACTIONS.ERROR');
   });
 
-  it('removes the own reaction when the same emoji is selected again', async () => {
+  it('removes the own reaction from the complete picker', async () => {
     messageReactionsAPI.react.mockResolvedValue({
       data: { reactions: [participant, { ...own, emoji: '' }] },
     });
     wrapper.vm.openPicker();
     await flushPromises();
-    await findButton('👍').trigger('click');
+    await findButton('Remove my reaction').trigger('click');
     await flushPromises();
     expect(messageReactionsAPI.react).toHaveBeenCalledWith(36, 12, '');
     expect(findButton('👍 1')).toBeTruthy();

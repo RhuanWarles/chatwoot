@@ -1,4 +1,11 @@
 {
+  "MESSAGE_REACTIONS": {
+    "ADD": "Reagir à mensagem",
+    "REMOVE": "Remover minha reação",
+    "YOU": "Você",
+    "COUNT": "{emoji} · {count} reações",
+    "ERROR": "Não foi possível enviar a reação. Sua reação anterior foi restaurada."
+  },
   "AI_AGENTS": {
     "BACK": "Voltar para assistentes de texto",
     "EDITOR_HELP": "Configure o comportamento, os acessos e os canais deste assistente.",
