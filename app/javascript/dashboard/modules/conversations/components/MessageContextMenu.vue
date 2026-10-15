@@ -47,7 +47,7 @@ export default {
       default: false,
     },
   },
-  emits: ['open', 'close', 'replyTo', 'forwardEmail'],
+  emits: ['open', 'close', 'replyTo', 'forwardEmail', 'react'],
   setup() {
     const { getPlainText } = useMessageFormatter();
 
@@ -247,6 +247,15 @@ export default {
           }"
           variant="icon"
           @click.stop="handleTranslate"
+        />
+        <MenuItem
+          v-if="enabledOptions.react"
+          :option="{ icon: 'emoji', label: $t('MESSAGE_REACTIONS.ADD') }"
+          variant="icon"
+          @click.stop="
+            $emit('react');
+            $emit('close');
+          "
         />
         <hr />
         <MenuItem

@@ -1,6 +1,10 @@
 en:
   evolution_groups:
+    reactions:
+      connected_account: "Connected WhatsApp account"
+      participant: "WhatsApp participant"
     errors:
+      invalid_reaction: "This reaction or message identifier is invalid."
       invalid_action: "This action is not valid for the participant's current state."
       participant_not_found: "The participant is no longer in the group or has no confirmed phone number."
       own_participant: "Use Leave group for the connected account."

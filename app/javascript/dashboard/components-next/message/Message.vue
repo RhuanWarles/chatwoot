@@ -23,6 +23,7 @@ import {
 } from './constants';
 
 import Avatar from 'next/avatar/Avatar.vue';
+import MessageReactions from './MessageReactions.vue';
 
 import TextBubble from './bubbles/Text/Index.vue';
 import ActivityBubble from './bubbles/Activity.vue';
@@ -148,6 +149,15 @@ const emit = defineEmits(['retry']);
 const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
+const messageReactions = ref(null);
+const canReact = computed(
+  () =>
+    props.isGroupConversation &&
+    !!props.sourceId &&
+    !props.private &&
+    !props.contentAttributes?.deleted &&
+    [MESSAGE_TYPES.INCOMING, MESSAGE_TYPES.OUTGOING].includes(props.messageType)
+);
 const showForwardEmail = ref(false);
 const forwardEmailPosition = ref({});
 const { t } = useI18n();
@@ -406,6 +416,7 @@ const contextMenuEnabledOptions = computed(() => {
 
   return {
     copy: hasText,
+    react: canReact.value,
     delete:
       (hasText || hasAttachments) &&
       !isFailedOrProcessing &&
@@ -569,7 +580,7 @@ provideMessageContext({
   <div
     v-if="shouldRenderMessage"
     :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
+    class="group flex w-full mb-2 message-bubble-container"
     :data-message-id="props.id"
     :class="[
       flexOrientationClass,
@@ -608,6 +619,9 @@ provideMessageContext({
         :class="{
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
+          'flex-col gap-1': canReact,
+          'items-end': canReact && orientation === ORIENTATION.RIGHT,
+          'items-start': canReact && orientation === ORIENTATION.LEFT,
           'flex-col items-start gap-2':
             shouldShowWhatsappReferral || isForwardedEmail,
         }"
@@ -619,6 +633,14 @@ provideMessageContext({
         />
         <ForwardedEmailBanner v-if="isForwardedEmail" />
         <Component :is="componentToRender" />
+        <MessageReactions
+          v-if="canReact"
+          ref="messageReactions"
+          :message-id="id"
+          :conversation-id="conversationId"
+          :current-user-id="currentUserId"
+          :reactions="contentAttributes.whatsappReactions || []"
+        />
       </div>
       <MessageError
         v-if="contentAttributes.externalError"
@@ -639,6 +661,7 @@ provideMessageContext({
         @open="openContextMenu"
         @close="closeContextMenu"
         @reply-to="handleReplyTo"
+        @react="messageReactions?.openPicker()"
         @forward-email="openForwardEmail"
       />
       <ForwardEmailPanel

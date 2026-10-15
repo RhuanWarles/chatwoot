@@ -1,0 +1,98 @@
+diff --git a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts b/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
+index 48ab02a2ce..76a7beb851 100644
+--- a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
++++ b/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts
+@@ -954,6 +954,7 @@ export class ChatwootService {
+         source_id: sourceId,
+         content_attributes: {
+           ...replyToIds,
++          ...(messageBody?.key ? { whatsapp_message_key: messageBody.key } : {}),
+         },
+         source_reply_id: sourceReplyId ? sourceReplyId.toString() : null,
+       },
+@@ -1963,6 +1964,42 @@ export class ChatwootService {
+     return messageContent;
+   }
+ 
++
++  private async forwardGroupReaction(instance: InstanceDto, body: any) {
++    const reaction = body.message.reactionMessage;
++    if (!body.key.remoteJid.endsWith('@g.us')) return;
++    const provider = await this.getProvider(instance);
++    const target = await this.prismaRepository.message.findFirst({
++      where: {
++        instanceId: this.waMonitor.waInstances[instance.instanceName].instanceId,
++        AND: [
++          { key: { path: ['id'], equals: reaction.key.id } },
++          { key: { path: ['remoteJid'], equals: body.key.remoteJid } },
++        ],
++      },
++    });
++    if (!target?.chatwootConversationId) {
++      this.logger.warn('[reaction] target mapping unavailable; no timeline message created');
++      return;
++    }
++    const timestamp = reaction.senderTimestampMs != null
++      ? Long.fromValue(reaction.senderTimestampMs).toNumber()
++      : Long.fromValue(body.messageTimestamp).toNumber() * 1000;
++    await axios.post(
++      `${provider.url}/api/v1/accounts/${provider.accountId}/conversations/${target.chatwootConversationId}/reaction_events`,
++      { reaction: {
++        target_id: reaction.key.id, group_jid: body.key.remoteJid,
++        event_id: body.key.id, from_me: body.key.fromMe,
++        participant: body.key.participant || '', name: body.pushName,
++        emoji: reaction.text || '', timestamp_ms: timestamp,
++      } },
++      { headers: {
++        api_access_token: provider.token,
++        'X-Evolution-Reaction-Key': this.configService.get<any>('AUTHENTICATION').API_KEY.KEY,
++      }, timeout: 25000 },
++    );
++  }
++
+   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
+     try {
+       const waInstance = this.waMonitor.waInstances[instance.instanceName];
+@@ -2021,6 +2058,11 @@ export class ChatwootService {
+           };
+         }
+ 
++        if (body.message?.reactionMessage) {
++          await this.forwardGroupReaction(instance, body);
++          return;
++        }
++
+         const originalMessage = await this.getConversationMessage(body.message);
+         const bodyMessage = originalMessage
+           ? originalMessage
+@@ -2158,30 +2200,6 @@ export class ChatwootService {
+           }
+         }
+ 
+-        if (reactionMessage) {
+-          if (reactionMessage.text) {
+-            const send = await this.createMessage(
+-              instance,
+-              getConversation,
+-              reactionMessage.text,
+-              messageType,
+-              false,
+-              [],
+-              {
+-                message: { extendedTextMessage: { contextInfo: { stanzaId: reactionMessage.key.id } } },
+-              },
+-              'WAID:' + body.key.id,
+-              quotedMsg,
+-            );
+-            if (!send) {
+-              this.logger.warn('message not sent');
+-              return;
+-            }
+-          }
+-
+-          return;
+-        }
+-
+         if (isInteractiveButtonMessage) {
+           const buttons = body.message.interactiveMessage.nativeFlowMessage.buttons;
+           this.logger.info('is Interactive Button Message: ' + JSON.stringify(buttons));

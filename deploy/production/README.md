@@ -1,5 +1,10 @@
 # Release CRM v1.1.1: GHCR e Portainer
 
+Para publicar o suporte a **reações de grupos WhatsApp**, consulte
+[o procedimento Chatwoot + Evolution](../evolution/REACTIONS.md). Essa feature
+exige os dois lados da integração; não usar imagem Evolution upstream sem os
+patches existentes nem criar uma stack nova para atualizar a instalação.
+
 Veja a [auditoria técnica](AUDITORIA.md) antes do primeiro deploy: inclui correção de `DATABASE_URL` vazia, geração de chaves, variáveis exatas, comandos de preparação/update e limites dos testes realizados.
 
 Este pacote reutiliza `docker/Dockerfile`. A mesma imagem executa Web e Sidekiq. Os arquivos abaixo destinam-se a **Portainer com Docker Standalone / Compose v2**, não a Docker Swarm. O código da VPS foi incorporado como snapshot sem novas regras de produto. A instalação existente não foi redeployada.

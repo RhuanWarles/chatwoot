@@ -1,5 +1,8 @@
 # Instalação do Chatwoot com CRM e Evolution API
 
+**Reações de grupos WhatsApp:** o [guia de publicação](deploy/evolution/REACTIONS.md)
+documenta o contrato, patch da Evolution, ordem de deploy, smoke e retenção segura.
+
 > **Release v1.0.0 / GHCR / Portainer:** use o [guia de release](deploy/production/README.md) e as Stacks em `deploy/production/`. O exemplo `deploy/portable` abaixo continua destinado a build/desenvolvimento e inclui Evolution opcional; não é a Stack de release baseada em registry.
 
 Guia deste fork, incluindo Deals, Pipelines, Custom Fields, Activities e integração Google Calendar/Meet. Os exemplos não contêm credenciais da VPS.

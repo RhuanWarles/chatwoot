@@ -1,4 +1,11 @@
 {
+  "MESSAGE_REACTIONS": {
+    "ADD": "React to message",
+    "REMOVE": "Remove my reaction",
+    "YOU": "You",
+    "COUNT": "{emoji} · {count} reactions",
+    "ERROR": "Could not send the reaction. Your previous reaction was restored."
+  },
   "SAAS_AI": {
     "TITLE": "AI & Voice",
     "DESCRIPTION": "Manage your company's text AI, voice minutes and usage.",
