@@ -65,7 +65,7 @@ class Saas::AiAnalytics
                    .where("content_attributes ->> 'generated_by_ai' = 'true'")
     scope = scope.where(inbox_id: @inbox_id) if @inbox_id
     scope = scope.where("content_attributes ->> 'ai_agent_id' = ?", @agent_id.to_s) if @agent_id
-    scope
+    scope.reorder(nil)
   end
 
   def runtime_usage
