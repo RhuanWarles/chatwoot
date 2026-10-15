@@ -126,7 +126,7 @@ defineExpose({ openPicker });
       mode="emoji"
       :value="own?.emoji || ''"
       :show-remove-button="canRemove"
-      class="!absolute bottom-full end-0 z-30 mb-1"
+      class="!absolute !z-50 bottom-full end-0 mb-1 w-[22rem] max-w-[calc(100vw-1rem)]"
       @select="choose($event.value)"
       @remove="send('')"
     />
