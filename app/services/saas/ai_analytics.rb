@@ -39,7 +39,12 @@ class Saas::AiAnalytics
   def period_range
     @agent_id = scoped_id(:ai_agent_id, @account.saas_ai_agents)
     @inbox_id = scoped_id(:inbox_id, @account.inboxes)
-    start_at = @params[:start_at].present? ? Time.zone.parse(@params[:start_at].to_s) : PERIODS.fetch(@params[:period].to_s, 7.days).ago
+    start_at = case @params[:period].to_s
+               when 'today' then Time.current.beginning_of_day
+               when 'month' then Time.current.beginning_of_month
+               else PERIODS.fetch(@params[:period].to_s, 7.days).ago
+               end
+    start_at = Time.zone.parse(@params[:start_at].to_s) if @params[:start_at].present?
     end_at = @params[:end_at].present? ? Time.zone.parse(@params[:end_at].to_s) : Time.current
     raise ArgumentError, 'invalid_period' if start_at.blank? || end_at.blank? || start_at >= end_at
 
@@ -117,8 +122,9 @@ class Saas::AiAnalytics
 
   def knowledge_data(scope)
     accepted = scope.where("COALESCE(NULLIF(metadata -> 'retrieval' ->> 'accepted_count', ''), '0')::integer > 0")
+    conversations = accepted.distinct.count("metadata ->> 'conversation_id'")
     { queries: scope.count, hits: accepted.count, hit_rate: percentage(accepted.count, scope.count),
-      conversations: accepted.where("(metadata ->> 'conversation_id') IS NOT NULL").distinct.count("metadata ->> 'conversation_id'") }
+      conversations: conversations, utilization_rate: percentage(conversations, ai_messages.distinct.count(:conversation_id)) }
   end
 
   def billing_data(scope)
@@ -127,7 +133,8 @@ class Saas::AiAnalytics
     return { mode: mode, credits_consumed: scope.sum(:units), credits_available: wallet ? wallet.available_units : 0,
              average_credits_per_conversation: average(scope.sum(:units), ai_messages.distinct.count(:conversation_id)) } if mode == 'platform'
 
-    usage = ai_messages.pluck(:content_attributes).map { |attributes| attributes['ai_token_usage'].to_h }
+    usage = ai_messages.to_a.uniq { |message| message.content_attributes['ai_response_batch_id'] || message.id }
+                       .map { |message| message.content_attributes['ai_token_usage'].to_h }
     prompt_tokens = usage.sum { |item| item['prompt_tokens'].to_i }
     completion_tokens = usage.sum { |item| item['completion_tokens'].to_i }
     total_tokens = usage.sum { |item| item['total_tokens'].to_i }
@@ -138,8 +145,13 @@ class Saas::AiAnalytics
   def timeseries(messages, usage)
     buckets = {}
     conversations = Hash.new { |hash, key| hash[key] = [] }
-    messages.pluck(:created_at, :conversation_id).each do |time, conversation_id|
+    turns = Hash.new { |hash, key| hash[key] = [] }
+    tokens = Hash.new(0)
+    messages.pluck(:created_at, :conversation_id, :id, :content_attributes).each do |time, conversation_id, id, attributes|
       date = time.in_time_zone.to_date.iso8601
+      turn_id = attributes['ai_response_batch_id'] || id
+      tokens[date] += attributes['ai_token_usage'].to_h['total_tokens'].to_i unless turns[date].include?(turn_id)
+      turns[date] << turn_id
       buckets[date] = (buckets[date] || 0) + 1
       conversations[date] << conversation_id unless conversations[date].include?(conversation_id)
     end
@@ -150,6 +162,15 @@ class Saas::AiAnalytics
         item = result.find { |entry| entry[:date] == date } || result.push({ date: date, conversations: 0, messages: 0, credits: 0 }).last
         item[:messages] = count
         item[:conversations] = conversations[date].length
+        item[:turns] = turns[date].uniq.length
+      end
+      (@range.begin.to_date..@range.end.to_date).each do |day|
+        date = day.iso8601
+        result << { date: date, conversations: 0, messages: 0, credits: 0 } unless result.any? { |item| item[:date] == date }
+      end
+      result.each do |item|
+        item[:turns] ||= 0
+        item[:tokens] = tokens[item[:date]]
       end
       result.sort_by! { |entry| entry[:date] }
     end

@@ -1,77 +1,484 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useElementSize } from '@vueuse/core';
+import { LineChart } from '@chatwoot/viz';
+import Select from 'dashboard/components-next/select/Select.vue';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 import aiAnalyticsAPI from 'dashboard/api/aiAnalytics';
-import aiAgentsAPI from 'dashboard/api/aiAgents';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const loading = ref(true);
 const error = ref('');
+const chartContainer = ref(null);
+const { height: chartHeight, width: chartWidth } =
+  useElementSize(chartContainer);
 const data = ref(null);
-const agents = ref([]);
-const inboxes = ref([]);
 const filters = ref({ period: '7d', ai_agent_id: '', inbox_id: '' });
-
-const periodOptions = computed(() => [
-  { value: 'today', label: t('AI_ANALYTICS.PERIOD_TODAY') },
-  { value: '7d', label: t('AI_ANALYTICS.PERIOD_7D') },
-  { value: '30d', label: t('AI_ANALYTICS.PERIOD_30D') },
+const start = ref('');
+const end = ref('');
+const key = name => t(`AI_ANALYTICS.${name}`);
+const number = value =>
+  value == null
+    ? '—'
+    : Number(value).toLocaleString(locale.value, { maximumFractionDigits: 2 });
+const percent = value => `${number(value)}%`;
+const date = value =>
+  new Intl.DateTimeFormat(locale.value, {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00Z`));
+const periodOptions = computed(() =>
+  ['today', '7d', '30d', 'month', 'custom'].map(value => ({
+    value,
+    label: key(`PERIOD_${value.toUpperCase()}`),
+  }))
+);
+const agentOptions = computed(() => [
+  { value: '', label: key('ALL') },
+  ...(data.value?.agents || []).map(item => ({
+    value: item.id,
+    label: item.name,
+  })),
 ]);
-const formatNumber = value => Number(value || 0).toLocaleString();
-const formatPercent = value => `${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
-const formatCost = value => (value == null ? '—' : `$${Number(value).toFixed(4)}`);
+const inboxOptions = computed(() => [
+  { value: '', label: key('ALL') },
+  ...(data.value?.inboxes || []).map(item => ({
+    value: item.id,
+    label: item.name,
+  })),
+]);
+const cards = computed(() => [
+  {
+    label: 'CONVERSATIONS',
+    value: data.value?.summary.conversations,
+    icon: 'i-lucide-messages-square',
+  },
+  {
+    label: 'TURNS',
+    value: data.value?.summary.turns,
+    icon: 'i-lucide-sparkles',
+    help: 'TURNS_HELP',
+  },
+  {
+    label: 'MESSAGES',
+    value: data.value?.summary.messages,
+    icon: 'i-lucide-send',
+  },
+  {
+    label: 'HANDOFFS',
+    value: data.value?.summary.handoffs,
+    icon: 'i-lucide-user-round-check',
+  },
+]);
+const chartData = computed(() => ({
+  categories: (data.value?.timeseries || []).map(item => date(item.date)),
+  series: [
+    {
+      id: 'conversations',
+      label: key('CONVERSATIONS'),
+      color: 'rgb(var(--blue-9))',
+    },
+    { id: 'turns', label: key('TURNS'), color: 'rgb(var(--iris-9))' },
+    { id: 'messages', label: key('MESSAGES'), color: 'rgb(var(--teal-9))' },
+  ].map(series => ({
+    ...series,
+    data: (data.value?.timeseries || []).map(item => item[series.id]),
+    pointBorderColor: 'rgb(var(--solid-2))',
+  })),
+}));
+const consumption = computed(() => {
+  const billing = data.value?.billing;
+  if (!billing) return [];
+  return billing.mode === 'platform'
+    ? [
+        ['CREDITS_USED', number(billing.credits_consumed)],
+        [
+          'CREDITS_AVERAGE',
+          number(billing.average_credits_per_conversation),
+          'CREDITS_HELP',
+        ],
+        ['CREDITS_AVAILABLE', number(billing.credits_available)],
+      ]
+    : [
+        ['INPUT_TOKENS', number(billing.prompt_tokens)],
+        ['OUTPUT_TOKENS', number(billing.completion_tokens)],
+        ['TOKENS', number(billing.total_tokens)],
+        [
+          'ESTIMATED_COST',
+          billing.estimated_cost_usd == null
+            ? '—'
+            : number(billing.estimated_cost_usd),
+        ],
+        [
+          'COST_AVERAGE',
+          billing.average_cost_per_conversation == null
+            ? '—'
+            : number(billing.average_cost_per_conversation),
+        ],
+      ];
+});
+const knowledge = computed(() =>
+  data.value
+    ? [
+        ['QUERIES', number(data.value.knowledge.queries)],
+        ['HITS', number(data.value.knowledge.hits)],
+        ['HIT_RATE', percent(data.value.knowledge.hit_rate), 'HIT_HELP'],
+        ['KNOWLEDGE_CONVERSATIONS', number(data.value.knowledge.conversations)],
+        [
+          'UTILIZATION',
+          percent(data.value.knowledge.utilization_rate),
+          'UTILIZATION_HELP',
+        ],
+      ]
+    : []
+);
+let requestId = 0;
 const load = async () => {
+  if (
+    filters.value.period === 'custom' &&
+    (!start.value || !end.value || start.value > end.value)
+  )
+    return;
+  requestId += 1;
+  const currentRequest = requestId;
   loading.value = true;
   error.value = '';
   try {
-    const [analytics, agentResponse] = await Promise.all([
-      aiAnalyticsAPI.show(filters.value),
-      agents.value.length ? Promise.resolve({ data: { agents: agents.value } }) : aiAgentsAPI.get(),
-    ]);
-    data.value = analytics.data;
-    agents.value = agentResponse.data.agents || [];
-    inboxes.value = analytics.data.inboxes || [];
+    const params = { ...filters.value };
+    if (params.period === 'custom') {
+      params.start_at = new Date(`${start.value}T00:00:00`).toISOString();
+      params.end_at = new Date(`${end.value}T23:59:59.999`).toISOString();
+    }
+    const response = await aiAnalyticsAPI.show(params);
+    if (currentRequest === requestId) data.value = response.data;
   } catch {
-    error.value = t('AI_ANALYTICS.LOAD_ERROR');
+    if (currentRequest === requestId) error.value = key('LOAD_ERROR');
   } finally {
-    loading.value = false;
+    if (currentRequest === requestId) loading.value = false;
   }
 };
-watch(filters, load, { deep: true });
 onMounted(load);
 </script>
 
 <template>
-  <main class="flex flex-col w-full min-w-0 gap-6">
-    <header>
-      <h1 class="text-xl font-semibold text-n-slate-12">{{ t('AI_ANALYTICS.TITLE') }}</h1>
-      <p class="text-sm text-n-slate-11">{{ t('AI_ANALYTICS.SUBTITLE') }}</p>
+  <main
+    class="flex h-full min-h-0 w-full min-w-0 flex-col gap-4 overflow-hidden text-n-slate-12"
+  >
+    <header class="shrink-0">
+      <h1 class="text-xl font-semibold tracking-tight">{{ key('TITLE') }}</h1>
+      <p class="mt-1 text-sm text-n-slate-11">{{ key('SUBTITLE') }}</p>
     </header>
-    <section class="flex flex-wrap gap-3 p-4 rounded-xl bg-n-solid-2">
-      <label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_ANALYTICS.PERIOD') }}<select v-model="filters.period" class="h-10 px-3 rounded-lg bg-n-solid-1 border border-n-weak"><option v-for="item in periodOptions" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
-      <label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_ANALYTICS.AGENT') }}<select v-model="filters.ai_agent_id" class="h-10 px-3 rounded-lg bg-n-solid-1 border border-n-weak"><option value="">{{ t('AI_ANALYTICS.ALL') }}</option><option v-for="agent in agents" :key="agent.id" :value="agent.id">{{ agent.name }}</option></select></label>
-      <label class="flex flex-col gap-1 text-sm text-n-slate-12">{{ t('AI_ANALYTICS.INBOX') }}<select v-model="filters.inbox_id" class="h-10 px-3 rounded-lg bg-n-solid-1 border border-n-weak"><option value="">{{ t('AI_ANALYTICS.ALL') }}</option><option v-for="inbox in inboxes" :key="inbox.id" :value="inbox.id">{{ inbox.name }}</option></select></label>
+    <section
+      class="grid shrink-0 grid-cols-3 gap-3"
+      :aria-label="key('PERIOD')"
+    >
+      <label class="min-w-0 text-xs font-medium text-n-slate-11"
+        >{{ key('PERIOD')
+        }}<Select
+          v-model="filters.period"
+          :options="periodOptions"
+          :aria-label="key('PERIOD')"
+          class="mt-1 !w-full [&_select]:w-full"
+          @update:model-value="load"
+      /></label>
+      <label class="min-w-0 text-xs font-medium text-n-slate-11"
+        >{{ key('AGENT')
+        }}<Select
+          v-model="filters.ai_agent_id"
+          :options="agentOptions"
+          :aria-label="key('AGENT')"
+          class="mt-1 !w-full [&_select]:w-full"
+          @update:model-value="load"
+      /></label>
+      <label class="min-w-0 text-xs font-medium text-n-slate-11"
+        >{{ key('INBOX')
+        }}<Select
+          v-model="filters.inbox_id"
+          :options="inboxOptions"
+          :aria-label="key('INBOX')"
+          class="mt-1 !w-full [&_select]:w-full"
+          @update:model-value="load"
+      /></label>
     </section>
-    <p v-if="error" role="alert" class="text-sm text-n-ruby-9">{{ error }}</p>
-    <p v-else-if="loading" role="status" class="text-sm text-n-slate-11">{{ t('AI_ANALYTICS.LOADING') }}</p>
-    <template v-else-if="data">
-      <section class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <article v-for="card in [
-          [t('AI_ANALYTICS.CONVERSATIONS'), data.summary.conversations],
-          [t('AI_ANALYTICS.TURNS'), data.summary.turns],
-          [t('AI_ANALYTICS.MESSAGES'), data.summary.messages],
-          [t('AI_ANALYTICS.HANDOFFS'), data.summary.handoffs]
-        ]" :key="card[0]" class="p-4 rounded-xl bg-n-solid-2"><p class="text-sm text-n-slate-11">{{ card[0] }}</p><p class="mt-2 text-2xl font-semibold text-n-slate-12">{{ formatNumber(card[1]) }}</p></article>
+    <div
+      v-if="filters.period === 'custom'"
+      class="flex shrink-0 flex-wrap items-end gap-3"
+    >
+      <label class="text-xs text-n-slate-11"
+        >{{ key('START')
+        }}<input
+          v-model="start"
+          type="date"
+          :max="end || undefined"
+          class="!mb-0 mt-1 !w-auto"
+      /></label>
+      <label class="text-xs text-n-slate-11"
+        >{{ key('END')
+        }}<input
+          v-model="end"
+          type="date"
+          :min="start || undefined"
+          class="!mb-0 mt-1 !w-auto"
+      /></label>
+      <button
+        class="rounded-lg bg-n-blue-9 px-4 py-2 text-sm text-white disabled:opacity-50"
+        :disabled="!start || !end || start > end"
+        @click="load"
+      >
+        {{ key('APPLY') }}
+      </button>
+    </div>
+    <div
+      v-if="error"
+      role="alert"
+      class="flex items-center justify-between rounded-lg bg-n-ruby-3 p-3 text-sm text-n-ruby-11"
+    >
+      {{ error }}<button @click="load">{{ key('RETRY') }}</button>
+    </div>
+    <div
+      v-if="loading"
+      role="status"
+      :aria-label="key('LOADING')"
+      class="flex min-h-0 flex-1 animate-pulse flex-col gap-4"
+    >
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div v-for="n in 4" :key="n" class="h-24 rounded-xl bg-n-alpha-2" />
+      </div>
+      <div class="min-h-0 flex-1 rounded-xl bg-n-alpha-2" />
+    </div>
+    <template v-else-if="data && !error">
+      <section class="grid shrink-0 grid-cols-2 gap-3 sm:grid-cols-4">
+        <article
+          v-for="card in cards"
+          :key="card.label"
+          class="rounded-xl bg-n-alpha-2 p-3 sm:p-4"
+        >
+          <div
+            class="flex items-center justify-between gap-2 text-xs text-n-slate-11"
+          >
+            <span v-tooltip="card.help ? key(card.help) : ''">{{
+              key(card.label)
+            }}</span
+            ><Icon :icon="card.icon" class="size-4 shrink-0" />
+          </div>
+          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight">
+            {{ number(card.value) }}
+          </p>
+        </article>
       </section>
-      <section class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <article class="p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_ANALYTICS.OPERATION') }}</h2><dl class="grid grid-cols-2 gap-4 mt-4 text-sm"><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.HANDOFF_RATE') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatPercent(data.summary.handoff_rate) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.RESPONSE_TIME') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ data.summary.average_response_ms == null ? '—' : `${Math.round(data.summary.average_response_ms)} ms` }}</dd></div></dl></article>
-        <article class="p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_ANALYTICS.CONSUMPTION') }}</h2><dl class="grid grid-cols-2 gap-4 mt-4 text-sm"><template v-if="data.billing.mode === 'platform'"><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.CREDITS_USED') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.billing.credits_consumed) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.CREDITS_AVAILABLE') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.billing.credits_available) }}</dd></div></template><template v-else><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.INPUT_TOKENS') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.billing.prompt_tokens) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.OUTPUT_TOKENS') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.billing.completion_tokens) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.TOKENS') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.billing.total_tokens) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.ESTIMATED_COST') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatCost(data.billing.estimated_cost_usd) }}</dd></div></template></dl></article>
-      </section>
-      <section class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <article class="p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_ANALYTICS.TOOLS') }}</h2><p class="mt-2 text-sm text-n-slate-11">{{ formatNumber(data.tools.executions) }} · {{ formatPercent(data.tools.success_rate) }} {{ t('AI_ANALYTICS.SUCCESS_RATE') }}</p><div v-if="data.tools.top.length" class="mt-4 overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-n-slate-11"><th class="p-2">{{ t('AI_ANALYTICS.TOOL') }}</th><th class="p-2">{{ t('AI_ANALYTICS.EXECUTIONS') }}</th><th class="p-2">{{ t('AI_ANALYTICS.SUCCESS') }}</th><th class="p-2">{{ t('AI_ANALYTICS.FAILURES') }}</th></tr></thead><tbody><tr v-for="item in data.tools.top" :key="item.id"><td class="p-2 text-n-slate-12">{{ item.name }}</td><td class="p-2">{{ item.executions }}</td><td class="p-2 text-n-emerald-11">{{ item.success }}</td><td class="p-2 text-n-ruby-11">{{ item.failures }}</td></tr></tbody></table></div><p v-else class="mt-4 text-sm text-n-slate-11">{{ t('AI_ANALYTICS.EMPTY_TOOLS') }}</p></article>
-        <article class="p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_ANALYTICS.KNOWLEDGE') }}</h2><dl class="grid grid-cols-3 gap-4 mt-4 text-sm"><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.QUERIES') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.knowledge.queries) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.HITS') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatNumber(data.knowledge.hits) }}</dd></div><div><dt class="text-n-slate-11">{{ t('AI_ANALYTICS.HIT_RATE') }}</dt><dd class="mt-1 text-lg text-n-slate-12">{{ formatPercent(data.knowledge.hit_rate) }}</dd></div></dl></article>
-      </section>
-      <section class="p-5 rounded-xl bg-n-solid-2"><h2 class="font-medium text-n-slate-12">{{ t('AI_ANALYTICS.TIMESERIES') }}</h2><p v-if="!data.timeseries.length" class="mt-4 text-sm text-n-slate-11">{{ t('AI_ANALYTICS.EMPTY') }}</p><div v-else class="mt-4 overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-n-slate-11"><th class="p-2">{{ t('AI_ANALYTICS.DATE') }}</th><th class="p-2">{{ t('AI_ANALYTICS.MESSAGES') }}</th><th class="p-2">{{ t('AI_ANALYTICS.CREDITS_USED') }}</th></tr></thead><tbody><tr v-for="item in data.timeseries" :key="item.date"><td class="p-2 text-n-slate-12">{{ item.date }}</td><td class="p-2">{{ item.messages }}</td><td class="p-2">{{ item.credits }}</td></tr></tbody></table></div></section>
+      <div
+        class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:grid lg:grid-cols-2 lg:grid-rows-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden"
+      >
+        <section
+          class="flex h-64 min-h-0 min-w-0 shrink-0 flex-col rounded-xl bg-n-alpha-1 p-4 lg:col-span-2 lg:h-auto"
+        >
+          <h2 class="shrink-0 text-sm font-semibold">
+            {{ key('TIMESERIES') }}
+          </h2>
+          <div
+            ref="chartContainer"
+            class="mt-2 flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+          >
+            <LineChart
+              v-if="data.summary.messages || data.billing.credits_consumed"
+              :data="chartData"
+              :height="Math.max(60, Math.floor(chartHeight))"
+              :width="Math.max(280, Math.floor(chartWidth))"
+              :point-radius="2"
+              :show-values="false"
+              :format-value="number"
+              :aria-label="key('TIMESERIES')"
+              class="w-full min-w-0 [&_.cw-viz-line__x-tick]:hidden [&_.cw-viz-line__x-tick:nth-child(4n+1)]:block [&_.cw-viz-line__x-tick:last-child]:block [--cw-viz-line-label-color:rgb(var(--slate-11))] [--cw-viz-line-axis-color:rgb(var(--slate-4))] [--cw-viz-line-tooltip-background:rgb(var(--solid-2))] [--cw-viz-line-tooltip-color:rgb(var(--slate-12))]"
+            />
+            <p v-else class="py-12 text-sm text-n-slate-11">
+              {{ key('EMPTY') }}
+            </p>
+          </div>
+          <div
+            class="flex flex-wrap justify-center gap-4 text-xs text-n-slate-11"
+          >
+            <span class="flex items-center gap-1"
+              ><span class="size-2 rounded-full bg-n-blue-9" />{{
+                key('CONVERSATIONS')
+              }}</span
+            ><span class="flex items-center gap-1"
+              ><span class="size-2 rounded-full bg-n-iris-9" />{{
+                key('TURNS')
+              }}</span
+            ><span class="flex items-center gap-1"
+              ><span class="size-2 rounded-full bg-n-teal-9" />{{
+                key('MESSAGES')
+              }}</span
+            >
+          </div>
+        </section>
+        <section
+          class="flex h-52 min-h-0 min-w-0 shrink-0 flex-col rounded-xl bg-n-alpha-1 p-4 lg:h-auto"
+        >
+          <h2 class="text-sm font-semibold">{{ key('TOOLS') }}</h2>
+          <p class="mt-2 text-xs text-n-slate-11">
+            {{ key('EXECUTIONS') }}: {{ number(data.tools.executions) }} ·
+            {{ key('SUCCESS') }}: {{ number(data.tools.success) }} ·
+            {{ key('FAILURES') }}: {{ number(data.tools.failures) }} ·
+            {{ percent(data.tools.success_rate) }}
+          </p>
+          <div class="mt-2 min-h-0 flex-1 overflow-auto">
+            <table
+              v-if="data.tools.top.length"
+              class="w-full text-xs tabular-nums"
+            >
+              <thead class="sticky top-0 bg-n-solid-2 text-n-slate-11">
+                <tr>
+                  <th
+                    v-for="label in [
+                      'TOOL',
+                      'EXECUTIONS',
+                      'SUCCESS',
+                      'FAILURES',
+                      'SUCCESS_RATE',
+                    ]"
+                    :key="label"
+                    class="px-2 py-2 text-start font-medium"
+                  >
+                    {{ key(label) }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="tool in data.tools.top"
+                  :key="tool.id"
+                  class="border-b border-n-weak"
+                >
+                  <td class="max-w-32 truncate px-2 py-2">{{ tool.name }}</td>
+                  <td>{{ number(tool.executions) }}</td>
+                  <td class="text-n-teal-11">{{ number(tool.success) }}</td>
+                  <td class="text-n-ruby-11">{{ number(tool.failures) }}</td>
+                  <td>{{ percent(tool.success_rate) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="py-6 text-xs text-n-slate-11">
+              {{ key('EMPTY_TOOLS') }}
+            </p>
+          </div>
+        </section>
+        <section
+          class="min-h-0 shrink-0 overflow-y-auto rounded-xl bg-n-alpha-1 p-4"
+        >
+          <h2 class="text-sm font-semibold">{{ key('KNOWLEDGE') }}</h2>
+          <dl
+            v-if="data.knowledge.queries"
+            class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3"
+          >
+            <div v-for="item in knowledge" :key="item[0]">
+              <dt
+                v-tooltip="item[2] ? key(item[2]) : ''"
+                class="text-xs text-n-slate-11"
+              >
+                {{ key(item[0]) }}
+              </dt>
+              <dd class="mt-1 text-base font-medium tabular-nums">
+                {{ item[1] }}
+              </dd>
+            </div>
+          </dl>
+          <p v-else class="py-6 text-xs text-n-slate-11">
+            {{ key('EMPTY_KNOWLEDGE') }}
+          </p>
+        </section>
+        <section
+          class="min-h-0 shrink-0 overflow-y-auto rounded-xl bg-n-alpha-1 p-4"
+        >
+          <h2 class="text-sm font-semibold">{{ key('CONSUMPTION') }}</h2>
+          <dl class="mt-3 grid grid-cols-3 gap-3">
+            <div v-for="item in consumption" :key="item[0]">
+              <dt
+                v-tooltip="item[2] ? key(item[2]) : ''"
+                class="text-xs text-n-slate-11"
+              >
+                {{ key(item[0]) }}
+              </dt>
+              <dd
+                v-tooltip="item[1] === '—' ? key('INSUFFICIENT') : ''"
+                class="mt-1 text-base font-medium tabular-nums"
+              >
+                {{ item[1] }}
+              </dd>
+            </div>
+          </dl>
+          <div
+            class="mt-4 flex flex-wrap items-center gap-4 border-t border-n-weak pt-3 text-xs text-n-slate-11"
+          >
+            <span>{{ key('OPERATION') }}</span
+            ><span
+              >{{ key('HANDOFF_RATE') }}:
+              {{ percent(data.summary.handoff_rate) }}</span
+            ><span v-tooltip="key('INSUFFICIENT')"
+              >{{ key('RESPONSE_TIME') }}: —</span
+            >
+          </div>
+        </section>
+        <section
+          class="flex h-64 min-h-40 min-w-0 shrink-0 flex-col overflow-hidden rounded-xl bg-n-alpha-1 lg:h-auto lg:min-h-0"
+        >
+          <h2 class="shrink-0 px-4 py-3 text-sm font-semibold">
+            {{ key('DETAILS') }}
+          </h2>
+          <div class="min-h-0 flex-1 overflow-auto">
+            <table
+              v-if="data.timeseries.length"
+              class="w-full text-xs tabular-nums"
+            >
+              <thead class="sticky top-0 z-10 bg-n-solid-2 text-n-slate-11">
+                <tr>
+                  <th
+                    v-for="label in [
+                      'DATE',
+                      'CONVERSATIONS',
+                      'TURNS',
+                      'MESSAGES',
+                      data.billing.mode === 'platform'
+                        ? 'CREDITS_USED'
+                        : 'TOKENS',
+                    ]"
+                    :key="label"
+                    class="px-3 py-2 text-start font-medium"
+                  >
+                    {{ key(label) }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="item in data.timeseries"
+                  :key="item.date"
+                  class="border-b border-n-weak"
+                >
+                  <td class="whitespace-nowrap px-3 py-2">
+                    {{ date(item.date) }}
+                  </td>
+                  <td class="px-3">{{ number(item.conversations) }}</td>
+                  <td class="px-3">{{ number(item.turns) }}</td>
+                  <td class="px-3">{{ number(item.messages) }}</td>
+                  <td class="px-3">
+                    {{
+                      number(
+                        data.billing.mode === 'platform'
+                          ? item.credits
+                          : item.tokens
+                      )
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="p-4 text-xs text-n-slate-11">{{ key('EMPTY') }}</p>
+          </div>
+        </section>
+      </div>
     </template>
   </main>
 </template>

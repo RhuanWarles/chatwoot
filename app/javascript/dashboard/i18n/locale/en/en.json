@@ -376,6 +376,7 @@
     "DISABLED": "Text AI is not enabled for this account."
   },
   "AI_HUB": {
+    "ANALYTICS": "Analytics",
     "TITLE": "AI",
     "ASSISTANTS": "Assistants",
     "TOOLS": "Tools",
@@ -405,8 +406,8 @@
     "TEXT_CONNECTION_HELP": "Choose the account payment mode here. Platform mode uses the administrator's provider and model; BYOK stores the account key securely. Agent instructions remain per agent."
   },
   "AI_ANALYTICS": {
-    "TITLE": "AI analytics",
-    "SUBTITLE": "Reliable activity metrics for text AI agents.",
+    "TITLE": "AI Analytics",
+    "SUBTITLE": "Track the performance, usage, and consumption of your AI assistants.",
     "PERIOD": "Period",
     "PERIOD_TODAY": "Today",
     "PERIOD_7D": "Last 7 days",
@@ -443,6 +444,23 @@
     "HIT_RATE": "Hit rate",
     "TIMESERIES": "Activity over time",
     "DATE": "Date",
-    "EMPTY": "No AI activity found in this period."
+    "EMPTY": "No AI activity found in this period.",
+    "PERIOD_MONTH": "This month",
+    "PERIOD_CUSTOM": "Custom",
+    "START": "Start date",
+    "END": "End date",
+    "APPLY": "Apply",
+    "DETAILS": "Detailed activity",
+    "CREDITS_AVERAGE": "Credits per conversation",
+    "COST_AVERAGE": "Cost per conversation",
+    "KNOWLEDGE_CONVERSATIONS": "Conversations using knowledge",
+    "UTILIZATION": "Knowledge utilization",
+    "EMPTY_KNOWLEDGE": "No knowledge queries in this period.",
+    "INSUFFICIENT": "Insufficient data to calculate this metric.",
+    "TURNS_HELP": "Model responses generated, regardless of the number of messages sent.",
+    "HIT_HELP": "Queries with at least one accepted chunk divided by all queries.",
+    "UTILIZATION_HELP": "Conversations with accepted knowledge chunks divided by conversations handled.",
+    "CREDITS_HELP": "Credits consumed divided by conversations handled.",
+    "RETRY": "Try again"
   }
 }
