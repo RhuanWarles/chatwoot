@@ -96,6 +96,11 @@ git apply /home/deploy/chatwoot-saas-ai-clean/deploy/evolution/patches/chatwoot-
 docker build -t evolution-api:group-reactions .
 ```
 
+O source da Evolution usa LF. O arquivo `.patch` também deve ser transferido
+com LF; uma conversão CRLF feita pelo checkout Windows faz `git apply`/`patch`
+falhar mesmo quando o conteúdo está correto. Normalize somente o patch (não o
+projeto inteiro), valide com `patch --dry-run -p1` e só então aplique.
+
 7. Recriar **somente Evolution** para trocar sua imagem, mantendo integralmente
    ENV, mounts, ports, networks/aliases, restart policy, labels, comando e
    entrypoint da instalação. Nunca executar `docker rm -v`. Guardar a imagem
