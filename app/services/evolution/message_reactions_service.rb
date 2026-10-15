@@ -1,5 +1,4 @@
 class Evolution::MessageReactionsService
-  EMOJIS = %w[👍 ❤️ 😂 😮 😢 🙏 ✅].freeze
   ATTRIBUTE = 'whatsapp_reactions'.freeze
 
   def initialize(message)

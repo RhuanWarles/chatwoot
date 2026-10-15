@@ -1,7 +1,8 @@
 class Api::V1::Accounts::Conversations::MessageReactionsController < Api::V1::Accounts::Conversations::BaseController
   IDENTIFIER = ->(value) { value.is_a?(String) && value.length.between?(1, 200) }
+  VALID_EMOJI = /\A(?=.*\p{Emoji})[^\p{Cc}\p{Cs}\p{Z}]+\z/u
   EVENT_VALIDATORS = {
-    emoji: ->(value) { value.is_a?(String) && value.length <= 32 },
+    emoji: ->(value) { value.is_a?(String) && value.length <= 32 && (value.empty? || value.match?(VALID_EMOJI)) },
     from_me: ->(value) { [true, false].include?(value) },
     timestamp_ms: ->(value) { value.is_a?(Integer) && value.positive? },
     event_id: IDENTIFIER, target_id: IDENTIFIER,
@@ -16,7 +17,7 @@ class Api::V1::Accounts::Conversations::MessageReactionsController < Api::V1::Ac
     raise Pundit::NotAuthorizedError unless Current.user.is_a?(User)
 
     emoji = params[:emoji]
-    unless emoji.is_a?(String) && (Evolution::MessageReactionsService::EMOJIS.include?(emoji) || emoji.empty?)
+    unless emoji.is_a?(String) && emoji.length <= 32 && (emoji.empty? || emoji.match?(VALID_EMOJI))
       raise CustomExceptions::Evolution, :invalid_reaction
     end
 
