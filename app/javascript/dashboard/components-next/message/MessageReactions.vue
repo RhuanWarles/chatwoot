@@ -118,7 +118,10 @@ defineExpose({ openPicker });
           size="xs"
           variant="ghost"
           color="slate"
-          class="md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+          :class="{
+            'md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100':
+              groups.length > 0,
+          }"
           :aria-label="t('MESSAGE_REACTIONS.ADD')"
           :disabled="busy"
           @click.stop="openPicker"
