@@ -146,8 +146,10 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
 
   def selected_flags_with_preserved_ai_access
     ai_flags = %i[feature_text_ai feature_voice_ai]
-    chosen = params[:enabled_features].keys.map(&:to_sym) - ai_flags
-    chosen + (requested_resource.selected_feature_flags & ai_flags)
+    chosen = params[:enabled_features].keys.map(&:to_sym)
+    return chosen if action_name == 'create'
+
+    chosen - ai_flags + (requested_resource.selected_feature_flags & ai_flags)
   end
 
   def ai_feature_params

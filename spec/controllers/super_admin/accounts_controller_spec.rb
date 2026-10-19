@@ -66,6 +66,30 @@ RSpec.describe 'Super Admin accounts API', type: :request do
     end
   end
 
+  describe 'POST /super_admin/accounts' do
+    it 'creates an account from submitted feature flags without loading an existing account' do
+      sign_in(super_admin, scope: :super_admin)
+
+      expect do
+        post '/super_admin/accounts', params: {
+          account: { name: 'Created from Super Admin', locale: 'en', status: 'active' },
+          enabled_features: {
+            feature_text_ai: 'true',
+            feature_voice_ai: 'true',
+            feature_agent_management: 'true'
+          }
+        }
+      end.to change(Account, :count).by(1)
+
+      created_account = Account.find_by!(name: 'Created from Super Admin')
+
+      expect(response).to redirect_to(super_admin_account_path(created_account))
+      expect(created_account.feature_enabled?(:text_ai)).to be(true)
+      expect(created_account.feature_enabled?(:voice_ai)).to be(true)
+      expect(created_account.feature_enabled?(:agent_management)).to be(true)
+    end
+  end
+
   describe 'AI credits' do
     it 'paginates filtered AI usage with stable ordering and account isolation' do
       records = 26.times.map do |index|
