@@ -1,13 +1,19 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
-import { useStore } from 'dashboard/composables/store';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
+import { useAccount } from 'dashboard/composables/useAccount';
 import inboxesAPI from 'dashboard/api/inboxes';
+import WhatsappConnectionsAPI from 'dashboard/api/whatsappConnections';
 import SettingsFieldSection from 'dashboard/components-next/Settings/SettingsFieldSection.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import SettingsAccordion from 'dashboard/components-next/Settings/SettingsAccordion.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import Select from 'dashboard/components-next/select/Select.vue';
+import ConnectionStatus from 'dashboard/routes/dashboard/whatsapp/ConnectionStatus.vue';
 
 const props = defineProps({
   inbox: {
@@ -18,7 +24,29 @@ const props = defineProps({
 
 const { t } = useI18n();
 const store = useStore();
+const router = useRouter();
+const { accountScopedRoute } = useAccount();
+const isAvailable = useMapGetter('globalConfig/isWhatsappConnectionsEnabled');
+const { run, abort } = useAbortableRequest();
 const evolutionInstanceName = ref('');
+const connections = ref([]);
+const selectedConnectionId = ref('');
+const selectedConnection = computed(() =>
+  connections.value.find(item => item.id === selectedConnectionId.value)
+);
+const currentConnection = computed(() =>
+  connections.value.find(
+    item => item.instance_name === evolutionInstanceName.value
+  )
+);
+const connectionOptions = computed(() => [
+  ...(evolutionInstanceName.value && !currentConnection.value
+    ? [{ value: 'legacy', label: t('WHATSAPP_CONNECTIONS.LEGACY_CONNECTION') }]
+    : []),
+  ...connections.value
+    .filter(item => !item.inbox_id || item.inbox_id === props.inbox.id)
+    .map(item => ({ value: item.id, label: item.display_name })),
+]);
 const evolutionSignMessages = ref(false);
 const savedEvolutionSignMessages = ref(false);
 const evolutionSignMessagesAvailable = ref(false);
@@ -35,7 +63,12 @@ const setDefaults = () => {
 const loadEvolutionConfiguration = async () => {
   evolutionConfigurationError.value = '';
   evolutionSignMessagesAvailable.value = false;
-  if (!evolutionInstanceName.value.trim() || !props.inbox.id) return;
+  if (
+    !isAvailable.value ||
+    !evolutionInstanceName.value.trim() ||
+    !props.inbox.id
+  )
+    return;
 
   isLoadingEvolutionConfiguration.value = true;
   try {
@@ -54,21 +87,20 @@ const loadEvolutionConfiguration = async () => {
 };
 
 const updateEvolutionInstance = async () => {
+  if (!selectedConnection.value) return;
+
   isUpdatingEvolutionInstance.value = true;
   try {
-    const additionalAttributes = {
-      ...(props.inbox.additional_attributes || {}),
-      evolution_instance_name: evolutionInstanceName.value.trim(),
-    };
-    await store.dispatch('inboxes/updateInbox', {
-      id: props.inbox.id,
-      formData: false,
-      channel: { additional_attributes: additionalAttributes },
+    await WhatsappConnectionsAPI.update(selectedConnectionId.value, {
+      inbox_id: props.inbox.id,
     });
+    await store.dispatch('inboxes/get');
     useAlert(t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
     await loadEvolutionConfiguration();
   } catch (error) {
-    useAlert(t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE'));
+    useAlert(
+      error.response?.data?.error || t('INBOX_MGMT.EDIT.API.ERROR_MESSAGE')
+    );
   } finally {
     isUpdatingEvolutionInstance.value = false;
   }
@@ -97,9 +129,23 @@ const updateEvolutionSignMessages = async () => {
 };
 
 watch(
-  () => props.inbox,
-  () => {
+  [() => props.inbox, isAvailable],
+  async () => {
+    abort();
     setDefaults();
+    if (!isAvailable.value) return;
+    try {
+      const response = await run(signal =>
+        WhatsappConnectionsAPI.get({ signal })
+      );
+      if (!response) return;
+      connections.value = response.data.connections;
+      selectedConnectionId.value =
+        currentConnection.value?.id ||
+        (evolutionInstanceName.value ? 'legacy' : '');
+    } catch (error) {
+      connections.value = [];
+    }
     loadEvolutionConfiguration();
   },
   { deep: true, immediate: true }
@@ -107,45 +153,87 @@ watch(
 </script>
 
 <template>
-  <SettingsAccordion
-    :title="t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_API_TITLE')"
-    class="mt-6"
-  >
-    <SettingsFieldSection
-      :label="t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_INSTANCE_NAME')"
-      :help-text="t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_INSTANCE_NAME_HELP')"
+  <div>
+    <SettingsAccordion
+      v-if="isAvailable"
+      :title="t('WHATSAPP_CONNECTIONS.TITLE')"
+      class="mt-6"
     >
-      <div class="flex items-center gap-2">
-        <input v-model="evolutionInstanceName" type="text" class="flex-1" />
-        <NextButton
-          :is-loading="isUpdatingEvolutionInstance"
-          :disabled="isUpdatingEvolutionInstance"
-          :label="t('INBOX_MGMT.SETTINGS_POPUP.UPDATE')"
-          @click="updateEvolutionInstance"
-        />
-      </div>
-    </SettingsFieldSection>
-    <SettingsToggleSection
-      v-model="evolutionSignMessages"
-      :header="t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_SIGN_MESSAGES')"
-      :description="
-        evolutionConfigurationError ||
-        (isLoadingEvolutionConfiguration
-          ? t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_CONFIGURATION_LOADING')
-          : t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_SIGN_MESSAGES_HELP'))
-      "
-      :disabled="
-        !evolutionSignMessagesAvailable ||
-        isLoadingEvolutionConfiguration ||
-        isUpdatingEvolutionSignMessages
-      "
-      @update:model-value="updateEvolutionSignMessages"
-    >
-      <template v-if="!evolutionInstanceName.trim()" #editor>
-        <p class="text-label-small text-n-slate-11">
-          {{ t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_SIGN_MESSAGES_DISABLED') }}
+      <SettingsFieldSection
+        :label="t('WHATSAPP_CONNECTIONS.SELECT_CONNECTION')"
+      >
+        <div class="flex items-center gap-2">
+          <Select
+            v-model="selectedConnectionId"
+            :options="connectionOptions"
+            :placeholder="t('WHATSAPP_CONNECTIONS.SELECT_CONNECTION')"
+            :aria-label="t('WHATSAPP_CONNECTIONS.SELECT_CONNECTION')"
+          />
+          <NextButton
+            :is-loading="isUpdatingEvolutionInstance"
+            :disabled="isUpdatingEvolutionInstance || !selectedConnection"
+            :label="t('INBOX_MGMT.SETTINGS_POPUP.UPDATE')"
+            @click="updateEvolutionInstance"
+          />
+        </div>
+        <div
+          v-if="selectedConnection"
+          class="mt-3 flex flex-wrap items-center gap-2"
+        >
+          <ConnectionStatus :status="selectedConnection.status" />
+          <span
+            v-if="selectedConnection.phone_number"
+            class="text-label-small text-n-slate-11"
+          >
+            {{ selectedConnection.phone_number }}
+          </span>
+          <NextButton
+            variant="link"
+            :label="t('WHATSAPP_CONNECTIONS.MANAGE')"
+            @click="
+              router.push(
+                accountScopedRoute('whatsapp_connection', {
+                  connectionId: selectedConnection.id,
+                })
+              )
+            "
+          />
+        </div>
+        <p
+          v-if="
+            selectedConnection &&
+            evolutionInstanceName &&
+            evolutionInstanceName !== selectedConnection.instance_name
+          "
+          class="mt-2 text-label-small text-n-amber-11"
+        >
+          {{ t('WHATSAPP_CONNECTIONS.REPLACE_LEGACY') }}
         </p>
-      </template>
-    </SettingsToggleSection>
-  </SettingsAccordion>
+      </SettingsFieldSection>
+      <SettingsToggleSection
+        v-model="evolutionSignMessages"
+        :header="t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_SIGN_MESSAGES')"
+        :description="
+          evolutionConfigurationError ||
+          (isLoadingEvolutionConfiguration
+            ? t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_CONFIGURATION_LOADING')
+            : t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_SIGN_MESSAGES_HELP'))
+        "
+        :disabled="
+          !evolutionSignMessagesAvailable ||
+          isLoadingEvolutionConfiguration ||
+          isUpdatingEvolutionSignMessages
+        "
+        @update:model-value="updateEvolutionSignMessages"
+      >
+        <template v-if="!evolutionInstanceName.trim()" #editor>
+          <p class="text-label-small text-n-slate-11">
+            {{
+              t('INBOX_MGMT.SETTINGS_POPUP.EVOLUTION_SIGN_MESSAGES_DISABLED')
+            }}
+          </p>
+        </template>
+      </SettingsToggleSection>
+    </SettingsAccordion>
+  </div>
 </template>

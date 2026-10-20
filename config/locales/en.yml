@@ -30,6 +30,17 @@
 # available at https://guides.rubyonrails.org/i18n.html.
 
 en:
+  whatsapp_connections:
+    errors:
+      invalid_request: "The connection request is invalid."
+      invalid_name: "Enter a connection name of up to 100 characters."
+      invalid_inbox: "Select an API inbox from this account."
+      inbox_in_use: "This inbox already has a managed WhatsApp connection."
+      ambiguous_inbox: "Inbox names must be unique within the account to link WhatsApp. Rename duplicate inboxes first."
+      missing_frontend_url: "Configure the public FRONTEND_URL before linking an inbox."
+      not_found: "The WhatsApp instance was not found."
+      permission_denied: "The WhatsApp provider refused authentication. Contact your administrator."
+      unavailable: "The WhatsApp provider could not complete this operation. Check the connection before trying again."
   hello: 'Hello world'
   inbox:
     reauthorization:

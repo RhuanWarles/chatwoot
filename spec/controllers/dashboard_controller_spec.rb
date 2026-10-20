@@ -1,6 +1,32 @@
 require 'rails_helper'
 
 describe '/app/login', type: :request do
+  context 'with optional WhatsApp connection management' do
+    it 'exposes only a boolean when both provider settings are present' do
+      with_modified_env EVOLUTION_API_URL: 'https://private-evolution.example.test', EVOLUTION_API_KEY: 'private-provider-api-key' do
+        get '/app/login'
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include('"WHATSAPP_CONNECTIONS_ENABLED":true')
+        expect(response.body).not_to include('private-provider-api-key', 'private-evolution.example.test')
+      end
+    end
+
+    it 'hides the feature without the provider URL' do
+      with_modified_env EVOLUTION_API_URL: nil, EVOLUTION_API_KEY: 'private-provider-api-key' do
+        get '/app/login'
+        expect(response.body).to include('"WHATSAPP_CONNECTIONS_ENABLED":false')
+        expect(response.body).not_to include('private-provider-api-key')
+      end
+    end
+
+    it 'hides the feature without the provider key' do
+      with_modified_env EVOLUTION_API_URL: 'https://private-evolution.example.test', EVOLUTION_API_KEY: nil do
+        get '/app/login'
+        expect(response.body).to include('"WHATSAPP_CONNECTIONS_ENABLED":false')
+      end
+    end
+  end
+
   context 'without DEFAULT_LOCALE' do
     it 'renders the dashboard' do
       get '/app/login'

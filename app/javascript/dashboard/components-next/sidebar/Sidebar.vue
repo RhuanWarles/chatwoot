@@ -60,6 +60,9 @@ const isACustomBrandedInstance = useMapGetter(
   'globalConfig/isACustomBrandedInstance'
 );
 const isRTL = useMapGetter('accounts/isRTL');
+const isWhatsappConnectionsEnabled = useMapGetter(
+  'globalConfig/isWhatsappConnectionsEnabled'
+);
 
 const { width: windowWidth } = useWindowSize();
 const isMobile = computed(() => windowWidth.value < 768);
@@ -702,7 +705,9 @@ const menuItems = computed(() => {
                   'ai_agents_settings',
                   {},
                   {
-                    type: currentAccount.value.features.text_ai ? 'text' : 'voice',
+                    type: currentAccount.value.features.text_ai
+                      ? 'text'
+                      : 'voice',
                   }
                 ),
                 activeOn: ['ai_agents_settings', 'saas_ai_settings'],
@@ -730,6 +735,17 @@ const menuItems = computed(() => {
                   ]
                 : []),
             ],
+          },
+        ]
+      : []),
+    ...(isWhatsappConnectionsEnabled.value
+      ? [
+          {
+            name: 'WhatsApp',
+            label: t('WHATSAPP_CONNECTIONS.TITLE'),
+            icon: 'i-lucide-message-circle',
+            to: accountScopedRoute('whatsapp_connections'),
+            activeOn: ['whatsapp_connections', 'whatsapp_connection'],
           },
         ]
       : []),

@@ -59,6 +59,7 @@ class Inbox < ApplicationRecord
   validate :ensure_valid_max_assignment_limit
 
   belongs_to :account
+  has_one :whatsapp_connection, dependent: :nullify
   belongs_to :portal, optional: true
 
   belongs_to :channel, polymorphic: true, dependent: :destroy

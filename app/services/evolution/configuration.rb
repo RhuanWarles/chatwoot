@@ -1,4 +1,8 @@
 class Evolution::Configuration
+  def self.available?
+    ENV['EVOLUTION_API_URL'].present? && ENV['EVOLUTION_API_KEY'].present?
+  end
+
   def initialize(inbox)
     @inbox = inbox
   end
@@ -10,7 +14,7 @@ class Evolution::Configuration
   end
 
   def eligible?
-    return false unless @inbox.api? && instance_name.present? && ENV['EVOLUTION_API_KEY'].present? && ENV['EVOLUTION_API_URL'].present?
+    return false unless @inbox.api? && instance_name.present? && self.class.available?
     return true if @inbox.channel.additional_attributes['evolution_instance_name'].present?
 
     webhook = URI.parse(@inbox.channel.webhook_url.to_s)

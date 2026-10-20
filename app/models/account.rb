@@ -64,6 +64,7 @@ class Account < ApplicationRecord
   include AccountCaptainAutoResolve
 
   has_many :account_users, dependent: :destroy_async
+  has_many :whatsapp_connections, dependent: :destroy
   has_one :saas_ai_setting, class_name: 'Saas::AiSetting', dependent: :destroy
   has_many :saas_ai_agents, class_name: 'Saas::AiAgent', dependent: :destroy
   has_many :saas_knowledge_bases, class_name: 'Saas::KnowledgeBase', dependent: :destroy
