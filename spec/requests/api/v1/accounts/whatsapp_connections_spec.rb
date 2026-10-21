@@ -173,7 +173,9 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     configure = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
       body = JSON.parse(request.body)
       expect(body).to include('enabled' => true, 'autoCreate' => false, 'accountId' => account.id.to_s,
-                              'nameInbox' => inbox.name, 'token' => admin.access_token.token, 'url' => 'https://chat.example.test')
+                              'nameInbox' => inbox.name, 'token' => admin.access_token.token, 'url' => 'https://chat.example.test',
+                              'importContacts' => false, 'importMessages' => false, 'reopenConversation' => false,
+                              'conversationPending' => false)
       true
     end.to_return(headers: json_headers, body: { token: 'never-return-token', enabled: true }.to_json)
 
@@ -203,10 +205,13 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     new_inbox = create(:channel_api, account: account).inbox
     new_inbox.update!(name: 'Commercial destination')
     stub_request(:get, "#{provider_url}/chatwoot/find/#{instance_name}")
-      .to_return(headers: json_headers, body: { enabled: true, nameInbox: inbox.name, signMsg: true, importContacts: true }.to_json)
+      .to_return(headers: json_headers,
+                 body: { enabled: true, nameInbox: inbox.name, signMsg: true, importContacts: true,
+                         reopenConversation: true, conversationPending: true }.to_json)
     configure = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
-      JSON.parse(request.body).slice('nameInbox', 'signMsg', 'importContacts') ==
-        { 'nameInbox' => new_inbox.name, 'signMsg' => true, 'importContacts' => true }
+      JSON.parse(request.body).slice('nameInbox', 'signMsg', 'importContacts', 'reopenConversation', 'conversationPending') ==
+        { 'nameInbox' => new_inbox.name, 'signMsg' => true, 'importContacts' => true,
+          'reopenConversation' => true, 'conversationPending' => true }
     end.to_return(headers: json_headers, body: { enabled: true }.to_json)
 
     patch member_url, params: { inbox_id: new_inbox.id }, headers: admin.create_new_auth_token, as: :json
