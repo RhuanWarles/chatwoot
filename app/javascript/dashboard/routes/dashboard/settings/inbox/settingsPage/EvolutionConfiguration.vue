@@ -34,10 +34,15 @@ const selectedConnectionId = ref('');
 const selectedConnection = computed(() =>
   connections.value.find(item => item.id === selectedConnectionId.value)
 );
-const currentConnection = computed(() =>
-  connections.value.find(
-    item => item.instance_name === evolutionInstanceName.value
-  )
+const currentConnection = computed(
+  () =>
+    connections.value.find(item => item.inbox_id === props.inbox.id) ||
+    connections.value.find(
+      item => item.instance_name === evolutionInstanceName.value
+    )
+);
+const resolvedInstanceName = computed(
+  () => currentConnection.value?.instance_name || evolutionInstanceName.value
 );
 const connectionOptions = computed(() => [
   ...(evolutionInstanceName.value && !currentConnection.value
@@ -65,7 +70,7 @@ const loadEvolutionConfiguration = async () => {
   evolutionSignMessagesAvailable.value = false;
   if (
     !isAvailable.value ||
-    !evolutionInstanceName.value.trim() ||
+    !resolvedInstanceName.value.trim() ||
     !props.inbox.id
   )
     return;
@@ -140,6 +145,7 @@ watch(
       );
       if (!response) return;
       connections.value = response.data.connections;
+      evolutionInstanceName.value = resolvedInstanceName.value;
       selectedConnectionId.value =
         currentConnection.value?.id ||
         (evolutionInstanceName.value ? 'legacy' : '');

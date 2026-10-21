@@ -135,4 +135,34 @@ describe('optional WhatsApp inbox configuration', () => {
     expect(WhatsappConnectionsAPI.update).not.toHaveBeenCalled();
     wrapper.unmount();
   });
+
+  it('uses the managed connection instance when the legacy channel field is absent', async () => {
+    available.value = true;
+    WhatsappConnectionsAPI.get.mockResolvedValue({
+      data: {
+        connections: [
+          {
+            id: 5,
+            display_name: 'Managed',
+            instance_name: 'account-1-managed',
+            inbox_id: 1,
+            status: 'connected',
+          },
+        ],
+      },
+    });
+    const wrapper = shallowMount(EvolutionConfiguration, {
+      props: { inbox: { id: 1, additional_attributes: {} } },
+      global: {
+        stubs: {
+          SettingsAccordion: { template: '<div><slot /></div>' },
+          SettingsFieldSection: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(inboxesAPI.getEvolutionConfiguration).toHaveBeenCalledWith(1);
+    wrapper.unmount();
+  });
 });

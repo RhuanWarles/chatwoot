@@ -43,7 +43,7 @@ class Evolution::InstanceClient
     raise unless e.code == 'not_found'
   end
 
-  def configure_inbox(inbox, user)
+  def configure_inbox(inbox, user, sign_msg: nil)
     current = request(:get, chatwoot_path('find'))
     validate_hash_payload!(current)
     payload = {
@@ -51,9 +51,10 @@ class Evolution::InstanceClient
       'importMessages' => false,
       'reopenConversation' => false,
       'conversationPending' => false
-    }.merge(current.slice(*Evolution::ChatwootConfiguration::CONFIGURATION_FIELDS, 'ignoreJids'))
+    }.merge(current.deep_dup)
     payload['enabled'] = inbox.present?
     payload['autoCreate'] = false
+    payload['signMsg'] = sign_msg unless sign_msg.nil?
     if inbox
       payload.merge!('accountId' => @connection.account_id.to_s, 'nameInbox' => inbox.name, 'url' => ENV.fetch('FRONTEND_URL'),
                      'token' => user.access_token.token, 'signMsg' => current['signMsg'] == true)

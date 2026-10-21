@@ -8,6 +8,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import ConnectionStatus from './ConnectionStatus.vue';
 import { useWhatsappConnection } from './useWhatsappConnection';
 
@@ -39,6 +40,7 @@ const {
 const busy = ref(false);
 const displayName = ref('');
 const inboxId = ref('');
+const signMessages = ref(false);
 const deleteDialog = ref(null);
 const displayError = computed(() =>
   error.value === 'WHATSAPP_CONNECTIONS.REQUEST_ERROR'
@@ -68,6 +70,7 @@ watch(
   () => {
     displayName.value = connection.value?.display_name || '';
     inboxId.value = connection.value?.inbox_id || '';
+    signMessages.value = connection.value?.sign_msg === true;
   }
 );
 
@@ -107,6 +110,7 @@ const save = () =>
     WhatsappConnectionsAPI.update(props.connectionId, {
       display_name: displayName.value.trim(),
       inbox_id: inboxId.value || null,
+      sign_msg: signMessages.value,
     })
   );
 const connect = () =>
@@ -185,6 +189,16 @@ const remove = async () => {
       <p v-if="legacyReplacement" class="text-label-small text-n-amber-11">
         {{ t('WHATSAPP_CONNECTIONS.REPLACE_LEGACY') }}
       </p>
+      <SettingsToggleSection
+        v-model="signMessages"
+        :header="t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES')"
+        :description="
+          connection.inbox_id
+            ? t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES_HELP')
+            : t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES_DISABLED')
+        "
+        :disabled="busy || !connection.inbox_id"
+      />
       <div class="flex flex-wrap gap-2">
         <Button
           :label="t('WHATSAPP_CONNECTIONS.SAVE')"

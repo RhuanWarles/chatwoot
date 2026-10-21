@@ -12,18 +12,22 @@ RSpec.describe Evolution::ChatwootConfiguration do
     )
   end
   let(:response) do
-    instance_double(HTTParty::Response, success?: true, parsed_response: {
-      'enabled' => true,
-      'accountId' => '48',
-      'token' => 'chatwoot-token',
-      'url' => 'https://chatwoot.example.com',
-      'signMsg' => true,
-      'signDelimiter' => "\n",
-      'nameInbox' => 'rwhub',
-      'reopenConversation' => true,
-      'conversationPending' => false,
-      'webhook_url' => 'https://evolution.example.com/chatwoot/webhook/rwhub'
-    })
+    instance_double(
+      HTTParty::Response,
+      success?: true,
+      parsed_response: {
+        'enabled' => true,
+        'accountId' => '48',
+        'token' => 'chatwoot-token',
+        'url' => 'https://chatwoot.example.com',
+        'signMsg' => true,
+        'signDelimiter' => "\n",
+        'nameInbox' => 'rwhub',
+        'reopenConversation' => true,
+        'conversationPending' => false,
+        'webhook_url' => 'https://evolution.example.com/chatwoot/webhook/rwhub'
+      }
+    )
   end
 
   before do
@@ -48,8 +52,19 @@ RSpec.describe Evolution::ChatwootConfiguration do
     expect(HTTParty).to have_received(:post).with(
       'https://evolution.example.com/chatwoot/set/rwhub',
       hash_including(
-        body: include('"accountId":"48"', '"signMsg":false', '"signDelimiter":null')
+        body: include('"accountId":"48"', '"signMsg":false', '"signDelimiter":"\\n"')
       )
+    )
+  end
+
+  it 'preserves fields introduced by newer Evolution versions' do
+    response.parsed_response['futureOption'] = { 'enabled' => true }
+
+    described_class.new(inbox).update_sign_msg(false)
+
+    expect(HTTParty).to have_received(:post).with(
+      'https://evolution.example.com/chatwoot/set/rwhub',
+      hash_including(body: include('"futureOption":{"enabled":true}'))
     )
   end
 end

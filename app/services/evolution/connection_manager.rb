@@ -58,7 +58,13 @@ class Evolution::ConnectionManager
 
   def update!(attributes)
     @connection.with_lock do
-      replace_inbox!(attributes[:inbox_id]) if attributes.key?(:inbox_id) && attributes[:inbox_id] != @connection.inbox_id
+      if attributes.key?(:inbox_id) && attributes[:inbox_id] != @connection.inbox_id
+        replace_inbox!(attributes[:inbox_id], sign_msg: attributes[:sign_msg])
+      elsif attributes.key?(:sign_msg)
+        raise CustomExceptions::WhatsappConnection, :invalid_inbox unless @connection.inbox
+
+        Evolution::ChatwootConfiguration.new(@connection.inbox).update_sign_msg(attributes[:sign_msg])
+      end
       @connection.update!(attributes.slice(:display_name))
     end
   end
@@ -73,11 +79,11 @@ class Evolution::ConnectionManager
 
   private
 
-  def replace_inbox!(inbox_id)
+  def replace_inbox!(inbox_id, sign_msg: nil)
     inboxes = @connection.account.inboxes.where(id: [@connection.inbox_id, inbox_id].compact).order(:id).lock.to_a
     inbox = inbox_id ? inboxes.find { |item| item.id == inbox_id } || raise(ActiveRecord::RecordNotFound) : nil
     self.class.validate_inbox!(inbox) if inbox
-    @client.configure_inbox(inbox, @user)
+    @client.configure_inbox(inbox, @user, sign_msg: sign_msg)
     clear_inbox!(@connection.inbox)
     @connection.update!(inbox: inbox)
     return unless inbox

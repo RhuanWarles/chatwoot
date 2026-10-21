@@ -1,0 +1,12 @@
+{
+  "WHATSAPP_CONNECTIONS": {
+    "TITLE": "WhatsApp",
+    "NEW": "Nova conexão",
+    "CREATE": "Criar conexão",
+    "NAME": "Nome da conexão",
+    "INBOX": "Caixa de entrada",
+    "SIGN_MESSAGES": "Assinar mensagens com o nome do remetente",
+    "SIGN_MESSAGES_HELP": "Adiciona o nome do atendente ou agente antes das mensagens enviadas ao WhatsApp.",
+    "SIGN_MESSAGES_DISABLED": "Vincule uma caixa de entrada para gerenciar esta configuração."
+  }
+}

@@ -13,6 +13,15 @@ class Api::V1::Accounts::WhatsappConnectionsController < Api::V1::Accounts::Base
     }, status: error.http_status
   end
 
+  rescue_from CustomExceptions::Evolution do |error|
+    render json: {
+      error: error.code == 'unavailable' ? 'evolution_unavailable' : error.code,
+      message: error.message,
+      error_code: error.code,
+      connection: @connection && connection_payload(@connection)
+    }, status: error.http_status
+  end
+
   def index
     connections = Current.account.whatsapp_connections.includes(:inbox).order(:id)
     inboxes = Current.account.inboxes.where(channel_type: 'Channel::Api').includes(:channel).order_by_name
@@ -26,7 +35,7 @@ class Api::V1::Accounts::WhatsappConnectionsController < Api::V1::Accounts::Base
 
   def show
     qr_code = manager.refresh!
-    render json: connection_payload(@connection).merge(qr_code: qr_code)
+    render json: connection_payload(@connection, include_configuration: true).merge(qr_code: qr_code)
   end
 
   def create
@@ -40,8 +49,9 @@ class Api::V1::Accounts::WhatsappConnectionsController < Api::V1::Accounts::Base
   end
 
   def update
-    manager.update!(connection_params)
-    render json: connection_payload(@connection)
+    attributes = connection_params
+    manager.update!(attributes)
+    render json: connection_payload(@connection, include_configuration: attributes.key?(:sign_msg))
   end
 
   def connect
@@ -77,12 +87,24 @@ class Api::V1::Accounts::WhatsappConnectionsController < Api::V1::Accounts::Base
   end
 
   def connection_params(creating: false)
-    attributes = params.permit(:display_name, :inbox_id).to_h.symbolize_keys
+    attributes = params.permit(:display_name, :inbox_id, :sign_msg).to_h.symbolize_keys
     attributes[:display_name] = validated_name(attributes[:display_name]) if creating || attributes.key?(:display_name)
-    inbox_id = attributes[:inbox_id]
-    raise CustomExceptions::WhatsappConnection, :invalid_inbox unless inbox_id.nil? || (inbox_id.is_a?(Integer) && inbox_id.positive?)
+    validate_inbox_id!(attributes[:inbox_id])
+    validate_sign_msg!(attributes[:sign_msg]) if attributes.key?(:sign_msg)
 
     attributes
+  end
+
+  def validate_inbox_id!(inbox_id)
+    return if inbox_id.nil? || (inbox_id.is_a?(Integer) && inbox_id.positive?)
+
+    raise CustomExceptions::WhatsappConnection, :invalid_inbox
+  end
+
+  def validate_sign_msg!(sign_msg)
+    return if [true, false].include?(sign_msg)
+
+    raise CustomExceptions::WhatsappConnection, :invalid_request
   end
 
   def validated_name(name)
@@ -91,8 +113,12 @@ class Api::V1::Accounts::WhatsappConnectionsController < Api::V1::Accounts::Base
     name.strip
   end
 
-  def connection_payload(connection)
-    connection.slice(:id, :display_name, :instance_name, :inbox_id, :phone_number, :profile_name, :profile_picture_url, :status)
-              .merge(inbox: connection.inbox&.slice(:id, :name))
+  def connection_payload(connection, include_configuration: false)
+    payload = connection.slice(
+      :id, :display_name, :instance_name, :inbox_id, :phone_number, :profile_name, :profile_picture_url, :status
+    ).merge(inbox: connection.inbox&.slice(:id, :name))
+    return payload unless include_configuration && connection.inbox
+
+    payload.merge(sign_msg: Evolution::ChatwootConfiguration.new(connection.inbox).show[:sign_msg])
   end
 end

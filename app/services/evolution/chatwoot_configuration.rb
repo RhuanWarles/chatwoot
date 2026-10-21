@@ -16,9 +16,8 @@ class Evolution::ChatwootConfiguration
 
   def update_sign_msg(sign_msg)
     current = request(:get, 'find')
-    payload = current.slice(*CONFIGURATION_FIELDS)
+    payload = current.deep_dup
     payload['signMsg'] = sign_msg
-    payload['signDelimiter'] = nil unless sign_msg
 
     request(:post, 'set', payload)
     show

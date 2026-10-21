@@ -257,6 +257,48 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     expect(WebMock).not_to have_requested(:get, "#{provider_url}/instance/connect/#{instance_name}")
   end
 
+  it 'loads the current signMsg value from the managed connection instance' do
+    connection.update!(inbox: inbox)
+    inbox.channel.update!(additional_attributes: { 'evolution_instance_name' => 'stale-legacy-instance' })
+    stub_request(:get, "#{provider_url}/instance/connectionState/#{instance_name}")
+      .to_return(headers: json_headers, body: { instance: { state: 'open' } }.to_json)
+    stub_request(:get, "#{provider_url}/instance/fetchInstances").with(query: { instanceName: instance_name })
+                                                                 .to_return(headers: json_headers, body: [provider_profile].to_json)
+    stub_request(:get, "#{provider_url}/chatwoot/find/#{instance_name}")
+      .to_return(headers: json_headers, body: { enabled: true, signMsg: true }.to_json)
+
+    get member_url, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['sign_msg']).to be(true)
+    expect(WebMock).to have_requested(:get, "#{provider_url}/chatwoot/find/#{instance_name}").once
+    expect(WebMock).not_to have_requested(:get, "#{provider_url}/chatwoot/find/stale-legacy-instance")
+  end
+
+  it 'updates only signMsg while preserving the complete Evolution configuration' do
+    connection.update!(inbox: inbox)
+    find_configuration = stub_request(:get, "#{provider_url}/chatwoot/find/#{instance_name}")
+                         .to_return(headers: json_headers,
+                                    body: { enabled: true, signMsg: true, signDelimiter: "\n", conversationPending: false,
+                                            reopenConversation: true, importContacts: true, importMessages: true,
+                                            daysLimitImportMessages: 30, ignoreJids: ['123@s.whatsapp.net'],
+                                            futureOption: { 'enabled' => true } }.to_json)
+                         .then.to_return(headers: json_headers, body: { enabled: true, signMsg: false }.to_json)
+                         .then.to_return(headers: json_headers, body: { enabled: true, signMsg: false }.to_json)
+    configure = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
+      body = JSON.parse(request.body)
+      body['signMsg'] == false && body['signDelimiter'] == "\n" && body['conversationPending'] == false &&
+        body['reopenConversation'] == true && body['importContacts'] == true && body['futureOption'] == { 'enabled' => true }
+    end.to_return(headers: json_headers, body: { enabled: true, signMsg: false }.to_json)
+
+    patch member_url, params: { sign_msg: false }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['sign_msg']).to be(false)
+    expect(configure).to have_been_requested.once
+    expect(find_configuration).to have_been_requested.times(3)
+  end
+
   it 'polls the provider current QR while connecting without recreating the instance' do
     stub_request(:get, "#{provider_url}/instance/connectionState/#{instance_name}")
       .to_return(headers: json_headers, body: { instance: { state: 'connecting' } }.to_json)

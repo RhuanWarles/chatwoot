@@ -7,6 +7,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -59,6 +60,7 @@ describe('WhatsApp management screens', () => {
         inbox_id: 9,
         status: 'connected',
         phone_number: '5562999999999',
+        sign_msg: true,
       },
     });
   });
@@ -157,6 +159,9 @@ describe('WhatsApp management screens', () => {
     });
     await flushPromises();
     expect(wrapper.text()).toContain('5562999999999');
+    expect(
+      wrapper.findComponent(SettingsToggleSection).props('modelValue')
+    ).toBe(true);
     wrapper.findComponent(Input).vm.$emit('update:modelValue', 'Renamed');
     wrapper.findComponent(Select).vm.$emit('update:modelValue', '');
     const saveButton = wrapper
@@ -167,6 +172,7 @@ describe('WhatsApp management screens', () => {
     expect(WhatsappConnectionsAPI.update).toHaveBeenCalledWith(36, {
       display_name: 'Renamed',
       inbox_id: null,
+      sign_msg: true,
     });
     wrapper.unmount();
   });
