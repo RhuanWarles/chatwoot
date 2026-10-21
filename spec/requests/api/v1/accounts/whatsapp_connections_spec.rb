@@ -169,13 +169,16 @@ RSpec.describe 'WhatsApp connections API', type: :request do
   it 'configures the existing adapter and inbox webhook without exposing credentials' do
     inbox.channel.update!(additional_attributes: { 'another_setting' => 'preserved' })
     stub_request(:get, "#{provider_url}/chatwoot/find/#{instance_name}")
-      .to_return(headers: json_headers, body: { enabled: false }.to_json)
+      .to_return(headers: json_headers, body: { enabled: false, daysLimitImportMessages: nil }.to_json)
     configure = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
       body = JSON.parse(request.body)
-      expect(body).to include('enabled' => true, 'autoCreate' => false, 'accountId' => account.id.to_s,
-                              'nameInbox' => inbox.name, 'token' => admin.access_token.token, 'url' => 'https://chat.example.test',
-                              'importContacts' => false, 'importMessages' => false, 'reopenConversation' => false,
-                              'conversationPending' => false)
+      expected = {
+        'enabled' => true, 'autoCreate' => false, 'accountId' => account.id.to_s,
+        'nameInbox' => inbox.name, 'token' => admin.access_token.token, 'url' => 'https://chat.example.test',
+        'importContacts' => false, 'importMessages' => false, 'reopenConversation' => false,
+        'conversationPending' => false
+      }
+      expect(body).to(satisfy { |payload| payload.slice(*expected.keys) == expected && !payload.key?('daysLimitImportMessages') })
       true
     end.to_return(headers: json_headers, body: { token: 'never-return-token', enabled: true }.to_json)
 
@@ -288,7 +291,8 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     configure = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
       body = JSON.parse(request.body)
       body['signMsg'] == false && body['signDelimiter'] == "\n" && body['conversationPending'] == false &&
-        body['reopenConversation'] == true && body['importContacts'] == true && body['futureOption'] == { 'enabled' => true }
+        body['reopenConversation'] == true && body['importContacts'] == true && body['daysLimitImportMessages'] == 30 &&
+        body['futureOption'] == { 'enabled' => true }
     end.to_return(headers: json_headers, body: { enabled: true, signMsg: false }.to_json)
 
     patch member_url, params: { sign_msg: false }, headers: admin.create_new_auth_token, as: :json
@@ -297,6 +301,26 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     expect(response.parsed_body['sign_msg']).to be(false)
     expect(configure).to have_been_requested.once
     expect(find_configuration).to have_been_requested.times(3)
+  end
+
+  it 'returns a validation error without changing local state when Evolution rejects Save connection' do
+    connection.update!(inbox: inbox)
+    original_display_name = connection.display_name
+    stub_request(:get, "#{provider_url}/chatwoot/find/#{instance_name}")
+      .to_return(headers: json_headers, body: { enabled: true, signMsg: false, daysLimitImportMessages: nil }.to_json)
+    rejected = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
+      body = JSON.parse(request.body)
+      !body.key?('daysLimitImportMessages') && request.body.exclude?('"daysLimitImportMessages":null')
+    end.to_return(status: 400, headers: json_headers,
+                  body: { status: 400, error: 'Bad Request', response: { message: [['daysLimitImportMessages is not a number']] } }.to_json)
+
+    patch member_url, params: { display_name: 'Changed', sign_msg: true }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body).to include('error_code' => 'validation_error')
+    expect(rejected).to have_been_requested.once
+    expect(connection.reload.display_name).to eq(original_display_name)
+    expect(connection.reload.inbox_id).to eq(inbox.id)
   end
 
   it 'polls the provider current QR while connecting without recreating the instance' do

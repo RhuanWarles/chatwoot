@@ -52,6 +52,7 @@ class Evolution::InstanceClient
       'reopenConversation' => false,
       'conversationPending' => false
     }.merge(current.deep_dup)
+    payload.delete('daysLimitImportMessages') unless payload['daysLimitImportMessages'].is_a?(Numeric)
     payload['enabled'] = inbox.present?
     payload['autoCreate'] = false
     payload['signMsg'] = sign_msg unless sign_msg.nil?
@@ -85,8 +86,10 @@ class Evolution::InstanceClient
     payload = response.parsed_response
     return payload if response.success? && !(payload.is_a?(Hash) && payload['error'] == true)
 
-    code = { 401 => :permission_denied, 403 => :permission_denied, 404 => :not_found }.fetch(response.code, :unavailable)
-    raise CustomExceptions::WhatsappConnection.new(code, http_status: 502)
+    log_provider_error(path, response)
+    code = { 400 => :validation_error, 401 => :permission_denied, 403 => :permission_denied,
+             404 => :not_found }.fetch(response.code, :unavailable)
+    raise CustomExceptions::WhatsappConnection.new(code, http_status: code == :validation_error ? 422 : 502)
   rescue HTTParty::Error, SocketError, Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, Errno::ECONNRESET,
          Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ETIMEDOUT, EOFError, OpenSSL::SSL::SSLError,
          URI::InvalidURIError, JSON::ParserError
@@ -109,6 +112,28 @@ class Evolution::InstanceClient
     return payload if payload.is_a?(String) && payload.present?
 
     raise CustomExceptions::WhatsappConnection.new(:unavailable, http_status: 502)
+  end
+
+  def log_provider_error(path, response)
+    body = begin
+      redact_payload(response.parsed_response).to_json
+    rescue JSON::ParserError
+      '[invalid-json]'
+    end
+    Rails.logger.warn("[Evolution] endpoint=#{path} failed instance=#{@connection.instance_name} status=#{response.code} body=#{body}")
+  end
+
+  def redact_payload(payload)
+    case payload
+    when Hash
+      payload.each_with_object({}) do |(key, value), redacted|
+        redacted[key] = key.to_s.match?(/token|key|secret|password|authorization/i) ? '[REDACTED]' : redact_payload(value)
+      end
+    when Array
+      payload.map { |value| redact_payload(value) }
+    else
+      payload
+    end
   end
 
   def provider_url

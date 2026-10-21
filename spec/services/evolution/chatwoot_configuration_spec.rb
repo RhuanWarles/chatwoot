@@ -25,6 +25,7 @@ RSpec.describe Evolution::ChatwootConfiguration do
         'nameInbox' => 'rwhub',
         'reopenConversation' => true,
         'conversationPending' => false,
+        'daysLimitImportMessages' => 30,
         'webhook_url' => 'https://evolution.example.com/chatwoot/webhook/rwhub'
       }
     )
@@ -53,7 +54,7 @@ RSpec.describe Evolution::ChatwootConfiguration do
     expect(HTTParty).to have_received(:post).with(
       'https://evolution.example.com/chatwoot/set/rwhub',
       hash_including(
-        body: include('"accountId":"48"', '"signMsg":false', '"signDelimiter":"\\n"')
+        body: include('"accountId":"48"', '"signMsg":false', '"signDelimiter":"\\n"', '"daysLimitImportMessages":30')
       )
     )
   end
@@ -85,6 +86,24 @@ RSpec.describe Evolution::ChatwootConfiguration do
       expect(error.http_status).to eq(422)
     }
     expect(Rails.logger).to have_received(:warn).with(include('status=401', 'Invalid api key'))
+  end
+
+  it 'classifies provider validation failures separately' do
+    allow(HTTParty).to receive(:get).and_return(
+      instance_double(
+        HTTParty::Response,
+        success?: false,
+        code: 400,
+        parsed_response: { 'response' => { 'message' => [['daysLimitImportMessages is not a number']] } }
+      )
+    )
+
+    expect { described_class.new(inbox).show }.to raise_error(CustomExceptions::Evolution) { |error|
+      expect(error.code).to eq('validation_error')
+      expect(error.http_status).to eq(422)
+      expect(error.uncertain).to be(false)
+    }
+    expect(Rails.logger).to have_received(:warn).with(include('status=400', 'daysLimitImportMessages is not a number'))
   end
 
   it 'preserves provider failures from Evolution' do

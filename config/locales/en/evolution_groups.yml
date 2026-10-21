@@ -4,6 +4,7 @@ en:
       connected_account: "Connected WhatsApp account"
       participant: "WhatsApp participant"
     errors:
+      validation_error: "Evolution rejected the configuration sent."
       invalid_reaction: "This reaction or message identifier is invalid."
       invalid_action: "This action is not valid for the participant's current state."
       participant_not_found: "The participant is no longer in the group or has no confirmed phone number."

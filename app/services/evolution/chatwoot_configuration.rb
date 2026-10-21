@@ -1,6 +1,7 @@
 class Evolution::ChatwootConfiguration
   REQUEST_TIMEOUT = 15
   HTTP_ERROR_CODES = {
+    400 => :validation_error,
     401 => :permission_denied,
     403 => :permission_denied,
     404 => :not_found,
@@ -24,6 +25,7 @@ class Evolution::ChatwootConfiguration
   def update_sign_msg(sign_msg)
     current = configuration_payload(request(:get, 'find'), 'find')
     payload = current.deep_dup
+    payload.delete('daysLimitImportMessages') unless payload['daysLimitImportMessages'].is_a?(Numeric)
     payload['signMsg'] = sign_msg
 
     request(:post, 'set', payload)

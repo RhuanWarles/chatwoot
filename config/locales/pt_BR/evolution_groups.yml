@@ -1,6 +1,7 @@
 pt_BR:
   evolution_groups:
     errors:
+      validation_error: "A Evolution rejeitou a configuração enviada."
       invalid_action: "Esta ação não é válida para o estado atual do participante."
       participant_not_found: "O participante não está mais no grupo ou não possui telefone confirmado."
       own_participant: "Use a ação Sair do grupo para a própria conta."
