@@ -21,9 +21,17 @@ const connections = ref([]);
 const inboxes = ref([]);
 const error = ref('');
 const createDialog = ref(null);
+const deleteDialog = ref(null);
+const connectionToDelete = ref(null);
 const displayName = ref('');
 const inboxId = ref('');
 const isCreating = ref(false);
+const isDeleting = ref(false);
+const displayError = computed(() =>
+  error.value === 'WHATSAPP_CONNECTIONS.REQUEST_ERROR'
+    ? t('WHATSAPP_CONNECTIONS.REQUEST_ERROR')
+    : error.value
+);
 const inboxOptions = computed(() => [
   { value: '', label: t('WHATSAPP_CONNECTIONS.NO_INBOX') },
   ...inboxes.value.map(inbox => ({
@@ -49,7 +57,9 @@ const load = async () => {
     error.value = '';
   } catch (exception) {
     error.value =
-      exception.response?.data?.error || 'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+      exception.response?.data?.message ||
+      exception.response?.data?.error ||
+      'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
   }
 };
 const manage = id =>
@@ -71,7 +81,9 @@ const create = async () => {
   } catch (exception) {
     if (currentAccountId !== accountId.value) return;
     error.value =
-      exception.response?.data?.error || 'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+      exception.response?.data?.message ||
+      exception.response?.data?.error ||
+      'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
     if (exception.response?.data?.connection?.id) {
       createDialog.value.close();
       await load();
@@ -85,6 +97,29 @@ const openCreate = () => {
   displayName.value = '';
   inboxId.value = '';
   createDialog.value.open();
+};
+const openDelete = connection => {
+  connectionToDelete.value = connection;
+  deleteDialog.value.open();
+};
+const remove = async () => {
+  if (!connectionToDelete.value) return;
+
+  isDeleting.value = true;
+  error.value = '';
+  try {
+    await WhatsappConnectionsAPI.delete(connectionToDelete.value.id);
+    deleteDialog.value.close();
+    connectionToDelete.value = null;
+    await load();
+  } catch (exception) {
+    error.value =
+      exception.response?.data?.message ||
+      exception.response?.data?.error ||
+      'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+  } finally {
+    isDeleting.value = false;
+  }
 };
 const deleted = async () => {
   await back();
@@ -125,7 +160,7 @@ watch(
         />
       </header>
       <p v-if="error" class="text-label-small text-n-ruby-11" role="alert">
-        {{ t(error) }}
+        {{ displayError }}
       </p>
       <Button
         v-if="error"
@@ -183,11 +218,20 @@ watch(
                 })
               }}
             </p>
-            <Button
-              :label="t('WHATSAPP_CONNECTIONS.MANAGE')"
-              variant="outline"
-              @click="manage(connection.id)"
-            />
+            <div class="flex flex-wrap gap-2">
+              <Button
+                :label="t('WHATSAPP_CONNECTIONS.MANAGE')"
+                variant="outline"
+                @click="manage(connection.id)"
+              />
+              <Button
+                :label="t('WHATSAPP_CONNECTIONS.DELETE')"
+                color="ruby"
+                variant="faded"
+                :disabled="isDeleting"
+                @click="openDelete(connection)"
+              />
+            </div>
           </article>
         </div>
       </template>
@@ -220,8 +264,17 @@ watch(
         {{ t('WHATSAPP_CONNECTIONS.REPLACE_LEGACY') }}
       </p>
       <p v-if="error" class="text-label-small text-n-ruby-11" role="alert">
-        {{ t(error) }}
+        {{ displayError }}
       </p>
     </Dialog>
+    <Dialog
+      ref="deleteDialog"
+      type="alert"
+      :title="t('WHATSAPP_CONNECTIONS.DELETE')"
+      :description="t('WHATSAPP_CONNECTIONS.DELETE_CONFIRMATION')"
+      :confirm-button-label="t('WHATSAPP_CONNECTIONS.DELETE')"
+      :is-loading="isDeleting"
+      @confirm="remove"
+    />
   </section>
 </template>

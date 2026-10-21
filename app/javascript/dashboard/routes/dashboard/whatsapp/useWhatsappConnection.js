@@ -9,6 +9,7 @@ export const QR_DISPLAY_TIMEOUT = 60000;
 export function useWhatsappConnection(identity) {
   const connection = ref(null);
   const error = ref('');
+  const providerUnavailable = ref(false);
   const qrCode = ref(null);
   const qrUpdatedAt = ref(0);
   let polling;
@@ -20,8 +21,9 @@ export function useWhatsappConnection(identity) {
       now.value.getTime() - qrUpdatedAt.value >= QR_DISPLAY_TIMEOUT
   );
 
-  const apply = data => {
+  const apply = (data, { clearUnavailable = true } = {}) => {
     connection.value = data;
+    if (clearUnavailable) providerUnavailable.value = false;
     if (data.status === 'connecting' && !qrUpdatedAt.value)
       qrUpdatedAt.value = Date.now();
     if (data.qr_code && data.qr_code !== qrCode.value) {
@@ -51,10 +53,13 @@ export function useWhatsappConnection(identity) {
       if (connection.value.status === 'connecting') polling.resume();
       else polling.pause();
     } catch (exception) {
+      providerUnavailable.value = true;
       error.value =
-        exception.response?.data?.error || 'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+        exception.response?.data?.message ||
+        exception.response?.data?.error ||
+        'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
       if (exception.response?.data?.connection)
-        apply(exception.response.data.connection);
+        apply(exception.response.data.connection, { clearUnavailable: false });
       polling.pause();
     }
   };
@@ -71,6 +76,7 @@ export function useWhatsappConnection(identity) {
       connection.value = null;
       qrCode.value = null;
       qrUpdatedAt.value = 0;
+      providerUnavailable.value = false;
       refresh();
     },
     { immediate: true }
@@ -83,6 +89,7 @@ export function useWhatsappConnection(identity) {
     error,
     qrCode,
     qrExpired,
+    providerUnavailable,
     isPending,
     apply,
     refresh,

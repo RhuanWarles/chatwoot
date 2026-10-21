@@ -124,6 +124,7 @@ describe('WhatsApp connection polling', () => {
     });
     await flushPromises();
     expect(state.error.value).toBe('Provider unavailable');
+    expect(state.providerUnavailable.value).toBe(true);
     await vi.advanceTimersByTimeAsync(POLLING_INTERVAL * 2);
     expect(WhatsappConnectionsAPI.show).toHaveBeenCalledTimes(1);
     WhatsappConnectionsAPI.show.mockResolvedValue({
@@ -131,6 +132,7 @@ describe('WhatsApp connection polling', () => {
     });
     await state.refresh();
     expect(state.error.value).toBe('');
+    expect(state.providerUnavailable.value).toBe(false);
     expect(state.connection.value.status).toBe('connected');
   });
 });

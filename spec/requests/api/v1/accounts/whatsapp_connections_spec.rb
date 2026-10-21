@@ -264,6 +264,46 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     expect(WebMock).not_to have_requested(:post, "#{provider_url}/instance/create")
   end
 
+  it 'returns a normalized error for a status timeout without changing the persisted status' do
+    connection.update!(status: 'connected')
+    stub_request(:get, "#{provider_url}/instance/connectionState/#{instance_name}").to_timeout
+
+    get member_url, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:bad_gateway)
+    expect(response.parsed_body).to include(
+      'error' => 'evolution_unavailable',
+      'error_code' => 'unavailable',
+      'message' => 'The WhatsApp provider could not complete this operation. Check the connection before trying again.'
+    )
+    expect(response.parsed_body.dig('connection', 'status')).to eq('connected')
+    expect(connection.reload.status).to eq('connected')
+  end
+
+  it 'returns a controlled error for an unexpected status payload' do
+    connection.update!(status: 'connected')
+    stub_request(:get, "#{provider_url}/instance/connectionState/#{instance_name}")
+      .to_return(headers: json_headers, body: { unexpected: true }.to_json)
+
+    get member_url, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:bad_gateway)
+    expect(response.parsed_body['error_code']).to eq('unavailable')
+    expect(connection.reload.status).to eq('connected')
+  end
+
+  it 'returns a controlled error for an Evolution HTTP failure' do
+    connection.update!(status: 'connected')
+    stub_request(:get, "#{provider_url}/instance/connectionState/#{instance_name}")
+      .to_return(status: 503, headers: json_headers, body: { error: 'provider down' }.to_json)
+
+    get member_url, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:bad_gateway)
+    expect(response.parsed_body['error']).to eq('evolution_unavailable')
+    expect(connection.reload.status).to eq('connected')
+  end
+
   it 'regenerates QR through the verified restart endpoint only when not already connected' do
     stub_request(:get, "#{provider_url}/instance/connectionState/#{instance_name}")
       .to_return(headers: json_headers, body: { instance: { state: 'connecting' } }.to_json)
@@ -370,7 +410,7 @@ RSpec.describe 'WhatsApp connections API', type: :request do
       .to_return(headers: json_headers, body: { error: true, message: 'backend-only-evolution-key' }.to_json)
     post "#{member_url}/connect", headers: admin.create_new_auth_token, as: :json
     expect(response).to have_http_status(:bad_gateway)
-    expect(connection.reload.status).to eq('error')
+    expect(connection.reload.status).to eq('disconnected')
     expect(response.body).not_to include('backend-only-evolution-key')
   end
 

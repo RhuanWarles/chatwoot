@@ -28,6 +28,7 @@ const {
   error,
   qrCode,
   qrExpired,
+  providerUnavailable,
   isPending,
   apply,
   refresh,
@@ -39,6 +40,11 @@ const busy = ref(false);
 const displayName = ref('');
 const inboxId = ref('');
 const deleteDialog = ref(null);
+const displayError = computed(() =>
+  error.value === 'WHATSAPP_CONNECTIONS.REQUEST_ERROR'
+    ? t('WHATSAPP_CONNECTIONS.REQUEST_ERROR')
+    : error.value
+);
 const inboxOptions = computed(() => [
   { value: '', label: t('WHATSAPP_CONNECTIONS.NO_INBOX') },
   ...props.inboxes.map(inbox => ({
@@ -86,9 +92,11 @@ const perform = async (action, onSuccess) => {
     if (key.accountId !== accountId.value || key.id !== props.connectionId)
       return;
     if (exception.response?.data?.connection)
-      apply(exception.response.data.connection);
+      apply(exception.response.data.connection, { clearUnavailable: false });
     error.value =
-      exception.response?.data?.error || 'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+      exception.response?.data?.message ||
+      exception.response?.data?.error ||
+      'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
   } finally {
     busy.value = false;
   }
@@ -126,7 +134,7 @@ const remove = async () => {
     class="flex flex-col gap-5 rounded-xl border border-n-weak bg-n-solid-1 p-6"
   >
     <p v-if="error" class="text-label-small text-n-ruby-11" role="alert">
-      {{ t(error) }}
+      {{ displayError }}
     </p>
     <Spinner v-if="!connection && isPending" />
     <Button
@@ -141,7 +149,9 @@ const remove = async () => {
         <h2 class="text-heading-2 text-n-slate-12">
           {{ connection.display_name }}
         </h2>
-        <ConnectionStatus :status="connection.status" />
+        <ConnectionStatus
+          :status="providerUnavailable ? 'unavailable' : connection.status"
+        />
       </div>
       <p v-if="connection.phone_number" class="text-body-main text-n-slate-11">
         {{ connection.phone_number }}

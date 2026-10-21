@@ -4,9 +4,13 @@ class Api::V1::Accounts::WhatsappConnectionsController < Api::V1::Accounts::Base
   before_action :set_connection, except: [:index, :create]
 
   rescue_from CustomExceptions::WhatsappConnection do |error|
-    @connection.update!(status: 'error') if @connection&.persisted? && error.http_status == 502
-    render json: { error: error.message, error_code: error.code, connection: @connection && connection_payload(@connection) },
-           status: error.http_status
+    @connection.update!(status: 'error') if @connection&.persisted? && error.http_status == 502 && action_name == 'create'
+    render json: {
+      error: error.code == 'unavailable' ? 'evolution_unavailable' : error.code,
+      message: error.message,
+      error_code: error.code,
+      connection: @connection && connection_payload(@connection)
+    }, status: error.http_status
   end
 
   def index

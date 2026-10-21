@@ -31,7 +31,8 @@
       "CONNECTED": "Connected",
       "CONNECTING": "Connecting",
       "DISCONNECTED": "Disconnected",
-      "ERROR": "Error"
+      "ERROR": "Error",
+      "UNAVAILABLE": "Provider unavailable"
     }
   },
   "MESSAGE_REACTIONS": {

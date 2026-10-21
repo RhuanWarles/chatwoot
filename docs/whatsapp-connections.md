@@ -24,7 +24,7 @@ New provider configurations do not import contacts or message history automatica
 
 The inbox select lists account-local connections, retains an unmatched manual setting as an explicit legacy option, and does not rewrite it on page load. Selecting and saving a different managed connection is an explicit replacement, with a warning that the previous manual instance name/webhook will be replaced. Existing manually configured instances are not imported, renamed or deleted automatically.
 
-Unlinking/deleting clears the channel instance setting only if it still points at that connection. The webhook is cleared only if it also matches that connection's configured webhook. Inbox records, conversations and other settings are never deleted by this module.
+Unlinking/deleting clears the channel instance setting only if it still points at that connection. The webhook is cleared only if it also matches that connection's configured webhook. Inbox records, conversations and other settings are never deleted by this module. Both the list and detail screens require the design-system confirmation dialog before deleting a connection.
 
 ## Lifecycle and failures
 
@@ -36,7 +36,7 @@ While pairing, the browser polls the account-scoped Rails show endpoint every th
 
 The provider does not return an authoritative QR expiration timestamp. The UI therefore limits the display of an unchanged QR to 60 seconds, preserving its age across polling responses. A changed QR resets this display window. Regeneration uses the verified restart endpoint only while connecting; an already-open connection is never restarted by a stale QR-regeneration action.
 
-Timeouts, failed HTTP responses and HTTP-200 responses carrying `error: true` return sanitized errors. Failed remote deletion retains the local record and inbox association. An explicit remote 404 during deletion permits local cleanup. If instance creation has an uncertain result, the local record remains visible with an error; the application does not automatically repeat creation. Inspect/reconnect or explicitly delete the failed connection before starting a new one.
+Each provider request has a five-second connection timeout and a ten-second read timeout. Timeouts, failed HTTP responses, malformed successful payloads and HTTP-200 responses carrying `error: true` return a normalized Rails error (`evolution_unavailable`) instead of an unhandled exception. A failed live status/profile query preserves the last persisted status and the UI shows a temporary `Provider unavailable` badge. Failed remote deletion retains the local record and inbox association. An explicit remote 404 during deletion permits local cleanup. If instance creation has an uncertain result, the local record remains visible with an error; the application does not automatically repeat creation. Inspect/reconnect or explicitly delete the failed connection before starting a new one.
 
 Database transactions/row locks protect local association changes and serialize competing inbox claims. They are not distributed transactions with Evolution: a provider timeout can leave an uncertain remote configuration, which should be checked before retrying. Deleting an account or inbox uses local associations only; it does not invoke the provider from model callbacks. Explicitly delete connections through the management API when remote instance removal is required.
 

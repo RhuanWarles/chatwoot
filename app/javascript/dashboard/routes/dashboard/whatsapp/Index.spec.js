@@ -116,6 +116,32 @@ describe('WhatsApp management screens', () => {
     wrapper.unmount();
   });
 
+  it('requires confirmation before deleting from the connection list', async () => {
+    WhatsappConnectionsAPI.get.mockResolvedValue({
+      data: {
+        connections: [
+          { id: 36, display_name: 'Rhuan', status: 'connected', inbox_id: 9 },
+        ],
+        inboxes: [],
+      },
+    });
+    WhatsappConnectionsAPI.delete.mockResolvedValue({ status: 204, data: '' });
+    const wrapper = shallowMount(Index, {
+      global: { stubs: { Dialog: dialogStub } },
+    });
+    await flushPromises();
+    const deleteButton = wrapper
+      .findAllComponents(Button)
+      .find(button => button.props('label') === 'WHATSAPP_CONNECTIONS.DELETE');
+    await deleteButton.vm.$emit('click');
+    expect(mocks.open).toHaveBeenCalled();
+    expect(WhatsappConnectionsAPI.delete).not.toHaveBeenCalled();
+    await wrapper.findAllComponents(Dialog).at(-1).vm.$emit('confirm');
+    await flushPromises();
+    expect(WhatsappConnectionsAPI.delete).toHaveBeenCalledWith(36);
+    wrapper.unmount();
+  });
+
   it('shows live number/status and unlinks through the Rails update API', async () => {
     WhatsappConnectionsAPI.update.mockResolvedValue({
       data: {

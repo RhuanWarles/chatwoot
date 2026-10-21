@@ -9,6 +9,7 @@ const STATUS_CLASSES = {
   connecting: 'bg-n-blue-3 text-n-blue-11',
   disconnected: 'bg-n-slate-3 text-n-slate-11',
   error: 'bg-n-ruby-3 text-n-ruby-11',
+  unavailable: 'bg-n-amber-3 text-n-amber-11',
 };
 const badgeClass = computed(() => STATUS_CLASSES[props.status]);
 </script>
