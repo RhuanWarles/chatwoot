@@ -1,5 +1,12 @@
 class Evolution::ChatwootConfiguration
   REQUEST_TIMEOUT = 15
+  HTTP_ERROR_CODES = {
+    401 => :permission_denied,
+    403 => :permission_denied,
+    404 => :not_found,
+    408 => :timeout,
+    504 => :timeout
+  }.freeze
   CONFIGURATION_FIELDS = %w[
     enabled accountId token url signMsg signDelimiter nameInbox reopenConversation conversationPending
     mergeBrazilContacts importContacts importMessages daysLimitImportMessages organization logo
@@ -11,11 +18,11 @@ class Evolution::ChatwootConfiguration
   end
 
   def show
-    normalize(request(:get, 'find'))
+    normalize(configuration_payload(request(:get, 'find'), 'find'))
   end
 
   def update_sign_msg(sign_msg)
-    current = request(:get, 'find')
+    current = configuration_payload(request(:get, 'find'), 'find')
     payload = current.deep_dup
     payload['signMsg'] = sign_msg
 
@@ -45,15 +52,81 @@ class Evolution::ChatwootConfiguration
     }
     options[:body] = body.to_json if body
 
-    response = HTTParty.public_send(method, "#{@configuration.base_url}/#{path}", **options)
-    return response.parsed_response if response.success?
+    with_request_errors(operation) do
+      response = HTTParty.public_send(method, "#{@configuration.base_url}/#{path}", **options)
+      response.success? ? response.parsed_response : raise_provider_error(operation, response)
+    end
+  end
 
-    Rails.logger.warn("[Evolution] chatwoot/#{operation} failed: HTTP #{response.code}")
-    code = { 401 => :permission_denied, 403 => :permission_denied, 404 => :not_found }.fetch(response.code, :unavailable)
-    raise CustomExceptions::Evolution.new(code, http_status: response.code >= 500 ? 502 : 422, uncertain: response.code >= 500)
-  rescue HTTParty::Error, SocketError, Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, Errno::ECONNRESET,
-         JSON::ParserError => e
-    Rails.logger.warn("[Evolution] chatwoot/#{operation} unavailable: #{e.class}")
-    raise CustomExceptions::Evolution.new(:unavailable, http_status: 502, uncertain: true)
+  def with_request_errors(operation)
+    yield
+  rescue Net::OpenTimeout, Net::ReadTimeout => e
+    raise_request_error(operation, e, :timeout, 504, uncertain: true)
+  rescue JSON::ParserError => e
+    raise_request_error(operation, e, :invalid_payload, 502)
+  rescue HTTParty::Error, SocketError, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
+         Errno::ENETUNREACH, EOFError, OpenSSL::SSL::SSLError, URI::InvalidURIError => e
+    raise_request_error(operation, e, :unavailable, 502, uncertain: true)
+  end
+
+  def configuration_payload(payload, operation)
+    return payload if payload.is_a?(Hash)
+
+    Rails.logger.warn("[Evolution] chatwoot/#{operation} invalid payload instance=#{@configuration.instance_name} type=#{payload.class.name}")
+    raise CustomExceptions::Evolution.new(:invalid_payload, http_status: 502)
+  end
+
+  def raise_provider_error(operation, response)
+    status = response.code.to_i
+    log_provider_error(operation, response, status)
+    code = HTTP_ERROR_CODES.fetch(status, :provider_error)
+    code = :provider_error if status.between?(500, 599)
+    raise CustomExceptions::Evolution.new(
+      code,
+      http_status: http_status_for(code, status),
+      uncertain: uncertain_status?(code, status)
+    )
+  end
+
+  def raise_request_error(operation, error, code, http_status, uncertain: false)
+    log_request_error(operation, error)
+    raise CustomExceptions::Evolution.new(code, http_status: http_status, uncertain: uncertain)
+  end
+
+  def http_status_for(code, status)
+    return 504 if code == :timeout
+    return 502 if status.between?(500, 599)
+
+    422
+  end
+
+  def uncertain_status?(code, status)
+    code == :timeout || status.between?(500, 599)
+  end
+
+  def log_provider_error(operation, response, status)
+    body = begin
+      redact_payload(response.parsed_response).to_json
+    rescue JSON::ParserError
+      '[invalid-json]'
+    end
+    Rails.logger.warn("[Evolution] chatwoot/#{operation} failed instance=#{@configuration.instance_name} status=#{status} body=#{body}")
+  end
+
+  def log_request_error(operation, error)
+    Rails.logger.warn("[Evolution] chatwoot/#{operation} failed instance=#{@configuration.instance_name} error=#{error.class}: #{error.message}")
+  end
+
+  def redact_payload(payload)
+    case payload
+    when Hash
+      payload.each_with_object({}) do |(key, value), redacted|
+        redacted[key] = key.to_s.match?(/token|key|secret|password|authorization/i) ? '[REDACTED]' : redact_payload(value)
+      end
+    when Array
+      payload.map { |value| redact_payload(value) }
+    else
+      payload
+    end
   end
 end

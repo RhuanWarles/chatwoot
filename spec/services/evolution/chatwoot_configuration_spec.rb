@@ -34,6 +34,7 @@ RSpec.describe Evolution::ChatwootConfiguration do
     allow(Evolution::Configuration).to receive(:new).with(inbox).and_return(configuration)
     allow(HTTParty).to receive(:get).and_return(response)
     allow(HTTParty).to receive(:post).and_return(response)
+    allow(Rails.logger).to receive(:warn)
   end
 
   it 'returns only the instance and signing state when reading configuration' do
@@ -66,5 +67,55 @@ RSpec.describe Evolution::ChatwootConfiguration do
       'https://evolution.example.com/chatwoot/set/rwhub',
       hash_including(body: include('"futureOption":{"enabled":true}'))
     )
+  end
+
+  it 'treats an unconfigured instance as a valid initial configuration' do
+    response.parsed_response.replace('enabled' => false, 'signMsg' => false, 'accountId' => '', 'token' => '')
+
+    expect(described_class.new(inbox).show).to eq(instance_name: 'rwhub', configured: false, sign_msg: false)
+  end
+
+  it 'preserves authentication failures from Evolution' do
+    allow(HTTParty).to receive(:get).and_return(
+      instance_double(HTTParty::Response, success?: false, code: 401, parsed_response: { 'message' => 'Invalid api key' })
+    )
+
+    expect { described_class.new(inbox).show }.to raise_error(CustomExceptions::Evolution) { |error|
+      expect(error.code).to eq('permission_denied')
+      expect(error.http_status).to eq(422)
+    }
+    expect(Rails.logger).to have_received(:warn).with(include('status=401', 'Invalid api key'))
+  end
+
+  it 'preserves provider failures from Evolution' do
+    allow(HTTParty).to receive(:get).and_return(
+      instance_double(HTTParty::Response, success?: false, code: 503, parsed_response: { 'message' => 'database unavailable' })
+    )
+
+    expect { described_class.new(inbox).show }.to raise_error(CustomExceptions::Evolution) { |error|
+      expect(error.code).to eq('provider_error')
+      expect(error.http_status).to eq(502)
+      expect(error.uncertain).to be(true)
+    }
+    expect(Rails.logger).to have_received(:warn).with(include('status=503', 'database unavailable'))
+  end
+
+  it 'classifies timeouts separately from an unreachable provider' do
+    allow(HTTParty).to receive(:get).and_raise(Net::ReadTimeout)
+
+    expect { described_class.new(inbox).show }.to raise_error(CustomExceptions::Evolution) { |error|
+      expect(error.code).to eq('timeout')
+      expect(error.http_status).to eq(504)
+    }
+  end
+
+  it 'rejects a successful non-object payload' do
+    allow(HTTParty).to receive(:get).and_return(
+      instance_double(HTTParty::Response, success?: true, parsed_response: ['unexpected'])
+    )
+
+    expect { described_class.new(inbox).show }.to raise_error(CustomExceptions::Evolution) { |error|
+      expect(error.code).to eq('invalid_payload')
+    }
   end
 end
