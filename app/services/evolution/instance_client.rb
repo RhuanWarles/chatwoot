@@ -46,11 +46,12 @@ class Evolution::InstanceClient
   def configure_inbox(inbox, user)
     current = request(:get, chatwoot_path('find'))
     validate_hash_payload!(current)
-    payload = current.slice(*Evolution::ChatwootConfiguration::CONFIGURATION_FIELDS, 'ignoreJids')
-    payload['importContacts'] = false
-    payload['importMessages'] = false
-    payload['reopenConversation'] = current['reopenConversation'] == true
-    payload['conversationPending'] = current['conversationPending'] == true
+    payload = {
+      'importContacts' => false,
+      'importMessages' => false,
+      'reopenConversation' => false,
+      'conversationPending' => false
+    }.merge(current.slice(*Evolution::ChatwootConfiguration::CONFIGURATION_FIELDS, 'ignoreJids'))
     payload['enabled'] = inbox.present?
     payload['autoCreate'] = false
     if inbox
