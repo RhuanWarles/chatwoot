@@ -207,11 +207,11 @@ RSpec.describe 'WhatsApp connections API', type: :request do
     stub_request(:get, "#{provider_url}/chatwoot/find/#{instance_name}")
       .to_return(headers: json_headers,
                  body: { enabled: true, nameInbox: inbox.name, signMsg: true, importContacts: true,
-                         reopenConversation: true, conversationPending: true }.to_json)
+                         reopenConversation: true, conversationPending: false }.to_json)
     configure = stub_request(:post, "#{provider_url}/chatwoot/set/#{instance_name}").with do |request|
       JSON.parse(request.body).slice('nameInbox', 'signMsg', 'importContacts', 'reopenConversation', 'conversationPending') ==
         { 'nameInbox' => new_inbox.name, 'signMsg' => true, 'importContacts' => true,
-          'reopenConversation' => true, 'conversationPending' => true }
+          'reopenConversation' => true, 'conversationPending' => false }
     end.to_return(headers: json_headers, body: { enabled: true }.to_json)
 
     patch member_url, params: { inbox_id: new_inbox.id }, headers: admin.create_new_auth_token, as: :json
