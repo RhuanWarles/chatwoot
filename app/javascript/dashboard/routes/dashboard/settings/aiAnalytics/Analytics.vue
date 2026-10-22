@@ -92,6 +92,9 @@ const chartData = computed(() => ({
     pointBorderColor: 'rgb(var(--solid-2))',
   })),
 }));
+const showChartValues = computed(
+  () => (data.value?.timeseries?.length || 0) <= 14
+);
 const consumption = computed(() => {
   const billing = data.value?.billing;
   if (!billing) return [];
@@ -168,14 +171,14 @@ onMounted(load);
 
 <template>
   <main
-    class="flex h-full min-h-0 w-full min-w-0 flex-col gap-4 overflow-hidden text-n-slate-12"
+    class="flex h-full min-h-0 w-full min-w-0 flex-col gap-5 overflow-y-auto overscroll-contain pb-6 text-n-slate-12"
   >
     <header class="shrink-0">
       <h1 class="text-xl font-semibold tracking-tight">{{ key('TITLE') }}</h1>
       <p class="mt-1 text-sm text-n-slate-11">{{ key('SUBTITLE') }}</p>
     </header>
     <section
-      class="grid shrink-0 grid-cols-3 gap-3"
+      class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-3"
       :aria-label="key('PERIOD')"
     >
       <label class="min-w-0 text-xs font-medium text-n-slate-11"
@@ -208,7 +211,7 @@ onMounted(load);
     </section>
     <div
       v-if="filters.period === 'custom'"
-      class="flex shrink-0 flex-wrap items-end gap-3"
+      class="grid shrink-0 grid-cols-1 items-end gap-3 sm:flex sm:flex-wrap"
     >
       <label class="text-xs text-n-slate-11"
         >{{ key('START')
@@ -250,7 +253,7 @@ onMounted(load);
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div v-for="n in 4" :key="n" class="h-24 rounded-xl bg-n-alpha-2" />
       </div>
-      <div class="min-h-0 flex-1 rounded-xl bg-n-alpha-2" />
+      <div class="min-h-[24rem] rounded-xl bg-n-alpha-2" />
     </div>
     <template v-else-if="data && !error">
       <section class="grid shrink-0 grid-cols-2 gap-3 sm:grid-cols-4">
@@ -272,26 +275,24 @@ onMounted(load);
           </p>
         </article>
       </section>
-      <div
-        class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:grid lg:grid-cols-2 lg:grid-rows-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden"
-      >
+      <div class="grid min-h-0 gap-4 lg:grid-cols-2">
         <section
-          class="flex h-64 min-h-0 min-w-0 shrink-0 flex-col rounded-xl bg-n-alpha-1 p-4 lg:col-span-2 lg:h-auto"
+          class="flex min-h-[22rem] min-w-0 flex-col rounded-xl bg-n-alpha-1 p-4 sm:min-h-[25rem] lg:col-span-2"
         >
           <h2 class="shrink-0 text-sm font-semibold">
             {{ key('TIMESERIES') }}
           </h2>
           <div
             ref="chartContainer"
-            class="mt-2 flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+            class="mt-4 flex h-72 min-h-0 items-center justify-center overflow-visible sm:h-80"
           >
             <LineChart
               v-if="data.summary.messages || data.billing.credits_consumed"
               :data="chartData"
               :height="Math.max(60, Math.floor(chartHeight))"
               :width="Math.max(280, Math.floor(chartWidth))"
-              :point-radius="2"
-              :show-values="false"
+              :point-radius="3"
+              :show-values="showChartValues"
               :format-value="number"
               :aria-label="key('TIMESERIES')"
               class="w-full min-w-0 [&_.cw-viz-line__x-tick]:hidden [&_.cw-viz-line__x-tick:nth-child(4n+1)]:block [&_.cw-viz-line__x-tick:last-child]:block [--cw-viz-line-label-color:rgb(var(--slate-11))] [--cw-viz-line-axis-color:rgb(var(--slate-4))] [--cw-viz-line-tooltip-background:rgb(var(--solid-2))] [--cw-viz-line-tooltip-color:rgb(var(--slate-12))]"
@@ -319,7 +320,7 @@ onMounted(load);
           </div>
         </section>
         <section
-          class="flex h-52 min-h-0 min-w-0 shrink-0 flex-col rounded-xl bg-n-alpha-1 p-4 lg:h-auto"
+          class="flex min-h-[18rem] min-w-0 flex-col rounded-xl bg-n-alpha-1 p-4"
         >
           <h2 class="text-sm font-semibold">{{ key('TOOLS') }}</h2>
           <p class="mt-2 text-xs text-n-slate-11">
@@ -328,7 +329,7 @@ onMounted(load);
             {{ key('FAILURES') }}: {{ number(data.tools.failures) }} ·
             {{ percent(data.tools.success_rate) }}
           </p>
-          <div class="mt-2 min-h-0 flex-1 overflow-auto">
+          <div class="mt-4 min-h-0 overflow-x-auto">
             <table
               v-if="data.tools.top.length"
               class="w-full text-xs tabular-nums"
@@ -369,9 +370,7 @@ onMounted(load);
             </p>
           </div>
         </section>
-        <section
-          class="min-h-0 shrink-0 overflow-y-auto rounded-xl bg-n-alpha-1 p-4"
-        >
+        <section class="min-h-[14rem] rounded-xl bg-n-alpha-1 p-4">
           <h2 class="text-sm font-semibold">{{ key('KNOWLEDGE') }}</h2>
           <dl
             v-if="data.knowledge.queries"
@@ -393,9 +392,7 @@ onMounted(load);
             {{ key('EMPTY_KNOWLEDGE') }}
           </p>
         </section>
-        <section
-          class="min-h-0 shrink-0 overflow-y-auto rounded-xl bg-n-alpha-1 p-4"
-        >
+        <section class="min-h-[14rem] rounded-xl bg-n-alpha-1 p-4">
           <h2 class="text-sm font-semibold">{{ key('CONSUMPTION') }}</h2>
           <dl class="mt-3 grid grid-cols-3 gap-3">
             <div v-for="item in consumption" :key="item[0]">
@@ -426,12 +423,12 @@ onMounted(load);
           </div>
         </section>
         <section
-          class="flex h-64 min-h-40 min-w-0 shrink-0 flex-col overflow-hidden rounded-xl bg-n-alpha-1 lg:h-auto lg:min-h-0"
+          class="flex min-h-[20rem] min-w-0 flex-col overflow-hidden rounded-xl bg-n-alpha-1"
         >
           <h2 class="shrink-0 px-4 py-3 text-sm font-semibold">
             {{ key('DETAILS') }}
           </h2>
-          <div class="min-h-0 flex-1 overflow-auto">
+          <div class="min-h-0 overflow-x-auto">
             <table
               v-if="data.timeseries.length"
               class="w-full text-xs tabular-nums"
