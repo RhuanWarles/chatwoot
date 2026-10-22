@@ -14,7 +14,7 @@ class Saas::AiAgents::ConversationState
         attributes.delete('ai_agent_paused_by_id')
       else
         attributes['ai_agent_paused_at'] = Time.current.iso8601
-        attributes['ai_agent_paused_by_id'] = user.id
+        attributes['ai_agent_paused_by_id'] = user&.id
       end
       conversation.update!(additional_attributes: attributes)
     end

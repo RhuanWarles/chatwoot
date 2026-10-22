@@ -110,7 +110,12 @@ describe('Visual pipeline management', () => {
       pipeline: { name: 'New', active: true },
     });
     expect(api.create).toHaveBeenCalledWith({
-      pipeline_stage: { name: 'First', probability: null },
+      pipeline_stage: {
+        name: 'First',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
     expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(2, [30]);
   });
@@ -127,7 +132,12 @@ describe('Visual pipeline management', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.create).toHaveBeenCalledWith({
-      pipeline_stage: { name: 'New stage', probability: null },
+      pipeline_stage: {
+        name: 'New stage',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
     expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(1, [10, 20, 30]);
   });
@@ -164,7 +174,12 @@ describe('Visual pipeline management', () => {
       pipeline: { name: 'Renamed', active: true },
     });
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Qualified', probability: null },
+      pipeline_stage: {
+        name: 'Qualified',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
   });
   it('persists dragged stage order', async () => {
@@ -235,7 +250,12 @@ describe('Stage probabilities and occupied-stage moves', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Lead', probability },
+      pipeline_stage: {
+        name: 'Lead',
+        probability,
+        ai_instructions: null,
+        automations: [],
+      },
     });
   });
   it.each([-1, 101, 1.5])(
@@ -261,7 +281,12 @@ describe('Stage probabilities and occupied-stage moves', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Lead', probability: null },
+      pipeline_stage: {
+        name: 'Lead',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
   });
   it('moves deals before deleting the occupied stage, only on save', async () => {

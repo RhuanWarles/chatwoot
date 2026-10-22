@@ -19,6 +19,10 @@
     "RESPONSE_DELAY_SECONDS_HELP": "Aguarda este tempo para agrupar mensagens consecutivas antes de gerar a resposta.",
     "SPLIT_RESPONSE_MESSAGES": "Separar respostas em múltiplas mensagens",
     "SPLIT_RESPONSE_MESSAGES_HELP": "Quando ativado, cada parágrafo da resposta da IA é enviado como uma mensagem separada.",
+    "HANDOFF": "Permitir transferência para humano",
+    "HANDOFF_HELP": "Quando o assistente não souber responder ou o cliente pedir uma pessoa, ele se pausa, abre a conversa e deixa uma nota privada para a equipe.",
+    "CRM_STAGE_AUTOMATION": "Movimentar leads no funil",
+    "CRM_STAGE_AUTOMATION_HELP": "O assistente move o card do contato entre as etapas do funil conforme a conversa, usando as instruções de IA de cada etapa. Cria o card se não existir.",
     "CONNECTIONS_SECTION": "Conexões",
     "CONNECTIONS_HELP": "Escolha as caixas de entrada, ferramentas e bases de conhecimento disponíveis."
   },

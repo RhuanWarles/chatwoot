@@ -4,6 +4,7 @@ import wootConstants from 'dashboard/constants/globals';
 
 export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'conversation_actions' },
+  { name: 'crm_lead' },
   { name: 'macros' },
   { name: 'conversation_info' },
   { name: 'ai_logs' },
@@ -50,7 +51,12 @@ const useConversationSidebarItemsOrder = uiSettings => {
     // If the sidebar order doesn't have the new elements, then add them to the list.
     DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER.forEach(item => {
       if (!itemsOrderCopy.find(i => i.name === item.name)) {
-        if (item.name === 'tool_executions') {
+        if (item.name === 'crm_lead') {
+          const index = itemsOrderCopy.findIndex(
+            existing => existing.name === 'conversation_actions'
+          );
+          itemsOrderCopy.splice(index + 1, 0, item);
+        } else if (item.name === 'tool_executions') {
           const index = itemsOrderCopy.findIndex(
             existing => existing.name === 'conversation_info'
           );

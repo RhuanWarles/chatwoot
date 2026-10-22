@@ -497,24 +497,54 @@ onUnmounted(() => {
   <main
     class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-3 md:p-4 overflow-hidden bg-n-background"
   >
-    <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <div>
-        <h1 class="text-xl font-semibold text-n-slate-12">
+    <header class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-3 min-w-0">
+        <h1 class="mb-0 text-xl font-semibold text-n-slate-12">
           {{ t('CRM.DEALS_TITLE') }}
         </h1>
-        <p class="text-sm text-n-slate-11">{{ t('CRM.DEALS_SUBTITLE') }}</p>
+        <div class="flex items-center gap-1 min-w-0">
+          <ComboBox
+            v-model="selectedPipeline"
+            :options="pipelineOptions"
+            :placeholder="t('CRM.SELECT_PIPELINE')"
+            class="w-56 max-w-full"
+            @update:model-value="selectPipeline"
+          >
+            <template v-if="isAdmin" #footer="{ close }">
+              <Button
+                variant="ghost"
+                color="slate"
+                icon="i-lucide-plus"
+                :label="t('CRM.NEW_PIPELINE')"
+                class="w-full justify-start"
+                @click="
+                  close();
+                  pipelineEditor.open();
+                "
+              />
+            </template>
+          </ComboBox>
+          <Button
+            v-if="isAdmin && pipeline"
+            variant="ghost"
+            color="slate"
+            icon="i-lucide-settings-2"
+            :label="t('CRM.EDIT_PIPELINE')"
+            @click="pipelineEditor.open(pipeline)"
+          />
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-3 min-w-0 max-w-full">
+      <div class="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
         <div class="w-full sm:w-auto min-w-0 [&>span]:w-full">
           <Popover
             ref="searchPopover"
-            align="start"
+            align="end"
             disable-mobile-view
             @show="searchOpen = true"
             @hide="searchOpen = false"
           >
             <form
-              class="flex items-center gap-2 w-full min-w-0 sm:w-auto"
+              class="flex items-center gap-1 w-full min-w-0 sm:w-auto"
               @submit.prevent="search"
               @click.stop="openSearch"
             >
@@ -525,7 +555,7 @@ onUnmounted(() => {
                 :aria-label="t('CRM.DEAL_SEARCH_PLACEHOLDER')"
                 :aria-expanded="searchOpen"
                 aria-haspopup="true"
-                class="flex-1 min-w-0 sm:w-80"
+                class="flex-1 min-w-0 sm:w-64"
                 @focus="openSearch"
                 @keydown.down.prevent="focusSearchResults"
               />
@@ -558,34 +588,14 @@ onUnmounted(() => {
             </template>
           </Popover>
         </div>
-        <ComboBox
-          v-model="selectedPipeline"
-          :options="pipelineOptions"
-          :placeholder="t('CRM.SELECT_PIPELINE')"
-          class="w-56 max-w-full"
-          @update:model-value="selectPipeline"
-        >
-          <template v-if="isAdmin" #footer="{ close }">
-            <Button
-              variant="ghost"
-              color="slate"
-              icon="i-lucide-plus"
-              :label="t('CRM.NEW_PIPELINE')"
-              class="w-full justify-start"
-              @click="
-                close();
-                pipelineEditor.open();
-              "
-            />
-          </template>
-        </ComboBox>
         <Button
-          v-if="isAdmin && pipeline"
           variant="faded"
           color="slate"
-          icon="i-lucide-pencil"
-          :label="t('CRM.EDIT_PIPELINE')"
-          @click="pipelineEditor.open(pipeline)"
+          icon="i-lucide-list-filter"
+          :label="
+            t('CRM.ADVANCED_FILTERS') + (filterCount ? ` (${filterCount})` : '')
+          "
+          @click="openAdvancedFilters"
         />
         <Button
           :label="t('CRM.NEW_DEAL')"
@@ -616,7 +626,7 @@ onUnmounted(() => {
     <div
       role="group"
       :aria-label="t('CRM.STATUS')"
-      class="flex flex-wrap items-center gap-2 mb-4"
+      class="flex flex-wrap items-center gap-2 mb-3"
     >
       <span class="text-sm font-medium text-n-slate-12">{{
         t('CRM.STATUS')
@@ -639,16 +649,6 @@ onUnmounted(() => {
         :aria-pressed="selectedStatuses.includes(filter.status)"
         @click="toggleStatus(filter.status)"
       />
-    </div>
-    <div class="flex justify-end mb-4">
-      <button
-        type="button"
-        class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-n-slate-9/10 text-n-slate-12 hover:bg-n-slate-9/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
-        @click="openAdvancedFilters"
-      >
-        {{ t('CRM.ADVANCED_FILTERS')
-        }}{{ filterCount ? '(' + filterCount + ')' : '' }}
-      </button>
     </div>
     <div
       v-if="showFilterPanel"
