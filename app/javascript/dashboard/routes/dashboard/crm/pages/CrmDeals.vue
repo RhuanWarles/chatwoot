@@ -401,7 +401,8 @@ watch(
   }
 );
 
-const activityIsOverdue = activity => new Date(activity.due_at).getTime() < now.value;
+const activityIsOverdue = activity =>
+  new Date(activity.due_at).getTime() < now.value;
 const activityIsNear = activity => {
   const dueAt = new Date(activity.due_at).getTime();
   return dueAt >= now.value && dueAt - now.value <= ACTIVITY_NEAR_WINDOW_MS;
@@ -682,8 +683,7 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.OWNER')
-              }}</label
-              ><ComboBox
+              }}</label><ComboBox
                 v-model="filterDraft.ownerId"
                 :options="ownerOptions"
                 :placeholder="t('CRM.FILTER_ALL')"
@@ -702,8 +702,7 @@ onUnmounted(() => {
                     v-model="filterDraft.stageIds"
                     type="checkbox"
                     :value="stage.id"
-                  />{{ stage.name }}</label
-                >
+                  />{{ stage.name }}</label>
               </div>
             </div>
             <fieldset class="flex flex-col gap-2">
@@ -755,8 +754,7 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.FILTER_COMPANY')
-              }}</label
-              ><Input
+              }}</label><Input
                 v-model="filterDraft.company"
                 :label="t('CRM.FILTER_COMPANY')"
               />
@@ -764,8 +762,7 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.CONTACT')
-              }}</label
-              ><CrmContactPicker
+              }}</label><CrmContactPicker
                 v-model="filterDraft.contactId"
                 :contact="selectedFilterContact"
               />
@@ -806,6 +803,7 @@ onUnmounted(() => {
       <div
         v-for="stage in boardStages"
         :key="stage.id"
+        data-crm-stage-column
         class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-xl bg-n-alpha-2 p-2.5"
       >
         <div class="sticky top-0 z-10 flex-shrink-0 mb-2 min-w-0">
@@ -816,7 +814,7 @@ onUnmounted(() => {
             {{ stage.name }}
           </h2>
           <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span class="text-sm text-n-slate-11">
+            <span class="text-sm text-n-slate-11" data-crm-stage-total>
               {{ brlFormatter.format(stage.total) }}
             </span>
             <span class="text-xs text-n-slate-10">
@@ -911,26 +909,32 @@ onUnmounted(() => {
               >
                 <span
                   class="flex-shrink-0"
-                  :class="activityIsOverdue(element.next_activity)
-                    ? 'i-lucide-circle-alert text-n-ruby-11'
-                    : activityIsNear(element.next_activity)
-                      ? 'i-lucide-clock-3 text-n-blue-11'
-                      : 'i-lucide-calendar-clock text-n-slate-11'"
+                  :class="
+                    activityIsOverdue(element.next_activity)
+                      ? 'i-lucide-circle-alert text-n-ruby-11'
+                      : activityIsNear(element.next_activity)
+                        ? 'i-lucide-clock-3 text-n-blue-11'
+                        : 'i-lucide-calendar-clock text-n-slate-11'
+                  "
                 />
                 <span class="min-w-0 truncate text-xs text-n-slate-11">
                   {{ element.next_activity.title }}
                 </span>
                 <span
                   class="flex-shrink-0 text-xs"
-                  :class="activityIsOverdue(element.next_activity)
-                    ? 'text-n-ruby-11'
-                    : activityIsNear(element.next_activity)
-                      ? 'text-n-blue-11'
-                      : 'text-n-slate-10'"
+                  :class="
+                    activityIsOverdue(element.next_activity)
+                      ? 'text-n-ruby-11'
+                      : activityIsNear(element.next_activity)
+                        ? 'text-n-blue-11'
+                        : 'text-n-slate-10'
+                  "
                 >
-                  {{ activityIsOverdue(element.next_activity)
-                    ? t('CRM.ACTIVITY_OVERDUE')
-                    : activityDate(element.next_activity) }}
+                  {{
+                    activityIsOverdue(element.next_activity)
+                      ? t('CRM.ACTIVITY_OVERDUE')
+                      : activityDate(element.next_activity)
+                  }}
                 </span>
               </button>
             </article>

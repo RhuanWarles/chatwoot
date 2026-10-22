@@ -40,6 +40,24 @@ describe('useUISettings', () => {
     });
   });
 
+  it('inserts the CRM lead item after conversation actions for saved orders', () => {
+    const previous = getUISettingsMock.value;
+    getUISettingsMock.value = {
+      ...previous,
+      conversation_sidebar_items_order: [
+        { name: 'macros' },
+        { name: 'conversation_actions' },
+        { name: 'contact_notes' },
+      ],
+    };
+    const { conversationSidebarItemsOrder } = useUISettings();
+    const names = conversationSidebarItemsOrder.value.map(item => item.name);
+    expect(names.indexOf('crm_lead')).toBe(
+      names.indexOf('conversation_actions') + 1
+    );
+    getUISettingsMock.value = previous;
+  });
+
   it('updates UI settings correctly', () => {
     const { updateUISettings } = useUISettings();
     updateUISettings({ enter_to_send_enabled: true });

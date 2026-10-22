@@ -284,7 +284,10 @@ defineExpose({ open: openEditor });
                   }
                 "
               />
-              <CrmStageAutomations :stage="element" />
+              <CrmStageAutomations
+                v-model:automations="element.automations"
+                v-model:ai-instructions="element.ai_instructions"
+              />
               <Button
                 type="button"
                 variant="ghost"

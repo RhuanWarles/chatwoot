@@ -25,9 +25,10 @@ const saving = ref(false);
 
 const deal = computed(() => deals.value.find(item => item.id === dealId.value));
 const stageOptions = computed(() =>
-  (pipelines.value.find(item => item.id === deal.value?.pipeline_id)?.stages || []).map(
-    stage => ({ value: stage.id, label: stage.name })
-  )
+  (
+    pipelines.value.find(item => item.id === deal.value?.pipeline_id)?.stages ||
+    []
+  ).map(stage => ({ value: stage.id, label: stage.name }))
 );
 const dealOptions = computed(() =>
   deals.value.map(item => ({
@@ -130,7 +131,9 @@ watch(() => props.contact.id, load, { immediate: true });
         <span class="text-n-slate-11">{{ t('CRM.VALUE') }}</span>
         <span class="font-medium text-n-slate-12">
           {{
-            deal.value == null ? t('CRM.NOT_SET') : brlFormatter.format(Number(deal.value))
+            deal.value == null
+              ? t('CRM.NOT_SET')
+              : brlFormatter.format(Number(deal.value))
           }}
         </span>
       </div>

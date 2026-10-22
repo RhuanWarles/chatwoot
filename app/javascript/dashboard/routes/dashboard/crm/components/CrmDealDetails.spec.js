@@ -1,5 +1,6 @@
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, config } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import { createStore } from 'vuex';
 import CrmDealDetails from '../pages/CrmDealDetails.vue';
 import CrmDeals from '../pages/CrmDeals.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -7,6 +8,17 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import AgentsAPI from 'dashboard/api/agents';
 import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
+
+config.global.plugins = [
+  ...config.global.plugins,
+  createStore({
+    getters: {
+      getCurrentRole: () => 'administrator',
+      'agents/getAgents': () => [],
+      'labels/getLabels': () => [],
+    },
+  }),
+];
 
 const { route, push } = vi.hoisted(() => ({
   route: { params: { accountId: '1', dealId: '12' }, query: {} },

@@ -1,5 +1,6 @@
 import { config, mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import { createStore } from 'vuex';
 import CrmDeals from '../pages/CrmDeals.vue';
 import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
@@ -15,6 +16,13 @@ vi.mock('vue-router', () => ({
 }));
 
 config.global.plugins = [
+  createStore({
+    getters: {
+      getCurrentRole: () => 'administrator',
+      'agents/getAgents': () => [],
+      'labels/getLabels': () => [],
+    },
+  }),
   createI18n({
     legacy: false,
     locale: 'pt_BR',
@@ -89,7 +97,10 @@ describe('CRM cards and translations', () => {
     const wrapper = mount(CrmDeals);
     await flushPromises();
     await wrapper.find('article button[aria-label]').trigger('click');
-    const labels = wrapper.find('form').findAll('span.text-sm.font-medium');
+    const editForm = wrapper
+      .findAll('form')
+      .find(form => form.text().includes(pt.CRM.DEAL_DETAILS));
+    const labels = editForm.findAll('span.text-sm.font-medium');
     expect(labels.some(label => label.text() === 'Status')).toBe(true);
     wrapper.unmount();
   });

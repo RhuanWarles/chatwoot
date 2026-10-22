@@ -19,7 +19,10 @@ export const isAutomationValid = action => {
     case 'send_message':
       return Boolean(action.content?.trim());
     case 'move_stage':
-      return Number.isInteger(action.pipeline_id) && Number.isInteger(action.stage_id);
+      return (
+        Number.isInteger(action.pipeline_id) &&
+        Number.isInteger(action.stage_id)
+      );
     case 'send_webhook':
       return /^https?:\/\/\S+$/.test(action.url || '');
     default:
@@ -48,19 +51,17 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { pipelinesAPI } from 'dashboard/api/crm';
 
-const props = defineProps({
-  stage: { type: Object, required: true },
+const automations = defineModel('automations', {
+  type: Array,
+  default: () => [],
 });
+const aiInstructions = defineModel('aiInstructions', { type: String });
 
 const { t } = useI18n();
 const agents = useMapGetter('agents/getAgents');
 const labels = useMapGetter('labels/getLabels');
 const open = ref(false);
 
-const actions = computed(() => {
-  if (!props.stage.automations) props.stage.automations = [];
-  return props.stage.automations;
-});
 const typeOptions = computed(() =>
   Object.keys(DEFAULTS).map(type => ({
     value: type,
@@ -94,14 +95,18 @@ const labelOptions = computed(() =>
 
 const pipelines = ref([]);
 const pipelineOptions = computed(() =>
-  pipelines.value.map(pipeline => ({ value: pipeline.id, label: pipeline.name }))
+  pipelines.value.map(pipeline => ({
+    value: pipeline.id,
+    label: pipeline.name,
+  }))
 );
 const stageOptions = action =>
-  (pipelines.value.find(pipeline => pipeline.id === action.pipeline_id)?.stages || []).map(
-    stage => ({ value: stage.id, label: stage.name })
-  );
+  (
+    pipelines.value.find(pipeline => pipeline.id === action.pipeline_id)
+      ?.stages || []
+  ).map(stage => ({ value: stage.id, label: stage.name }));
 watch(
-  () => actions.value.some(action => action.type === 'move_stage'),
+  () => automations.value.some(action => action.type === 'move_stage'),
   async needsPipelines => {
     if (needsPipelines && !pipelines.value.length) {
       pipelines.value = (await pipelinesAPI.get()).data;
@@ -111,13 +116,21 @@ watch(
 );
 
 const add = () => {
-  actions.value.push({ type: 'set_status', ...DEFAULTS.set_status });
+  automations.value = [
+    ...automations.value,
+    { type: 'set_status', ...DEFAULTS.set_status },
+  ];
 };
-const changeType = (action, type) => {
-  Object.keys(action).forEach(key => delete action[key]);
-  Object.assign(action, { type, ...DEFAULTS[type] });
+const changeType = (index, type) => {
+  automations.value = automations.value.map((action, position) =>
+    position === index ? { type, ...DEFAULTS[type] } : action
+  );
 };
-const remove = index => actions.value.splice(index, 1);
+const remove = index => {
+  automations.value = automations.value.filter(
+    (_, position) => position !== index
+  );
+};
 </script>
 
 <template>
@@ -129,7 +142,7 @@ const remove = index => actions.value.splice(index, 1);
       size="sm"
       class="justify-start"
       :icon="open ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-      :label="t('CRM.AUTOMATIONS_TITLE', { count: actions.length })"
+      :label="t('CRM.AUTOMATIONS_TITLE', { count: automations.length })"
       :aria-expanded="open"
       @click="open = !open"
     />
@@ -137,7 +150,7 @@ const remove = index => actions.value.splice(index, 1);
       <label class="flex flex-col gap-1 text-sm text-n-slate-12">
         {{ t('CRM.AI_INSTRUCTIONS') }}
         <textarea
-          v-model="stage.ai_instructions"
+          v-model="aiInstructions"
           rows="3"
           class="w-full p-2 text-sm rounded-lg outline outline-1 outline-n-weak bg-n-alpha-black2 text-n-slate-12"
           :placeholder="t('CRM.AI_INSTRUCTIONS_PLACEHOLDER')"
@@ -147,7 +160,7 @@ const remove = index => actions.value.splice(index, 1);
         {{ t('CRM.AUTOMATIONS_HELP') }}
       </p>
       <div
-        v-for="(action, index) in actions"
+        v-for="(action, index) in automations"
         :key="index"
         class="flex flex-col gap-2 p-2 rounded-lg bg-n-alpha-2"
       >
@@ -156,7 +169,7 @@ const remove = index => actions.value.splice(index, 1);
             class="flex-1 min-w-0"
             :model-value="action.type"
             :options="typeOptions"
-            @update:model-value="changeType(action, $event)"
+            @update:model-value="changeType(index, $event)"
           />
           <Button
             type="button"
@@ -180,10 +193,7 @@ const remove = index => actions.value.splice(index, 1);
           :placeholder="t('CRM.OWNER')"
         />
         <template v-else-if="action.type === 'create_activity'">
-          <ComboBox
-            v-model="action.activity_type"
-            :options="activityOptions"
-          />
+          <ComboBox v-model="action.activity_type" :options="activityOptions" />
           <Input
             v-model="action.title"
             :placeholder="t('CRM.AUTOMATION_ACTIVITY_TITLE')"

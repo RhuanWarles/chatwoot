@@ -1,5 +1,6 @@
 import { config, mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import { createStore } from 'vuex';
 import { nextTick } from 'vue';
 import CrmDeals from '../pages/CrmDeals.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -10,11 +11,27 @@ vi.mock('dashboard/api/crm', () => ({
   pipelinesAPI: { get: vi.fn() },
   dealsAPI: { get: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));
+const router = vi.hoisted(() => ({
+  route: { params: { accountId: '1' }, query: {} },
+}));
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { accountId: '1' }, query: {} }),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRoute: () => router.route,
+  useRouter: () => ({
+    push: vi.fn(),
+    // The page reads the selected pipeline back from the query string.
+    replace: async ({ query }) => {
+      router.route.query = query;
+    },
+  }),
 }));
 config.global.plugins = [
+  createStore({
+    getters: {
+      getCurrentRole: () => 'administrator',
+      'agents/getAgents': () => [],
+      'labels/getLabels': () => [],
+    },
+  }),
   createI18n({ legacy: false, locale: 'pt_BR', messages: { pt_BR: pt } }),
 ];
 config.global.stubs.CrmContactPicker = true;
@@ -111,8 +128,11 @@ const BASE_DEALS = [
     pipeline_stage_id: 30,
   },
 ];
+// The header search form comes first; the quick-edit and create dialogs are rendered last.
+const modalForm = wrapper => wrapper.findAll('form').at(-1);
 let records;
 beforeEach(() => {
+  router.route.query = {};
   records = structuredClone(BASE_DEALS);
   pipelinesAPI.get.mockResolvedValue({ data: PIPELINES });
   dealsAPI.get.mockImplementation(async () => ({
@@ -139,15 +159,15 @@ describe('Kanban status filters and stage totals', () => {
     const filters = wrapper.find('[role="group"]');
     const active = filters.findAll('button[aria-pressed="true"]');
     expect(active.map(button => button.text())).toEqual(['Todos']);
-    const columns = wrapper.findAll('section > .w-72');
+    const columns = wrapper.findAll('[data-crm-stage-column]');
     expect(columns[0].text()).toContain('4 negócios');
-    expect(columns[0].find('p').text().replace(/\s/g, ' ')).toBe(
-      'R$ 14.500,00'
-    );
+    expect(
+      columns[0].find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 14.500,00');
     expect(columns[1].text()).toContain('3 negócios');
-    expect(columns[1].find('p').text().replace(/\s/g, ' ')).toBe(
-      'R$ 12.500,50'
-    );
+    expect(
+      columns[1].find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 12.500,50');
     expect(wrapper.findAll('article')).toHaveLength(7);
     wrapper.unmount();
   });
@@ -173,12 +193,14 @@ describe('Kanban status filters and stage totals', () => {
             .trigger('click')
         )
       );
-      const column = wrapper.findAll('section > .w-72')[0];
+      const column = wrapper.findAll('[data-crm-stage-column]')[0];
       expect(column.findAll('article')).toHaveLength(count);
       expect(column.text()).toContain(
         count === 1 ? '1 negócio' : `${count} negócios`
       );
-      expect(column.find('p').text().replace(/\s/g, ' ')).toBe(total);
+      expect(
+        column.find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+      ).toBe(total);
       expect(
         group
           .findAll('button[aria-pressed="true"]')
@@ -201,7 +223,7 @@ describe('Kanban status filters and stage totals', () => {
       group.findAll('button[aria-pressed="true"]').map(button => button.text())
     ).toEqual(['Ganhos']);
     expect(
-      wrapper.findAll('section > .w-72')[0].findAll('article')
+      wrapper.findAll('[data-crm-stage-column]')[0].findAll('article')
     ).toHaveLength(1);
     wrapper.unmount();
   });
@@ -268,9 +290,11 @@ describe('Kanban status filters and stage totals', () => {
     );
     const wrapper = mount(CrmDeals);
     await flushPromises();
-    const column = wrapper.findAll('section > .w-72')[1];
+    const column = wrapper.findAll('[data-crm-stage-column]')[1];
     expect(column.text()).toContain('5 negócios');
-    expect(column.find('p').text().replace(/\s/g, ' ')).toBe('R$ 12.500,80');
+    expect(
+      column.find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 12.500,80');
     wrapper.unmount();
   });
 
@@ -289,9 +313,13 @@ describe('Kanban status filters and stage totals', () => {
     );
     draggables[1].vm.$emit('change', { added: { element: deal } });
     await nextTick();
-    const columns = wrapper.findAll('section > .w-72');
-    expect(columns[0].find('p').text().replace(/\s/g, ' ')).toBe('R$ 0,00');
-    expect(columns[1].find('p').text().replace(/\s/g, ' ')).toBe('R$ 3.000,00');
+    const columns = wrapper.findAll('[data-crm-stage-column]');
+    expect(
+      columns[0].find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 0,00');
+    expect(
+      columns[1].find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 3.000,00');
     expect(deal.status).toBe('won');
     expect(dealsAPI.update).toHaveBeenCalledWith(deal.id, {
       deal: { pipeline_stage_id: 20 },
@@ -311,9 +339,11 @@ describe('Kanban status filters and stage totals', () => {
     dealsAPI.update.mockRejectedValueOnce(new Error('offline'));
     draggables[1].vm.$emit('change', { added: { element: deal } });
     await flushPromises();
-    const column = wrapper.findAll('section > .w-72')[0];
+    const column = wrapper.findAll('[data-crm-stage-column]')[0];
     expect(column.findAll('article')).toHaveLength(4);
-    expect(column.find('p').text().replace(/\s/g, ' ')).toBe('R$ 14.500,00');
+    expect(
+      column.find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 14.500,00');
     expect(deal.pipeline_stage_id).toBe(10);
     wrapper.unmount();
   });
@@ -322,13 +352,17 @@ describe('Kanban status filters and stage totals', () => {
     const wrapper = mount(CrmDeals);
     await flushPromises();
     await wrapper.find('article button[aria-label]').trigger('click');
-    const input = wrapper.find('form input[inputmode="decimal"]');
+    const input = modalForm(wrapper).find('input[inputmode="decimal"]');
     await input.trigger('focus');
     await input.setValue('6000,25');
-    await wrapper.find('form').trigger('submit');
+    await modalForm(wrapper).trigger('submit');
     await flushPromises();
     expect(
-      wrapper.findAll('section > .w-72')[0].find('p').text().replace(/\s/g, ' ')
+      wrapper
+        .findAll('[data-crm-stage-column]')[0]
+        .find('[data-crm-stage-total]')
+        .text()
+        .replace(/\s/g, ' ')
     ).toBe('R$ 15.500,25');
     wrapper.unmount();
   });
@@ -343,11 +377,13 @@ describe('Kanban status filters and stage totals', () => {
       .at(-1)
       .vm.$emit('update:modelValue', 'lost');
     await nextTick();
-    await wrapper.find('form').trigger('submit');
+    await modalForm(wrapper).trigger('submit');
     await flushPromises();
-    const column = wrapper.findAll('section > .w-72')[0];
+    const column = wrapper.findAll('[data-crm-stage-column]')[0];
     expect(column.findAll('article')).toHaveLength(1);
-    expect(column.find('p').text().replace(/\s/g, ' ')).toBe('R$ 2.000,00');
+    expect(
+      column.find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 2.000,00');
     wrapper.unmount();
   });
 
@@ -359,15 +395,17 @@ describe('Kanban status filters and stage totals', () => {
       .findAll('button')
       .find(button => button.text() === 'Novo negócio')
       .trigger('click');
-    await wrapper.find('form input').setValue('New lead');
-    const input = wrapper.find('form input[inputmode="decimal"]');
+    await modalForm(wrapper).find('input').setValue('New lead');
+    const input = modalForm(wrapper).find('input[inputmode="decimal"]');
     await input.trigger('focus');
     await input.setValue('500');
-    await wrapper.find('form').trigger('submit');
+    await modalForm(wrapper).trigger('submit');
     await flushPromises();
-    const column = wrapper.findAll('section > .w-72')[0];
+    const column = wrapper.findAll('[data-crm-stage-column]')[0];
     expect(column.findAll('article')).toHaveLength(3);
-    expect(column.find('p').text().replace(/\s/g, ' ')).toBe('R$ 7.500,00');
+    expect(
+      column.find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 7.500,00');
     wrapper.unmount();
   });
 
@@ -377,10 +415,12 @@ describe('Kanban status filters and stage totals', () => {
     await wrapper.find('[role="group"]').findAll('button')[2].trigger('click');
     wrapper.findComponent(ComboBox).vm.$emit('update:modelValue', 2);
     await flushPromises();
-    const columns = wrapper.findAll('section > .w-72');
+    const columns = wrapper.findAll('[data-crm-stage-column]');
     expect(columns).toHaveLength(1);
     expect(columns[0].find('h2').text()).toBe('Other stage');
-    expect(columns[0].find('p').text().replace(/\s/g, ' ')).toBe('R$ 800,00');
+    expect(
+      columns[0].find('[data-crm-stage-total]').text().replace(/\s/g, ' ')
+    ).toBe('R$ 800,00');
     expect(columns[0].findAll('article')).toHaveLength(1);
     expect(
       wrapper
