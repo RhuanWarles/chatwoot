@@ -221,9 +221,7 @@ onMounted(() => {
               :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CRM_LEAD')"
               :is-open="isContactSidebarItemOpen('is_crm_lead_open')"
               compact
-              @toggle="
-                value => toggleSidebarUIState('is_crm_lead_open', value)
-              "
+              @toggle="value => toggleSidebarUIState('is_crm_lead_open', value)"
             >
               <ConversationLead :contact="contact" />
             </AccordionItem>

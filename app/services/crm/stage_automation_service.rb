@@ -18,35 +18,50 @@ class Crm::StageAutomationService
   private
 
   def run(action)
-    case action['type']
-    when 'set_status' then @deal.update!(status: action['status'])
-    when 'assign_owner' then @deal.update!(owner_id: action['user_id'])
-    when 'create_activity' then create_activity(action)
-    when 'add_label' then latest_conversation&.add_labels([action['label']])
-    when 'set_ai_state' then set_ai_state(action['state'])
-    when 'send_message' then send_message(action['content'])
-    when 'move_stage' then move_stage(action)
-    when 'send_webhook' then send_webhook(action['url'])
-    end
+    handler = {
+      'set_status' => :update_status,
+      'assign_owner' => :assign_owner,
+      'create_activity' => :create_activity,
+      'add_label' => :add_label,
+      'set_ai_state' => :update_ai_state,
+      'send_message' => :send_message,
+      'move_stage' => :move_stage,
+      'send_webhook' => :send_webhook
+    }[action['type']]
+    send(handler, action) if handler
+  end
+
+  def update_status(action)
+    @deal.update!(status: action['status'])
+  end
+
+  def assign_owner(action)
+    @deal.update!(owner_id: action['user_id'])
   end
 
   def create_activity(action)
-    @deal.activities.create!(account_id: @deal.account_id, contact_id: @deal.contact_id, owner_id: @deal.owner_id, activity_type: action['activity_type'],
-                             title: action['title'], due_at: action['due_in_hours'].hours.from_now)
+    @deal.activities.create!(
+      account_id: @deal.account_id, contact_id: @deal.contact_id, owner_id: @deal.owner_id,
+      activity_type: action['activity_type'], title: action['title'], due_at: action['due_in_hours'].hours.from_now
+    )
   end
 
-  def set_ai_state(state)
+  def add_label(action)
+    latest_conversation&.add_labels([action['label']])
+  end
+
+  def update_ai_state(action)
     conversation = latest_conversation
     return unless conversation
 
-    Saas::AiAgents::ConversationState.update!(conversation: conversation, state: state, user: @deal.owner)
+    Saas::AiAgents::ConversationState.update!(conversation: conversation, state: action['state'], user: @deal.owner)
   end
 
-  def send_message(content)
+  def send_message(action)
     conversation = latest_conversation
     return unless conversation
 
-    Messages::MessageBuilder.new(nil, conversation, { content: render(content), private: false }).perform
+    Messages::MessageBuilder.new(nil, conversation, { content: render(action['content']), private: false }).perform
   end
 
   def move_stage(action)
@@ -56,8 +71,8 @@ class Crm::StageAutomationService
     @deal.update!(pipeline_id: action['pipeline_id'], pipeline_stage_id: action['stage_id'])
   end
 
-  def send_webhook(url)
-    Webhooks::Trigger.execute(url, webhook_payload, :account_webhook)
+  def send_webhook(action)
+    Webhooks::Trigger.execute(action['url'], webhook_payload, :account_webhook)
   end
 
   def render(content)
@@ -72,20 +87,38 @@ class Crm::StageAutomationService
   end
 
   def webhook_payload
-    contact = @deal.contact
     {
       event: 'crm_deal_stage_entered',
       account_id: @deal.account_id,
-      lead: { id: @deal.id, name: @deal.name, value: @deal.value&.to_f, status: @deal.status, description: @deal.description,
-              created_at: @deal.created_at, updated_at: @deal.updated_at,
-              pipeline: { id: @deal.pipeline_id, name: @deal.pipeline.name },
-              stage: { id: @deal.pipeline_stage_id, name: @deal.pipeline_stage.name, probability: @deal.pipeline_stage.probability },
-              owner: @deal.owner && { id: @deal.owner.id, name: @deal.owner.name, email: @deal.owner.email },
-              custom_fields: custom_fields },
-      contact: { id: contact.id, name: contact.name, phone_number: contact.phone_number, email: contact.email,
-                 identifier: contact.identifier, custom_attributes: contact.custom_attributes, labels: contact.label_list },
-      conversation: latest_conversation&.then { |conversation| { id: conversation.display_id, status: conversation.status, labels: conversation.label_list } }
+      lead: lead_payload,
+      contact: contact_payload,
+      conversation: conversation_payload
     }
+  end
+
+  def lead_payload
+    {
+      id: @deal.id, name: @deal.name, value: @deal.value&.to_f, status: @deal.status, description: @deal.description,
+      created_at: @deal.created_at, updated_at: @deal.updated_at,
+      pipeline: { id: @deal.pipeline_id, name: @deal.pipeline.name },
+      stage: { id: @deal.pipeline_stage_id, name: @deal.pipeline_stage.name, probability: @deal.pipeline_stage.probability },
+      owner: @deal.owner && { id: @deal.owner.id, name: @deal.owner.name, email: @deal.owner.email },
+      custom_fields: custom_fields
+    }
+  end
+
+  def contact_payload
+    contact = @deal.contact
+    {
+      id: contact.id, name: contact.name, phone_number: contact.phone_number, email: contact.email,
+      identifier: contact.identifier, custom_attributes: contact.custom_attributes, labels: contact.label_list
+    }
+  end
+
+  def conversation_payload
+    latest_conversation&.then do |conversation|
+      { id: conversation.display_id, status: conversation.status, labels: conversation.label_list }
+    end
   end
 
   def custom_fields

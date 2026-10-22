@@ -178,9 +178,18 @@ class Saas::AiAgents::Respond
   end
 
   def response_current?
-    (@builtin_tools.handed_off? || Saas::AiAgents::Runtime.enabled?(@conversation)) && Saas::AiAgents::Runtime.agent_for(@conversation)&.id == @agent.id &&
-      @agent.reload.active? && @agent.updated_at == @agent_revision &&
-      Saas::AiAgents::Context.latest_incoming(@conversation)&.id == @incoming.id
+    return false unless runtime_agent_current?
+
+    @agent.reload.active? && @agent.updated_at == @agent_revision && latest_incoming_current?
+  end
+
+  def runtime_agent_current?
+    (@builtin_tools.handed_off? || Saas::AiAgents::Runtime.enabled?(@conversation)) &&
+      Saas::AiAgents::Runtime.agent_for(@conversation)&.id == @agent.id
+  end
+
+  def latest_incoming_current?
+    Saas::AiAgents::Context.latest_incoming(@conversation)&.id == @incoming.id
   end
 
   def duration

@@ -683,7 +683,8 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.OWNER')
-              }}</label><ComboBox
+              }}</label
+              ><ComboBox
                 v-model="filterDraft.ownerId"
                 :options="ownerOptions"
                 :placeholder="t('CRM.FILTER_ALL')"
@@ -702,7 +703,8 @@ onUnmounted(() => {
                     v-model="filterDraft.stageIds"
                     type="checkbox"
                     :value="stage.id"
-                  />{{ stage.name }}</label>
+                  />{{ stage.name }}</label
+                >
               </div>
             </div>
             <fieldset class="flex flex-col gap-2">
@@ -754,7 +756,8 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.FILTER_COMPANY')
-              }}</label><Input
+              }}</label
+              ><Input
                 v-model="filterDraft.company"
                 :label="t('CRM.FILTER_COMPANY')"
               />
@@ -762,7 +765,8 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.CONTACT')
-              }}</label><CrmContactPicker
+              }}</label
+              ><CrmContactPicker
                 v-model="filterDraft.contactId"
                 :contact="selectedFilterContact"
               />

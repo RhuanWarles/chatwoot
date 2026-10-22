@@ -87,7 +87,10 @@ class Saas::AiAgents::BuiltinTools
     return "O lead já está na etapa #{stage.name}." if deal.pipeline_stage_id == stage.id && !deal.previously_new_record?
 
     deal.update!(pipeline_stage: stage) unless deal.pipeline_stage_id == stage.id
-    deal.events.create!(account_id: deal.account_id, event_type: 'note_created', metadata: { body: "IA moveu o lead para #{stage.name}. #{reason}".strip })
+    deal.events.create!(
+      account_id: deal.account_id, event_type: 'note_created',
+      metadata: { body: "IA moveu o lead para #{stage.name}. #{reason}".strip }
+    )
     "Lead movido para #{stage.name}."
   end
 

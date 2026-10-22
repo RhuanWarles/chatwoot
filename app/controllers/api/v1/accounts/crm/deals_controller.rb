@@ -3,9 +3,7 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
   before_action :authorize_deal, except: [:index]
 
   def index
-    deals = policy_scope(Crm::Deal).includes(:contact, :owner, :pipeline_stage, custom_field_values: :custom_field)
-    deals = deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
-    deals = deals.where(contact_id: params[:contact_id]) if params[:contact_id].present?
+    deals = filtered_deals
     deals = Crm::DealSearchService.new(scope: deals, account: Current.account, query: params[:q]).perform
     deals = deals.order(created_at: :desc) if params[:q].blank?
     deals = deals.to_a
@@ -57,6 +55,13 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
       deal_id: deals.map(&:id),
       status: 'pending'
     ).includes(:owner).order(:due_at, :id).group_by(&:deal_id)
+  end
+
+  def filtered_deals
+    deals = policy_scope(Crm::Deal).includes(:contact, :owner, :pipeline_stage, custom_field_values: :custom_field)
+    deals = deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
+    deals.where(contact_id: params[:contact_id]) if params[:contact_id].present?
+    deals
   end
 
   def deal_index_json(deal, activities)

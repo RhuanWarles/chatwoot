@@ -61,29 +61,54 @@ const { t } = useI18n();
 const agents = useMapGetter('agents/getAgents');
 const labels = useMapGetter('labels/getLabels');
 const open = ref(false);
+const automationTypeLabels = {
+  set_status: () => t('CRM.AUTOMATION_TYPE_SET_STATUS'),
+  assign_owner: () => t('CRM.AUTOMATION_TYPE_ASSIGN_OWNER'),
+  create_activity: () => t('CRM.AUTOMATION_TYPE_CREATE_ACTIVITY'),
+  add_label: () => t('CRM.AUTOMATION_TYPE_ADD_LABEL'),
+  set_ai_state: () => t('CRM.AUTOMATION_TYPE_SET_AI_STATE'),
+  send_message: () => t('CRM.AUTOMATION_TYPE_SEND_MESSAGE'),
+  move_stage: () => t('CRM.AUTOMATION_TYPE_MOVE_STAGE'),
+  send_webhook: () => t('CRM.AUTOMATION_TYPE_SEND_WEBHOOK'),
+};
+const statusLabels = {
+  open: () => t('CRM.STATUS_OPEN'),
+  won: () => t('CRM.STATUS_WON'),
+  lost: () => t('CRM.STATUS_LOST'),
+};
+const activityLabels = {
+  task: () => t('CRM.AUTOMATION_ACTIVITY_TYPE_TASK'),
+  call: () => t('CRM.AUTOMATION_ACTIVITY_TYPE_CALL'),
+  meeting: () => t('CRM.AUTOMATION_ACTIVITY_TYPE_MEETING'),
+  follow_up: () => t('CRM.AUTOMATION_ACTIVITY_TYPE_FOLLOW_UP'),
+};
+const aiStateLabels = {
+  ai: () => t('CRM.AUTOMATION_AI_STATE_AI'),
+  human: () => t('CRM.AUTOMATION_AI_STATE_HUMAN'),
+};
 
 const typeOptions = computed(() =>
   Object.keys(DEFAULTS).map(type => ({
     value: type,
-    label: t(`CRM.AUTOMATION_TYPE_${type.toUpperCase()}`),
+    label: automationTypeLabels[type](),
   }))
 );
 const statusOptions = computed(() =>
   ['open', 'won', 'lost'].map(status => ({
     value: status,
-    label: t(`CRM.STATUS_${status.toUpperCase()}`),
+    label: statusLabels[status](),
   }))
 );
 const activityOptions = computed(() =>
   ['task', 'call', 'meeting', 'follow_up'].map(type => ({
     value: type,
-    label: t(`CRM.AUTOMATION_ACTIVITY_TYPE_${type.toUpperCase()}`),
+    label: activityLabels[type](),
   }))
 );
 const aiStateOptions = computed(() =>
   ['ai', 'human'].map(state => ({
     value: state,
-    label: t(`CRM.AUTOMATION_AI_STATE_${state.toUpperCase()}`),
+    label: aiStateLabels[state](),
   }))
 );
 const agentOptions = computed(() =>
