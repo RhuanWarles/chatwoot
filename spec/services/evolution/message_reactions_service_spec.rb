@@ -76,6 +76,18 @@ RSpec.describe Evolution::MessageReactionsService do
     expect(message.reload.content_attributes['whatsapp_reactions'].sole).to include('from_me' => true, 'user_id' => user.id, 'emoji' => '✅')
   end
 
+  it 'sends a reaction for an individual WhatsApp message' do
+    key = { 'id' => 'target', 'remoteJid' => '5511999999999@s.whatsapp.net', 'fromMe' => false }
+    message.update!(content_attributes: { 'whatsapp_message_key' => key })
+    expect(client).to receive(:post).with('message/sendReaction', { key: key, reaction: '✅' }).and_return(
+      'key' => { 'id' => 'sent' }, 'message' => { 'reactionMessage' => { 'senderTimestampMs' => '2000' } }
+    )
+
+    service.send!('✅', user)
+
+    expect(message.reload.content_attributes['whatsapp_reactions'].sole).to include('from_me' => true, 'user_id' => user.id, 'emoji' => '✅')
+  end
+
   it 'keeps the original state when the provider fails' do
     key = { 'id' => 'target', 'remoteJid' => '120363000000001@g.us', 'fromMe' => true }
     message.update!(content_attributes: { 'whatsapp_message_key' => key })

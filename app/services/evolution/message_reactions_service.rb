@@ -4,7 +4,7 @@ class Evolution::MessageReactionsService
   def initialize(message)
     @message = message
     @conversation = message.conversation
-    @context = Evolution::GroupContext.new(@conversation)
+    @client = Evolution::GroupClient.new(@conversation.inbox)
   end
 
   def receive!(event)
@@ -15,7 +15,7 @@ class Evolution::MessageReactionsService
   def send!(emoji, user)
     validate_outgoing!(emoji, user)
     verify_binding!
-    response = @context.client.post('message/sendReaction', { key: message_key, reaction: emoji })
+    response = @client.post('message/sendReaction', { key: message_key, reaction: emoji })
     identity = { 'participant_key' => 'self', 'from_me' => true, 'user_id' => user.id,
                  'display_name' => user.name, 'avatar_url' => user.avatar_url }
     store!(identity, emoji, provider_timestamp(response), response.fetch('key').fetch('id'))
@@ -24,14 +24,14 @@ class Evolution::MessageReactionsService
   private
 
   def verify_binding!
-    configuration = @context.client.get('chatwoot/find')
+    configuration = @client.get('chatwoot/find')
     valid = configuration.fetch('accountId') == @message.account_id.to_s &&
             configuration.fetch('url').delete_suffix('/') == ENV.fetch('FRONTEND_URL').delete_suffix('/')
     raise CustomExceptions::Evolution, :permission_denied unless valid
   end
 
   def validate_outgoing!(emoji, user)
-    raise CustomExceptions::Evolution, :group_left if @context.left?
+    raise CustomExceptions::Evolution, :group_left if @conversation.additional_attributes['evolution_group_left_at'].present?
     raise CustomExceptions::Evolution, :invalid_reaction if @message.private? || @message.content_attributes['deleted']
 
     verify_removal_owner!(emoji, user)
@@ -67,12 +67,31 @@ class Evolution::MessageReactionsService
   end
 
   def lookup_key(id)
-    response = @context.client.post('chat/findMessages', { where: { key: { id: id, remoteJid: @context.group_jid } }, offset: 1, page: 1 })
+    remote_jid = message_remote_jid
+    return unless remote_jid
+
+    response = @client.post('chat/findMessages', { where: { key: { id: id, remoteJid: remote_jid } }, offset: 1, page: 1 })
     response.fetch('messages').fetch('records').find { |record| record.dig('key', 'id') == id }&.fetch('key')
   end
 
   def valid_key?(key, id)
-    key && key['id'] == id && key['remoteJid'] == @context.group_jid && [true, false].include?(key['fromMe'])
+    key && key['id'] == id && valid_remote_jid?(key['remoteJid']) && [true, false].include?(key['fromMe'])
+  end
+
+  def message_remote_jid
+    candidates = [
+      @message.content_attributes.dig('whatsapp_message_key', 'remoteJid'),
+      @conversation.contact&.identifier,
+      @conversation.additional_attributes['group_jid'],
+      @conversation.additional_attributes.dig('sender', 'identifier'),
+      @conversation.contact_inbox&.source_id
+    ]
+
+    candidates.find { |candidate| valid_remote_jid?(candidate) }
+  end
+
+  def valid_remote_jid?(value)
+    value.is_a?(String) && value.match?(/\A[\d:-]+@(g\.us|s\.whatsapp\.net|lid)\z/)
   end
 
   def participant(jid, from_me, name)
@@ -94,6 +113,9 @@ class Evolution::MessageReactionsService
   end
 
   def resolve_member(jid)
+    group_jid = Evolution::GroupJidResolver.call(@conversation)
+    return {} unless group_jid
+
     Evolution::GroupParticipantsService.new(@conversation).perform.find { |item| [item[:lid], item[:jid]].include?(jid) } || {}
   end
 

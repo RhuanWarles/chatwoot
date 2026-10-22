@@ -50,6 +50,7 @@ import ForwardEmailPanel from './forward/ForwardEmailPanel.vue';
 import ForwardedEmailBanner from './forward/ForwardedEmailBanner.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
+import { canReactToMessage } from './messageReactionEligibility';
 
 /**
  * @typedef {Object} Attachment
@@ -150,20 +151,21 @@ const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
 const messageReactions = ref(null);
-const canReact = computed(
-  () =>
-    props.isGroupConversation &&
-    !!props.sourceId &&
-    !props.private &&
-    !props.contentAttributes?.deleted &&
-    [MESSAGE_TYPES.INCOMING, MESSAGE_TYPES.OUTGOING].includes(props.messageType)
+const inboxGetter = useMapGetter('inboxes/getInbox');
+const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
+const canReact = computed(() =>
+  canReactToMessage({
+    inbox: inbox.value,
+    contentAttributes: props.contentAttributes,
+    sourceId: props.sourceId,
+    privateMessage: props.private,
+    messageType: props.messageType,
+  })
 );
 const showForwardEmail = ref(false);
 const forwardEmailPosition = ref({});
 const { t } = useI18n();
 const route = useRoute();
-const inboxGetter = useMapGetter('inboxes/getInbox');
-const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const { replaceInstallationName } = useBranding();
 

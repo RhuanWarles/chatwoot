@@ -22,14 +22,16 @@ class Api::V1::Accounts::Conversations::MessageReactionsController < Api::V1::Ac
     end
 
     message = @conversation.messages.find(params[:message_id])
-    ensure_group!
+    ensure_evolution!
     records = Evolution::MessageReactionsService.new(message).send!(emoji, Current.user)
     render json: { reactions: records }
   end
 
   def receive
     event = validated_event
-    raise CustomExceptions::Evolution, :invalid_reaction unless event.delete('group_jid') == ensure_group!
+    ensure_evolution!
+    group_jid = event.delete('group_jid')
+    raise CustomExceptions::Evolution, :invalid_reaction if group_jid.present? && group_jid != Evolution::GroupJidResolver.call(@conversation)
 
     target_id = event.delete('target_id')
     message = @conversation.messages.find_by(source_id: [target_id, "WAID:#{target_id}"])
@@ -58,11 +60,9 @@ class Api::V1::Accounts::Conversations::MessageReactionsController < Api::V1::Ac
     input.permit(*EVENT_VALIDATORS.keys, :group_jid).to_h
   end
 
-  def ensure_group!
+  def ensure_evolution!
     configuration = Evolution::Configuration.new(@conversation.inbox)
     raise CustomExceptions::Evolution, :not_configured unless configuration.eligible?
-
-    Evolution::GroupContext.new(@conversation).group_jid
   end
 
   def render_provider_error(error)

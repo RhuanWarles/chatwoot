@@ -35,6 +35,19 @@ RSpec.describe 'Group message reactions', type: :request do
     end
   end
 
+  it 'links an individual provider event without requiring a group JID' do
+    message
+    individual_event = event.except(:group_jid).merge(participant: '5511999999999@s.whatsapp.net')
+    allow(Evolution::GroupJidResolver).to receive(:call).and_return(nil)
+
+    with_modified_env EVOLUTION_API_KEY: 'test-secret' do
+      post "#{base_url}/reaction_events", params: { reaction: individual_event },
+                                          headers: admin.create_new_auth_token.merge('X-Evolution-Reaction-Key' => 'test-secret'), as: :json
+      expect(response).to have_http_status(:ok)
+      expect(message.reload.content_attributes['whatsapp_reactions'].sole['emoji']).to eq('✅')
+    end
+  end
+
   it 'accepts unknown targets without creating a message or reaction' do
     with_modified_env EVOLUTION_API_KEY: 'test-secret' do
       post "#{base_url}/reaction_events", params: { reaction: event },
