@@ -7,6 +7,9 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
+import CrmStageAutomations, {
+  isAutomationValid,
+} from './CrmStageAutomations.vue';
 
 const emit = defineEmits(['saved', 'closed']);
 const { t } = useI18n();
@@ -48,7 +51,10 @@ const valid = computed(
     draft.value.name.trim() &&
     draft.value.stages.length &&
     draft.value.stages.every(
-      stage => stage.name.trim() && validProbability(stage.probability)
+      stage =>
+        stage.name.trim() &&
+        validProbability(stage.probability) &&
+        (stage.automations || []).every(isAutomationValid)
     )
 );
 const openEditor = async pipeline => {
@@ -61,6 +67,9 @@ const openEditor = async pipeline => {
         ...pipeline,
         stages: pipeline.stages.map(stage => ({
           ...stage,
+          automations: (stage.automations || []).map(action => ({
+            ...action,
+          })),
           key: crypto.randomUUID(),
         })),
       }
@@ -99,6 +108,7 @@ const addStage = () => {
   draft.value.stages.push({
     name: '',
     probability: null,
+    automations: [],
     key: crypto.randomUUID(),
   });
 };
@@ -151,6 +161,8 @@ const save = async () => {
             stage.probability == null || stage.probability === ''
               ? null
               : stage.probability,
+          ai_instructions: stage.ai_instructions?.trim() || null,
+          automations: stage.automations || [],
         },
       };
       if (stage.id) {
@@ -236,7 +248,7 @@ defineExpose({ open: openEditor });
         >
           <template #item="{ element, index }">
             <div
-              class="flex flex-col flex-shrink-0 w-64 gap-3 p-4 border border-n-weak rounded-lg bg-n-background"
+              class="flex flex-col flex-shrink-0 w-72 gap-3 p-4 border border-n-weak rounded-lg bg-n-background"
             >
               <Button
                 type="button"
@@ -271,6 +283,10 @@ defineExpose({ open: openEditor });
                     if (event.target.value === '') element.probability = null;
                   }
                 "
+              />
+              <CrmStageAutomations
+                v-model:automations="element.automations"
+                v-model:ai-instructions="element.ai_instructions"
               />
               <Button
                 type="button"

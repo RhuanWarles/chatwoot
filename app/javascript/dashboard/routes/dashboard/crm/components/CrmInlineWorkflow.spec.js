@@ -22,7 +22,14 @@ vi.mock('vue-router', () => ({
 }));
 
 const createContact = vi.fn();
-const store = createStore({ actions: { 'contacts/create': createContact } });
+const store = createStore({
+  getters: {
+    getCurrentRole: () => 'administrator',
+    'agents/getAgents': () => [],
+    'labels/getLabels': () => [],
+  },
+  actions: { 'contacts/create': createContact },
+});
 const CONTACT = {
   id: 30,
   name: 'Jorge',
@@ -93,7 +100,8 @@ describe('CRM inline contact workflow', () => {
     const wrapper = mount(CrmDeals);
     await flushPromises();
     await wrapper.find('article button[aria-label]').trigger('click');
-    const form = wrapper.find('form');
+    // The header search form comes first; the deal dialog is rendered last.
+    const form = wrapper.findAll('form').at(-1);
     expect(form.text()).toContain('Etapa');
     expect(form.text()).toContain('Contato');
     expect(form.text()).toContain('Salvar alterações');
@@ -275,7 +283,8 @@ describe('CRM inline contact workflow', () => {
       .find(button => button.text() === 'Novo negócio')
       .trigger('click');
     await flushPromises();
-    const form = wrapper.find('form');
+    // The header search form comes first; the deal dialog is rendered last.
+    const form = wrapper.findAll('form').at(-1);
     const name = form.find('input');
     await name.setValue('Venda Jorge');
     const amount = form.find('input[inputmode="decimal"]');

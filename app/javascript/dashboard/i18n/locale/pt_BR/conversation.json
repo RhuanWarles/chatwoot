@@ -575,6 +575,7 @@
     },
     "ACCORDION": {
       "CONTACT_DETAILS": "Detalhes do contato",
+      "CRM_LEAD": "Lead e campos personalizados",
       "CONVERSATION_ACTIONS": "Ações da conversa",
       "CONVERSATION_LABELS": "Etiquetas da conversa",
       "CONVERSATION_INFO": "Informação da conversa",

@@ -4,11 +4,11 @@ class Api::V1::Accounts::Crm::PipelinesController < Api::V1::Accounts::BaseContr
 
   def index
     @pipelines = policy_scope(Crm::Pipeline).includes(:stages).order(:name)
-    render json: @pipelines.as_json(include: { stages: { only: [:id, :name, :position, :color, :probability] } })
+    render json: @pipelines.as_json(include: { stages: { only: [:id, :name, :position, :color, :probability, :automations, :ai_instructions] } })
   end
 
   def show
-    render json: @pipeline.as_json(include: { stages: { only: [:id, :name, :position, :color, :probability] } })
+    render json: @pipeline.as_json(include: { stages: { only: [:id, :name, :position, :color, :probability, :automations, :ai_instructions] } })
   end
 
   def create

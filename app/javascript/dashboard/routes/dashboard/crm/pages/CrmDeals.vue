@@ -401,7 +401,8 @@ watch(
   }
 );
 
-const activityIsOverdue = activity => new Date(activity.due_at).getTime() < now.value;
+const activityIsOverdue = activity =>
+  new Date(activity.due_at).getTime() < now.value;
 const activityIsNear = activity => {
   const dueAt = new Date(activity.due_at).getTime();
   return dueAt >= now.value && dueAt - now.value <= ACTIVITY_NEAR_WINDOW_MS;
@@ -497,24 +498,54 @@ onUnmounted(() => {
   <main
     class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-3 md:p-4 overflow-hidden bg-n-background"
   >
-    <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <div>
-        <h1 class="text-xl font-semibold text-n-slate-12">
+    <header class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-3 min-w-0">
+        <h1 class="mb-0 text-xl font-semibold text-n-slate-12">
           {{ t('CRM.DEALS_TITLE') }}
         </h1>
-        <p class="text-sm text-n-slate-11">{{ t('CRM.DEALS_SUBTITLE') }}</p>
+        <div class="flex items-center gap-1 min-w-0">
+          <ComboBox
+            v-model="selectedPipeline"
+            :options="pipelineOptions"
+            :placeholder="t('CRM.SELECT_PIPELINE')"
+            class="w-56 max-w-full"
+            @update:model-value="selectPipeline"
+          >
+            <template v-if="isAdmin" #footer="{ close }">
+              <Button
+                variant="ghost"
+                color="slate"
+                icon="i-lucide-plus"
+                :label="t('CRM.NEW_PIPELINE')"
+                class="w-full justify-start"
+                @click="
+                  close();
+                  pipelineEditor.open();
+                "
+              />
+            </template>
+          </ComboBox>
+          <Button
+            v-if="isAdmin && pipeline"
+            variant="ghost"
+            color="slate"
+            icon="i-lucide-settings-2"
+            :label="t('CRM.EDIT_PIPELINE')"
+            @click="pipelineEditor.open(pipeline)"
+          />
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-3 min-w-0 max-w-full">
+      <div class="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
         <div class="w-full sm:w-auto min-w-0 [&>span]:w-full">
           <Popover
             ref="searchPopover"
-            align="start"
+            align="end"
             disable-mobile-view
             @show="searchOpen = true"
             @hide="searchOpen = false"
           >
             <form
-              class="flex items-center gap-2 w-full min-w-0 sm:w-auto"
+              class="flex items-center gap-1 w-full min-w-0 sm:w-auto"
               @submit.prevent="search"
               @click.stop="openSearch"
             >
@@ -525,7 +556,7 @@ onUnmounted(() => {
                 :aria-label="t('CRM.DEAL_SEARCH_PLACEHOLDER')"
                 :aria-expanded="searchOpen"
                 aria-haspopup="true"
-                class="flex-1 min-w-0 sm:w-80"
+                class="flex-1 min-w-0 sm:w-64"
                 @focus="openSearch"
                 @keydown.down.prevent="focusSearchResults"
               />
@@ -558,34 +589,14 @@ onUnmounted(() => {
             </template>
           </Popover>
         </div>
-        <ComboBox
-          v-model="selectedPipeline"
-          :options="pipelineOptions"
-          :placeholder="t('CRM.SELECT_PIPELINE')"
-          class="w-56 max-w-full"
-          @update:model-value="selectPipeline"
-        >
-          <template v-if="isAdmin" #footer="{ close }">
-            <Button
-              variant="ghost"
-              color="slate"
-              icon="i-lucide-plus"
-              :label="t('CRM.NEW_PIPELINE')"
-              class="w-full justify-start"
-              @click="
-                close();
-                pipelineEditor.open();
-              "
-            />
-          </template>
-        </ComboBox>
         <Button
-          v-if="isAdmin && pipeline"
           variant="faded"
           color="slate"
-          icon="i-lucide-pencil"
-          :label="t('CRM.EDIT_PIPELINE')"
-          @click="pipelineEditor.open(pipeline)"
+          icon="i-lucide-list-filter"
+          :label="
+            t('CRM.ADVANCED_FILTERS') + (filterCount ? ` (${filterCount})` : '')
+          "
+          @click="openAdvancedFilters"
         />
         <Button
           :label="t('CRM.NEW_DEAL')"
@@ -616,7 +627,7 @@ onUnmounted(() => {
     <div
       role="group"
       :aria-label="t('CRM.STATUS')"
-      class="flex flex-wrap items-center gap-2 mb-4"
+      class="flex flex-wrap items-center gap-2 mb-3"
     >
       <span class="text-sm font-medium text-n-slate-12">{{
         t('CRM.STATUS')
@@ -639,16 +650,6 @@ onUnmounted(() => {
         :aria-pressed="selectedStatuses.includes(filter.status)"
         @click="toggleStatus(filter.status)"
       />
-    </div>
-    <div class="flex justify-end mb-4">
-      <button
-        type="button"
-        class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-n-slate-9/10 text-n-slate-12 hover:bg-n-slate-9/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
-        @click="openAdvancedFilters"
-      >
-        {{ t('CRM.ADVANCED_FILTERS')
-        }}{{ filterCount ? '(' + filterCount + ')' : '' }}
-      </button>
     </div>
     <div
       v-if="showFilterPanel"
@@ -682,8 +683,7 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.OWNER')
-              }}</label
-              ><ComboBox
+              }}</label><ComboBox
                 v-model="filterDraft.ownerId"
                 :options="ownerOptions"
                 :placeholder="t('CRM.FILTER_ALL')"
@@ -702,8 +702,7 @@ onUnmounted(() => {
                     v-model="filterDraft.stageIds"
                     type="checkbox"
                     :value="stage.id"
-                  />{{ stage.name }}</label
-                >
+                  />{{ stage.name }}</label>
               </div>
             </div>
             <fieldset class="flex flex-col gap-2">
@@ -755,8 +754,7 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.FILTER_COMPANY')
-              }}</label
-              ><Input
+              }}</label><Input
                 v-model="filterDraft.company"
                 :label="t('CRM.FILTER_COMPANY')"
               />
@@ -764,8 +762,7 @@ onUnmounted(() => {
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.CONTACT')
-              }}</label
-              ><CrmContactPicker
+              }}</label><CrmContactPicker
                 v-model="filterDraft.contactId"
                 :contact="selectedFilterContact"
               />
@@ -806,6 +803,7 @@ onUnmounted(() => {
       <div
         v-for="stage in boardStages"
         :key="stage.id"
+        data-crm-stage-column
         class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-xl bg-n-alpha-2 p-2.5"
       >
         <div class="sticky top-0 z-10 flex-shrink-0 mb-2 min-w-0">
@@ -816,7 +814,7 @@ onUnmounted(() => {
             {{ stage.name }}
           </h2>
           <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span class="text-sm text-n-slate-11">
+            <span class="text-sm text-n-slate-11" data-crm-stage-total>
               {{ brlFormatter.format(stage.total) }}
             </span>
             <span class="text-xs text-n-slate-10">
@@ -911,26 +909,32 @@ onUnmounted(() => {
               >
                 <span
                   class="flex-shrink-0"
-                  :class="activityIsOverdue(element.next_activity)
-                    ? 'i-lucide-circle-alert text-n-ruby-11'
-                    : activityIsNear(element.next_activity)
-                      ? 'i-lucide-clock-3 text-n-blue-11'
-                      : 'i-lucide-calendar-clock text-n-slate-11'"
+                  :class="
+                    activityIsOverdue(element.next_activity)
+                      ? 'i-lucide-circle-alert text-n-ruby-11'
+                      : activityIsNear(element.next_activity)
+                        ? 'i-lucide-clock-3 text-n-blue-11'
+                        : 'i-lucide-calendar-clock text-n-slate-11'
+                  "
                 />
                 <span class="min-w-0 truncate text-xs text-n-slate-11">
                   {{ element.next_activity.title }}
                 </span>
                 <span
                   class="flex-shrink-0 text-xs"
-                  :class="activityIsOverdue(element.next_activity)
-                    ? 'text-n-ruby-11'
-                    : activityIsNear(element.next_activity)
-                      ? 'text-n-blue-11'
-                      : 'text-n-slate-10'"
+                  :class="
+                    activityIsOverdue(element.next_activity)
+                      ? 'text-n-ruby-11'
+                      : activityIsNear(element.next_activity)
+                        ? 'text-n-blue-11'
+                        : 'text-n-slate-10'
+                  "
                 >
-                  {{ activityIsOverdue(element.next_activity)
-                    ? t('CRM.ACTIVITY_OVERDUE')
-                    : activityDate(element.next_activity) }}
+                  {{
+                    activityIsOverdue(element.next_activity)
+                      ? t('CRM.ACTIVITY_OVERDUE')
+                      : activityDate(element.next_activity)
+                  }}
                 </span>
               </button>
             </article>

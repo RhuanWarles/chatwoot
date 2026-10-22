@@ -608,6 +608,7 @@
     },
     "ACCORDION": {
       "CONTACT_DETAILS": "Contact Details",
+      "CRM_LEAD": "Lead and custom fields",
       "CONVERSATION_ACTIONS": "Conversation Actions",
       "CONVERSATION_LABELS": "Conversation Labels",
       "CONVERSATION_INFO": "Conversation Information",

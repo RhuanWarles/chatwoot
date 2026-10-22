@@ -52,7 +52,10 @@ class Api::V1::Accounts::Crm::PipelineStagesController < Api::V1::Accounts::Base
   end
 
   def stage_params
-    params.require(:pipeline_stage).permit(:name, :position, :color, :probability)
+    params.require(:pipeline_stage).permit(
+      :name, :position, :color, :probability, :ai_instructions,
+      automations: [:type, :status, :user_id, :activity_type, :title, :due_in_hours, :label, :state, :content, :pipeline_id, :stage_id, :url]
+    )
   end
 
   def validate_probability

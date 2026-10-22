@@ -23,6 +23,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'split_response_messages' => ->(value) { [true, false].include?(value) },
     'active' => ->(value) { [true, false].include?(value) },
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
+    'crm_stage_automation_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
     'customer_memory_enabled' => ->(value) { [true, false].include?(value) },
     'knowledge_base_ids' => lambda { |value|

@@ -219,14 +219,14 @@ it('requests Calendar and Meet only for the current connected user', async () =>
     }),
   });
 });
-it('shows failed cancelled meetings and retries the same activity', async () => {
+it('shows failed calendar syncs of upcoming meetings and retries the same activity', async () => {
   dealsAPI.retryActivity.mockResolvedValue({ data: {} });
   api.get.mockResolvedValue({
     data: [
       {
         ...ACTIVITY,
         activity_type: 'meeting',
-        status: 'cancelled',
+        status: 'pending',
         sync_status: 'failed',
         can_sync: true,
       },
@@ -347,7 +347,7 @@ it('blocks duplicate requests while cancellation is pending', async () => {
   await flushPromises();
   wrapper.unmount();
 });
-it('shows structured details of cancelled activities', async () => {
+it('keeps cancelled activities out of the upcoming list', async () => {
   api.get.mockResolvedValue({
     data: [
       {
@@ -361,11 +361,8 @@ it('shows structured details of cancelled activities', async () => {
   });
   const wrapper = setup(CrmActivities, { deal: { id: 12 } });
   await flushPromises();
-  expect(wrapper.text()).toContain('Return next month.');
-  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCELLED_STATUS);
-  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCELLED_BY);
-  expect(wrapper.text()).toContain(pt.CRM.ACTIVITY_CANCELLED_AT);
-  expect(button(wrapper, 'ACTIVITY_CANCEL')).toBeUndefined();
-  expect(wrapper.text()).not.toContain(pt.CRM.ACTIVITY_OVERDUE);
+  expect(wrapper.text()).toContain(pt.CRM.NO_ACTIVITIES);
+  expect(wrapper.text()).not.toContain('Return next month.');
+  expect(wrapper.findAll('article')).toHaveLength(0);
   wrapper.unmount();
 });

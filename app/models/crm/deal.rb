@@ -8,6 +8,8 @@ module Crm
       'value' => 'value_changed', 'owner_id' => 'owner_changed'
     }.freeze
 
+    attr_accessor :automation_depth
+
     belongs_to :account
     belongs_to :pipeline, class_name: 'Crm::Pipeline'
     belongs_to :pipeline_stage, class_name: 'Crm::PipelineStage'
@@ -18,6 +20,7 @@ module Crm
     has_many :events, class_name: 'Crm::DealEvent', dependent: :destroy
     after_create :record_creation
     after_update :record_changes
+    after_commit :enqueue_stage_automations, on: [:create, :update]
 
     validates :name, presence: true
     validates :status, inclusion: { in: STATUSES }
@@ -25,6 +28,12 @@ module Crm
     validate :associations_belong_to_account
 
     private
+
+    def enqueue_stage_automations
+      return unless previously_new_record? || saved_change_to_pipeline_stage_id?
+
+      Crm::StageAutomationJob.perform_later(id, pipeline_stage_id, automation_depth.to_i) if pipeline_stage.automations.present?
+    end
 
     def record_creation
       events.create!(account_id: account_id, actor: Current.user, event_type: 'deal_created')

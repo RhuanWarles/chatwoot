@@ -42,14 +42,20 @@ class Saas::AiAgents::Respond
     sources = Saas::Knowledge::Retrieval.for_agent(@agent, @incoming.content, conversation_id: @conversation.id,
                                                     incoming_message_id: @incoming.id)
     knowledge_context = Saas::Knowledge::Retrieval.messages(sources, enabled: @agent.knowledge_bases.exists?)
-    tool_definitions = Saas::AiTools::Catalog.for_agent(@agent)
+    @builtin_tools = Saas::AiAgents::BuiltinTools.new(agent: @agent, conversation: @conversation)
+    builtin_definitions = tools_supported?(mode) ? @builtin_tools.definitions : []
+    tool_definitions = Saas::AiTools::Catalog.for_agent(@agent) + builtin_definitions
     tool_executor = Saas::AiTools::Executor.new(account: @conversation.account, agent: @agent, conversation: @conversation)
+    messages = Saas::AiAgents::Context.build(@conversation, @agent, @incoming, memory_context: memory_context, knowledge_context: knowledge_context)
+    messages.insert(1, { role: 'system', content: @builtin_tools.instructions }) if builtin_definitions.present? && @builtin_tools.instructions
     result = Saas::AiAgents::Provider.for(@conversation.account, @agent.provider, mode: mode).generate(
       model: @agent.model,
-      messages: Saas::AiAgents::Context.build(@conversation, @agent, @incoming, memory_context: memory_context, knowledge_context: knowledge_context),
+      messages: messages,
       temperature: @agent.temperature.to_f,
       tools: tool_definitions,
-      tool_handler: ->(name, arguments) { tool_executor.call(name, arguments) }
+      tool_handler: lambda { |name, arguments|
+        Saas::AiAgents::BuiltinTools::NAMES.include?(name) ? @builtin_tools.call(name, arguments) : tool_executor.call(name, arguments)
+      }
     )
     persist(result, usage, mode: mode)
   rescue CustomExceptions::SaasError => e
@@ -72,7 +78,8 @@ class Saas::AiAgents::Respond
       end
       next false if @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i >= @incoming.id
 
-      chunks = Saas::AiAgents::MessageSplitter.call(result.fetch(:content), @agent.split_response_messages)
+      # After a handoff the AI is paused, so later chunks would be cancelled; send a single message.
+      chunks = Saas::AiAgents::MessageSplitter.call(result.fetch(:content), @agent.split_response_messages && !@builtin_tools.handed_off?)
       batch_id = SecureRandom.uuid
       content_attributes = {
         'generated_by_ai' => true, 'ai_agent_id' => @agent.id, 'ai_agent_incoming_message_id' => @incoming.id,
@@ -88,7 +95,7 @@ class Saas::AiAgents::Respond
       schedule_response_chunks(chunks, batch_id) if chunks.length > 1
       usage&.wallet&.settle!(usage, units: usage.reserved_units, metadata: usage_metadata(result, mode))
       @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
-        Saas::AiAgents::Runtime::STATE_KEY => 'active', CURSOR_KEY => @incoming.id,
+        Saas::AiAgents::Runtime::STATE_KEY => @builtin_tools.handed_off? ? 'human' : 'active', CURSOR_KEY => @incoming.id,
         Saas::AiAgents::ResponseBatch::KEY => { 'id' => batch_id, 'agent_id' => @agent.id, 'incoming_message_id' => @incoming.id,
                                                 'chunks' => chunks, 'sent_count' => 1, 'status' => chunks.length > 1 ? 'pending' : 'completed',
                                                 'content_attributes' => content_attributes }
@@ -158,6 +165,10 @@ class Saas::AiAgents::Respond
     }
   end
 
+  def tools_supported?(mode)
+    effective_provider(mode) == 'openai'
+  end
+
   def effective_provider(mode)
     mode == 'platform' ? Saas::TextService.platform_config[:provider] : @agent.provider
   end
@@ -167,7 +178,7 @@ class Saas::AiAgents::Respond
   end
 
   def response_current?
-    Saas::AiAgents::Runtime.enabled?(@conversation) && Saas::AiAgents::Runtime.agent_for(@conversation)&.id == @agent.id &&
+    (@builtin_tools.handed_off? || Saas::AiAgents::Runtime.enabled?(@conversation)) && Saas::AiAgents::Runtime.agent_for(@conversation)&.id == @agent.id &&
       @agent.reload.active? && @agent.updated_at == @agent_revision &&
       Saas::AiAgents::Context.latest_incoming(@conversation)&.id == @incoming.id
   end

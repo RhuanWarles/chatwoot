@@ -1,8 +1,20 @@
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, config } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import { createStore } from 'vuex';
 import CrmDeals from '../pages/CrmDeals.vue';
 import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
+
+config.global.plugins = [
+  ...config.global.plugins,
+  createStore({
+    getters: {
+      getCurrentRole: () => 'administrator',
+      'agents/getAgents': () => [],
+      'labels/getLabels': () => [],
+    },
+  }),
+];
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { accountId: '1' }, query: {} }),
@@ -43,6 +55,8 @@ const popover = {
   template:
     '<span><slot /></span><div v-if="visible"><slot name="content" :hide="hide" /></div>',
 };
+// The pipeline selector also renders a search input, so target the deal search by label.
+const searchInput = `input[aria-label="${pt.CRM.DEAL_SEARCH_PLACEHOLDER}"]`;
 let wrapper;
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -86,7 +100,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 it('debounces typing and does not require Enter', async () => {
-  const input = wrapper.find('input[type=search]');
+  const input = wrapper.find(searchInput);
   await input.setValue('C');
   await vi.advanceTimersByTimeAsync(200);
   await input.setValue('Contract');
@@ -110,7 +124,7 @@ it('clears immediately and ignores a response from an older search', async () =>
         finish = resolve;
       })
   );
-  const input = wrapper.find('input[type=search]');
+  const input = wrapper.find(searchInput);
   await input.setValue('missing');
   await vi.advanceTimersByTimeAsync(300);
   await input.setValue('');
@@ -122,12 +136,12 @@ it('clears immediately and ignores a response from an older search', async () =>
   expect(dealsAPI.get.mock.lastCall[0].params.q).toBe('');
 });
 it('does not duplicate an Enter search or fire after leaving the page', async () => {
-  await wrapper.find('input[type=search]').setValue('Contract');
+  await wrapper.find(searchInput).setValue('Contract');
   await wrapper.find('form').trigger('submit');
   await flushPromises();
   await vi.advanceTimersByTimeAsync(300);
   expect(dealsAPI.get).toHaveBeenCalledTimes(2);
-  await wrapper.find('input[type=search]').setValue('Customer');
+  await wrapper.find(searchInput).setValue('Customer');
   wrapper.unmount();
   await vi.advanceTimersByTimeAsync(300);
   expect(dealsAPI.get).toHaveBeenCalledTimes(2);
@@ -139,7 +153,7 @@ it('renders limited suggestions and account-scoped native links', async () => {
       id: index + 12,
     })),
   });
-  await wrapper.find('input[type=search]').setValue('Customer');
+  await wrapper.find(searchInput).setValue('Customer');
   await vi.advanceTimersByTimeAsync(300);
   const links = wrapper.findAllComponents({ name: 'RouterLink' });
   const region = wrapper.find('[role=region]');

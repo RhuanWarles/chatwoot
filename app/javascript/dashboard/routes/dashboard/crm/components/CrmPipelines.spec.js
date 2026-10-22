@@ -1,10 +1,22 @@
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, config } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import { createStore } from 'vuex';
 import CrmPipelines from '../pages/CrmPipelines.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
+
+config.global.plugins = [
+  ...config.global.plugins,
+  createStore({
+    getters: {
+      getCurrentRole: () => 'administrator',
+      'agents/getAgents': () => [],
+      'labels/getLabels': () => [],
+    },
+  }),
+];
 
 vi.mock('dashboard/api/crm', () => ({
   pipelinesAPI: {
@@ -98,7 +110,10 @@ describe('Visual pipeline management', () => {
     expect(wrapper.text()).toContain('Proposal');
     expect(wrapper.text()).not.toContain(pt.CRM.FIRST_PIPELINE_HELP);
   });
-  it('creates a pipeline and its visual stages through existing APIs', async () => {
+  it('creates a pipeline with the default stages through existing APIs', async () => {
+    [30, 31, 32, 33, 34].forEach(id =>
+      api.create.mockResolvedValueOnce({ data: { id } })
+    );
     const wrapper = await mountPage();
     await click(wrapper, pt.CRM.NEW_PIPELINE);
     const inputs = wrapper.findAllComponents(Input);
@@ -109,10 +124,27 @@ describe('Visual pipeline management', () => {
     expect(pipelinesAPI.create).toHaveBeenCalledWith({
       pipeline: { name: 'New', active: true },
     });
-    expect(api.create).toHaveBeenCalledWith({
-      pipeline_stage: { name: 'First', probability: null },
+    expect(api.create).toHaveBeenCalledTimes(5);
+    expect(api.create).toHaveBeenNthCalledWith(1, {
+      pipeline_stage: {
+        name: 'First',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
-    expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(2, [30]);
+    expect(
+      api.create.mock.calls.slice(1).map(([body]) => body.pipeline_stage.name)
+    ).toEqual([
+      pt.CRM.DEFAULT_STAGE_QUALIFICATION,
+      pt.CRM.DEFAULT_STAGE_PROPOSAL,
+      pt.CRM.DEFAULT_STAGE_NEGOTIATION,
+      pt.CRM.DEFAULT_STAGE_CLOSED,
+    ]);
+    expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(
+      2,
+      [30, 31, 32, 33, 34]
+    );
   });
   it('adds a stage visually and validates its name', async () => {
     const wrapper = await mountPage();
@@ -127,7 +159,12 @@ describe('Visual pipeline management', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.create).toHaveBeenCalledWith({
-      pipeline_stage: { name: 'New stage', probability: null },
+      pipeline_stage: {
+        name: 'New stage',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
     expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(1, [10, 20, 30]);
   });
@@ -164,7 +201,12 @@ describe('Visual pipeline management', () => {
       pipeline: { name: 'Renamed', active: true },
     });
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Qualified', probability: null },
+      pipeline_stage: {
+        name: 'Qualified',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
   });
   it('persists dragged stage order', async () => {
@@ -235,7 +277,12 @@ describe('Stage probabilities and occupied-stage moves', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Lead', probability },
+      pipeline_stage: {
+        name: 'Lead',
+        probability,
+        ai_instructions: null,
+        automations: [],
+      },
     });
   });
   it.each([-1, 101, 1.5])(
@@ -261,7 +308,12 @@ describe('Stage probabilities and occupied-stage moves', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(api.update).toHaveBeenCalledWith(10, {
-      pipeline_stage: { name: 'Lead', probability: null },
+      pipeline_stage: {
+        name: 'Lead',
+        probability: null,
+        ai_instructions: null,
+        automations: [],
+      },
     });
   });
   it('moves deals before deleting the occupied stage, only on save', async () => {
@@ -308,10 +360,10 @@ describe('Stage probabilities and occupied-stage moves', () => {
 });
 
 it('creates a pipeline with multiple ordered stages', async () => {
-  api.create
-    .mockResolvedValueOnce({ data: { id: 30 } })
-    .mockResolvedValueOnce({ data: { id: 31 } })
-    .mockResolvedValueOnce({ data: { id: 32 } });
+  // Five default stages plus the two added below.
+  [30, 31, 32, 33, 34, 35, 36].forEach(id =>
+    api.create.mockResolvedValueOnce({ data: { id } })
+  );
   const wrapper = await mountPage();
   await click(wrapper, pt.CRM.NEW_PIPELINE);
   await click(wrapper, pt.CRM.ADD_STAGE);
@@ -321,8 +373,13 @@ it('creates a pipeline with multiple ordered stages', async () => {
   await inputs[1].find('input').setValue('Lead');
   await inputs[3].find('input').setValue('Proposal');
   await inputs[5].find('input').setValue('Negotiation');
+  await inputs[11].find('input').setValue('Won');
+  await inputs[13].find('input').setValue('Lost');
   await wrapper.find('.confirm').trigger('click');
   await flushPromises();
-  expect(api.create).toHaveBeenCalledTimes(3);
-  expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(2, [30, 31, 32]);
+  expect(api.create).toHaveBeenCalledTimes(7);
+  expect(pipelinesAPI.reorderStages).toHaveBeenCalledWith(
+    2,
+    [30, 31, 32, 33, 34, 35, 36]
+  );
 });

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_20_180000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_21_100000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1163,6 +1163,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_20_180000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "probability"
+    t.jsonb "automations", default: [], null: false
+    t.text "ai_instructions"
     t.index ["account_id"], name: "index_crm_pipeline_stages_on_account_id"
     t.index ["pipeline_id", "position"], name: "index_crm_pipeline_stages_on_pipeline_id_and_position"
     t.index ["pipeline_id"], name: "index_crm_pipeline_stages_on_pipeline_id"
@@ -1741,6 +1743,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_20_180000) do
     t.decimal "temperature", precision: 3, scale: 2, default: "0.7", null: false
     t.boolean "active", default: false, null: false
     t.boolean "handoff_enabled", default: true, null: false
+    t.boolean "crm_stage_automation_enabled", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "respond_to_groups", default: false, null: false

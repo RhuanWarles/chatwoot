@@ -18,6 +18,7 @@ import GroupParticipantsPanel from './GroupParticipantsPanel.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ConversationInfo from './ConversationInfo.vue';
+import ConversationLead from './ConversationLead.vue';
 import ConversationToolExecutions from './ConversationToolExecutions.vue';
 import { useConversationAiLogPreferences } from 'dashboard/composables/useConversationAiLogPreferences';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
@@ -213,6 +214,18 @@ onMounted(() => {
                 :conversation-id="conversationId"
                 :inbox-id="inboxId"
               />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'crm_lead' && contactId">
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CRM_LEAD')"
+              :is-open="isContactSidebarItemOpen('is_crm_lead_open')"
+              compact
+              @toggle="
+                value => toggleSidebarUIState('is_crm_lead_open', value)
+              "
+            >
+              <ConversationLead :contact="contact" />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'conversation_info'">
