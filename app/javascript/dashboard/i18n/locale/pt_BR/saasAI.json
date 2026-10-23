@@ -59,7 +59,7 @@
     "NO_MEMORIES": "Nenhuma memória de cliente salva.",
     "MEMORY_LOAD_ERROR": "Não foi possível carregar as memórias dos clientes.",
     "MEMORY_CLEAR_ERROR": "Não foi possível limpar esta memória.",
-    "CONFIG_ONLY": "Assistentes ativos respondem às mensagens de texto nas caixas selecionadas usando os créditos da plataforma ou a chave da conta.",
+    "CONFIG_ONLY": "Assistentes ativos respondem às mensagens de texto nas caixas selecionadas usando os créditos da plataforma ou a chave da conta. Quando um atendente responde, o assistente fica pausado naquela conversa até você reativá-lo no cabeçalho da conversa.",
     "PLATFORM_MODE": "Créditos da plataforma",
     "NOT_CONFIGURED": "Não configurado",
     "DELETE_ERROR": "Não foi possível excluir o assistente.",
@@ -79,7 +79,7 @@
     "SPLIT_RESPONSE_MESSAGES": "Separar respostas em múltiplas mensagens",
     "SPLIT_RESPONSE_MESSAGES_HELP": "Quando ativado, cada parágrafo da resposta da IA é enviado como uma mensagem separada.",
     "HANDOFF": "Permitir transferência para humano",
-    "HANDOFF_HELP": "Quando o assistente não souber responder ou o cliente pedir uma pessoa, ele se pausa, abre a conversa e deixa uma nota privada para a equipe.",
+    "HANDOFF_HELP": "Quando o assistente não souber responder ou o cliente pedir uma pessoa, ele se pausa, abre a conversa e deixa uma nota privada de até 250 caracteres com o resumo do que foi conversado.",
     "RESPOND_TO_GROUPS": "Responder em grupos do WhatsApp",
     "GROUP_HELP": "Quando ativado, o assistente também responde em grupos das caixas selecionadas. Desativado por padrão.",
     "CUSTOMER_MEMORY": "Memória do cliente",
@@ -118,7 +118,13 @@
     "NO_SEARCH_RESULTS": "Nenhum resultado para esta busca.",
     "RESPONSE_GROUP": "Respostas e contexto",
     "HANDOFF_GROUP": "Transferência para humano",
-    "CRM_MEMORY_GROUP": "CRM e memória"
+    "CRM_MEMORY_GROUP": "CRM e memória",
+    "TOGGLE_ERROR": "Não foi possível alterar o status do assistente. Verifique se as caixas de entrada e o provedor estão corretos.",
+    "ACTIVE_WITHOUT_INBOX": "Ativo, mas sem caixa de entrada vinculada, então não responde a ninguém. Edite o assistente e escolha uma caixa.",
+    "TOOLS_UNSUPPORTED_PROVIDER": "Ferramentas, movimentação de leads no funil e transferência para humano só funcionam com o provedor OpenAI. O provedor da plataforma é {provider}, então este assistente responde sem elas.",
+    "TEXT_AI_DISABLED": "A IA de texto está desativada nesta conta, então o status do assistente não pode ser alterado.",
+    "ACTIVATE_NAMED": "Ativar {name}",
+    "DEACTIVATE_NAMED": "Desativar {name}"
   },
   "AI_PLAYGROUND": {
     "TITLE": "Testar assistente — {name}",
@@ -141,6 +147,7 @@
     "DIAGNOSTICS": "Mostrar diagnóstico",
     "UNKNOWN_TOOL": "Ferramenta desconhecida",
     "STATUS": "status {status}",
+    "TOOLS_SKIPPED": "{count} ferramenta(s) ativa(s) não estão habilitadas no Playground e não serão chamadas aqui. Ative “Permitir requisições reais no Playground” na ferramenta para testá-la.",
     "LOAD_ERROR": "Não foi possível carregar o Playground.",
     "DISABLED": "A IA de texto não está habilitada para esta conta."
   },
@@ -210,6 +217,7 @@
     ,"LOAD_ERROR": "Não foi possível carregar as ferramentas."
     ,"SAVE_ERROR": "Não foi possível salvar a ferramenta. Confira a configuração."
     ,"TEST_ERROR": "O teste da ferramenta falhou."
+    ,"TEST_NOT_FOUND": "Conversa não encontrada. Use o número da conversa exibido no painel."
     ,"DELETE_ERROR": "Não foi possível excluir a ferramenta."
     ,"BASIC_INFO": "Informações básicas"
     ,"BASIC_INFO_HELP": "Dê uma identidade clara para que os assistentes usem esta ferramenta."
@@ -315,6 +323,8 @@
     ,"TEST_RESULT": "Resultado do teste"
     ,"TEST_DURATION": "{duration} ms"
     ,"TEST_BODY": "Corpo da resposta"
+    ,"SLUG": "Nome técnico"
+    ,"SLUG_HELP": "O assistente chama a ferramenta por este nome. Use-o ao citar a ferramenta nas instruções do assistente. Ele não muda quando você renomeia a ferramenta."
   },
   "AI_HUB": {
     "ANALYTICS": "Analytics",

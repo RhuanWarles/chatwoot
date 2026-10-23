@@ -2,6 +2,11 @@ class Saas::AiAgents::BuiltinTools
   HANDOFF = 'handoff_to_human'.freeze
   MOVE_STAGE = 'move_lead_stage'.freeze
   NAMES = [HANDOFF, MOVE_STAGE].freeze
+  HANDOFF_NOTE_LIMIT = 250
+  HANDOFF_NOTE_PREFIX = 'Transferido pela IA. Resumo: '.freeze
+  HANDOFF_NOTE_WITHOUT_SUMMARY = 'Transferido pela IA. Resumo não informado.'.freeze
+  HANDOFF_SUMMARY_HELP = 'Resumo fiel do que foi conversado, em português, com no máximo 200 caracteres: o que o cliente quer, ' \
+                         'o que já foi respondido e o que falta resolver. Sem dados sensíveis.'.freeze
 
   def initialize(agent:, conversation:)
     @agent = agent
@@ -23,6 +28,11 @@ class Saas::AiAgents::BuiltinTools
       Se você não souber responder com segurança, não tiver a informação na sua base, o cliente pedir para falar com uma pessoa, \
       reclamar ou o assunto exigir decisão humana, chame a ferramenta #{HANDOFF} e depois avise o cliente, de forma breve, \
       que um atendente humano continuará a conversa. Nunca invente respostas.
+
+      Ao chamar #{HANDOFF}, preencha summary com um resumo fiel da conversa para o atendente humano: o que o cliente quer, \
+      o que você já respondeu e o que ainda falta resolver. Escreva em português, em 1 ou 2 frases curtas \
+      (máximo de 200 caracteres), sem dados sensíveis como senhas, números de cartão ou documentos. \
+      O resumo vai para uma nota interna: não o repita para o cliente.
     TEXT
     parts << <<~TEXT if stages.present?
       Você também controla o card (lead) deste cliente no funil. Conforme a conversa avançar, chame #{MOVE_STAGE} \
@@ -33,8 +43,7 @@ class Saas::AiAgents::BuiltinTools
   end
 
   def call(name, arguments)
-    reason = arguments['reason'].to_s.strip.first(500)
-    result = name == HANDOFF ? handoff(reason) : move_stage(arguments['stage'].to_s, reason)
+    result = name == HANDOFF ? handoff(arguments['summary']) : move_stage(arguments['stage'].to_s, arguments['reason'].to_s.strip.first(500))
     { 'success' => true, 'result' => result }
   rescue ActiveRecord::RecordInvalid => e
     { 'success' => false, 'error' => e.message }
@@ -45,8 +54,8 @@ class Saas::AiAgents::BuiltinTools
   def handoff_definition
     return unless @agent.handoff_enabled?
 
-    function(HANDOFF, 'Transfere a conversa para um atendente humano e pausa a IA nesta conversa.',
-             { 'reason' => { 'type' => 'string', 'description' => 'Motivo curto da transferência.' } }, ['reason'])
+    function(HANDOFF, 'Transfere a conversa para um atendente humano, pausa a IA nesta conversa e deixa uma nota interna com o resumo.',
+             { 'summary' => { 'type' => 'string', 'description' => HANDOFF_SUMMARY_HELP } }, ['summary'])
   end
 
   def move_stage_definition
@@ -64,19 +73,44 @@ class Saas::AiAgents::BuiltinTools
                                                   'additionalProperties' => false } } }
   end
 
-  def handoff(reason)
+  def handoff(summary)
+    return 'Transferência já registrada.' if @handed_off
+
     @conversation.with_lock do
       @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
-        Saas::AiAgents::Runtime::STATE_KEY => 'human', 'ai_agent_paused_at' => Time.current.iso8601, 'ai_agent_handoff_reason' => reason
+        Saas::AiAgents::Runtime::STATE_KEY => 'human', 'ai_agent_paused_at' => Time.current.iso8601
       ))
+      Messages::MessageBuilder.new(@agent, @conversation, {
+                                     content: handoff_note(summary), message_type: 'outgoing', private: true,
+                                     content_attributes: { 'ai_agent_id' => @agent.id, 'ai_handoff' => true }
+                                   }).perform
     end
-    @conversation.bot_handoff!
-    Messages::MessageBuilder.new(@agent, @conversation, {
-                                   content: "IA transferiu para atendimento humano. Motivo: #{reason}",
-                                   message_type: 'outgoing', private: true
-                                 }).perform
     @handed_off = true
+    @conversation.bot_handoff!
     'Transferência registrada. Avise o cliente brevemente que um atendente humano vai continuar o atendimento.'
+  rescue ActiveRecord::RecordInvalid
+    # The rolled-back update! still holds its attributes in memory, which would make the next with_lock raise.
+    @conversation.reload
+    raise
+  end
+
+  def handoff_note(summary)
+    text = summary.is_a?(String) ? summary.scrub : ''
+    text = text.gsub('mention://', '') while text.include?('mention://')
+    text = text.gsub(/[[:cntrl:]]/, ' ').squish
+    return HANDOFF_NOTE_WITHOUT_SUMMARY if text.blank?
+
+    "#{HANDOFF_NOTE_PREFIX}#{fit(text, HANDOFF_NOTE_LIMIT - HANDOFF_NOTE_PREFIX.length)}"
+  end
+
+  # Never exceeds `limit` characters and never splits a grapheme cluster (emoji, ZWJ sequences, accents); prefers a word boundary.
+  def fit(text, limit)
+    return text if text.length <= limit
+
+    total = 0
+    kept = text.each_grapheme_cluster.take_while { |cluster| (total += cluster.length) <= limit - 1 }.join
+    kept = kept.sub(/\s+\S*\z/, '') unless text[kept.length].match?(/\s/)
+    "#{kept.rstrip}…"
   end
 
   def move_stage(stage_name, reason)

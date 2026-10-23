@@ -24,6 +24,12 @@ const hasLiveTools = computed(
       tool => tool.active && tool.allow_in_playground
     ) === true
 );
+const skippedToolsCount = computed(
+  () =>
+    (agent.value?.tools || []).filter(
+      tool => tool.active && !tool.allow_in_playground
+    ).length
+);
 
 const isNearBottom = () => {
   if (!messagesRef.value) return true;
@@ -37,13 +43,19 @@ const scrollToBottom = (force = false) =>
       messagesRef.value.scrollTop = messagesRef.value.scrollHeight;
   });
 
+// Provider outages come back as 422 {error: code}; they are retryable, unlike configuration errors.
+const PROVIDER_FAILURE_CODE = /^(provider_http_(429|5\d\d)|empty_response)$/;
+
 const setError = requestError => {
   const status = requestError.response?.status;
   const code = requestError.response?.data?.error;
   let key = 'AI_PLAYGROUND.GENERATION_ERROR';
   if (code === 'insufficient_balance')
     key = 'AI_PLAYGROUND.INSUFFICIENT_CREDITS';
-  else if (status === 422) key = 'AI_PLAYGROUND.VALIDATION_ERROR';
+  else if (code === 'provider_timeout_or_connection_error')
+    key = 'AI_PLAYGROUND.TIMEOUT_ERROR';
+  else if (status === 422 && !PROVIDER_FAILURE_CODE.test(code))
+    key = 'AI_PLAYGROUND.VALIDATION_ERROR';
   else if (status === 504 || requestError.code === 'ECONNABORTED')
     key = 'AI_PLAYGROUND.TIMEOUT_ERROR';
   error.value = { key, status };
@@ -180,6 +192,12 @@ onMounted(load);
       {{ t('AI_PLAYGROUND.LIVE_TOOLS_WARNING') }}
     </p>
     <p
+      v-if="skippedToolsCount"
+      class="p-3 text-sm rounded-lg text-n-slate-11 bg-n-solid-2"
+    >
+      {{ t('AI_PLAYGROUND.TOOLS_SKIPPED', { count: skippedToolsCount }) }}
+    </p>
+    <p
       v-if="error"
       role="alert"
       class="p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
@@ -248,14 +266,17 @@ onMounted(load);
               </p>
             </div>
             <div
-              v-for="toolCall in toolCallsFor(message)"
-              :key="toolCall.id || toolCall.name"
+              v-for="(toolCall, index) in toolCallsFor(message)"
+              :key="`${toolCall.name}-${index}`"
               class="p-2 rounded bg-n-alpha-2"
             >
               <div class="flex flex-wrap justify-between gap-2">
                 <strong>{{ toolCallName(toolCall) }}</strong
                 ><span
-                  >{{ toolCallStatus(toolCall)
+                  >{{
+                    toolCallStatus(toolCall) === 'completed'
+                      ? t('CONVERSATION.TOOL_EXECUTIONS.SUCCESS')
+                      : t('CONVERSATION.TOOL_EXECUTIONS.FAILED')
                   }}<span v-if="toolCall.duration_ms">
                     ·
                     {{

@@ -181,7 +181,8 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
   def ai_state_data(agent)
     stored_state = @conversation.additional_attributes.fetch('ai_agent_state', 'ai')
-    { state: stored_state == 'active' ? 'ai' : stored_state, available: agent.present?, agent_name: agent&.name }
+    { state: stored_state == 'active' ? 'ai' : stored_state, available: agent.present? && Current.account.feature_enabled?(:text_ai),
+      agent_name: agent&.name }
   end
 
   def attachment_params

@@ -4,7 +4,7 @@ class Api::V1::Accounts::AiAgentPlaygroundController < Api::V1::Accounts::BaseCo
   before_action -> { require_ai_feature('text') }
   before_action :check_admin_authorization?
   before_action :fetch_agent
-  rescue_from CustomExceptions::SaasError, with: :render_playground_error
+  rescue_from CustomExceptions::SaasError, CustomExceptions::AiAgentError, with: :render_playground_error
 
   def show
     render json: playground.session(valid_session_id)
@@ -51,7 +51,7 @@ class Api::V1::Accounts::AiAgentPlaygroundController < Api::V1::Accounts::BaseCo
   end
 
   def render_playground_error(error)
-    status = error.code == 'text_ai_disabled' ? :forbidden : :unprocessable_entity
-    render json: { error: error.code }, status: status
+    code = error.respond_to?(:code) ? error.code : error.message
+    render json: { error: code }, status: code == 'text_ai_disabled' ? :forbidden : :unprocessable_entity
   end
 end

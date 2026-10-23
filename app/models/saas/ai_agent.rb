@@ -10,6 +10,7 @@ class Saas::AiAgent < ApplicationRecord
   has_many :inboxes, through: :ai_agent_inboxes
   has_many :memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy
   has_many :ai_tool_agents, class_name: 'Saas::AiToolAgent', dependent: :destroy
+  has_many :tool_executions, class_name: 'Saas::AiToolExecution', foreign_key: :ai_agent_id, dependent: :delete_all, inverse_of: :ai_agent
   has_many :tools, through: :ai_tool_agents, source: :ai_tool
   has_many :knowledge_links, class_name: 'Saas::AiAgentKnowledgeBase', dependent: :destroy
   has_many :knowledge_bases, through: :knowledge_links, source: :knowledge_base

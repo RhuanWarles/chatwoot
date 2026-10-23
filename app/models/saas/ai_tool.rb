@@ -8,11 +8,14 @@ class Saas::AiTool < ApplicationRecord
   belongs_to :account
   has_many :ai_tool_agents, class_name: 'Saas::AiToolAgent', dependent: :destroy
   has_many :agents, through: :ai_tool_agents, source: :ai_agent
+  has_many :executions, class_name: 'Saas::AiToolExecution', foreign_key: :ai_tool_id, dependent: :delete_all, inverse_of: :ai_tool
   encrypts :secret_headers if Chatwoot.encryption_configured?
 
   validates :name, :slug, :description, :tool_type, presence: true
   validates :name, length: { maximum: 100 }
   validates :slug, format: { with: /\A[a-z][a-z0-9]*(?:_[a-z0-9]+)*\z/ }, length: { maximum: 64 }, uniqueness: { scope: :account_id }
+  # Only when the slug is set or changed, so a tool saved before this rule existed stays editable.
+  validates :slug, exclusion: { in: Saas::AiAgents::BuiltinTools::NAMES }, if: :will_save_change_to_slug?
   validates :tool_type, inclusion: { in: TOOL_TYPES }
   validate :valid_configuration
   validate :secrets_require_encryption

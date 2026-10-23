@@ -1,6 +1,6 @@
 # Primeira execução dos AI Agents
 
-O runtime responde a mensagens públicas de texto de um Contact quando existe um único Agent ativo vinculado à inbox da mesma account. Não executa ferramentas, ações do CRM, áudio, RAG ou integrações externas além da geração pelo provider configurado.
+O runtime responde a mensagens públicas de texto de um Contact quando existe um único Agent ativo vinculado à inbox da mesma account. Executa as ferramentas HTTP vinculadas ao Agent e as ferramentas internas `handoff_to_human` e `move_lead_stage`, somente com o provider OpenAI: os demais providers da plataforma respondem sem ferramentas.
 
 ## Configuração
 
@@ -16,16 +16,17 @@ Uma mensagem recebida enfileira `Saas::AiAgents::RespondJob`. A resposta é cria
 
 Uma resposta pública manual coloca `Conversation.additional_attributes.ai_agent_state` em `human`, dentro da transação da mensagem. A IA não volta automaticamente após intervenção humana. A resposta automática não pausa o Agent. Notas privadas não interrompem o atendimento.
 
-Estados: `active` permite responder; `paused` e `human` impedem geração. Uma conversa sem estado explícito começa ativa quando possui Agent elegível. Para reativação administrativa explícita, no Rails console:
-
-```ruby
-conversation = Account.find(1).conversations.find_by!(display_id: ID_DA_CONVERSA)
-conversation.with_lock do
-  conversation.update!(additional_attributes: conversation.additional_attributes.merge('ai_agent_state' => 'active'))
-end
-```
+Estados: `active` e `ai` permitem responder; `human` impede geração, e qualquer outro valor (como o antigo `paused`) também bloqueia. Uma conversa sem estado explícito começa ativa quando possui Agent elegível. Para reativar, use o switch **IA** no cabeçalho da conversa; reativar define o cursor na última mensagem do cliente, então a IA responde a partir da próxima.
 
 A reativação vale para novas mensagens. Não reenvia automaticamente respostas antigas. A intervenção humana pausa sempre, independentemente do campo de configuração `handoff_enabled`.
+
+## Transferência para humano
+
+Com `handoff_enabled`, o Agent recebe a ferramenta `handoff_to_human(summary)`; `summary` é obrigatório e escrito pelo modelo, em português. Uma única transação, com lock da conversa, define `ai_agent_state` como `human` e cria uma nota privada do Agent: `Transferido pela IA. Resumo: <resumo>`. O texto inteiro, prefixo incluído, tem no máximo 250 caracteres. Antes do corte, o resumo perde `mention://` e caracteres de controle e vira uma única linha. Se passar do limite, é cortado sem partir um grafema (emoji, acentos) e, quando possível, numa fronteira de palavra, terminando em `…`. Sem resumo (ausente, vazio ou que não seja texto), a nota é `Transferido pela IA. Resumo não informado.`.
+
+A nota leva `ai_agent_id` e `ai_handoff: true` em `content_attributes`, deliberadamente sem `generated_by_ai`, para que a análise de IA não a conte como resposta. Chamadas repetidas na mesma execução não criam uma segunda nota. Se a nota for inválida, a transação é desfeita, a IA continua ativa e o modelo recebe o erro. Em seguida a IA envia uma única mensagem pública de encerramento, e o estado fica `human`. O motivo da transferência não é mais gravado nos atributos da conversa (conversas antigas podem manter o valor); o resumo existe somente na nota.
+
+Regras do ciclo de ferramentas: cada resposta executa no máximo 5 chamadas; depois da quinta, a próxima requisição vai com `tool_choice: none` e chamadas excedentes na mesma rodada recebem `tool_call_limit_reached` sem serem executadas. Argumentos vazios, inválidos ou que não sejam um objeto JSON não executam a ferramenta: o modelo recebe `invalid_arguments` e pode corrigir. Ferramentas HTTP e internas exigem o provider OpenAI; com outro provider o Agent responde sem ferramentas e o runtime registra `tools_unsupported` quando há ferramentas HTTP vinculadas.
 
 ## Limites e concorrência
 
@@ -37,7 +38,7 @@ Timeouts, falhas de conexão, HTTP 429 e 5xx têm até três tentativas. Convers
 
 ## Homologação
 
-Executar os specs de `spec/services/saas/ai_agents` e `spec/listeners/ai_agent_listener_spec.rb` em banco de teste isolado. Após publicação, o administrador escolhe as inboxes da própria conta no editor do agente; nenhuma inbox é selecionada automaticamente pela implantação. Confirmar Agent ativo e chave BYOK, enviar texto de outro WhatsApp e verificar resposta entregue, metadata e ausência de duplicidade. Testar grupo com a opção desativada e ativada. Responder manualmente pelo Chatwoot e enviar outro texto: a IA deve permanecer pausada. Reativar explicitamente e repetir.
+Executar os specs de `spec/services/saas/ai_agents` e `spec/listeners/ai_agent_listener_spec.rb` em banco de teste isolado. Após publicação, o administrador escolhe as inboxes da própria conta no editor do agente; nenhuma inbox é selecionada automaticamente pela implantação. Confirmar Agent ativo e chave BYOK, enviar texto de outro WhatsApp e verificar resposta entregue, metadata e ausência de duplicidade. Testar grupo com a opção desativada e ativada. Responder manualmente pelo Chatwoot e enviar outro texto: a IA deve permanecer pausada. Reativar explicitamente e repetir. Provocar uma transferência (pedir para falar com uma pessoa) e conferir a nota privada: formato `Transferido pela IA. Resumo: ...`, até 250 caracteres, sem envio ao cliente, estado `human` e uma única mensagem pública de encerramento.
 
 O teste real e a entrega pelo canal não podem ser considerados validados apenas com o provider simulado nos specs.
 

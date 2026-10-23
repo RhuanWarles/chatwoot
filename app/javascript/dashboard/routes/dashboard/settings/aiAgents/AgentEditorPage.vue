@@ -55,6 +55,13 @@ const effectivePlatformProvider = computed(
 const effectivePlatformModel = computed(
   () => textSettings.value?.platform_model || ''
 );
+const toolsUnsupported = computed(() =>
+  Boolean(
+    platformMode.value &&
+      effectivePlatformProvider.value &&
+      effectivePlatformProvider.value !== 'openai'
+  )
+);
 const canSave = computed(() => validAgent(draft.value));
 const isDirty = computed(
   () =>
@@ -236,12 +243,13 @@ onMounted(load);
           <h1 class="text-xl font-semibold text-n-slate-12">
             {{ isEdit ? t('AI_AGENTS.EDIT') : t('AI_AGENTS.NEW') }}
           </h1>
-          <span
-            class="px-2 py-0.5 text-xs rounded-full bg-n-alpha-2 text-n-slate-11"
-            >{{
-              draft.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE')
-            }}</span
+          <label
+            :title="t('AI_AGENTS.ACTIVE_HELP')"
+            class="flex items-center gap-2 text-sm text-n-slate-12"
           >
+            <Switch v-model="draft.active" :disabled="loading || busy" />
+            {{ draft.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE') }}
+          </label>
           <span v-if="isDirty" class="text-xs text-n-amber-11">{{
             t('AI_AGENTS.UNSAVED')
           }}</span>
@@ -302,25 +310,11 @@ onMounted(load);
             {{ t('AI_AGENTS.SETTINGS_HELP') }}
           </p>
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
-            v-model="draft.name"
-            :label="t('AI_AGENTS.NAME')"
-            :disabled="busy"
-          />
-          <label
-            class="flex items-center justify-between gap-3 p-3 rounded-lg bg-n-solid-1 text-sm text-n-slate-12"
-            ><span
-              ><strong class="block font-medium">{{
-                t('AI_AGENTS.ACTIVE')
-              }}</strong
-              ><small class="text-xs text-n-slate-11">{{
-                t('AI_AGENTS.ACTIVE_HELP')
-              }}</small>
-            </span>
-            <Switch v-model="draft.active" :disabled="busy" />
-          </label>
-        </div>
+        <Input
+          v-model="draft.name"
+          :label="t('AI_AGENTS.NAME')"
+          :disabled="busy"
+        />
         <Input
           v-model="draft.description"
           :label="t('AI_AGENTS.DESCRIPTION')"
@@ -522,11 +516,31 @@ onMounted(load);
             </span>
             <Switch v-model="draft.handoff_enabled" :disabled="busy" />
           </label>
+          <p
+            v-if="toolsUnsupported"
+            class="p-3 text-xs rounded-lg bg-n-amber-2 text-n-amber-11"
+          >
+            {{
+              t('AI_AGENTS.TOOLS_UNSUPPORTED_PROVIDER', {
+                provider: effectivePlatformProvider,
+              })
+            }}
+          </p>
         </div>
         <div class="flex flex-col gap-3 p-4 rounded-lg bg-n-solid-1">
           <h3 class="text-sm font-medium text-n-slate-12">
             {{ t('AI_AGENTS.CRM_MEMORY_GROUP') }}
           </h3>
+          <p
+            v-if="toolsUnsupported"
+            class="p-3 text-xs rounded-lg bg-n-amber-2 text-n-amber-11"
+          >
+            {{
+              t('AI_AGENTS.TOOLS_UNSUPPORTED_PROVIDER', {
+                provider: effectivePlatformProvider,
+              })
+            }}
+          </p>
           <label class="flex items-center justify-between gap-3"
             ><span class="text-sm text-n-slate-12"
               >{{ t('AI_AGENTS.CRM_STAGE_AUTOMATION')
@@ -630,6 +644,16 @@ onMounted(load);
             <p class="text-xs text-n-slate-11">
               {{ t(connectionDescriptionKey('tools')) }}
             </p>
+            <p
+              v-if="toolsUnsupported"
+              class="p-3 text-xs rounded-lg bg-n-amber-2 text-n-amber-11"
+            >
+              {{
+                t('AI_AGENTS.TOOLS_UNSUPPORTED_PROVIDER', {
+                  provider: effectivePlatformProvider,
+                })
+              }}
+            </p>
             <Input
               v-if="connectionCount(tools) > 4"
               v-model="connectionSearch.tools"
@@ -663,7 +687,10 @@ onMounted(load);
                   class="mt-0.5"
                 /><span class="min-w-0"
                   >{{ tool.name
-                  }}<small
+                  }}<small class="block font-mono text-xs text-n-slate-11">{{
+                    tool.slug
+                  }}</small
+                  ><small
                     v-if="!tool.active"
                     class="block text-xs text-n-slate-11"
                     >{{ t('AI_AGENTS.INACTIVE') }}</small

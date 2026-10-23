@@ -32,18 +32,19 @@ class Saas::AiAgents::Playground
       mode = text_mode
       usage = create_usage(mode, session_id, request_id)
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      tools = Saas::AiTools::Catalog.for_agent(@agent, playground: true)
+      tools = Saas::AiAgents::Provider.tools_supported?(effective_provider(mode)) ? Saas::AiTools::Catalog.for_agent(@agent, playground: true) : []
       executor = Saas::AiTools::Executor.new(account: @account, agent: @agent, playground_session_id: session_id)
       sources = Saas::Knowledge::Retrieval.for_agent(@agent, prompt)
       result = Saas::AiAgents::Provider.for(@account, @agent.provider, mode: mode).generate(
-        model: effective_model(mode), messages: build_messages(data, prompt, sources), temperature: @agent.temperature.to_f,
+        model: effective_model(mode), messages: build_messages(data, prompt, sources, tools), temperature: @agent.temperature.to_f,
         tools: tools, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
       )
       assistant = {
         'role' => 'assistant', 'content' => result.fetch(:content), 'request_id' => request_id,
         'created_at' => Time.current.iso8601,
         'knowledge_sources' => sources,
-        'tool_calls_count' => result.fetch(:tool_calls_count, 0), 'tool_names' => result.fetch(:tool_names, [])
+        'tool_calls_count' => result.fetch(:tool_calls_count, 0), 'tool_names' => result.fetch(:tool_names, []),
+        'tool_calls' => result.fetch(:tool_calls, [])
       }
       data['messages'] = trim_history(data.fetch('messages') + [
         { 'role' => 'user', 'content' => prompt, 'request_id' => request_id, 'created_at' => Time.current.iso8601 }, assistant
@@ -89,8 +90,11 @@ class Saas::AiAgents::Playground
     end
   end
 
-  def build_messages(data, prompt, sources = [])
-    [{ role: 'system', content: @agent.system_prompt }] +
+  def build_messages(data, prompt, sources, tools)
+    system_messages = [{ role: 'system', content: @agent.system_prompt }]
+    guidance = Saas::AiTools::Catalog.instructions(tools)
+    system_messages << { role: 'system', content: guidance } if guidance
+    system_messages +
       Saas::Knowledge::Retrieval.messages(sources, enabled: @agent.knowledge_bases.exists?) + data.fetch('messages').map do |message|
       { role: message.fetch('role'), content: message.fetch('content') }
     end + [{ role: 'user', content: prompt }]
