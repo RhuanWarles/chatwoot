@@ -7,6 +7,10 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import DropdownBody from 'dashboard/components-next/dropdown-menu/base/DropdownBody.vue';
+import DropdownContainer from 'dashboard/components-next/dropdown-menu/base/DropdownContainer.vue';
+import DropdownItem from 'dashboard/components-next/dropdown-menu/base/DropdownItem.vue';
+import { provideDropdownTeleport } from 'dashboard/components-next/dropdown-menu/base/provider';
 import Input from 'dashboard/components-next/input/Input.vue';
 
 const { t } = useI18n();
@@ -40,6 +44,10 @@ const error = ref('');
 const search = ref('');
 const statusFilter = ref('all');
 const draft = ref(createDraft());
+const activeMenuId = ref(null);
+const menuToggles = new Map();
+
+provideDropdownTeleport();
 
 const typeLabels = computed(() => ({
   text: t('CRM.CUSTOM_FIELD_TYPES.TEXT'),
@@ -206,6 +214,35 @@ const remove = async field => {
   }
 };
 
+const toggleMenu = (fieldId, isOpen, toggleDropdown) => {
+  menuToggles.set(fieldId, toggleDropdown);
+
+  if (isOpen) {
+    toggleDropdown();
+    activeMenuId.value = null;
+    return;
+  }
+
+  if (activeMenuId.value && activeMenuId.value !== fieldId) {
+    menuToggles.get(activeMenuId.value)?.();
+  }
+
+  activeMenuId.value = fieldId;
+  toggleDropdown();
+};
+
+const closeMenu = fieldId => {
+  if (activeMenuId.value === fieldId) {
+    activeMenuId.value = null;
+  }
+};
+
+const handleMenuAction = (field, action) => {
+  closeMenu(field.id);
+  if (action === 'toggle') toggle(field);
+  if (action === 'delete') remove(field);
+};
+
 onMounted(load);
 </script>
 
@@ -346,48 +383,43 @@ onMounted(load);
               :label="t('CRM.EDIT')"
               @click="edit(field)"
             />
-            <details class="relative">
-              <summary class="list-none [&::-webkit-details-marker]:hidden">
+            <DropdownContainer @close="closeMenu(field.id)">
+              <template #trigger="{ toggle: toggleDropdown }">
                 <Button
                   variant="ghost"
                   size="sm"
                   icon="i-lucide-ellipsis-vertical"
                   :aria-label="t('CRM.CUSTOM_FIELD_MORE_ACTIONS')"
+                  :aria-expanded="activeMenuId === field.id"
+                  @click="
+                    toggleMenu(
+                      field.id,
+                      activeMenuId === field.id,
+                      toggleDropdown
+                    )
+                  "
                 />
-              </summary>
-              <div
-                class="absolute end-0 top-full z-20 mt-1 flex min-w-44 flex-col gap-1 rounded-xl border border-n-weak bg-n-alpha-3 p-1 shadow-lg backdrop-blur-xl"
-              >
-                <button
-                  type="button"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-start text-sm text-n-slate-12 hover:bg-n-alpha-2"
-                  @click="toggle(field)"
-                >
-                  <span
-                    :class="
-                      field.active !== false
-                        ? 'i-lucide-eye-off'
-                        : 'i-lucide-eye'
-                    "
-                    class="size-4"
-                    aria-hidden="true"
-                  />
-                  {{
+              </template>
+              <DropdownBody class="min-w-44">
+                <DropdownItem
+                  :label="
                     field.active !== false
                       ? t('CRM.DEACTIVATE')
                       : t('CRM.ACTIVATE')
-                  }}
-                </button>
-                <button
-                  type="button"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-start text-sm text-n-ruby-11 hover:bg-n-ruby-3"
-                  @click="remove(field)"
-                >
-                  <span class="i-lucide-trash-2 size-4" aria-hidden="true" />
-                  {{ t('CRM.DELETE') }}
-                </button>
-              </div>
-            </details>
+                  "
+                  :icon="
+                    field.active !== false ? 'i-lucide-eye-off' : 'i-lucide-eye'
+                  "
+                  :click="() => handleMenuAction(field, 'toggle')"
+                />
+                <DropdownItem
+                  :label="t('CRM.DELETE')"
+                  icon="i-lucide-trash-2"
+                  :click="() => handleMenuAction(field, 'delete')"
+                  class="text-n-ruby-11"
+                />
+              </DropdownBody>
+            </DropdownContainer>
           </div>
         </div>
       </div>

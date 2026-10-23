@@ -98,6 +98,8 @@ const fields = [
   },
 ];
 
+const mountedWrappers = [];
+
 const createWrapper = async () => {
   customFieldsAPI.get.mockResolvedValue({ data: fields });
   const wrapper = mount(Component, {
@@ -109,14 +111,30 @@ const createWrapper = async () => {
           messages: { pt_BR: messages },
         }),
       ],
-      stubs: { Button, Input, Checkbox, ComboBox, Dialog },
+      stubs: {
+        Button,
+        Input,
+        Checkbox,
+        ComboBox,
+        Dialog,
+        TeleportWithDirection: {
+          props: ['to'],
+          template: '<Teleport :to="to"><slot /></Teleport>',
+        },
+      },
     },
   });
   await flushPromises();
+  mountedWrappers.push(wrapper);
   return wrapper;
 };
 
 afterEach(() => {
+  mountedWrappers.forEach(wrapper => wrapper.unmount());
+  mountedWrappers.length = 0;
+  document
+    .querySelectorAll('[data-dropdown-menu]')
+    .forEach(menu => menu.remove());
   vi.clearAllMocks();
   vi.restoreAllMocks();
 });
@@ -198,6 +216,31 @@ it('loads existing values in edit mode and preserves select options', async () =
   });
 });
 
+it('opens the actions menu through the portal and keeps only one menu open', async () => {
+  const wrapper = await createWrapper();
+  const menuButtons = wrapper.findAll('[aria-label="Mais ações"]');
+
+  await menuButtons[0].trigger('click');
+  await flushPromises();
+  expect(document.body.querySelectorAll('[data-dropdown-menu]')).toHaveLength(
+    1
+  );
+  expect(document.body.textContent).toContain('Desativar');
+  expect(document.body.textContent).toContain('Excluir');
+
+  await menuButtons[1].trigger('click');
+  await flushPromises();
+  expect(document.body.querySelectorAll('[data-dropdown-menu]')).toHaveLength(
+    1
+  );
+
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  await flushPromises();
+  expect(document.body.querySelectorAll('[data-dropdown-menu]')).toHaveLength(
+    0
+  );
+});
+
 it('adds, reorders and removes options without changing their internal values', async () => {
   const wrapper = await createWrapper();
   customFieldsAPI.create.mockResolvedValue({ data: {} });
@@ -248,19 +291,23 @@ it('keeps select options editable and supports activation and deletion actions',
   expect(dialog.findAll('input')[2].element.value).toBe('Meta');
   expect(dialog.findAll('input')[3].element.value).toBe('Google');
 
-  await wrapper
-    .findAll('button')
-    .find(button => button.text() === 'Desativar')
-    .trigger('click');
+  await wrapper.findAll('[aria-label="Mais ações"]')[0].trigger('click');
+  await flushPromises();
+  const disableAction = Array.from(
+    document.querySelectorAll('[data-dropdown-menu] button')
+  ).find(button => button.textContent === 'Desativar');
+  await disableAction.click();
   await flushPromises();
   expect(customFieldsAPI.update).toHaveBeenCalledWith(1, {
     custom_field: { active: false },
   });
 
-  await wrapper
-    .findAll('button')
-    .find(button => button.text() === 'Excluir')
-    .trigger('click');
+  await wrapper.findAll('[aria-label="Mais ações"]')[0].trigger('click');
+  await flushPromises();
+  const deleteAction = Array.from(
+    document.querySelectorAll('[data-dropdown-menu] button')
+  ).find(button => button.textContent === 'Excluir');
+  await deleteAction.click();
   await flushPromises();
   expect(customFieldsAPI.delete).toHaveBeenCalledWith(1);
 });
