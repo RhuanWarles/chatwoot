@@ -18,7 +18,8 @@
   "DIALOG": {
     "BUTTONS": {
       "CANCEL": "Cancel",
-      "CONFIRM": "Confirm"
+      "CONFIRM": "Confirm",
+      "CLOSE": "Close"
     }
   },
   "PHONE_INPUT": {

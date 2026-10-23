@@ -44,6 +44,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  showCloseButton: {
+    type: Boolean,
+    default: false,
+  },
   overflowYAuto: {
     type: Boolean,
     default: false,
@@ -136,15 +140,31 @@ defineExpose({ open, close });
           @submit.prevent="confirm"
           @click.stop
         >
-          <div v-if="title || description" class="flex flex-col gap-2">
-            <h3 class="text-base font-medium leading-6 text-n-slate-12">
-              {{ title }}
-            </h3>
-            <slot name="description">
-              <p v-if="description" class="mb-0 text-sm text-n-slate-11">
-                {{ description }}
-              </p>
-            </slot>
+          <div
+            v-if="title || description"
+            class="flex items-start justify-between gap-4"
+          >
+            <div class="flex min-w-0 flex-col gap-2">
+              <h3 class="text-base font-medium leading-6 text-n-slate-12">
+                {{ title }}
+              </h3>
+              <slot name="description">
+                <p v-if="description" class="mb-0 text-sm text-n-slate-11">
+                  {{ description }}
+                </p>
+              </slot>
+            </div>
+            <Button
+              v-if="showCloseButton"
+              variant="ghost"
+              color="slate"
+              size="sm"
+              icon="i-lucide-x"
+              :aria-label="t('DIALOG.BUTTONS.CLOSE')"
+              type="button"
+              class="shrink-0"
+              @click="close"
+            />
           </div>
           <slot v-if="isOpen" />
           <!-- Dialog content will be injected here -->
