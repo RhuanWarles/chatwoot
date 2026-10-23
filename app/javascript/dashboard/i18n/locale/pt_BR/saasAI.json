@@ -124,7 +124,14 @@
     "TOOLS_UNSUPPORTED_PROVIDER": "Ferramentas, movimentação de leads no funil e transferência para humano só funcionam com o provedor OpenAI. O provedor da plataforma é {provider}, então este assistente responde sem elas.",
     "TEXT_AI_DISABLED": "A IA de texto está desativada nesta conta, então o status do assistente não pode ser alterado.",
     "ACTIVATE_NAMED": "Ativar {name}",
-    "DEACTIVATE_NAMED": "Desativar {name}"
+    "DEACTIVATE_NAMED": "Desativar {name}",
+    "HANDOFF_CONDITIONS": "Condições de transferência",
+    "HANDOFF_CONDITIONS_PLACEHOLDER": "Ex.: o cliente pedir desconto acima de 10%, falar em cancelamento ou perguntar sobre uma fatura já paga.",
+    "HANDOFF_CONDITIONS_HELP": "Situações em que a IA deve passar a conversa para uma pessoa. Somam-se às regras padrão, que já cobrem perguntas sem resposta e clientes que pedem para falar com alguém.",
+    "CRM_PIPELINE": "Funil em que a IA trabalha",
+    "CRM_PIPELINE_HELP": "A IA só move e cria cards neste funil. Deixe vazio para usar o funil do card aberto do cliente ou, se não houver, o primeiro funil ativo.",
+    "CRM_PIPELINE_AUTOMATIC": "Automático",
+    "CRM_PIPELINE_INACTIVE": "inativo"
   },
   "AI_PLAYGROUND": {
     "TITLE": "Testar assistente — {name}",

@@ -275,6 +275,13 @@
     "TEXT_AI_DISABLED": "Text AI is turned off for this account, so the agent status cannot be changed.",
     "ACTIVATE_NAMED": "Activate {name}",
     "DEACTIVATE_NAMED": "Deactivate {name}",
+    "HANDOFF_CONDITIONS": "Handoff conditions",
+    "HANDOFF_CONDITIONS_PLACEHOLDER": "Example: the customer asks for a discount above 10%, mentions cancelling, or asks about an invoice that is already paid.",
+    "HANDOFF_CONDITIONS_HELP": "Situations where the AI must hand the conversation to a person. They add to the built-in rules, which already cover questions it cannot answer and customers who ask for a person.",
+    "CRM_PIPELINE": "Pipeline the AI works in",
+    "CRM_PIPELINE_HELP": "The AI only moves and creates cards in this pipeline. Leave it empty to use the pipeline of the customer's open card or, if there is none, the first active pipeline.",
+    "CRM_PIPELINE_AUTOMATIC": "Automatic",
+    "CRM_PIPELINE_INACTIVE": "inactive",
     "PROVIDERS": {
       "openai": "OpenAI",
       "anthropic": "Anthropic",

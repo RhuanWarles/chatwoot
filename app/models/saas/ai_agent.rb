@@ -3,8 +3,10 @@ class Saas::AiAgent < ApplicationRecord
 
   PROVIDERS = Saas::AiSetting::PROVIDERS
   TEMPERATURE_RANGE = 0..1
+  HANDOFF_CONDITIONS_MAX_LENGTH = 1000
 
   belongs_to :account
+  belongs_to :crm_pipeline, class_name: 'Crm::Pipeline', optional: true, inverse_of: :ai_agents
   has_many :messages, as: :sender, dependent: :nullify
   has_many :ai_agent_inboxes, class_name: 'Saas::AiAgentInbox', dependent: :destroy, inverse_of: :ai_agent
   has_many :inboxes, through: :ai_agent_inboxes
@@ -18,6 +20,7 @@ class Saas::AiAgent < ApplicationRecord
   validates :name, :system_prompt, :provider, :model, presence: true
   validates :name, :model, length: { maximum: 100 }
   validates :system_prompt, length: { minimum: 1 }
+  validates :handoff_conditions, length: { maximum: HANDOFF_CONDITIONS_MAX_LENGTH }
   validates :provider, inclusion: { in: PROVIDERS }
   validates :temperature, numericality: { in: TEMPERATURE_RANGE }
   validates :context_messages_limit, numericality: { only_integer: true, in: 1..100 }
@@ -26,6 +29,7 @@ class Saas::AiAgent < ApplicationRecord
   validates :split_response_messages, :active, :handoff_enabled, :crm_stage_automation_enabled,
             :respond_to_groups, :customer_memory_enabled, inclusion: { in: [true, false] }
   validate :validate_inboxes
+  validate :validate_crm_pipeline
   validate :validate_runtime_provider
 
   # Serialize assignment and activation together, including concurrent requests.
@@ -45,7 +49,7 @@ class Saas::AiAgent < ApplicationRecord
 
   def public_data
     attributes.slice('id', 'account_id', 'name', 'description', 'system_prompt', 'provider', 'model',
-                     'temperature', 'context_messages_limit', 'response_delay_seconds', 'split_response_messages', 'active', 'handoff_enabled', 'crm_stage_automation_enabled', 'respond_to_groups', 'customer_memory_enabled', 'created_at', 'updated_at').merge(
+                     'temperature', 'context_messages_limit', 'response_delay_seconds', 'split_response_messages', 'active', 'handoff_enabled', 'crm_stage_automation_enabled', 'respond_to_groups', 'customer_memory_enabled', 'crm_pipeline_id', 'handoff_conditions', 'created_at', 'updated_at').merge(
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } },
                        'knowledge_bases' => knowledge_bases.map { |base| { id: base.id, name: base.name, active: base.active } },
@@ -70,6 +74,12 @@ class Saas::AiAgent < ApplicationRecord
     occupied = account.saas_ai_agents.where(active: true).where.not(id: id)
                       .joins(:ai_agent_inboxes).where(saas_ai_agent_inboxes: { inbox_id: inboxes.map(&:id) }).exists?
     errors.add(:inboxes, :taken) if occupied
+  end
+
+  def validate_crm_pipeline
+    return if crm_pipeline_id.nil?
+
+    errors.add(:crm_pipeline, :invalid) unless crm_pipeline && crm_pipeline.account_id == account_id
   end
 
   def validate_runtime_provider

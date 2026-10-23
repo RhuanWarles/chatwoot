@@ -3,6 +3,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import AgentEditorPage from '../AgentEditorPage.vue';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import knowledgeAPI from 'dashboard/api/knowledgeBases';
+import { pipelinesAPI } from 'dashboard/api/crm';
 
 const mocks = vi.hoisted(() => ({
   route: null,
@@ -35,6 +36,9 @@ vi.mock('dashboard/api/aiAgents', () => ({
 vi.mock('dashboard/api/knowledgeBases', () => ({
   default: { get: vi.fn() },
 }));
+vi.mock('dashboard/api/crm', () => ({
+  pipelinesAPI: { get: vi.fn() },
+}));
 
 const mountEditor = async (agentId = null) => {
   mocks.route = reactive({ params: agentId ? { agentId } : {}, query: {} });
@@ -44,6 +48,7 @@ const mountEditor = async (agentId = null) => {
   });
   aiAgentsAPI.tools.mockResolvedValue({ data: { tools: [] } });
   knowledgeAPI.get.mockResolvedValue({ data: { bases: [] } });
+  pipelinesAPI.get.mockResolvedValue({ data: [] });
   aiAgentsAPI.show.mockResolvedValue({ data: null });
   const wrapper = shallowMount(AgentEditorPage, {
     global: { stubs: { RouterLink: true } },

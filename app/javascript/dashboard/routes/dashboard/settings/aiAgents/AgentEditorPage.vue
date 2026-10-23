@@ -5,13 +5,19 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import knowledgeAPI from 'dashboard/api/knowledgeBases';
+import { pipelinesAPI } from 'dashboard/api/crm';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import { suggestedModelsForProvider } from './models';
-import { agentPayload, newAgent, validAgent } from './form';
+import {
+  agentPayload,
+  HANDOFF_CONDITIONS_MAX_LENGTH,
+  newAgent,
+  validAgent,
+} from './form';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -28,6 +34,7 @@ const providers = ref([]);
 const textSettings = ref(null);
 const tools = ref([]);
 const knowledgeBases = ref([]);
+const pipelines = ref([]);
 const draft = ref(newAgent());
 const initialDraft = ref('');
 const previousProvider = ref(draft.value.provider);
@@ -149,8 +156,23 @@ watch(
   }
 );
 
+// Inactive pipelines cannot be newly chosen, but the one already selected stays visible.
+const pipelineOptions = computed(() =>
+  pipelines.value
+    .filter(
+      pipeline => pipeline.active || pipeline.id === draft.value.crm_pipeline_id
+    )
+    .map(pipeline => ({
+      value: pipeline.id,
+      label: pipeline.active
+        ? pipeline.name
+        : `${pipeline.name} - ${t('AI_AGENTS.CRM_PIPELINE_INACTIVE')}`,
+    }))
+);
+
 const normalizeAgent = agent => ({
   ...agent,
+  handoff_conditions: agent?.handoff_conditions ?? '',
   customer_memory_enabled: agent?.customer_memory_enabled === true,
   split_response_messages: agent?.split_response_messages !== false,
   inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
@@ -163,12 +185,14 @@ const load = async () => {
       inboxesLoaded,
       toolsResponse,
       knowledgeResponse,
+      pipelinesResponse,
       agentResponse,
     ] = await Promise.all([
       aiAgentsAPI.get(),
       store.dispatch('inboxes/get'),
       aiAgentsAPI.tools(),
       knowledgeAPI.get(),
+      pipelinesAPI.get(),
       isEdit.value
         ? aiAgentsAPI.show(route.params.agentId)
         : Promise.resolve({ data: null }),
@@ -179,6 +203,7 @@ const load = async () => {
     textSettings.value = response.data.text;
     tools.value = toolsResponse.data.tools || [];
     knowledgeBases.value = knowledgeResponse.data.bases || [];
+    pipelines.value = pipelinesResponse.data || [];
     if (agentResponse.data) {
       const agent = normalizeAgent(agentResponse.data);
       draft.value = agentPayload({
@@ -516,6 +541,19 @@ onMounted(load);
             </span>
             <Switch v-model="draft.handoff_enabled" :disabled="busy" />
           </label>
+          <TextArea
+            v-if="draft.handoff_enabled"
+            v-model="draft.handoff_conditions"
+            :label="t('AI_AGENTS.HANDOFF_CONDITIONS')"
+            :placeholder="t('AI_AGENTS.HANDOFF_CONDITIONS_PLACEHOLDER')"
+            :message="t('AI_AGENTS.HANDOFF_CONDITIONS_HELP')"
+            :max-length="HANDOFF_CONDITIONS_MAX_LENGTH"
+            :disabled="busy"
+            show-character-count
+            auto-height
+            min-height="6rem"
+            max-height="14rem"
+          />
           <p
             v-if="toolsUnsupported"
             class="p-3 text-xs rounded-lg bg-n-amber-2 text-n-amber-11"
@@ -549,8 +587,26 @@ onMounted(load);
               }}</small></span
             ><Switch
               v-model="draft.crm_stage_automation_enabled"
-              :disabled="busy" /></label
-          ><label class="flex items-center justify-between gap-3"
+              :disabled="busy"
+          /></label>
+          <div
+            v-if="draft.crm_stage_automation_enabled"
+            class="flex flex-col gap-1"
+          >
+            <p class="mb-0 text-sm text-n-slate-12">
+              {{ t('AI_AGENTS.CRM_PIPELINE') }}
+            </p>
+            <p class="mb-0 text-xs text-n-slate-11">
+              {{ t('AI_AGENTS.CRM_PIPELINE_HELP') }}
+            </p>
+            <ComboBox
+              v-model="draft.crm_pipeline_id"
+              :options="pipelineOptions"
+              :placeholder="t('AI_AGENTS.CRM_PIPELINE_AUTOMATIC')"
+              :disabled="busy"
+            />
+          </div>
+          <label class="flex items-center justify-between gap-3"
             ><span class="text-sm text-n-slate-12"
               >{{ t('AI_AGENTS.CUSTOMER_MEMORY')
               }}<small class="block text-xs text-n-slate-11">{{

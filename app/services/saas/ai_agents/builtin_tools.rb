@@ -34,6 +34,9 @@ class Saas::AiAgents::BuiltinTools
       (máximo de 200 caracteres), sem dados sensíveis como senhas, números de cartão ou documentos. \
       O resumo vai para uma nota interna: não o repita para o cliente.
     TEXT
+    if handoff_conditions?
+      parts << "Transfira também para um atendente humano nas situações definidas pela empresa:\n#{@agent.handoff_conditions.strip}\n"
+    end
     parts << <<~TEXT if stages.present?
       Você também controla o card (lead) deste cliente no funil. Conforme a conversa avançar, chame #{MOVE_STAGE} \
       para mover o lead para a etapa que melhor representa o momento atual. Só mova quando houver evidência clara na conversa, \
@@ -50,6 +53,10 @@ class Saas::AiAgents::BuiltinTools
   end
 
   private
+
+  def handoff_conditions?
+    @agent.handoff_enabled? && @agent.handoff_conditions.present?
+  end
 
   def handoff_definition
     return unless @agent.handoff_enabled?
@@ -129,7 +136,12 @@ class Saas::AiAgents::BuiltinTools
   end
 
   def open_deal
-    @open_deal ||= @conversation.account.crm_deals.where(contact_id: @conversation.contact_id, status: 'open').order(updated_at: :desc).first
+    @open_deal ||= begin
+      deals = @conversation.account.crm_deals.where(contact_id: @conversation.contact_id, status: 'open')
+      # With a pipeline chosen on the agent, only cards inside it are the AI's to move.
+      deals = deals.where(pipeline_id: @agent.crm_pipeline_id) if @agent.crm_pipeline_id
+      deals.order(updated_at: :desc).first
+    end
   end
 
   def create_deal(stage)
@@ -137,8 +149,15 @@ class Saas::AiAgents::BuiltinTools
                                             contact: @conversation.contact, pipeline: pipeline, pipeline_stage: stage)
   end
 
+  # The pipeline chosen on the agent wins; if it was deactivated the tool is withheld rather than falling back to another pipeline.
   def pipeline
-    @pipeline ||= open_deal&.pipeline || @conversation.account.crm_pipelines.active.joins(:stages).order(:id).first
+    return @pipeline if defined?(@pipeline)
+
+    @pipeline = if @agent.crm_pipeline_id
+                  @agent.crm_pipeline if @agent.crm_pipeline&.active?
+                else
+                  open_deal&.pipeline || @conversation.account.crm_pipelines.active.joins(:stages).order(:id).first
+                end
   end
 
   def stages
