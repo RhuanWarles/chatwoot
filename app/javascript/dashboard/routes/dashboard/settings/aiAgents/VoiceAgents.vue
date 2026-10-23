@@ -3,9 +3,11 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import voiceAgentsAPI from 'dashboard/api/voiceAgents';
 import Button from 'dashboard/components-next/button/Button.vue';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import { newVoiceAgent, voiceAgentPayload, validVoiceAgent } from './voiceForm';
 
 const { t } = useI18n();
@@ -22,6 +24,17 @@ const deletion = ref(null);
 const deleting = ref(null);
 const editingId = ref(null);
 const draft = ref(newVoiceAgent());
+const searchQuery = ref('');
+const canCreate = computed(
+  () => !loading.value && !loadError.value && !busy.value
+);
+const filteredAgents = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase();
+  if (!query) return agents.value;
+  return agents.value.filter(agent =>
+    agent.name?.toLocaleLowerCase().includes(query)
+  );
+});
 const providerLabel = provider => (provider === 'vapi' ? 'Vapi' : provider);
 const providerOptions = computed(() =>
   providers.value.map(value => ({
@@ -67,6 +80,7 @@ function openEditor(agent) {
   editorError.value = '';
   editor.value.open();
 }
+const openNew = () => openEditor();
 
 async function save() {
   if (!canSave.value || busy.value) return;
@@ -111,6 +125,21 @@ function requestDelete(agent) {
   deletion.value.open();
 }
 
+const actionMenuItems = agent => [
+  {
+    action: 'toggle',
+    icon: agent.active ? 'i-lucide-pause' : 'i-lucide-play',
+    label: agent.active ? t('AI_AGENTS.DEACTIVATE') : t('AI_AGENTS.ACTIVATE'),
+  },
+  { action: 'delete', icon: 'i-lucide-trash-2', label: t('AI_AGENTS.DELETE') },
+];
+const handleMenuAction = ({ action }, agent, hide) => {
+  hide();
+  if (action === 'toggle') toggle(agent);
+  if (action === 'delete') requestDelete(agent);
+};
+defineExpose({ openNew, canCreate });
+
 async function remove() {
   if (busy.value || !deleting.value) return;
   busy.value = true;
@@ -129,16 +158,15 @@ onMounted(load);
 
 <template>
   <section class="flex flex-col gap-4 min-w-0">
-    <header class="flex flex-wrap items-center justify-between gap-4">
-      <h2 class="text-heading-3 text-n-slate-12">{{ t('AI_HUB.VOICE') }}</h2>
-      <Button
-        :label="t('AI_HUB.NEW_VOICE')"
-        icon="i-lucide-plus"
-        :disabled="loading || !!loadError || busy"
-        @click="openEditor()"
-      />
-    </header>
     <p class="text-sm text-n-slate-11">{{ t('AI_HUB.VOICE_CONFIG_ONLY') }}</p>
+    <Input
+      v-if="agents.length"
+      v-model="searchQuery"
+      size="sm"
+      class="w-full md:w-72 md:self-end"
+      :placeholder="t('AI_AGENTS.SEARCH')"
+      :aria-label="t('AI_AGENTS.SEARCH')"
+    />
     <p v-if="loading" role="status" class="text-n-slate-11">
       {{ t('AI_AGENTS.LOADING') }}
     </p>
@@ -153,57 +181,94 @@ onMounted(load);
       <p v-if="actionError" role="alert" class="text-sm text-n-ruby-9">
         {{ actionError }}
       </p>
-      <p v-if="!agents.length" class="text-n-slate-11">
-        {{ t('AI_HUB.VOICE_EMPTY') }}
-      </p>
-      <article
-        v-for="agent in agents"
-        :key="agent.id"
-        class="flex flex-wrap justify-between gap-4 p-4 rounded-lg bg-n-solid-2"
+      <div
+        v-if="!agents.length"
+        class="flex flex-col items-start gap-3 rounded-xl border border-dashed border-n-weak p-6"
       >
-        <div class="min-w-0">
-          <h3 class="font-medium break-words text-n-slate-12">
-            {{ agent.name }}
-          </h3>
-          <p class="text-sm text-n-slate-11">
-            {{ agent.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE') }}
+        <div>
+          <p class="font-medium text-n-slate-12">
+            {{ t('AI_HUB.VOICE_EMPTY') }}
+          </p>
+          <p class="mt-1 text-sm text-n-slate-11">
+            {{ t('AI_AGENTS.EMPTY_HELP') }}
+          </p>
+        </div>
+        <Button
+          :label="t('AI_HUB.NEW_VOICE')"
+          icon="i-lucide-plus"
+          @click="openNew"
+        />
+      </div>
+      <div
+        v-else-if="!filteredAgents.length"
+        class="rounded-xl border border-dashed border-n-weak p-6 text-sm text-n-slate-11"
+      >
+        {{ t('AI_AGENTS.NO_SEARCH_RESULTS') }}
+      </div>
+      <article
+        v-for="agent in filteredAgents"
+        :key="agent.id"
+        class="flex flex-col justify-between gap-5 rounded-xl border border-n-weak bg-n-solid-1 p-5 transition-colors hover:border-n-strong lg:flex-row lg:items-start"
+      >
+        <div class="min-w-0 space-y-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <h3 class="break-words font-medium text-n-slate-12">
+              {{ agent.name }}
+            </h3>
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full bg-n-teal-9/10 px-2 py-0.5 text-xs text-n-teal-11"
+              :class="{ 'bg-n-slate-9/10 text-n-slate-11': !agent.active }"
+            >
+              <span
+                class="size-1.5 rounded-full bg-current"
+                aria-hidden="true"
+              />
+              {{
+                agent.active ? t('AI_AGENTS.ACTIVE') : t('AI_AGENTS.INACTIVE')
+              }}
+            </span>
+          </div>
+          <p v-if="agent.description" class="text-sm text-n-slate-11">
+            {{ agent.description }}
           </p>
           <p class="text-sm text-n-slate-11">
             {{ providerLabel(agent.provider) }}
           </p>
           <p class="text-sm break-all text-n-slate-11">
-            {{ t('AI_HUB.PHONE_NUMBER_ID') }}:
+            {{ t('AI_HUB.PHONE_NUMBER_ID') }}{{ t('AI_AGENTS.COLON') }}
             {{ agent.phone_number_id || t('AI_HUB.NOT_CONFIGURED') }}
           </p>
           <p class="text-sm text-n-slate-11">
-            {{ t('AI_HUB.INBOUND') }}:
-            {{ agent.inbound_enabled ? t('AI_HUB.YES') : t('AI_HUB.NO') }} ·
-            {{ t('AI_HUB.OUTBOUND') }}:
+            {{ t('AI_HUB.INBOUND') }}{{ t('AI_AGENTS.COLON') }}
+            {{ agent.inbound_enabled ? t('AI_HUB.YES') : t('AI_HUB.NO') }}
+            {{ t('AI_AGENTS.SEPARATOR') }}
+            {{ t('AI_HUB.OUTBOUND') }}{{ t('AI_AGENTS.COLON') }}
             {{ agent.outbound_enabled ? t('AI_HUB.YES') : t('AI_HUB.NO') }}
           </p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
           <Button
             variant="ghost"
             :label="t('AI_AGENTS.EDIT')"
             :disabled="busy"
             @click="openEditor(agent)"
           />
-          <Button
-            variant="ghost"
-            :label="
-              agent.active ? t('AI_AGENTS.DEACTIVATE') : t('AI_AGENTS.ACTIVATE')
-            "
-            :disabled="busy"
-            @click="toggle(agent)"
-          />
-          <Button
-            variant="ghost"
-            color="ruby"
-            :label="t('AI_AGENTS.DELETE')"
-            :disabled="busy"
-            @click="requestDelete(agent)"
-          />
+          <Popover align="end">
+            <Button
+              icon="i-lucide-ellipsis-vertical"
+              variant="ghost"
+              size="sm"
+              :disabled="busy"
+              :aria-label="t('AI_AGENTS.MORE_ACTIONS')"
+            />
+            <template #content="{ hide }">
+              <DropdownMenu
+                class="!relative w-56 max-w-[calc(100vw-2rem)]"
+                :menu-items="actionMenuItems(agent)"
+                @action="handleMenuAction($event, agent, hide)"
+              />
+            </template>
+          </Popover>
         </div>
       </article>
     </div>
@@ -256,25 +321,26 @@ onMounted(load);
           :message="t('AI_HUB.PHONE_ID_HELP')"
           :disabled="busy"
         />
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"
-          ><input v-model="draft.active" type="checkbox" :disabled="busy" />{{
-            t('AI_AGENTS.ACTIVE')
-          }}</label
-        >
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"
-          ><input
+        <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <input v-model="draft.active" type="checkbox" :disabled="busy" />
+          {{ t('AI_AGENTS.ACTIVE') }}
+        </label>
+        <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <input
             v-model="draft.inbound_enabled"
             type="checkbox"
             :disabled="busy"
-          />{{ t('AI_HUB.INBOUND') }}</label
-        >
-        <label class="flex items-center gap-2 text-sm text-n-slate-12"
-          ><input
+          />
+          {{ t('AI_HUB.INBOUND') }}
+        </label>
+        <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <input
             v-model="draft.outbound_enabled"
             type="checkbox"
             :disabled="busy"
-          />{{ t('AI_HUB.OUTBOUND') }}</label
-        >
+          />
+          {{ t('AI_HUB.OUTBOUND') }}
+        </label>
         <Input
           v-model="maxDuration"
           type="number"
