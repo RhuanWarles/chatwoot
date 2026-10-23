@@ -120,6 +120,14 @@ const detailRows = computed(() => {
     offset + DETAILS_PER_PAGE
   );
 });
+const hasActivity = item => {
+  const billingValue =
+    data.value?.billing?.mode === 'platform' ? item.credits : item.tokens;
+
+  return [item.conversations, item.turns, item.messages, billingValue].some(
+    value => Number(value) > 0
+  );
+};
 const consumption = computed(() => {
   const billing = data.value?.billing;
   if (!billing) return [];
@@ -283,14 +291,14 @@ onMounted(load);
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div v-for="n in 4" :key="n" class="h-24 rounded-xl bg-n-alpha-2" />
       </div>
-      <div class="min-h-[24rem] rounded-xl bg-n-alpha-2" />
+      <div class="h-48 rounded-xl bg-n-alpha-2 sm:h-52" />
     </div>
     <template v-else-if="data && !error">
       <section class="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         <article
           v-for="card in cards"
           :key="card.label"
-          class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
+          class="flex min-h-[7rem] flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4"
         >
           <div
             class="flex items-center justify-between gap-2 text-xs text-n-slate-11"
@@ -316,7 +324,7 @@ onMounted(load);
           </h2>
           <div
             ref="chartContainer"
-            class="mt-4 flex h-56 min-h-0 items-center justify-center overflow-visible sm:h-64"
+            class="mt-4 flex h-44 min-h-0 items-center justify-center overflow-visible sm:h-52"
           >
             <LineChart
               v-if="data.summary.messages || data.billing.credits_consumed"
@@ -333,29 +341,39 @@ onMounted(load);
               {{ key('EMPTY') }}
             </p>
           </div>
-          <div
+          <dl
             v-if="latestPoint"
-            class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-n-weak pt-3 text-xs text-n-slate-11"
+            class="mt-3 grid grid-cols-2 gap-3 rounded-lg border border-n-weak bg-n-alpha-1 p-3 text-xs text-n-slate-11 sm:grid-cols-4"
           >
-            <span class="font-medium text-n-slate-12"
-              >{{ key('DATE') }}: {{ latestPoint.date }}</span
-            ><span
-              >{{ key('CONVERSATIONS') }}:
-              <strong class="font-medium text-n-slate-12">{{
-                latestPoint.conversations
-              }}</strong></span
-            ><span
-              >{{ key('TURNS') }}:
-              <strong class="font-medium text-n-slate-12">{{
-                latestPoint.turns
-              }}</strong></span
-            ><span
-              >{{ key('MESSAGES') }}:
-              <strong class="font-medium text-n-slate-12">{{
-                latestPoint.messages
-              }}</strong></span
-            >
-          </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">{{ key('DATE') }}</dt>
+              <dd class="mt-1 font-medium text-n-slate-12">
+                {{ latestPoint.date }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">
+                {{ key('CONVERSATIONS') }}
+              </dt>
+              <dd class="mt-1 font-semibold tabular-nums text-n-slate-12">
+                {{ latestPoint.conversations }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">{{ key('TURNS') }}</dt>
+              <dd class="mt-1 font-semibold tabular-nums text-n-slate-12">
+                {{ latestPoint.turns }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">
+                {{ key('MESSAGES') }}
+              </dt>
+              <dd class="mt-1 font-semibold tabular-nums text-n-slate-12">
+                {{ latestPoint.messages }}
+              </dd>
+            </div>
+          </dl>
           <div
             class="mt-3 flex flex-wrap justify-center gap-4 text-xs text-n-slate-11"
           >
@@ -378,18 +396,48 @@ onMounted(load);
           class="flex min-w-0 flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4"
         >
           <h2 class="text-sm font-semibold">{{ key('TOOLS') }}</h2>
-          <p class="mt-2 text-xs text-n-slate-11">
-            {{ key('EXECUTIONS') }}: {{ number(data.tools.executions) }} ·
-            {{ key('SUCCESS') }}: {{ number(data.tools.success) }} ·
-            {{ key('FAILURES') }}: {{ number(data.tools.failures) }} ·
-            {{ percent(data.tools.success_rate) }}
-          </p>
+          <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <dt class="text-[11px] text-n-slate-11">
+                {{ key('EXECUTIONS') }}
+              </dt>
+              <dd class="mt-1 text-base font-semibold tabular-nums">
+                {{ number(data.tools.executions) }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">{{ key('SUCCESS') }}</dt>
+              <dd
+                class="mt-1 text-base font-semibold tabular-nums text-n-teal-11"
+              >
+                {{ number(data.tools.success) }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">
+                {{ key('FAILURES') }}
+              </dt>
+              <dd
+                class="mt-1 text-base font-semibold tabular-nums text-n-ruby-11"
+              >
+                {{ number(data.tools.failures) }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-n-slate-11">
+                {{ key('SUCCESS_RATE') }}
+              </dt>
+              <dd class="mt-1 text-base font-semibold tabular-nums">
+                {{ percent(data.tools.success_rate) }}
+              </dd>
+            </div>
+          </dl>
           <div class="mt-4 overflow-x-auto">
             <table
               v-if="data.tools.top.length"
               class="w-full text-xs tabular-nums"
             >
-              <thead class="sticky top-0 bg-n-solid-2 text-n-slate-11">
+              <thead class="sticky top-0 bg-n-alpha-2 text-n-slate-12">
                 <tr>
                   <th
                     v-for="label in [
@@ -410,17 +458,28 @@ onMounted(load);
                 <tr
                   v-for="tool in data.tools.top"
                   :key="tool.id"
-                  class="border-b border-n-weak"
+                  class="border-b border-n-weak transition-colors hover:bg-n-alpha-1"
                 >
                   <td class="max-w-32 truncate px-2 py-2">{{ tool.name }}</td>
-                  <td>{{ number(tool.executions) }}</td>
-                  <td class="text-n-teal-11">{{ number(tool.success) }}</td>
-                  <td class="text-n-ruby-11">{{ number(tool.failures) }}</td>
-                  <td>{{ percent(tool.success_rate) }}</td>
+                  <td class="px-2 py-2 text-end">
+                    {{ number(tool.executions) }}
+                  </td>
+                  <td class="px-2 py-2 text-end text-n-teal-11">
+                    {{ number(tool.success) }}
+                  </td>
+                  <td class="px-2 py-2 text-end text-n-ruby-11">
+                    {{ number(tool.failures) }}
+                  </td>
+                  <td class="px-2 py-2 text-end">
+                    {{ percent(tool.success_rate) }}
+                  </td>
                 </tr>
               </tbody>
             </table>
-            <p v-else class="py-6 text-xs text-n-slate-11">
+            <p
+              v-else
+              class="border-t border-n-weak pt-3 text-xs text-n-slate-11"
+            >
               {{ key('EMPTY_TOOLS') }}
             </p>
           </div>
@@ -429,53 +488,79 @@ onMounted(load);
           <h2 class="text-sm font-semibold">{{ key('KNOWLEDGE') }}</h2>
           <dl
             v-if="data.knowledge.queries"
-            class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3"
+            class="mt-3 grid grid-cols-2 gap-x-5 gap-y-4"
           >
             <div v-for="item in knowledge" :key="item[0]">
               <dt
                 v-tooltip="item[2] ? key(item[2]) : ''"
-                class="text-xs text-n-slate-11"
+                class="text-[11px] text-n-slate-11"
               >
                 {{ key(item[0]) }}
               </dt>
-              <dd class="mt-1 text-base font-medium tabular-nums">
+              <dd
+                class="mt-1 text-lg font-semibold tabular-nums text-n-slate-12"
+              >
                 {{ item[1] }}
               </dd>
             </div>
           </dl>
-          <p v-else class="py-6 text-xs text-n-slate-11">
+          <p v-else class="border-t border-n-weak pt-3 text-xs text-n-slate-11">
             {{ key('EMPTY_KNOWLEDGE') }}
           </p>
         </section>
         <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4">
           <h2 class="text-sm font-semibold">{{ key('CONSUMPTION') }}</h2>
-          <dl class="mt-3 grid grid-cols-3 gap-3">
-            <div v-for="item in consumption" :key="item[0]">
+          <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div
+              v-for="item in consumption"
+              :key="item[0]"
+              class="rounded-lg bg-n-alpha-1 p-3"
+            >
               <dt
                 v-tooltip="item[2] ? key(item[2]) : ''"
-                class="text-xs text-n-slate-11"
+                class="text-[11px] text-n-slate-11"
               >
                 {{ key(item[0]) }}
               </dt>
               <dd
                 v-tooltip="item[1] === '—' ? key('INSUFFICIENT') : ''"
-                class="mt-1 text-base font-medium tabular-nums"
+                class="mt-1 text-lg font-semibold tabular-nums text-n-slate-12"
               >
                 {{ item[1] }}
               </dd>
             </div>
           </dl>
-          <div
-            class="mt-4 flex flex-wrap items-center gap-4 border-t border-n-weak pt-3 text-xs text-n-slate-11"
-          >
-            <span>{{ key('OPERATION') }}</span
-            ><span>{{ key('TURNS') }}: {{ number(data.summary.turns) }}</span
-            ><span
-              >{{ key('HANDOFF_RATE') }}:
-              {{ percent(data.summary.handoff_rate) }}</span
-            ><span v-tooltip="key('INSUFFICIENT')"
-              >{{ key('RESPONSE_TIME') }}: —</span
-            >
+          <div class="mt-4 border-t border-n-weak pt-3">
+            <span class="text-xs font-medium text-n-slate-12">
+              {{ key('OPERATION') }}
+            </span>
+            <dl class="mt-3 grid grid-cols-3 gap-3 text-xs">
+              <div>
+                <dt class="text-[11px] text-n-slate-11">{{ key('TURNS') }}</dt>
+                <dd class="mt-1 font-semibold tabular-nums text-n-slate-12">
+                  {{ number(data.summary.turns) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-[11px] text-n-slate-11">
+                  {{ key('HANDOFF_RATE') }}
+                </dt>
+                <dd class="mt-1 font-semibold tabular-nums text-n-slate-12">
+                  {{ percent(data.summary.handoff_rate) }}
+                </dd>
+              </div>
+              <div>
+                <dt
+                  v-tooltip="key('INSUFFICIENT')"
+                  class="text-[11px] text-n-slate-11"
+                >
+                  {{ key('RESPONSE_TIME') }}
+                </dt>
+                <dd class="mt-1 font-semibold tabular-nums text-n-slate-12">
+                  {{ number(null) }}
+                </dd>
+              </div>
+            </dl>
           </div>
         </section>
         <section
@@ -489,10 +574,10 @@ onMounted(load);
               v-if="data.timeseries.length"
               class="w-full text-xs tabular-nums"
             >
-              <thead class="sticky top-0 z-10 bg-n-solid-2 text-n-slate-11">
+              <thead class="sticky top-0 z-10 bg-n-alpha-2 text-n-slate-12">
                 <tr>
                   <th
-                    v-for="label in [
+                    v-for="(label, index) in [
                       'DATE',
                       'CONVERSATIONS',
                       'TURNS',
@@ -502,7 +587,8 @@ onMounted(load);
                         : 'TOKENS',
                     ]"
                     :key="label"
-                    class="px-3 py-2 text-start font-medium"
+                    class="px-3 py-2 font-medium"
+                    :class="index === 0 ? 'text-start' : 'text-end'"
                   >
                     {{ key(label) }}
                   </th>
@@ -512,15 +598,20 @@ onMounted(load);
                 <tr
                   v-for="item in detailRows"
                   :key="item.date"
-                  class="border-b border-n-weak"
+                  class="border-b border-n-weak transition-colors hover:bg-n-alpha-1"
+                  :class="hasActivity(item) ? 'bg-n-alpha-1' : ''"
                 >
                   <td class="whitespace-nowrap px-3 py-2">
                     {{ date(item.date) }}
                   </td>
-                  <td class="px-3">{{ number(item.conversations) }}</td>
-                  <td class="px-3">{{ number(item.turns) }}</td>
-                  <td class="px-3">{{ number(item.messages) }}</td>
-                  <td class="px-3">
+                  <td class="px-3 py-2 text-end">
+                    {{ number(item.conversations) }}
+                  </td>
+                  <td class="px-3 py-2 text-end">{{ number(item.turns) }}</td>
+                  <td class="px-3 py-2 text-end">
+                    {{ number(item.messages) }}
+                  </td>
+                  <td class="px-3 py-2 text-end">
                     {{
                       number(
                         data.billing.mode === 'platform'
