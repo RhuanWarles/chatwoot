@@ -23,6 +23,7 @@ const FloatingCallWidget = defineAsyncComponent(
 
 import CopilotLauncher from 'dashboard/components-next/copilot/CopilotLauncher.vue';
 import CopilotContainer from 'dashboard/components/copilot/CopilotContainer.vue';
+import AlertPopupStack from 'dashboard/components-next/alertPopup/AlertPopupStack.vue';
 
 import MobileSidebarLauncher from 'dashboard/components-next/sidebar/MobileSidebarLauncher.vue';
 import { useCallsStore } from 'dashboard/stores/calls';
@@ -37,6 +38,7 @@ export default {
     CopilotLauncher,
     CopilotContainer,
     FloatingCallWidget,
+    AlertPopupStack,
     MobileSidebarLauncher,
   },
   setup() {
@@ -161,6 +163,7 @@ export default {
         />
         <CopilotContainer />
         <FloatingCallWidget v-if="hasActiveCall || hasIncomingCall" />
+        <AlertPopupStack />
       </template>
       <CommandBar :is-paywalled="isAccountPaywalled" />
       <AddAccountModal

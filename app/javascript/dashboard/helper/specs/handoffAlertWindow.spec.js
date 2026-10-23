@@ -64,6 +64,7 @@ describe('handoff event → conversation store → audible alert', () => {
       playAlertOnlyWhenHidden: true,
       alertIfUnreadConversationExist: false,
     };
+    alerts.recentHandoffs.clear();
     play = vi.fn().mockResolvedValue();
     alerts.audioConfig.audio = { play };
     vi.spyOn(WindowVisibilityHelper, 'isWindowVisible').mockReturnValue(false);
