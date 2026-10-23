@@ -7,7 +7,7 @@ export default {
     {
       path: frontendURL('accounts/:accountId/settings/ai-analytics'),
       component: SettingsWrapper,
-      props: { fullHeight: true },
+      props: { fullHeight: true, wide: true },
       meta: { permissions: ['administrator'] },
       children: [
         {

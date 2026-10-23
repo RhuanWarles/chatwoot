@@ -6,6 +6,7 @@ import { LineChart } from '@chatwoot/viz';
 import { useLocale } from 'shared/composables/useLocale';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 import aiAnalyticsAPI from 'dashboard/api/aiAnalytics';
 
 const { t } = useI18n();
@@ -19,6 +20,8 @@ const data = ref(null);
 const filters = ref({ period: '7d', ai_agent_id: '', inbox_id: '' });
 const start = ref('');
 const end = ref('');
+const detailPage = ref(1);
+const DETAILS_PER_PAGE = 20;
 const key = name => t(`AI_ANALYTICS.${name}`);
 const number = value =>
   value == null
@@ -53,29 +56,35 @@ const inboxOptions = computed(() => [
     label: item.name,
   })),
 ]);
-const cards = computed(() => [
-  {
-    label: 'CONVERSATIONS',
-    value: data.value?.summary.conversations,
-    icon: 'i-lucide-messages-square',
-  },
-  {
-    label: 'TURNS',
-    value: data.value?.summary.turns,
-    icon: 'i-lucide-sparkles',
-    help: 'TURNS_HELP',
-  },
-  {
-    label: 'MESSAGES',
-    value: data.value?.summary.messages,
-    icon: 'i-lucide-send',
-  },
-  {
-    label: 'HANDOFFS',
-    value: data.value?.summary.handoffs,
-    icon: 'i-lucide-user-round-check',
-  },
-]);
+const cards = computed(() => {
+  const billing = data.value?.billing;
+  const consumption =
+    billing?.mode === 'platform'
+      ? { label: 'CREDITS_USED', value: billing.credits_consumed }
+      : { label: 'TOKENS', value: billing?.total_tokens };
+
+  return [
+    {
+      label: 'CONVERSATIONS',
+      value: data.value?.summary.conversations,
+      icon: 'i-lucide-messages-square',
+    },
+    {
+      label: 'MESSAGES',
+      value: data.value?.summary.messages,
+      icon: 'i-lucide-send',
+    },
+    {
+      label: 'HANDOFFS',
+      value: data.value?.summary.handoffs,
+      icon: 'i-lucide-user-round-check',
+    },
+    {
+      ...consumption,
+      icon: 'i-lucide-coins',
+    },
+  ];
+});
 const chartData = computed(() => ({
   categories: (data.value?.timeseries || []).map(item => date(item.date)),
   series: [
@@ -92,9 +101,25 @@ const chartData = computed(() => ({
     pointBorderColor: 'rgb(var(--solid-2))',
   })),
 }));
-const showChartValues = computed(
-  () => (data.value?.timeseries?.length || 0) <= 14
-);
+const latestPoint = computed(() => {
+  const points = data.value?.timeseries || [];
+  const point = points[points.length - 1];
+  return point
+    ? {
+        date: date(point.date),
+        conversations: number(point.conversations),
+        turns: number(point.turns),
+        messages: number(point.messages),
+      }
+    : null;
+});
+const detailRows = computed(() => {
+  const offset = (detailPage.value - 1) * DETAILS_PER_PAGE;
+  return (data.value?.timeseries || []).slice(
+    offset,
+    offset + DETAILS_PER_PAGE
+  );
+});
 const consumption = computed(() => {
   const billing = data.value?.billing;
   if (!billing) return [];
@@ -150,6 +175,7 @@ const load = async () => {
     return;
   requestId += 1;
   const currentRequest = requestId;
+  detailPage.value = 1;
   loading.value = true;
   error.value = '';
   try {
@@ -171,44 +197,48 @@ onMounted(load);
 
 <template>
   <main
-    class="flex h-full min-h-0 w-full min-w-0 flex-col gap-5 overflow-y-auto overscroll-contain pb-6 text-n-slate-12"
+    class="mx-auto flex h-full min-h-0 w-full max-w-[120rem] min-w-0 flex-col gap-5 overflow-y-auto overscroll-contain px-4 pb-6 text-n-slate-12 sm:px-6 2xl:px-8"
   >
-    <header class="shrink-0">
-      <h1 class="text-xl font-semibold tracking-tight">{{ key('TITLE') }}</h1>
-      <p class="mt-1 text-sm text-n-slate-11">{{ key('SUBTITLE') }}</p>
-    </header>
-    <section
-      class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-3"
-      :aria-label="key('PERIOD')"
+    <div
+      class="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between"
     >
-      <label class="min-w-0 text-xs font-medium text-n-slate-11"
-        >{{ key('PERIOD')
-        }}<Select
-          v-model="filters.period"
-          :options="periodOptions"
-          :aria-label="key('PERIOD')"
-          class="mt-1 !w-full [&_select]:w-full"
-          @update:model-value="load"
-      /></label>
-      <label class="min-w-0 text-xs font-medium text-n-slate-11"
-        >{{ key('AGENT')
-        }}<Select
-          v-model="filters.ai_agent_id"
-          :options="agentOptions"
-          :aria-label="key('AGENT')"
-          class="mt-1 !w-full [&_select]:w-full"
-          @update:model-value="load"
-      /></label>
-      <label class="min-w-0 text-xs font-medium text-n-slate-11"
-        >{{ key('INBOX')
-        }}<Select
-          v-model="filters.inbox_id"
-          :options="inboxOptions"
-          :aria-label="key('INBOX')"
-          class="mt-1 !w-full [&_select]:w-full"
-          @update:model-value="load"
-      /></label>
-    </section>
+      <header>
+        <h1 class="text-xl font-semibold tracking-tight">{{ key('TITLE') }}</h1>
+        <p class="mt-1 text-sm text-n-slate-11">{{ key('SUBTITLE') }}</p>
+      </header>
+      <section
+        class="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:w-[36rem]"
+        :aria-label="key('PERIOD')"
+      >
+        <label class="min-w-0 text-xs font-medium text-n-slate-11"
+          >{{ key('PERIOD')
+          }}<Select
+            v-model="filters.period"
+            :options="periodOptions"
+            :aria-label="key('PERIOD')"
+            class="mt-1 !w-full [&_select]:w-full"
+            @update:model-value="load"
+        /></label>
+        <label class="min-w-0 text-xs font-medium text-n-slate-11"
+          >{{ key('AGENT')
+          }}<Select
+            v-model="filters.ai_agent_id"
+            :options="agentOptions"
+            :aria-label="key('AGENT')"
+            class="mt-1 !w-full [&_select]:w-full"
+            @update:model-value="load"
+        /></label>
+        <label class="min-w-0 text-xs font-medium text-n-slate-11"
+          >{{ key('INBOX')
+          }}<Select
+            v-model="filters.inbox_id"
+            :options="inboxOptions"
+            :aria-label="key('INBOX')"
+            class="mt-1 !w-full [&_select]:w-full"
+            @update:model-value="load"
+        /></label>
+      </section>
+    </div>
     <div
       v-if="filters.period === 'custom'"
       class="grid shrink-0 grid-cols-1 items-end gap-3 sm:flex sm:flex-wrap"
@@ -256,11 +286,11 @@ onMounted(load);
       <div class="min-h-[24rem] rounded-xl bg-n-alpha-2" />
     </div>
     <template v-else-if="data && !error">
-      <section class="grid shrink-0 grid-cols-2 gap-3 sm:grid-cols-4">
+      <section class="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         <article
           v-for="card in cards"
           :key="card.label"
-          class="rounded-xl bg-n-alpha-2 p-3 sm:p-4"
+          class="rounded-xl border border-n-weak bg-n-solid-1 p-4"
         >
           <div
             class="flex items-center justify-between gap-2 text-xs text-n-slate-11"
@@ -270,21 +300,23 @@ onMounted(load);
             }}</span
             ><Icon :icon="card.icon" class="size-4 shrink-0" />
           </div>
-          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight">
+          <p
+            class="mt-3 text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl"
+          >
             {{ number(card.value) }}
           </p>
         </article>
       </section>
-      <div class="grid min-h-0 gap-4 lg:grid-cols-2">
+      <div class="grid min-h-0 gap-4 lg:grid-cols-3">
         <section
-          class="flex min-h-[22rem] min-w-0 flex-col rounded-xl bg-n-alpha-1 p-4 sm:min-h-[25rem] lg:col-span-2"
+          class="flex min-w-0 flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:col-span-3"
         >
           <h2 class="shrink-0 text-sm font-semibold">
             {{ key('TIMESERIES') }}
           </h2>
           <div
             ref="chartContainer"
-            class="mt-4 flex h-72 min-h-0 items-center justify-center overflow-visible sm:h-80"
+            class="mt-4 flex h-56 min-h-0 items-center justify-center overflow-visible sm:h-64"
           >
             <LineChart
               v-if="data.summary.messages || data.billing.credits_consumed"
@@ -292,7 +324,7 @@ onMounted(load);
               :height="Math.max(60, Math.floor(chartHeight))"
               :width="Math.max(280, Math.floor(chartWidth))"
               :point-radius="3"
-              :show-values="showChartValues"
+              :show-values="false"
               :format-value="number"
               :aria-label="key('TIMESERIES')"
               class="w-full min-w-0 [&_.cw-viz-line__x-tick]:hidden [&_.cw-viz-line__x-tick:nth-child(4n+1)]:block [&_.cw-viz-line__x-tick:last-child]:block [--cw-viz-line-label-color:rgb(var(--slate-11))] [--cw-viz-line-axis-color:rgb(var(--slate-4))] [--cw-viz-line-tooltip-background:rgb(var(--solid-2))] [--cw-viz-line-tooltip-color:rgb(var(--slate-12))]"
@@ -302,7 +334,30 @@ onMounted(load);
             </p>
           </div>
           <div
-            class="flex flex-wrap justify-center gap-4 text-xs text-n-slate-11"
+            v-if="latestPoint"
+            class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-n-weak pt-3 text-xs text-n-slate-11"
+          >
+            <span class="font-medium text-n-slate-12"
+              >{{ key('DATE') }}: {{ latestPoint.date }}</span
+            ><span
+              >{{ key('CONVERSATIONS') }}:
+              <strong class="font-medium text-n-slate-12">{{
+                latestPoint.conversations
+              }}</strong></span
+            ><span
+              >{{ key('TURNS') }}:
+              <strong class="font-medium text-n-slate-12">{{
+                latestPoint.turns
+              }}</strong></span
+            ><span
+              >{{ key('MESSAGES') }}:
+              <strong class="font-medium text-n-slate-12">{{
+                latestPoint.messages
+              }}</strong></span
+            >
+          </div>
+          <div
+            class="mt-3 flex flex-wrap justify-center gap-4 text-xs text-n-slate-11"
           >
             <span class="flex items-center gap-1"
               ><span class="size-2 rounded-full bg-n-blue-9" />{{
@@ -320,7 +375,7 @@ onMounted(load);
           </div>
         </section>
         <section
-          class="flex min-h-[18rem] min-w-0 flex-col rounded-xl bg-n-alpha-1 p-4"
+          class="flex min-w-0 flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4"
         >
           <h2 class="text-sm font-semibold">{{ key('TOOLS') }}</h2>
           <p class="mt-2 text-xs text-n-slate-11">
@@ -329,7 +384,7 @@ onMounted(load);
             {{ key('FAILURES') }}: {{ number(data.tools.failures) }} ·
             {{ percent(data.tools.success_rate) }}
           </p>
-          <div class="mt-4 min-h-0 overflow-x-auto">
+          <div class="mt-4 overflow-x-auto">
             <table
               v-if="data.tools.top.length"
               class="w-full text-xs tabular-nums"
@@ -370,7 +425,7 @@ onMounted(load);
             </p>
           </div>
         </section>
-        <section class="min-h-[14rem] rounded-xl bg-n-alpha-1 p-4">
+        <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4">
           <h2 class="text-sm font-semibold">{{ key('KNOWLEDGE') }}</h2>
           <dl
             v-if="data.knowledge.queries"
@@ -392,7 +447,7 @@ onMounted(load);
             {{ key('EMPTY_KNOWLEDGE') }}
           </p>
         </section>
-        <section class="min-h-[14rem] rounded-xl bg-n-alpha-1 p-4">
+        <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4">
           <h2 class="text-sm font-semibold">{{ key('CONSUMPTION') }}</h2>
           <dl class="mt-3 grid grid-cols-3 gap-3">
             <div v-for="item in consumption" :key="item[0]">
@@ -414,6 +469,7 @@ onMounted(load);
             class="mt-4 flex flex-wrap items-center gap-4 border-t border-n-weak pt-3 text-xs text-n-slate-11"
           >
             <span>{{ key('OPERATION') }}</span
+            ><span>{{ key('TURNS') }}: {{ number(data.summary.turns) }}</span
             ><span
               >{{ key('HANDOFF_RATE') }}:
               {{ percent(data.summary.handoff_rate) }}</span
@@ -423,12 +479,12 @@ onMounted(load);
           </div>
         </section>
         <section
-          class="flex min-h-[20rem] min-w-0 flex-col overflow-hidden rounded-xl bg-n-alpha-1"
+          class="min-w-0 rounded-xl border border-n-weak bg-n-solid-1 lg:col-span-3"
         >
-          <h2 class="shrink-0 px-4 py-3 text-sm font-semibold">
+          <h2 class="px-4 py-4 text-sm font-semibold">
             {{ key('DETAILS') }}
           </h2>
-          <div class="min-h-0 overflow-x-auto">
+          <div class="overflow-x-auto">
             <table
               v-if="data.timeseries.length"
               class="w-full text-xs tabular-nums"
@@ -454,7 +510,7 @@ onMounted(load);
               </thead>
               <tbody>
                 <tr
-                  v-for="item in data.timeseries"
+                  v-for="item in detailRows"
                   :key="item.date"
                   class="border-b border-n-weak"
                 >
@@ -478,6 +534,14 @@ onMounted(load);
             </table>
             <p v-else class="p-4 text-xs text-n-slate-11">{{ key('EMPTY') }}</p>
           </div>
+          <PaginationFooter
+            v-if="data.timeseries.length > DETAILS_PER_PAGE"
+            :current-page="detailPage"
+            :total-items="data.timeseries.length"
+            :items-per-page="DETAILS_PER_PAGE"
+            class="rounded-b-xl"
+            @update:current-page="detailPage = $event"
+          />
         </section>
       </div>
     </template>

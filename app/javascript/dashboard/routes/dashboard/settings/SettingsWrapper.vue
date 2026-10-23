@@ -11,6 +11,10 @@ defineProps({
     type: Boolean,
     default: true,
   },
+  wide: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const route = useRoute();
@@ -28,8 +32,11 @@ const routeKey = computed(() =>
     :class="fullHeight ? 'min-h-0 overflow-hidden pb-4' : 'overflow-auto pb-8'"
   >
     <div
-      class="flex items-start w-full max-w-5xl mx-auto"
-      :class="{ 'flex-1 min-h-0 overflow-hidden': fullHeight }"
+      class="flex items-start w-full mx-auto"
+      :class="[
+        wide ? 'max-w-[120rem]' : 'max-w-5xl',
+        { 'flex-1 min-h-0 overflow-hidden': fullHeight },
+      ]"
     >
       <router-view v-slot="{ Component }">
         <keep-alive v-if="keepAlive">
