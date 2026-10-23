@@ -30,6 +30,15 @@ describe('message edit eligibility', () => {
     expect(canEditMessage(eligibleMessage)).toBe(true);
   });
 
+  it('allows editing when the WhatsApp key exists without source_id', () => {
+    expect(
+      canEditMessage({
+        ...eligibleMessage,
+        sourceId: '',
+      })
+    ).toBe(true);
+  });
+
   it('rejects inbound, private, deleted and failed messages', () => {
     expect(
       canEditMessage({
