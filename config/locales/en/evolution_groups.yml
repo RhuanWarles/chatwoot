@@ -30,3 +30,5 @@ en:
       request_conflict: "This request was already used for another group. Close the form and start again."
       already_member: "This participant is already in the group."
       participant_rejected: "WhatsApp did not confirm the addition. Check the number, privacy settings and group permissions."
+      message_not_editable: "This message cannot be edited through Evolution WhatsApp."
+      edit_window_expired: "This message is outside WhatsApp's editing window."

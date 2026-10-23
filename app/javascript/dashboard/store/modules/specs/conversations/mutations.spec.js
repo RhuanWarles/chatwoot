@@ -208,6 +208,34 @@ describe('#mutations', () => {
       ]);
       expect(emitter.emit).not.toHaveBeenCalled();
     });
+
+    it('replaces the existing message when a realtime update has the same id', () => {
+      const state = {
+        allConversations: [
+          {
+            id: 1,
+            messages: [{ id: 42, conversation_id: 1, content: 'Original' }],
+          },
+        ],
+        selectedChatId: 1,
+      };
+
+      mutations[types.ADD_MESSAGE](state, {
+        id: 42,
+        conversation_id: 1,
+        content: 'Edited',
+        content_attributes: { whatsapp_message_edited: true },
+      });
+
+      expect(state.allConversations[0].messages).toEqual([
+        {
+          id: 42,
+          conversation_id: 1,
+          content: 'Edited',
+          content_attributes: { whatsapp_message_edited: true },
+        },
+      ]);
+    });
   });
 
   describe('#CHANGE_CONVERSATION_STATUS', () => {

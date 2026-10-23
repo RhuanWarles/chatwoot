@@ -424,6 +424,61 @@ RSpec.describe 'Conversation Messages API', type: :request do
       context 'when agent has API inbox' do
         before { create(:inbox_member, inbox: api_inbox, user: agent) }
 
+        it 'edits an eligible Evolution message without creating another message' do
+          message.update!(
+            message_type: :outgoing,
+            content: 'Original message',
+            source_id: 'WAID:message-id',
+            content_attributes: {
+              'whatsapp_message_key' => {
+                'id' => 'message-id',
+                'remoteJid' => '5511999999999@s.whatsapp.net',
+                'fromMe' => true
+              }
+            }
+          )
+          service = instance_double(Messages::EvolutionEditService, perform: true)
+          allow(Messages::EvolutionEditService).to receive(:new).and_return(service)
+
+          expect do
+            patch api_v1_account_conversation_message_url(
+              account_id: account.id,
+              conversation_id: conversation.display_id,
+              id: message.id
+            ), params: { content: 'Edited message' }, headers: agent.create_new_auth_token, as: :json
+          end.not_to change(Message, :count)
+
+          expect(response).to have_http_status(:success)
+          expect(message.reload.content).to eq('Edited message')
+          expect(message.content_attributes['whatsapp_message_edited']).to be(true)
+          expect(service).to have_received(:perform)
+        end
+
+        it 'keeps the original content when Evolution rejects the edit' do
+          message.update!(
+            message_type: :outgoing,
+            content: 'Original message',
+            source_id: 'WAID:message-id',
+            content_attributes: {
+              'whatsapp_message_key' => {
+                'id' => 'message-id',
+                'remoteJid' => '5511999999999@s.whatsapp.net',
+                'fromMe' => true
+              }
+            }
+          )
+          allow(Messages::EvolutionEditService).to receive(:new).and_raise(CustomExceptions::Evolution, :message_not_editable)
+
+          patch api_v1_account_conversation_message_url(
+            account_id: account.id,
+            conversation_id: conversation.display_id,
+            id: message.id
+          ), params: { content: 'Edited message' }, headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(message.reload.content).to eq('Original message')
+        end
+
         it 'uses StatusUpdateService to perform status update' do
           service = instance_double(Messages::StatusUpdateService)
           expect(Messages::StatusUpdateService).to receive(:new)

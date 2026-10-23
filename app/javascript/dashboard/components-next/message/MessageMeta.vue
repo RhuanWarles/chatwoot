@@ -40,6 +40,11 @@ const readableTime = computed(() =>
 );
 
 const exactTime = computed(() => exactTimestamp(createdAt.value));
+const isEdited = computed(
+  () =>
+    contentAttributes.value?.whatsapp_message_edited ||
+    contentAttributes.value?.whatsappMessageEdited
+);
 
 const showStatusIndicator = computed(() => {
   if (isPrivate.value) return false;
@@ -148,6 +153,7 @@ const statusToShow = computed(() => {
       >
         {{ readableTime }}
       </time>
+      <span v-if="isEdited">{{ $t('CONVERSATION.MESSAGE_EDITED') }}</span>
     </div>
     <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
     <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />

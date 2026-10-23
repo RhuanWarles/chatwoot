@@ -499,6 +499,19 @@ const actions = {
     }
   },
 
+  editMessage: async function editMessage(
+    { commit },
+    { conversationId, messageId, content }
+  ) {
+    const { data } = await MessageApi.updateContent(
+      conversationId,
+      messageId,
+      content
+    );
+    commit(types.ADD_MESSAGE, data);
+    return data;
+  },
+
   deleteConversation: async ({ commit, dispatch }, conversationId) => {
     try {
       await ConversationApi.delete(conversationId);

@@ -55,4 +55,13 @@ describe('MessageContextMenu', () => {
     expect(menuItem(wrapper, 'Forward email')).toBeUndefined();
     expect(menuItem(wrapper, 'Copy')).toBeDefined();
   });
+
+  it('offers edit and emits it on click', async () => {
+    const wrapper = mountMenu({ edit: true });
+
+    await menuItem(wrapper, 'Edit').trigger('click');
+
+    expect(wrapper.emitted('edit')).toHaveLength(1);
+    expect(wrapper.emitted('close')).toHaveLength(1);
+  });
 });

@@ -47,7 +47,7 @@ export default {
       default: false,
     },
   },
-  emits: ['open', 'close', 'replyTo', 'forwardEmail', 'react'],
+  emits: ['open', 'close', 'replyTo', 'forwardEmail', 'react', 'edit'],
   setup() {
     const { getPlainText } = useMessageFormatter();
 
@@ -138,6 +138,10 @@ export default {
     },
     handleReplyTo() {
       this.$emit('replyTo', this.message);
+      this.handleClose();
+    },
+    handleEdit() {
+      this.$emit('edit', this.message);
       this.handleClose();
     },
     handleForwardEmail() {
@@ -238,6 +242,15 @@ export default {
           }"
           variant="icon"
           @click.stop="handleCopy"
+        />
+        <MenuItem
+          v-if="enabledOptions['edit']"
+          :option="{
+            icon: 'edit',
+            label: $t('CONVERSATION.CONTEXT_MENU.EDIT'),
+          }"
+          variant="icon"
+          @click.stop="handleEdit"
         />
         <MenuItem
           v-if="enabledOptions['translate']"

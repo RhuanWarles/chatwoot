@@ -1,5 +1,6 @@
 class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::Conversations::BaseController
   before_action :ensure_api_inbox, only: :update
+  rescue_from CustomExceptions::Evolution, with: :render_evolution_error
 
   def index
     @messages = message_finder.perform
@@ -14,7 +15,12 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   def update
-    Messages::StatusUpdateService.new(message, permitted_params[:status], permitted_params[:external_error]).perform
+    if permitted_params[:content].present?
+      update_content
+    else
+      Messages::StatusUpdateService.new(message, permitted_params[:status], permitted_params[:external_error]).perform
+      update_content_attributes if permitted_params[:content_attributes].present?
+    end
     @message = message
   end
 
@@ -85,7 +91,32 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   def permitted_params
-    params.permit(:id, :target_language, :status, :external_error)
+    params.permit(:id, :target_language, :status, :external_error, :content, content_attributes: {})
+  end
+
+  def update_content
+    attributes = permitted_params[:content_attributes].to_h.stringify_keys
+    provider_update = Current.user.blank? && attributes['whatsapp_message_edit_source'].present?
+
+    Messages::EvolutionEditService.new(message: message, content: permitted_params[:content]).perform unless provider_update
+
+    message.update!(
+      content: permitted_params[:content],
+      content_attributes: message.content_attributes.merge(
+        attributes.merge(
+          'whatsapp_message_edited' => true,
+          'whatsapp_message_edited_at' => Time.current.iso8601
+        )
+      )
+    )
+  end
+
+  def update_content_attributes
+    message.update!(content_attributes: message.content_attributes.merge(permitted_params[:content_attributes].to_h.stringify_keys))
+  end
+
+  def render_evolution_error(error)
+    render json: { error: error.message, error_code: error.code }, status: error.http_status
   end
 
   def already_translated_content_available?

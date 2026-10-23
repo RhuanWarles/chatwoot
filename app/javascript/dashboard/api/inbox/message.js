@@ -128,6 +128,12 @@ class MessageApi extends ApiClient {
       }
     );
   }
+
+  updateContent(conversationId, messageId, content) {
+    return axios.patch(`${this.url}/${conversationId}/messages/${messageId}`, {
+      content,
+    });
+  }
 }
 
 export default new MessageApi();

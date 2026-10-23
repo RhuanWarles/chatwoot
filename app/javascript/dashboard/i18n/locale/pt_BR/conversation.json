@@ -414,6 +414,9 @@
     },
     "CONTEXT_MENU": {
       "COPY": "Copiar",
+      "EDIT": "Editar",
+      "CANCEL": "Cancelar",
+      "SAVE": "Salvar",
       "REPLY_TO": "Responder mensagem",
       "DELETE": "Excluir",
       "CREATE_A_CANNED_RESPONSE": "Adicionar às respostas prontas",
@@ -446,6 +449,8 @@
         }
       }
     },
+    "MESSAGE_EDITED": "Editada",
+    "MESSAGE_EDIT_ERROR": "Não foi possível editar esta mensagem. Tente novamente.",
     "SIDEBAR": {
       "CONTACT": "Contatos",
       "COPILOT": "Copiloto"

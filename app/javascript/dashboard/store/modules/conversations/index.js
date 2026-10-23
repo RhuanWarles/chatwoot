@@ -256,6 +256,19 @@ export const mutations = {
     });
     if (!chat) return;
 
+    if (message.id != null) {
+      const existingMessageIndex = chat.messages.findIndex(
+        existingMessage => existingMessage.id === message.id
+      );
+      if (existingMessageIndex !== -1) {
+        chat.messages[existingMessageIndex] = {
+          ...chat.messages[existingMessageIndex],
+          ...message,
+        };
+        return;
+      }
+    }
+
     const pendingMessageIndex = findPendingMessageIndex(chat, message);
     if (pendingMessageIndex !== -1) {
       const confirmedMessage = chat.messages.find(m => m.id === message.id);

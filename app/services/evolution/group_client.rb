@@ -18,6 +18,10 @@ class Evolution::GroupClient
     request(:delete, operation, { query: query })
   end
 
+  def update_message(number:, key:, text:)
+    post('chat/updateMessage', { number: number, key: key, text: text })
+  end
+
   def instance
     records = request(:get, 'instance/fetchInstances', { query: { instanceName: @configuration.instance_name } }, scoped: false)
     records.find { |record| record['name'] == @configuration.instance_name } || raise(CustomExceptions::Evolution, :not_found)

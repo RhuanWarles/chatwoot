@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, computed, ref, toRefs } from 'vue';
+import { nextTick, onMounted, computed, ref, toRefs } from 'vue';
+import { useStore } from 'vuex';
 import { useTimeoutFn } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
-import { useTrack } from 'dashboard/composables';
+import { useAlert, useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
@@ -51,6 +52,8 @@ import ForwardedEmailBanner from './forward/ForwardedEmailBanner.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
 import { canReactToMessage } from './messageReactionEligibility';
+import { canEditMessage } from './messageEditEligibility';
+import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 
 /**
  * @typedef {Object} Attachment
@@ -146,6 +149,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['retry']);
+const store = useStore();
 
 const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
@@ -162,6 +166,22 @@ const canReact = computed(() =>
     messageType: props.messageType,
   })
 );
+const canEdit = computed(() =>
+  canEditMessage({
+    inbox: inbox.value,
+    messageType: props.messageType,
+    contentType: props.contentType,
+    content: props.content,
+    contentAttributes: props.contentAttributes,
+    privateMessage: props.private,
+    sourceId: props.sourceId,
+    status: props.status,
+  })
+);
+const isEditing = ref(false);
+const editContent = ref('');
+const isSavingEdit = ref(false);
+const editTextarea = ref(null);
 const showForwardEmail = ref(false);
 const forwardEmailPosition = ref({});
 const { t } = useI18n();
@@ -418,6 +438,7 @@ const contextMenuEnabledOptions = computed(() => {
 
   return {
     copy: hasText,
+    edit: canEdit.value,
     react: canReact.value,
     delete:
       (hasText || hasAttachments) &&
@@ -441,6 +462,59 @@ const contextMenuEnabledOptions = computed(() => {
       !isMessageDeleted.value,
   };
 });
+
+async function startEditing() {
+  if (!canEdit.value) return;
+
+  editContent.value = props.content;
+  isEditing.value = true;
+  await nextTick();
+  editTextarea.value?.focus();
+  editTextarea.value?.select();
+}
+
+function cancelEditing() {
+  isEditing.value = false;
+  editContent.value = '';
+}
+
+async function saveEdit() {
+  const content = editContent.value;
+  if (
+    !content.trim() ||
+    content.trim() === props.content?.trim() ||
+    isSavingEdit.value
+  )
+    return;
+
+  isSavingEdit.value = true;
+  try {
+    await store.dispatch('editMessage', {
+      conversationId: props.conversationId,
+      messageId: props.id,
+      content,
+    });
+    cancelEditing();
+  } catch (error) {
+    useAlert(
+      parseAPIErrorResponse(error) || t('CONVERSATION.MESSAGE_EDIT_ERROR')
+    );
+  } finally {
+    isSavingEdit.value = false;
+  }
+}
+
+function handleEditKeydown(event) {
+  if (event.key === 'Escape') {
+    cancelEditing();
+    return;
+  }
+
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    saveEdit();
+  }
+}
 
 const shouldRenderMessage = computed(() => {
   const hasAttachments = !!(props.attachments && props.attachments.length > 0);
@@ -634,7 +708,38 @@ provideMessageContext({
           :referral="contentAttributes.referral"
         />
         <ForwardedEmailBanner v-if="isForwardedEmail" />
-        <Component :is="componentToRender" />
+        <div
+          v-if="isEditing"
+          class="w-full max-w-xl rounded-lg border border-n-strong bg-n-alpha-1 p-2"
+        >
+          <textarea
+            ref="editTextarea"
+            v-model="editContent"
+            class="min-h-20 w-full resize-y bg-transparent p-2 text-sm text-n-slate-12 outline-none"
+            :aria-label="$t('CONVERSATION.CONTEXT_MENU.EDIT')"
+            :disabled="isSavingEdit"
+            @keydown="handleEditKeydown"
+          />
+          <div class="flex justify-end gap-2 px-2 pb-1">
+            <button
+              type="button"
+              class="text-xs text-n-slate-11 hover:text-n-slate-12"
+              :disabled="isSavingEdit"
+              @click="cancelEditing"
+            >
+              {{ $t('CONVERSATION.CONTEXT_MENU.CANCEL') }}
+            </button>
+            <button
+              type="button"
+              class="rounded-md bg-n-brand px-3 py-1 text-xs text-white hover:bg-n-brand-strong disabled:opacity-50"
+              :disabled="isSavingEdit || !editContent.trim()"
+              @click="saveEdit"
+            >
+              {{ $t('CONVERSATION.CONTEXT_MENU.SAVE') }}
+            </button>
+          </div>
+        </div>
+        <Component :is="componentToRender" v-else />
         <MessageReactions
           v-if="canReact"
           ref="messageReactions"
@@ -665,6 +770,7 @@ provideMessageContext({
         @reply-to="handleReplyTo"
         @react="messageReactions?.openPicker()"
         @forward-email="openForwardEmail"
+        @edit="startEditing"
       />
       <ForwardEmailPanel
         v-if="showForwardEmail"

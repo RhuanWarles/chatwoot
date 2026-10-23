@@ -446,6 +446,9 @@
     },
     "CONTEXT_MENU": {
       "COPY": "Copy",
+      "EDIT": "Edit",
+      "CANCEL": "Cancel",
+      "SAVE": "Save",
       "REPLY_TO": "Reply to this message",
       "FORWARD_EMAIL": "Forward email",
       "DELETE": "Delete",
@@ -479,6 +482,8 @@
         }
       }
     },
+    "MESSAGE_EDITED": "Edited",
+    "MESSAGE_EDIT_ERROR": "Unable to edit this message. Please try again.",
     "SIDEBAR": {
       "CONTACT": "Contact",
       "COPILOT": "Copilot"
