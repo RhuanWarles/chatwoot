@@ -102,17 +102,56 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
     message.update!(
       content: permitted_params[:content],
-      content_attributes: message.content_attributes.merge(
+      content_attributes: merged_content_attributes(
         attributes.merge(
           'whatsapp_message_edited' => true,
           'whatsapp_message_edited_at' => Time.current.iso8601
         )
-      )
+      ),
+      source_id: whatsapp_source_id(attributes) || message.source_id
     )
   end
 
   def update_content_attributes
-    message.update!(content_attributes: message.content_attributes.merge(permitted_params[:content_attributes].to_h.stringify_keys))
+    attributes = permitted_params[:content_attributes].to_h.stringify_keys
+    message.update!(
+      content_attributes: merged_content_attributes(attributes),
+      source_id: whatsapp_source_id(attributes) || message.source_id
+    )
+  end
+
+  def merged_content_attributes(attributes)
+    current_attributes = message.content_attributes.to_h.stringify_keys
+    current_key = current_attributes['whatsapp_message_key']
+    incoming_key = attributes['whatsapp_message_key']
+
+    merged_attributes = current_attributes.merge(attributes)
+    if current_key.is_a?(Hash) && incoming_key.is_a?(Hash)
+      merged_attributes['whatsapp_message_key'] = if current_key['id'].present? && current_key['id'] != incoming_key['id']
+                                                    current_key
+                                                  else
+                                                    current_key.merge(incoming_key)
+                                                  end
+    end
+
+    merged_attributes
+  end
+
+  def whatsapp_source_id(attributes)
+    key = attributes['whatsapp_message_key']
+    return unless key.is_a?(Hash) && key['id'].present?
+
+    current_key = message.content_attributes.to_h.stringify_keys['whatsapp_message_key']
+    return if conflicting_whatsapp_key?(current_key, key)
+
+    source_id = "WAID:#{key['id']}"
+    return if message.source_id.present? && message.source_id != source_id
+
+    source_id
+  end
+
+  def conflicting_whatsapp_key?(current_key, incoming_key)
+    current_key.is_a?(Hash) && current_key['id'].present? && current_key['id'] != incoming_key['id']
   end
 
   def render_evolution_error(error)

@@ -424,6 +424,78 @@ RSpec.describe 'Conversation Messages API', type: :request do
       context 'when agent has API inbox' do
         before { create(:inbox_member, inbox: api_inbox, user: agent) }
 
+        it 'persists the Evolution message key and source ID from a provider update' do
+          key = {
+            'id' => '3EB0AFB1ED6FC0DE59F5FD',
+            'remoteJid' => '281449391493336@lid',
+            'remoteJidAlt' => '556294665004@s.whatsapp.net',
+            'fromMe' => true
+          }
+
+          patch api_v1_account_conversation_message_url(
+            account_id: account.id,
+            conversation_id: conversation.display_id,
+            id: message.id
+          ), params: {
+            status: 'sent',
+            content_attributes: { whatsapp_message_key: key }
+          }, headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(message.reload.source_id).to eq('WAID:3EB0AFB1ED6FC0DE59F5FD')
+          expect(message.content_attributes['whatsapp_message_key']).to eq(key)
+        end
+
+        it 'does not overwrite an existing provider source ID during a duplicate event' do
+          message.update!(
+            source_id: 'WAID:original-id',
+            content_attributes: { 'whatsapp_message_key' => { 'id' => 'original-id', 'fromMe' => true } }
+          )
+
+          patch api_v1_account_conversation_message_url(
+            account_id: account.id,
+            conversation_id: conversation.display_id,
+            id: message.id
+          ), params: {
+            status: 'sent',
+            content_attributes: {
+              whatsapp_message_key: {
+                'id' => 'original-id',
+                'remoteJid' => '281449391493336@lid',
+                'remoteJidAlt' => '556294665004@s.whatsapp.net',
+                'fromMe' => true
+              }
+            }
+          }, headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(message.reload.source_id).to eq('WAID:original-id')
+          expect(message.content_attributes['whatsapp_message_key']).to include(
+            'id' => 'original-id',
+            'remoteJidAlt' => '556294665004@s.whatsapp.net'
+          )
+        end
+
+        it 'ignores a provider event with a conflicting message ID' do
+          message.update!(
+            source_id: 'WAID:original-id',
+            content_attributes: { 'whatsapp_message_key' => { 'id' => 'original-id', 'fromMe' => true } }
+          )
+
+          patch api_v1_account_conversation_message_url(
+            account_id: account.id,
+            conversation_id: conversation.display_id,
+            id: message.id
+          ), params: {
+            status: 'sent',
+            content_attributes: { whatsapp_message_key: { 'id' => 'different-id', 'fromMe' => true } }
+          }, headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(message.reload.source_id).to eq('WAID:original-id')
+          expect(message.content_attributes['whatsapp_message_key']['id']).to eq('original-id')
+        end
+
         it 'edits an eligible Evolution message without creating another message' do
           message.update!(
             message_type: :outgoing,
