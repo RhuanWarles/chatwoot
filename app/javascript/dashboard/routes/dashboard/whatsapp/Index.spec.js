@@ -158,7 +158,7 @@ describe('WhatsApp management screens', () => {
       global: { stubs: { Dialog: dialogStub } },
     });
     await flushPromises();
-    expect(wrapper.text()).toContain('5562999999999');
+    expect(wrapper.text()).toContain('+55 62 99999-9999');
     expect(
       wrapper.findComponent(SettingsToggleSection).props('modelValue')
     ).toBe(true);

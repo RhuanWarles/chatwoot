@@ -1,6 +1,7 @@
 {
   "WHATSAPP_CONNECTIONS": {
     "TITLE": "WhatsApp",
+    "DESCRIPTION": "Manage the WhatsApp connections linked to your account.",
     "NEW": "New connection",
     "CREATE": "Create connection",
     "NAME": "Connection name",
@@ -21,12 +22,29 @@
     "SCAN_QR": "Scan the QR code using WhatsApp",
     "QR_ALT": "WhatsApp connection QR code",
     "PROFILE_PICTURE": "WhatsApp profile picture",
+    "MORE": "More actions",
+    "CONFIGURATION": "Connection configuration",
+    "CONFIGURATION_HELP": "Update the connection name, inbox and message behavior.",
+    "CONNECTION_ACTIONS": "Connection actions",
+    "DANGER_ZONE": "Danger zone",
+    "DELETE_HELP": "Deleting removes this connection and its provider instance. The inbox and conversations are preserved.",
+    "TECHNICAL_DETAILS": "Technical details",
+    "TECHNICAL_STATUS": "Technical status",
+    "TECHNICAL_INSTANCE": "instance_name",
+    "TECHNICAL_ID": "ID",
+    "TECHNICAL_PROVIDER": "provider",
+    "NOT_AVAILABLE": "Not available",
+    "CONNECTING_TITLE": "Connect WhatsApp",
     "WAITING": "Waiting for connection…",
     "QR_EXPIRED": "QR code expired",
     "REGENERATE_QR": "Generate a new QR code",
     "EMPTY_TITLE": "Your WhatsApp connections",
     "EMPTY_DESCRIPTION": "Connect a WhatsApp number and link it to an existing API inbox.",
     "REQUEST_ERROR": "Could not complete this operation. Refresh the connection before trying again.",
+    "ERROR_EVOLUTION_UNAVAILABLE": "Evolution is unavailable. Check the provider connection and try again.",
+    "ERROR_PROVIDER": "Evolution could not process this request. Try refreshing the connection.",
+    "ERROR_VALIDATION": "Evolution rejected the configuration. Check the fields and try again.",
+    "ERROR_CONNECTION": "The WhatsApp connection could not be completed. Try connecting again.",
     "REPLACE_LEGACY": "Saving will replace the selected inbox's current manual connection and webhook. Its conversations will not be deleted.",
     "LEGACY_CONNECTION": "Existing manual connection (preserved)",
     "SELECT_CONNECTION": "Select a connection",
@@ -321,156 +339,156 @@
     "LOAD_ERROR": "Could not load tools.",
     "SAVE_ERROR": "Could not save the tool. Check its configuration.",
     "TEST_ERROR": "The tool test failed.",
-    "DELETE_ERROR": "Could not delete the tool."
-    ,"BASIC_INFO": "Basic information"
-    ,"BASIC_INFO_HELP": "Give the tool a clear identity so assistants can use it correctly."
-    ,"REQUEST": "Request"
-    ,"REQUEST_HELP": "Choose how the tool reaches your HTTP endpoint."
-    ,"RESPONSE_CONTRACT": "Expected response format"
-    ,"RESPONSE_CONTRACT_DESCRIPTION": "For the tool to be considered successfully completed, the endpoint must return HTTP 2xx and JSON in this format:"
-    ,"RESPONSE_CONTRACT_NOTE": "If success is not true, result is missing or empty, or the response is not valid JSON, the execution is considered a failure."
-    ,"HTTP_CHECK": "HTTP"
-    ,"JSON_CHECK": "Valid JSON"
-    ,"SUCCESS_CHECK": "success"
-    ,"RESULT_CHECK": "result"
-    ,"ASSISTANT_RESULT": "Result sent to assistant"
-    ,"VALID": "Valid"
-    ,"INVALID": "Invalid"
-    ,"MISSING": "Missing"
-    ,"INVALID_TOOL_RESPONSE": "Invalid tool response"
-    ,"PARAMETERS_SECTION": "Parameters"
-    ,"PARAMETERS_HELP": "Define the values the assistant can send using the supported simplified JSON format."
-    ,"HEADERS_SECTION": "Headers"
-    ,"HEADERS_HELP": "Add public headers and sensitive credentials separately."
-    ,"HEADER_NAME": "Header name"
-    ,"HEADER_VALUE": "Value"
-    ,"SENSITIVE_HEADER": "Sensitive"
-    ,"SENSITIVE_HEADER_HELP": "Sensitive values are encrypted and never returned after saving. Leave an existing masked value unchanged to keep it."
-    ,"NAME_PLACEHOLDER": "e.g. Send order link"
-    ,"NAME_HELP": "Name used to identify this tool to assistants."
-    ,"DESCRIPTION_PLACEHOLDER": "When should the assistant use this tool?"
-    ,"DESCRIPTION_HELP": "Explain what the tool does and when the assistant should call it."
-    ,"URL_PLACEHOLDER": "https://api.example.com/send-link"
-    ,"URL_HELP": "The HTTP endpoint called by this tool."
-    ,"TIMEOUT_HELP": "Maximum request time in seconds. Allowed between 1 and 30."
-    ,"ACTIVE_HELP": "Inactive tools cannot be called by assistants."
-    ,"PLAYGROUND_HELP": "Allows the Playground to make real requests with this tool."
-    ,"SECRETS_HELP": "Sensitive values such as Authorization are stored securely and are not shown after saving."
-    ,"NAME_REQUIRED": "Enter a name for the tool."
-    ,"METHOD_REQUIRED": "Choose an HTTP method."
-    ,"URL_REQUIRED": "Enter an endpoint URL."
-    ,"URL_INVALID": "Enter a valid HTTP or HTTPS URL."
-    ,"JSON_INVALID": "Check the JSON fields. Each filled field must contain valid JSON."
-    ,"PARAMETERS_INVALID": "Each parameter needs a valid name and type."
-    ,"HEADERS_INVALID": "Public headers must be a JSON object."
-    ,"TIMEOUT_INVALID": "Timeout must be a whole number between 1 and 30."
-    ,"PAGE_HELP": "Configure this tool using clear settings and test it before assigning it to an assistant."
-    ,"TOOL_SETTINGS": "Tool settings"
-    ,"TOOL_SETTINGS_HELP": "Configure the basic information for this tool."
-    ,"VISUAL": "Visual"
-    ,"JSON_MODE": "JSON"
-    ,"ADD_PARAMETER": "Add parameter"
-    ,"ADD_ENUM": "Add value"
-    ,"ADD_HEADER": "Add header"
-    ,"APPLY": "Apply"
-    ,"JSON_SCHEMA_HELP": "Edit the parameter schema directly as JSON."
-    ,"REQUEST_BODY": "Request body"
-    ,"BODY_JSON": "Body JSON"
-    ,"AUTOMATIC": "Automatic"
-    ,"CUSTOM": "Custom"
-    ,"BODY_MODE_HELP": "Write methods send tool arguments automatically. Use Custom to define a template body."
-    ,"AUTOMATIC_PREVIEW": "Automatic body preview"
-    ,"CUSTOM_BODY_HELP": "Use double-brace templates with the parameter names."
-    ,"CONTEXT_VARIABLES": "Available context variables"
-    ,"CONTEXT_VARIABLES_HELP": "Use these variables in a custom request body."
-    ,"QUERY_PARAMS": "Query parameters JSON"
-    ,"QUERY_HELP": "Add query values or templates supported by the tool."
-    ,"TEST_ARGUMENTS": "Test arguments JSON"
-    ,"TEST_CONVERSATION_ID": "Test conversation ID"
-    ,"TEST_CONVERSATION_HELP": "Required when the tool uses Contact or Conversation values."
-    ,"DESCRIPTION_REQUIRED": "Enter a description for the tool."
-    ,"VALUE_SOURCE": "Value source"
-    ,"REQUIRED": "Required"
-    ,"SOURCE_AI": "Provided by AI"
-    ,"SOURCE_CONTACT_PHONE": "Contact phone"
-    ,"SOURCE_CONTACT_PHONE_E164": "Contact phone (E.164)"
-    ,"SOURCE_CONTACT_NAME": "Contact name"
-    ,"SOURCE_CONTACT_EMAIL": "Contact email"
-    ,"SOURCE_CONTACT_ID": "Contact ID"
-    ,"SOURCE_CONVERSATION_ID": "Conversation ID"
-    ,"SOURCE_ACCOUNT_ID": "Account ID"
-    ,"SOURCE_AGENT_ID": "Agent ID"
-    ,"TOOLS_TAB": "Tools"
-    ,"LOGS_TAB": "Logs"
-    ,"LOGS_TITLE": "Tool execution logs"
-    ,"LOGS_SUBTITLE": "Review requests made by assistants and manual tests. Sensitive values are hidden."
-    ,"LOGS_AGENT": "Assistant"
-    ,"LOGS_TOOL": "Tool"
-    ,"LOGS_STATUS": "Status"
-    ,"LOGS_SOURCE": "Source"
-    ,"LOGS_PERIOD": "Period"
-    ,"LOGS_ALL": "All"
-    ,"LOGS_SUCCESS": "Success"
-    ,"LOGS_FAILED": "Failed"
-    ,"LOGS_CONVERSATION": "Conversation"
-    ,"LOGS_PLAYGROUND": "Playground"
-    ,"LOGS_TEST": "Manual test"
-    ,"LOGS_UNKNOWN": "Unknown"
-    ,"LOGS_TODAY": "Today"
-    ,"LOGS_LAST_7_DAYS": "Last 7 days"
-    ,"LOGS_LAST_30_DAYS": "Last 30 days"
-    ,"LOGS_DATE": "Date/time"
-    ,"LOGS_HTTP": "HTTP"
-    ,"LOGS_DURATION": "Duration"
-    ,"LOGS_EMPTY": "No executions found."
-    ,"LOGS_EMPTY_HELP": "Tool executions will appear here when an assistant uses a tool."
-    ,"LOGS_LOAD_ERROR": "Could not load tool logs."
-    ,"LOGS_DETAIL_ERROR": "Could not load execution details."
-    ,"LOGS_DETAIL": "Execution details"
-    ,"LOGS_EXECUTION_ID": "Execution ID"
-    ,"LOGS_ERROR_CODE": "Error code"
-    ,"CLOSE": "Close"
-    ,"NAVIGATION": "Tool management navigation"
-    ,"EDITOR_NAVIGATION": "Tool editor navigation"
-    ,"SEARCH": "Search tools"
-    ,"SEARCH_PLACEHOLDER": "Search by name, description, method or URL"
-    ,"STATUS_FILTER": "Status"
-    ,"ALL_STATUS": "All statuses"
-    ,"FILTER_ACTIVE": "Active"
-    ,"FILTER_INACTIVE": "Inactive"
-    ,"RESULT_COUNT": "{count} tool(s)"
-    ,"ASSISTANTS": "Assistants"
-    ,"ASSISTANTS_COUNT": "{count} assistant(s)"
-    ,"OPEN_LOGS": "View logs"
-    ,"MORE": "More actions"
-    ,"NO_URL": "No URL configured"
-    ,"NO_DESCRIPTION": "No description provided."
-    ,"EMPTY_HELP": "Create an HTTP tool to let assistants call an external service safely."
-    ,"EMPTY_FILTERED": "No tools match these filters."
-    ,"STATUS": "Status"
-    ,"UNSAVED": "Unsaved changes"
-    ,"TAB_GENERAL": "General"
-    ,"TAB_PARAMETERS": "Parameters"
-    ,"TAB_REQUEST": "Request"
-    ,"TAB_TEST": "Test"
-    ,"EDIT_PARAMETER": "Edit parameter"
-    ,"EDIT_PARAMETER_HELP": "Define the value and context the assistant can send."
-    ,"PARAMETER_NAME": "Parameter name"
-    ,"PARAMETER_TYPE": "Parameter type"
-    ,"PARAMETER_DESCRIPTION": "Parameter description"
-    ,"PARAMETER_REQUIRED": "Required parameter"
-    ,"PARAMETER_SENSITIVE": "Sensitive value"
-    ,"ENUM_VALUE": "Enum value"
-    ,"NO_PARAMETERS": "No parameters configured yet."
-    ,"NO_HEADERS": "No headers configured yet."
-    ,"TEST_HELP": "Run a real request with the current saved tool and inspect the response."
-    ,"TEST_SAVE_FIRST": "Save the tool before running a test."
-    ,"REAL_REQUEST_WARNING": "This test makes a real request to the configured endpoint."
-    ,"TEST_LOADING": "Running test..."
-    ,"TEST_RESULT": "Test result"
-    ,"TEST_DURATION": "{duration} ms"
-    ,"TEST_BODY": "Response body"
-    ,"PRESENT": "Present"
+    "DELETE_ERROR": "Could not delete the tool.",
+    "BASIC_INFO": "Basic information",
+    "BASIC_INFO_HELP": "Give the tool a clear identity so assistants can use it correctly.",
+    "REQUEST": "Request",
+    "REQUEST_HELP": "Choose how the tool reaches your HTTP endpoint.",
+    "RESPONSE_CONTRACT": "Expected response format",
+    "RESPONSE_CONTRACT_DESCRIPTION": "For the tool to be considered successfully completed, the endpoint must return HTTP 2xx and JSON in this format:",
+    "RESPONSE_CONTRACT_NOTE": "If success is not true, result is missing or empty, or the response is not valid JSON, the execution is considered a failure.",
+    "HTTP_CHECK": "HTTP",
+    "JSON_CHECK": "Valid JSON",
+    "SUCCESS_CHECK": "success",
+    "RESULT_CHECK": "result",
+    "ASSISTANT_RESULT": "Result sent to assistant",
+    "VALID": "Valid",
+    "INVALID": "Invalid",
+    "MISSING": "Missing",
+    "INVALID_TOOL_RESPONSE": "Invalid tool response",
+    "PARAMETERS_SECTION": "Parameters",
+    "PARAMETERS_HELP": "Define the values the assistant can send using the supported simplified JSON format.",
+    "HEADERS_SECTION": "Headers",
+    "HEADERS_HELP": "Add public headers and sensitive credentials separately.",
+    "HEADER_NAME": "Header name",
+    "HEADER_VALUE": "Value",
+    "SENSITIVE_HEADER": "Sensitive",
+    "SENSITIVE_HEADER_HELP": "Sensitive values are encrypted and never returned after saving. Leave an existing masked value unchanged to keep it.",
+    "NAME_PLACEHOLDER": "e.g. Send order link",
+    "NAME_HELP": "Name used to identify this tool to assistants.",
+    "DESCRIPTION_PLACEHOLDER": "When should the assistant use this tool?",
+    "DESCRIPTION_HELP": "Explain what the tool does and when the assistant should call it.",
+    "URL_PLACEHOLDER": "https://api.example.com/send-link",
+    "URL_HELP": "The HTTP endpoint called by this tool.",
+    "TIMEOUT_HELP": "Maximum request time in seconds. Allowed between 1 and 30.",
+    "ACTIVE_HELP": "Inactive tools cannot be called by assistants.",
+    "PLAYGROUND_HELP": "Allows the Playground to make real requests with this tool.",
+    "SECRETS_HELP": "Sensitive values such as Authorization are stored securely and are not shown after saving.",
+    "NAME_REQUIRED": "Enter a name for the tool.",
+    "METHOD_REQUIRED": "Choose an HTTP method.",
+    "URL_REQUIRED": "Enter an endpoint URL.",
+    "URL_INVALID": "Enter a valid HTTP or HTTPS URL.",
+    "JSON_INVALID": "Check the JSON fields. Each filled field must contain valid JSON.",
+    "PARAMETERS_INVALID": "Each parameter needs a valid name and type.",
+    "HEADERS_INVALID": "Public headers must be a JSON object.",
+    "TIMEOUT_INVALID": "Timeout must be a whole number between 1 and 30.",
+    "PAGE_HELP": "Configure this tool using clear settings and test it before assigning it to an assistant.",
+    "TOOL_SETTINGS": "Tool settings",
+    "TOOL_SETTINGS_HELP": "Configure the basic information for this tool.",
+    "VISUAL": "Visual",
+    "JSON_MODE": "JSON",
+    "ADD_PARAMETER": "Add parameter",
+    "ADD_ENUM": "Add value",
+    "ADD_HEADER": "Add header",
+    "APPLY": "Apply",
+    "JSON_SCHEMA_HELP": "Edit the parameter schema directly as JSON.",
+    "REQUEST_BODY": "Request body",
+    "BODY_JSON": "Body JSON",
+    "AUTOMATIC": "Automatic",
+    "CUSTOM": "Custom",
+    "BODY_MODE_HELP": "Write methods send tool arguments automatically. Use Custom to define a template body.",
+    "AUTOMATIC_PREVIEW": "Automatic body preview",
+    "CUSTOM_BODY_HELP": "Use double-brace templates with the parameter names.",
+    "CONTEXT_VARIABLES": "Available context variables",
+    "CONTEXT_VARIABLES_HELP": "Use these variables in a custom request body.",
+    "QUERY_PARAMS": "Query parameters JSON",
+    "QUERY_HELP": "Add query values or templates supported by the tool.",
+    "TEST_ARGUMENTS": "Test arguments JSON",
+    "TEST_CONVERSATION_ID": "Test conversation ID",
+    "TEST_CONVERSATION_HELP": "Required when the tool uses Contact or Conversation values.",
+    "DESCRIPTION_REQUIRED": "Enter a description for the tool.",
+    "VALUE_SOURCE": "Value source",
+    "REQUIRED": "Required",
+    "SOURCE_AI": "Provided by AI",
+    "SOURCE_CONTACT_PHONE": "Contact phone",
+    "SOURCE_CONTACT_PHONE_E164": "Contact phone (E.164)",
+    "SOURCE_CONTACT_NAME": "Contact name",
+    "SOURCE_CONTACT_EMAIL": "Contact email",
+    "SOURCE_CONTACT_ID": "Contact ID",
+    "SOURCE_CONVERSATION_ID": "Conversation ID",
+    "SOURCE_ACCOUNT_ID": "Account ID",
+    "SOURCE_AGENT_ID": "Agent ID",
+    "TOOLS_TAB": "Tools",
+    "LOGS_TAB": "Logs",
+    "LOGS_TITLE": "Tool execution logs",
+    "LOGS_SUBTITLE": "Review requests made by assistants and manual tests. Sensitive values are hidden.",
+    "LOGS_AGENT": "Assistant",
+    "LOGS_TOOL": "Tool",
+    "LOGS_STATUS": "Status",
+    "LOGS_SOURCE": "Source",
+    "LOGS_PERIOD": "Period",
+    "LOGS_ALL": "All",
+    "LOGS_SUCCESS": "Success",
+    "LOGS_FAILED": "Failed",
+    "LOGS_CONVERSATION": "Conversation",
+    "LOGS_PLAYGROUND": "Playground",
+    "LOGS_TEST": "Manual test",
+    "LOGS_UNKNOWN": "Unknown",
+    "LOGS_TODAY": "Today",
+    "LOGS_LAST_7_DAYS": "Last 7 days",
+    "LOGS_LAST_30_DAYS": "Last 30 days",
+    "LOGS_DATE": "Date/time",
+    "LOGS_HTTP": "HTTP",
+    "LOGS_DURATION": "Duration",
+    "LOGS_EMPTY": "No executions found.",
+    "LOGS_EMPTY_HELP": "Tool executions will appear here when an assistant uses a tool.",
+    "LOGS_LOAD_ERROR": "Could not load tool logs.",
+    "LOGS_DETAIL_ERROR": "Could not load execution details.",
+    "LOGS_DETAIL": "Execution details",
+    "LOGS_EXECUTION_ID": "Execution ID",
+    "LOGS_ERROR_CODE": "Error code",
+    "CLOSE": "Close",
+    "NAVIGATION": "Tool management navigation",
+    "EDITOR_NAVIGATION": "Tool editor navigation",
+    "SEARCH": "Search tools",
+    "SEARCH_PLACEHOLDER": "Search by name, description, method or URL",
+    "STATUS_FILTER": "Status",
+    "ALL_STATUS": "All statuses",
+    "FILTER_ACTIVE": "Active",
+    "FILTER_INACTIVE": "Inactive",
+    "RESULT_COUNT": "{count} tool(s)",
+    "ASSISTANTS": "Assistants",
+    "ASSISTANTS_COUNT": "{count} assistant(s)",
+    "OPEN_LOGS": "View logs",
+    "MORE": "More actions",
+    "NO_URL": "No URL configured",
+    "NO_DESCRIPTION": "No description provided.",
+    "EMPTY_HELP": "Create an HTTP tool to let assistants call an external service safely.",
+    "EMPTY_FILTERED": "No tools match these filters.",
+    "STATUS": "Status",
+    "UNSAVED": "Unsaved changes",
+    "TAB_GENERAL": "General",
+    "TAB_PARAMETERS": "Parameters",
+    "TAB_REQUEST": "Request",
+    "TAB_TEST": "Test",
+    "EDIT_PARAMETER": "Edit parameter",
+    "EDIT_PARAMETER_HELP": "Define the value and context the assistant can send.",
+    "PARAMETER_NAME": "Parameter name",
+    "PARAMETER_TYPE": "Parameter type",
+    "PARAMETER_DESCRIPTION": "Parameter description",
+    "PARAMETER_REQUIRED": "Required parameter",
+    "PARAMETER_SENSITIVE": "Sensitive value",
+    "ENUM_VALUE": "Enum value",
+    "NO_PARAMETERS": "No parameters configured yet.",
+    "NO_HEADERS": "No headers configured yet.",
+    "TEST_HELP": "Run a real request with the current saved tool and inspect the response.",
+    "TEST_SAVE_FIRST": "Save the tool before running a test.",
+    "REAL_REQUEST_WARNING": "This test makes a real request to the configured endpoint.",
+    "TEST_LOADING": "Running test...",
+    "TEST_RESULT": "Test result",
+    "TEST_DURATION": "{duration} ms",
+    "TEST_BODY": "Response body",
+    "PRESENT": "Present"
   },
   "AI_PLAYGROUND": {
     "TITLE": "Playground — {name}",

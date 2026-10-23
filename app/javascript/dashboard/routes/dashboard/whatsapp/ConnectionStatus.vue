@@ -11,7 +11,17 @@ const STATUS_CLASSES = {
   error: 'bg-n-ruby-3 text-n-ruby-11',
   unavailable: 'bg-n-amber-3 text-n-amber-11',
 };
-const badgeClass = computed(() => STATUS_CLASSES[props.status]);
+const STATUS_KEYS = {
+  connected: 'CONNECTED',
+  connecting: 'CONNECTING',
+  disconnected: 'DISCONNECTED',
+  error: 'ERROR',
+  unavailable: 'UNAVAILABLE',
+};
+const statusKey = computed(() => STATUS_KEYS[props.status] || 'UNAVAILABLE');
+const badgeClass = computed(
+  () => STATUS_CLASSES[props.status] || STATUS_CLASSES.unavailable
+);
 </script>
 
 <template>
@@ -21,6 +31,6 @@ const badgeClass = computed(() => STATUS_CLASSES[props.status]);
     role="status"
   >
     <span class="size-1.5 rounded-full bg-current" aria-hidden="true" />
-    {{ t(`WHATSAPP_CONNECTIONS.STATUS.${status.toUpperCase()}`) }}
+    {{ t(`WHATSAPP_CONNECTIONS.STATUS.${statusKey}`) }}
   </span>
 </template>

@@ -10,6 +10,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import ConnectionStatus from './ConnectionStatus.vue';
 import ConnectionDetails from './ConnectionDetails.vue';
 
@@ -27,6 +28,7 @@ const displayName = ref('');
 const inboxId = ref('');
 const isCreating = ref(false);
 const isDeleting = ref(false);
+const disconnectingId = ref(null);
 const displayError = computed(() =>
   error.value === 'WHATSAPP_CONNECTIONS.REQUEST_ERROR'
     ? t('WHATSAPP_CONNECTIONS.REQUEST_ERROR')
@@ -44,7 +46,20 @@ const legacyReplacement = computed(
   () =>
     inboxes.value.find(item => item.id === inboxId.value)?.legacy_instance_name
 );
-
+const formatPhone = value => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55') && [12, 13].includes(digits.length)) {
+    const area = digits.slice(2, 4);
+    const number = digits.slice(4);
+    const split =
+      number.length === 9
+        ? number.slice(0, 5) + '-' + number.slice(5)
+        : number.slice(0, 4) + '-' + number.slice(4);
+    return '+55 ' + area + ' ' + split;
+  }
+  return '+' + digits;
+};
 const load = async () => {
   const currentAccountId = accountId.value;
   try {
@@ -60,6 +75,22 @@ const load = async () => {
       exception.response?.data?.message ||
       exception.response?.data?.error ||
       'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+  }
+};
+const disconnect = async connection => {
+  if (disconnectingId.value) return;
+  disconnectingId.value = connection.id;
+  error.value = '';
+  try {
+    await WhatsappConnectionsAPI.disconnect(connection.id);
+    await load();
+  } catch (exception) {
+    error.value =
+      exception.response?.data?.message ||
+      exception.response?.data?.error ||
+      'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+  } finally {
+    disconnectingId.value = null;
   }
 };
 const manage = id =>
@@ -142,10 +173,15 @@ watch(
     class="flex h-full w-full flex-col overflow-auto bg-n-background px-6 py-8"
   >
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-heading-1 text-n-slate-12">
-          {{ t('WHATSAPP_CONNECTIONS.TITLE') }}
-        </h1>
+      <header class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 class="text-heading-1 text-n-slate-12">
+            {{ t('WHATSAPP_CONNECTIONS.TITLE') }}
+          </h1>
+          <p class="mt-1 text-body-main text-n-slate-11">
+            {{ t('WHATSAPP_CONNECTIONS.DESCRIPTION') }}
+          </p>
+        </div>
         <Button
           v-if="!route.params.connectionId"
           icon="i-lucide-plus"
@@ -195,20 +231,31 @@ watch(
           <article
             v-for="connection in connections"
             :key="connection.id"
-            class="flex flex-col gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-5"
+            class="flex flex-col gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-5"
           >
-            <div class="flex items-center justify-between gap-2">
-              <h2 class="text-heading-2 text-n-slate-12">
-                {{ connection.display_name }}
-              </h2>
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center min-w-0 gap-3">
+                <Avatar
+                  :src="connection.profile_picture_url"
+                  :name="connection.display_name"
+                  :size="44"
+                  rounded-full
+                  icon-name="i-lucide-message-circle"
+                />
+                <div class="min-w-0">
+                  <h2 class="text-heading-2 text-n-slate-12 truncate">
+                    {{ connection.display_name }}
+                  </h2>
+                  <p
+                    v-if="connection.phone_number"
+                    class="mt-1 text-body-main text-n-slate-11"
+                  >
+                    {{ formatPhone(connection.phone_number) }}
+                  </p>
+                </div>
+              </div>
               <ConnectionStatus :status="connection.status" />
             </div>
-            <p
-              v-if="connection.phone_number"
-              class="text-body-main text-n-slate-11"
-            >
-              {{ connection.phone_number }}
-            </p>
             <p class="text-label-small text-n-slate-11">
               {{
                 t('WHATSAPP_CONNECTIONS.INBOX_LABEL', {
@@ -218,19 +265,44 @@ watch(
                 })
               }}
             </p>
-            <div class="flex flex-wrap gap-2">
+            <div
+              class="flex items-center justify-between gap-2 pt-2 border-t border-n-weak"
+            >
               <Button
                 :label="t('WHATSAPP_CONNECTIONS.MANAGE')"
                 variant="outline"
                 @click="manage(connection.id)"
               />
-              <Button
-                :label="t('WHATSAPP_CONNECTIONS.DELETE')"
-                color="ruby"
-                variant="faded"
-                :disabled="isDeleting"
-                @click="openDelete(connection)"
-              />
+              <details class="relative">
+                <summary
+                  class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer list-none text-n-slate-11 hover:bg-n-alpha-2"
+                  :aria-label="t('WHATSAPP_CONNECTIONS.MORE')"
+                >
+                  <span class="i-lucide-ellipsis text-lg" aria-hidden="true" />
+                </summary>
+                <div
+                  class="absolute end-0 z-10 flex flex-col w-48 gap-1 p-2 mt-1 rounded-lg shadow-lg bg-n-solid-1 outline outline-1 outline-n-weak"
+                >
+                  <Button
+                    v-if="
+                      ['connected', 'connecting'].includes(connection.status)
+                    "
+                    variant="ghost"
+                    justify="start"
+                    :label="t('WHATSAPP_CONNECTIONS.DISCONNECT')"
+                    :disabled="disconnectingId === connection.id"
+                    @click="disconnect(connection)"
+                  />
+                  <Button
+                    variant="ghost"
+                    justify="start"
+                    color="ruby"
+                    :label="t('WHATSAPP_CONNECTIONS.DELETE')"
+                    :disabled="isDeleting"
+                    @click="openDelete(connection)"
+                  />
+                </div>
+              </details>
             </div>
           </article>
         </div>

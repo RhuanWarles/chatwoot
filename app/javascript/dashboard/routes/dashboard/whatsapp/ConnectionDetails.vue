@@ -8,6 +8,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import ConnectionStatus from './ConnectionStatus.vue';
 import { useWhatsappConnection } from './useWhatsappConnection';
@@ -42,11 +43,32 @@ const displayName = ref('');
 const inboxId = ref('');
 const signMessages = ref(false);
 const deleteDialog = ref(null);
-const displayError = computed(() =>
-  error.value === 'WHATSAPP_CONNECTIONS.REQUEST_ERROR'
-    ? t('WHATSAPP_CONNECTIONS.REQUEST_ERROR')
-    : error.value
-);
+const ERROR_KEYS = {
+  evolution_unavailable: 'WHATSAPP_CONNECTIONS.ERROR_EVOLUTION_UNAVAILABLE',
+  provider_error: 'WHATSAPP_CONNECTIONS.ERROR_PROVIDER',
+  validation_error: 'WHATSAPP_CONNECTIONS.ERROR_VALIDATION',
+  connection_error: 'WHATSAPP_CONNECTIONS.ERROR_CONNECTION',
+};
+const displayError = computed(() => {
+  if (ERROR_KEYS[error.value]) return t(ERROR_KEYS[error.value]);
+  if (error.value === 'WHATSAPP_CONNECTIONS.REQUEST_ERROR')
+    return t('WHATSAPP_CONNECTIONS.REQUEST_ERROR');
+  return error.value;
+});
+const formatPhone = value => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55') && [12, 13].includes(digits.length)) {
+    const area = digits.slice(2, 4);
+    const number = digits.slice(4);
+    const split =
+      number.length === 9
+        ? number.slice(0, 5) + '-' + number.slice(5)
+        : number.slice(0, 4) + '-' + number.slice(4);
+    return '+55 ' + area + ' ' + split;
+  }
+  return '+' + digits;
+};
 const inboxOptions = computed(() => [
   { value: '', label: t('WHATSAPP_CONNECTIONS.NO_INBOX') },
   ...props.inboxes.map(inbox => ({
@@ -96,10 +118,12 @@ const perform = async (action, onSuccess) => {
       return;
     if (exception.response?.data?.connection)
       apply(exception.response.data.connection, { clearUnavailable: false });
-    error.value =
-      exception.response?.data?.message ||
-      exception.response?.data?.error ||
-      'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
+    const providerError = exception.response?.data?.error;
+    error.value = ERROR_KEYS[providerError]
+      ? providerError
+      : exception.response?.data?.message ||
+        providerError ||
+        'WHATSAPP_CONNECTIONS.REQUEST_ERROR';
   } finally {
     busy.value = false;
   }
@@ -149,98 +173,157 @@ const remove = async () => {
       @click="refresh"
     />
     <template v-if="connection">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-heading-2 text-n-slate-12">
-          {{ connection.display_name }}
-        </h2>
+      <section
+        class="flex flex-wrap items-start justify-between gap-4 p-5 rounded-xl bg-n-solid-2"
+      >
+        <div class="flex items-center min-w-0 gap-4">
+          <Avatar
+            :src="connection.profile_picture_url"
+            :name="connection.display_name"
+            :size="64"
+            rounded-full
+            icon-name="i-lucide-message-circle"
+          />
+          <div class="min-w-0">
+            <h2 class="text-heading-1 text-n-slate-12">
+              {{ connection.display_name }}
+            </h2>
+            <p
+              v-if="connection.phone_number"
+              class="mt-1 text-body-main text-n-slate-11"
+            >
+              {{ formatPhone(connection.phone_number) }}
+            </p>
+            <p
+              v-if="connection.profile_name"
+              class="mt-1 text-label-small text-n-slate-11"
+            >
+              {{ connection.profile_name }}
+            </p>
+          </div>
+        </div>
         <ConnectionStatus
           :status="providerUnavailable ? 'unavailable' : connection.status"
         />
-      </div>
-      <p v-if="connection.phone_number" class="text-body-main text-n-slate-11">
-        {{ connection.phone_number }}
-      </p>
-      <p
-        v-if="connection.profile_name"
-        class="text-label-small text-n-slate-11"
+        <div class="w-full pt-3 border-t border-n-weak">
+          <p class="text-label-small text-n-slate-11">
+            {{ t('WHATSAPP_CONNECTIONS.INBOX') }}
+          </p>
+          <p class="mt-1 text-body-main text-n-slate-12">
+            {{ connection.inbox?.name || t('WHATSAPP_CONNECTIONS.NO_INBOX') }}
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="flex flex-col gap-4 p-5 rounded-xl outline outline-1 outline-n-weak"
       >
-        {{ connection.profile_name }}
-      </p>
-      <img
-        v-if="connection.profile_picture_url"
-        :src="connection.profile_picture_url"
-        :alt="t('WHATSAPP_CONNECTIONS.PROFILE_PICTURE')"
-        class="size-12 rounded-full"
-      />
-      <Input
-        v-model="displayName"
-        :label="t('WHATSAPP_CONNECTIONS.NAME')"
-        :disabled="busy"
-      />
-      <label class="flex flex-col gap-2 text-label-small text-n-slate-12">
-        {{ t('WHATSAPP_CONNECTIONS.INBOX') }}
-        <Select
-          v-model="inboxId"
-          :options="inboxOptions"
-          :aria-label="t('WHATSAPP_CONNECTIONS.INBOX')"
+        <div>
+          <h3 class="text-heading-2 text-n-slate-12">
+            {{ t('WHATSAPP_CONNECTIONS.CONFIGURATION') }}
+          </h3>
+          <p class="mt-1 text-body-main text-n-slate-11">
+            {{ t('WHATSAPP_CONNECTIONS.CONFIGURATION_HELP') }}
+          </p>
+        </div>
+        <Input
+          v-model="displayName"
+          :label="t('WHATSAPP_CONNECTIONS.NAME')"
           :disabled="busy"
         />
-      </label>
-      <p v-if="legacyReplacement" class="text-label-small text-n-amber-11">
-        {{ t('WHATSAPP_CONNECTIONS.REPLACE_LEGACY') }}
-      </p>
-      <SettingsToggleSection
-        v-model="signMessages"
-        :header="t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES')"
-        :description="
-          connection.inbox_id
-            ? t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES_HELP')
-            : t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES_DISABLED')
-        "
-        :disabled="busy || !connection.inbox_id"
-      />
-      <div class="flex flex-wrap gap-2">
-        <Button
-          :label="t('WHATSAPP_CONNECTIONS.SAVE')"
-          :disabled="
-            busy || !displayName.trim() || displayName.trim().length > 100
+        <label class="flex flex-col gap-2 text-label-small text-n-slate-12">
+          {{ t('WHATSAPP_CONNECTIONS.INBOX') }}
+          <Select
+            v-model="inboxId"
+            :options="inboxOptions"
+            :aria-label="t('WHATSAPP_CONNECTIONS.INBOX')"
+            :disabled="busy"
+          />
+        </label>
+        <p v-if="legacyReplacement" class="text-label-small text-n-amber-11">
+          {{ t('WHATSAPP_CONNECTIONS.REPLACE_LEGACY') }}
+        </p>
+        <SettingsToggleSection
+          v-model="signMessages"
+          :header="t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES')"
+          :description="
+            connection.inbox_id
+              ? t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES_HELP')
+              : t('WHATSAPP_CONNECTIONS.SIGN_MESSAGES_DISABLED')
           "
-          :is-loading="busy"
-          @click="save"
+          :disabled="busy || !connection.inbox_id"
         />
-        <Button
-          v-if="connection.status !== 'connected'"
-          :label="
-            t(
-              connection.status === 'connecting'
-                ? 'WHATSAPP_CONNECTIONS.REGENERATE_QR'
-                : 'WHATSAPP_CONNECTIONS.CONNECT'
-            )
-          "
-          variant="outline"
-          :disabled="busy"
-          @click="connect"
-        />
-        <Button
-          v-if="['connected', 'connecting'].includes(connection.status)"
-          :label="t('WHATSAPP_CONNECTIONS.DISCONNECT')"
-          variant="outline"
-          :disabled="busy"
-          @click="disconnect"
-        />
-        <Button
-          :label="t('WHATSAPP_CONNECTIONS.DELETE')"
-          color="ruby"
-          variant="faded"
-          :disabled="busy"
-          @click="deleteDialog.open()"
-        />
-      </div>
-      <div
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-n-weak">
+          <Button
+            :label="t('WHATSAPP_CONNECTIONS.SAVE')"
+            :disabled="
+              busy || !displayName.trim() || displayName.trim().length > 100
+            "
+            :is-loading="busy"
+            @click="save"
+          />
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-3 p-5 rounded-xl bg-n-solid-2">
+        <h3 class="text-heading-2 text-n-slate-12">
+          {{ t('WHATSAPP_CONNECTIONS.CONNECTION_ACTIONS') }}
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <Button
+            v-if="connection.status !== 'connected'"
+            :label="
+              t(
+                connection.status === 'connecting'
+                  ? 'WHATSAPP_CONNECTIONS.REGENERATE_QR'
+                  : 'WHATSAPP_CONNECTIONS.CONNECT'
+              )
+            "
+            variant="outline"
+            :disabled="busy"
+            @click="connect"
+          />
+          <Button
+            v-if="['connected', 'connecting'].includes(connection.status)"
+            :label="t('WHATSAPP_CONNECTIONS.DISCONNECT')"
+            variant="outline"
+            :disabled="busy"
+            @click="disconnect"
+          />
+        </div>
+      </section>
+      <section
+        class="flex flex-col gap-3 p-5 rounded-xl outline outline-1 outline-n-ruby-6"
+      >
+        <h3 class="text-heading-2 text-n-ruby-11">
+          {{ t('WHATSAPP_CONNECTIONS.DANGER_ZONE') }}
+        </h3>
+        <p class="text-body-main text-n-slate-11">
+          {{ t('WHATSAPP_CONNECTIONS.DELETE_HELP') }}
+        </p>
+        <div>
+          <Button
+            :label="t('WHATSAPP_CONNECTIONS.DELETE')"
+            color="ruby"
+            variant="faded"
+            :disabled="busy"
+            @click="deleteDialog.open()"
+          />
+        </div>
+      </section>
+      <section
         v-if="connection.status === 'connecting'"
-        class="flex flex-col items-center gap-3 rounded-lg bg-n-alpha-1 p-6"
+        class="flex flex-col items-center gap-3 p-6 rounded-xl bg-n-alpha-1"
         aria-live="polite"
       >
+        <div class="text-center">
+          <h3 class="text-heading-2 text-n-slate-12">
+            {{ t('WHATSAPP_CONNECTIONS.CONNECTING_TITLE') }}
+          </h3>
+          <p class="mt-1 text-body-main text-n-slate-11">
+            {{ t('WHATSAPP_CONNECTIONS.SCAN_QR') }}
+          </p>
+        </div>
         <template v-if="qrExpired">
           <p class="text-heading-3 text-n-amber-11">
             {{ t('WHATSAPP_CONNECTIONS.QR_EXPIRED') }}
@@ -252,9 +335,6 @@ const remove = async () => {
           />
         </template>
         <template v-else>
-          <p class="text-heading-3 text-n-slate-12">
-            {{ t('WHATSAPP_CONNECTIONS.SCAN_QR') }}
-          </p>
           <img
             v-if="qrCode"
             :src="qrCode"
@@ -266,7 +346,49 @@ const remove = async () => {
             {{ t('WHATSAPP_CONNECTIONS.WAITING') }}
           </p>
         </template>
-      </div>
+      </section>
+      <details class="rounded-xl outline outline-1 outline-n-weak">
+        <summary
+          class="px-5 py-4 text-sm font-medium cursor-pointer text-n-slate-12"
+        >
+          {{ t('WHATSAPP_CONNECTIONS.TECHNICAL_DETAILS') }}
+        </summary>
+        <dl class="grid grid-cols-1 gap-3 px-5 pb-5 text-sm md:grid-cols-2">
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('WHATSAPP_CONNECTIONS.TECHNICAL_INSTANCE') }}
+            </dt>
+            <dd class="mt-1 break-all text-n-slate-12">
+              {{
+                connection.instance_name ||
+                t('WHATSAPP_CONNECTIONS.NOT_AVAILABLE')
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('WHATSAPP_CONNECTIONS.TECHNICAL_ID') }}
+            </dt>
+            <dd class="mt-1 text-n-slate-12">{{ connection.id }}</dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('WHATSAPP_CONNECTIONS.TECHNICAL_PROVIDER') }}
+            </dt>
+            <dd class="mt-1 text-n-slate-12">
+              {{
+                connection.provider || t('WHATSAPP_CONNECTIONS.NOT_AVAILABLE')
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">
+              {{ t('WHATSAPP_CONNECTIONS.TECHNICAL_STATUS') }}
+            </dt>
+            <dd class="mt-1 text-n-slate-12">{{ connection.status }}</dd>
+          </div>
+        </dl>
+      </details>
     </template>
     <Dialog
       ref="deleteDialog"
