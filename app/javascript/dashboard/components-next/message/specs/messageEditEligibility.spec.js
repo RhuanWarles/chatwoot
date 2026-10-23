@@ -23,6 +23,7 @@ describe('message edit eligibility', () => {
     privateMessage: false,
     sourceId: 'WAID:message-id',
     status: 'sent',
+    createdAt: Math.floor(Date.now() / 1000) - 60,
   };
 
   it('allows recent outgoing Evolution text messages', () => {
@@ -55,6 +56,15 @@ describe('message edit eligibility', () => {
       canEditMessage({
         ...eligibleMessage,
         inbox: { channel_type: 'Channel::Api' },
+      })
+    ).toBe(false);
+  });
+
+  it('rejects messages outside WhatsApp editing window', () => {
+    expect(
+      canEditMessage({
+        ...eligibleMessage,
+        createdAt: Math.floor(Date.now() / 1000) - 16 * 60,
       })
     ).toBe(false);
   });

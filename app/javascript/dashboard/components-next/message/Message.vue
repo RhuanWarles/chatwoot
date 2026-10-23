@@ -25,6 +25,7 @@ import {
 
 import Avatar from 'next/avatar/Avatar.vue';
 import MessageReactions from './MessageReactions.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 import TextBubble from './bubbles/Text/Index.vue';
 import ActivityBubble from './bubbles/Activity.vue';
@@ -176,6 +177,7 @@ const canEdit = computed(() =>
     privateMessage: props.private,
     sourceId: props.sourceId,
     status: props.status,
+    createdAt: props.createdAt,
   })
 );
 const isEditing = ref(false);
@@ -747,6 +749,17 @@ provideMessageContext({
           :conversation-id="conversationId"
           :current-user-id="currentUserId"
           :reactions="contentAttributes.whatsappReactions || []"
+        />
+        <Button
+          v-if="canEdit && !isEditing"
+          v-tooltip.top="$t('CONVERSATION.CONTEXT_MENU.EDIT')"
+          icon="i-lucide-pencil"
+          size="xs"
+          variant="ghost"
+          color="slate"
+          class="invisible opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+          :aria-label="$t('CONVERSATION.CONTEXT_MENU.EDIT')"
+          @click.stop="startEditing"
         />
       </div>
       <MessageError

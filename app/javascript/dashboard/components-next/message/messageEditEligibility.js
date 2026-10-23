@@ -4,6 +4,8 @@ import {
   hasReactionTarget,
 } from './messageReactionEligibility';
 
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
 export const canEditMessage = ({
   inbox,
   messageType,
@@ -13,7 +15,12 @@ export const canEditMessage = ({
   privateMessage,
   sourceId,
   status,
+  createdAt,
 }) => {
+  const isWithinEditWindow =
+    Number.isFinite(createdAt) &&
+    Date.now() - createdAt * 1000 <= EDIT_WINDOW_MS;
+
   return (
     isEvolutionInbox(inbox) &&
     hasReactionTarget(contentAttributes, sourceId) &&
@@ -23,6 +30,7 @@ export const canEditMessage = ({
     Boolean(sourceId) &&
     !privateMessage &&
     !contentAttributes.deleted &&
-    !['failed', 'progress'].includes(status)
+    !['failed', 'progress'].includes(status) &&
+    isWithinEditWindow
   );
 };
