@@ -150,6 +150,16 @@ const eventChange = event => {
     return `${statusLabel(metadata.from)} → ${statusLabel(metadata.to)}`;
   if (event.event_type === 'value_changed')
     return `${money(metadata.from)} → ${money(metadata.to)}`;
+  if (event.event_type === 'automation_run') {
+    const actions = metadata.actions
+      .map(
+        action =>
+          t(`CRM.AUTOMATION_TYPE_${action.type.toUpperCase()}`) +
+          (action.ok ? '' : ` (${t('CRM.AUTOMATION_RUN_FAILED')})`)
+      )
+      .join(', ');
+    return `${t(`CRM.AUTOMATION_TRIGGER_${metadata.trigger.toUpperCase()}`)}: ${actions}`;
+  }
   return '';
 };
 const loadHistory = async (append = false) => {

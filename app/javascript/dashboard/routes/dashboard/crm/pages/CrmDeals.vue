@@ -5,6 +5,7 @@ import { useEventListener } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
+import { useAlert } from 'dashboard/composables';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -13,9 +14,12 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import CrmDealSearchResults from '../components/CrmDealSearchResults.vue';
 import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
+import { useCrmCardConfig } from '../components/cardConfig';
 import { brlFormatter } from '../components/currencyHelpers';
+import CrmCardCustomizer from '../components/CrmCardCustomizer.vue';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
+import CrmDealCard from '../components/CrmDealCard.vue';
 import CrmPipelineEditor from '../components/CrmPipelineEditor.vue';
 
 const { t } = useI18n();
@@ -29,7 +33,6 @@ const selectedPipeline = ref('');
 const kanbanBoard = ref(null);
 const now = ref(Date.now());
 let activityClock;
-const ACTIVITY_NEAR_WINDOW_MS = 2 * 60 * 60 * 1000;
 const DRAG_SCROLL_EDGE = 80;
 const DRAG_SCROLL_MAX_SPEED = 720;
 const DRAG_SCROLL_MAX_FRAME_MS = 32;
@@ -96,6 +99,41 @@ const DRAG_SCROLL_OPTIONS = {
   fallbackOnBody: true,
   // One animation loop controls both axes, independently of nested scroll roots.
   scroll: false,
+  // A release outside any list or outcome zone cancels the move instead of applying the last
+  // hovered target, because Won and Lost can fire webhooks and messages.
+  revertOnSpill: true,
+};
+const dragging = ref(false);
+const NO_DEALS = [];
+const OUTCOME_AUTOMATION_REFRESH_MS = 2000;
+const STATUS_KEYS = {
+  open: 'CRM.STATUS_OPEN',
+  won: 'CRM.STATUS_WON',
+  lost: 'CRM.STATUS_LOST',
+};
+const OUTCOME_ZONES = [
+  {
+    status: 'won',
+    label: 'CRM.DROP_TO_WON',
+    icon: 'i-lucide-trophy',
+    classes: 'border-n-teal-7 bg-n-teal-3 text-n-teal-11 hover:bg-n-teal-4',
+  },
+  {
+    status: 'lost',
+    label: 'CRM.DROP_TO_LOST',
+    icon: 'i-lucide-circle-x',
+    classes: 'border-n-ruby-7 bg-n-ruby-3 text-n-ruby-11 hover:bg-n-ruby-4',
+  },
+];
+const { fields: cardFields, customFieldIds: cardCustomFieldIds } =
+  useCrmCardConfig();
+const startDrag = event => {
+  dragging.value = true;
+  startDragScroll(event);
+};
+const endDrag = () => {
+  dragging.value = false;
+  stopDragScroll();
 };
 const searchDraft = ref('');
 const searchQuery = ref('');
@@ -401,23 +439,6 @@ watch(
   }
 );
 
-const activityIsOverdue = activity =>
-  new Date(activity.due_at).getTime() < now.value;
-const activityIsNear = activity => {
-  const dueAt = new Date(activity.due_at).getTime();
-  return dueAt >= now.value && dueAt - now.value <= ACTIVITY_NEAR_WINDOW_MS;
-};
-const activityDate = activity =>
-  new Intl.DateTimeFormat(undefined, {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(activity.due_at));
-const activityTooltip = activity =>
-  [activity.title, activityDate(activity), activity.owner?.name]
-    .filter(Boolean)
-    .join(' · ');
 const openDealDetails = deal => {
   router.push({
     name: 'crm_deal_details',
@@ -470,15 +491,43 @@ const saveDeal = async () => {
   await load();
 };
 
-const moveDeal = async (deal, stage) => {
-  const previous = deal.pipeline_stage_id;
-  deal.pipeline_stage_id = stage.id;
+const updateDeal = async (deal, changes) => {
+  const previous = Object.fromEntries(
+    Object.keys(changes).map(key => [key, deal[key]])
+  );
+  Object.assign(deal, changes);
   try {
-    await dealsAPI.update(deal.id, { deal: { pipeline_stage_id: stage.id } });
-  } catch (error) {
-    deal.pipeline_stage_id = previous;
-    throw error;
+    await dealsAPI.update(deal.id, { deal: changes });
+    return true;
+  } catch {
+    Object.assign(deal, previous);
+    useAlert(t('CRM.DETAIL_SAVE_ERROR'));
+    return false;
   }
+};
+const moveDeal = (deal, stage) =>
+  updateDeal(deal, { pipeline_stage_id: stage.id });
+const hasOutcomeAutomations = status =>
+  Boolean(pipeline.value?.[status + '_automations']?.length);
+let automationRefreshTimer;
+let unmounted = false;
+const setDealStatus = async (deal, status) => {
+  if (deal.status === status || !(await updateDeal(deal, { status }))) return;
+  const automations = hasOutcomeAutomations(status);
+  useAlert(
+    t(
+      automations
+        ? 'CRM.DEAL_STATUS_UPDATED_AUTOMATIONS'
+        : 'CRM.DEAL_STATUS_UPDATED',
+      { status: t(STATUS_KEYS[status]).toLowerCase() }
+    )
+  );
+  if (!automations || unmounted) return;
+  window.clearTimeout(automationRefreshTimer);
+  automationRefreshTimer = window.setTimeout(() => {
+    // A reload would bump the search version and drop a search typed meanwhile.
+    if (!dragging.value && !waitingForSearch.value) loadDeals();
+  }, OUTCOME_AUTOMATION_REFRESH_MS);
 };
 
 onMounted(() => {
@@ -488,8 +537,10 @@ onMounted(() => {
   }, 60 * 1000);
 });
 onUnmounted(() => {
+  unmounted = true;
   stopDragScroll();
   if (activityClock) window.clearInterval(activityClock);
+  window.clearTimeout(automationRefreshTimer);
   searchVersion += 1;
 });
 </script>
@@ -598,6 +649,17 @@ onUnmounted(() => {
           "
           @click="openAdvancedFilters"
         />
+        <Popover align="end">
+          <Button
+            variant="faded"
+            color="slate"
+            icon="i-lucide-sliders-horizontal"
+            :label="t('CRM.CUSTOMIZE_CARDS')"
+          />
+          <template #content>
+            <CrmCardCustomizer />
+          </template>
+        </Popover>
         <Button
           :label="t('CRM.NEW_DEAL')"
           :disabled="!pipeline?.active"
@@ -833,119 +895,58 @@ onUnmounted(() => {
           data-crm-stage-deals
           v-bind="DRAG_SCROLL_OPTIONS"
           class="flex flex-col flex-1 gap-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
-          @start="startDragScroll"
-          @end="stopDragScroll"
+          @start="startDrag"
+          @end="endDrag"
           @change="event => event.added && moveDeal(event.added.element, stage)"
         >
           <template #item="{ element }">
-            <article
-              class="flex-shrink-0 min-w-0 p-2.5 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
-              @click="
-                router.push({
-                  name: 'crm_deal_details',
-                  params: {
-                    accountId: route.params.accountId,
-                    dealId: element.id,
-                  },
-                })
-              "
-            >
-              <div class="flex items-start justify-between gap-2">
-                <p
-                  :title="element.name"
-                  class="flex-1 min-w-0 mb-0 font-medium text-n-slate-12 line-clamp-2 [overflow-wrap:anywhere]"
-                >
-                  {{ element.name }}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  color="slate"
-                  size="xs"
-                  icon="i-lucide-pencil"
-                  :aria-label="t('CRM.QUICK_EDIT')"
-                  @click.stop="selectedDeal = { ...element }"
-                />
-              </div>
-              <p
-                :title="element.contact?.name"
-                class="mt-1 mb-0 text-xs text-n-slate-11 truncate"
-              >
-                {{ element.contact?.name }}
-              </p>
-              <div
-                class="flex flex-wrap items-center justify-between gap-1 mt-2"
-              >
-                <p
-                  v-if="element.value != null && element.value !== ''"
-                  class="mb-0 text-sm font-medium text-n-slate-12"
-                >
-                  {{ brlFormatter.format(Number(element.value)) }}
-                </p>
-                <span
-                  v-if="element.status === 'won'"
-                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-0.5 text-label-small bg-n-teal-3 text-n-teal-11"
-                >
-                  {{ t('CRM.STATUS_WON') }}
-                </span>
-                <span
-                  v-else-if="element.status === 'lost'"
-                  class="inline-flex flex-shrink-0 items-center rounded-md px-2 py-0.5 text-label-small bg-n-ruby-3 text-n-ruby-11"
-                >
-                  {{ t('CRM.STATUS_LOST') }}
-                </span>
-              </div>
-              <p
-                v-if="element.owner"
-                :title="element.owner.name"
-                class="mt-1 mb-0 text-xs text-n-slate-10 truncate"
-              >
-                {{ element.owner.name }}
-              </p>
-              <button
-                v-if="element.next_activity"
-                data-activity-indicator="true"
-                type="button"
-                class="flex items-center w-full min-w-0 gap-1.5 mt-2 pt-2 border-t border-n-weak text-left"
-                :title="activityTooltip(element.next_activity)"
-                :aria-label="activityTooltip(element.next_activity)"
-                @click.stop="openDealDetails(element)"
-              >
-                <span
-                  class="flex-shrink-0"
-                  :class="
-                    activityIsOverdue(element.next_activity)
-                      ? 'i-lucide-circle-alert text-n-ruby-11'
-                      : activityIsNear(element.next_activity)
-                        ? 'i-lucide-clock-3 text-n-blue-11'
-                        : 'i-lucide-calendar-clock text-n-slate-11'
-                  "
-                />
-                <span class="min-w-0 truncate text-xs text-n-slate-11">
-                  {{ element.next_activity.title }}
-                </span>
-                <span
-                  class="flex-shrink-0 text-xs"
-                  :class="
-                    activityIsOverdue(element.next_activity)
-                      ? 'text-n-ruby-11'
-                      : activityIsNear(element.next_activity)
-                        ? 'text-n-blue-11'
-                        : 'text-n-slate-10'
-                  "
-                >
-                  {{
-                    activityIsOverdue(element.next_activity)
-                      ? t('CRM.ACTIVITY_OVERDUE')
-                      : activityDate(element.next_activity)
-                  }}
-                </span>
-              </button>
-            </article>
+            <CrmDealCard
+              :deal="element"
+              :fields="cardFields"
+              :custom-field-ids="cardCustomFieldIds"
+              :now="now"
+              @open="openDealDetails(element)"
+              @edit="selectedDeal = { ...element }"
+              @set-status="status => setDealStatus(element, status)"
+            />
           </template>
         </Draggable>
       </div>
     </section>
+    <div
+      v-show="dragging"
+      aria-hidden="true"
+      data-crm-outcome-bar
+      class="flex flex-shrink-0 gap-2 pt-2"
+    >
+      <div
+        v-for="outcome in OUTCOME_ZONES"
+        :key="outcome.status"
+        class="relative flex flex-1 items-center justify-center gap-2 px-3 min-h-14 text-sm font-medium text-center rounded-xl border-2 border-dashed transition-colors"
+        :class="outcome.classes"
+      >
+        <span class="flex-shrink-0 size-4" :class="outcome.icon" />
+        <span class="min-w-0">{{ t(outcome.label) }}</span>
+        <Draggable
+          :model-value="NO_DEALS"
+          item-key="id"
+          group="crm-deals"
+          :sort="false"
+          :empty-insert-threshold="0"
+          ghost-class="opacity-0"
+          :data-crm-outcome-zone="outcome.status"
+          class="absolute inset-0 overflow-hidden"
+          @change="
+            event =>
+              event.added && setDealStatus(event.added.element, outcome.status)
+          "
+        >
+          <template #item="{ element }">
+            <span :data-id="element.id" />
+          </template>
+        </Draggable>
+      </div>
+    </div>
     <div
       v-if="selectedDeal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-n-alpha-black1"

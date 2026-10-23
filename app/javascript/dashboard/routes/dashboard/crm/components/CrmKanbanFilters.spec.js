@@ -30,6 +30,7 @@ config.global.plugins = [
       getCurrentRole: () => 'administrator',
       'agents/getAgents': () => [],
       'labels/getLabels': () => [],
+      getUISettings: () => ({}),
     },
   }),
   createI18n({ legacy: false, locale: 'pt_BR', messages: { pt_BR: pt } }),
@@ -330,9 +331,7 @@ describe('Kanban status filters and stage totals', () => {
   });
 
   it('restores counts and totals when a stage update fails', async () => {
-    const wrapper = mount(CrmDeals, {
-      global: { config: { errorHandler: vi.fn() } },
-    });
+    const wrapper = mount(CrmDeals);
     await flushPromises();
     const draggables = wrapper.findAllComponents(DraggableStub);
     const deal = draggables[0].props('modelValue')[0];

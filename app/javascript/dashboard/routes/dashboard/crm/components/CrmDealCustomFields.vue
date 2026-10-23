@@ -5,7 +5,10 @@ import { dealsAPI } from 'dashboard/api/crm';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import CrmCurrencyInput from './CrmCurrencyInput.vue';
-import { brlFormatter } from './currencyHelpers';
+import {
+  formatCustomFieldValue,
+  isEmptyCustomValue,
+} from './customFieldHelpers';
 
 const props = defineProps({ dealId: { type: Number, required: true } });
 const emit = defineEmits(['changed']);
@@ -24,25 +27,13 @@ const currency = ref(null);
 const fieldForm = ref(null);
 const expandedTexts = ref({});
 const PREVIEW_LENGTH = 180;
-const empty = value =>
-  value == null || value === '' || (Array.isArray(value) && !value.length);
-const display = field => {
-  const value = field.value;
-  if (empty(value)) return t('CRM.NOT_SET');
-  if (field.field_type === 'boolean')
-    return value ? t('CRM.CF_YES') : t('CRM.CF_NO');
-  if (field.field_type === 'currency') return brlFormatter.format(value);
-  if (field.field_type === 'date')
-    return new Intl.DateTimeFormat(locale.value.replace('_', '-')).format(
-      new Date(value + 'T12:00:00')
-    );
-  if (field.field_type === 'datetime')
-    return new Intl.DateTimeFormat(locale.value.replace('_', '-'), {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(new Date(value));
-  return value;
-};
+const display = field =>
+  isEmptyCustomValue(field.value)
+    ? t('CRM.NOT_SET')
+    : formatCustomFieldValue(field.field_type, field.value, {
+        t,
+        locale: locale.value,
+      });
 const longText = field =>
   field.field_type === 'textarea' &&
   field.value &&
@@ -91,7 +82,8 @@ const save = async () => {
   if (saving.value || !editingField.value) return;
   const field = editingField.value;
   const value = draft.value;
-  const missing = empty(value) || (typeof value === 'string' && !value.trim());
+  const missing =
+    isEmptyCustomValue(value) || (typeof value === 'string' && !value.trim());
   if (
     (field.required && missing) ||
     (['number', 'currency'].includes(field.field_type) &&
@@ -308,7 +300,10 @@ watch(() => props.dealId, load, { immediate: true });
               />
             </span>
             <span
-              v-if="field.field_type === 'multiselect' && !empty(field.value)"
+              v-if="
+                field.field_type === 'multiselect' &&
+                !isEmptyCustomValue(field.value)
+              "
               class="flex flex-wrap gap-1"
             >
               <span

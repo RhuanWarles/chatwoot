@@ -3,6 +3,7 @@ module Crm
     self.table_name = 'crm_deals'
 
     STATUSES = %w[open won lost].freeze
+    OUTCOMES = %w[won lost].freeze
     TRACKED_CHANGES = {
       'pipeline_id' => 'pipeline_changed', 'pipeline_stage_id' => 'stage_changed', 'status' => 'status_changed',
       'value' => 'value_changed', 'owner_id' => 'owner_changed'
@@ -21,6 +22,7 @@ module Crm
     after_create :record_creation
     after_update :record_changes
     after_commit :enqueue_stage_automations, on: [:create, :update]
+    after_commit :enqueue_outcome_automations, on: [:create, :update]
 
     validates :name, presence: true
     validates :status, inclusion: { in: STATUSES }
@@ -33,6 +35,12 @@ module Crm
       return unless previously_new_record? || saved_change_to_pipeline_stage_id?
 
       Crm::StageAutomationJob.perform_later(id, pipeline_stage_id, automation_depth.to_i) if pipeline_stage.automations.present?
+    end
+
+    def enqueue_outcome_automations
+      return unless saved_change_to_status? && OUTCOMES.include?(status)
+
+      Crm::OutcomeAutomationJob.perform_later(id, status, automation_depth.to_i) if pipeline.outcome_automations(status).present?
     end
 
     def record_creation
