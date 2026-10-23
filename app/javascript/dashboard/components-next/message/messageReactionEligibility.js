@@ -16,13 +16,18 @@ export const hasReactionTarget = (contentAttributes = {}, sourceId = '') => {
   const key =
     contentAttributes.whatsapp_message_key ||
     contentAttributes.whatsappMessageKey;
+  const remoteJids = [
+    key?.remoteJid,
+    key?.remote_jid,
+    key?.remoteJidAlt,
+    key?.remote_jid_alt,
+  ];
   const hasMessageKey =
     key &&
     typeof key === 'object' &&
     typeof key.id === 'string' &&
     key.id.length > 0 &&
-    typeof key.remoteJid === 'string' &&
-    whatsappJid.test(key.remoteJid) &&
+    remoteJids.some(jid => typeof jid === 'string' && whatsappJid.test(jid)) &&
     [true, false].includes(key.fromMe ?? key.from_me);
   const normalizedSourceId =
     typeof sourceId === 'string' ? sourceId.replace(/^WAID:/, '') : '';

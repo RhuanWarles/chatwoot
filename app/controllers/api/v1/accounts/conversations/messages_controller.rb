@@ -98,7 +98,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     attributes = permitted_params[:content_attributes].to_h.stringify_keys
     provider_update = Current.user.blank? && attributes['whatsapp_message_edit_source'].present?
 
-    Messages::EvolutionEditService.new(message: message, content: permitted_params[:content]).perform unless provider_update
+    Evolution::MessageEditService.new(message: message, content: permitted_params[:content]).perform unless provider_update
 
     message.update!(
       content: permitted_params[:content],

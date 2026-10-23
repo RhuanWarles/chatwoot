@@ -437,8 +437,8 @@ RSpec.describe 'Conversation Messages API', type: :request do
               }
             }
           )
-          service = instance_double(Messages::EvolutionEditService, perform: true)
-          allow(Messages::EvolutionEditService).to receive(:new).and_return(service)
+          service = instance_double(Evolution::MessageEditService, perform: true)
+          allow(Evolution::MessageEditService).to receive(:new).and_return(service)
 
           expect do
             patch api_v1_account_conversation_message_url(
@@ -467,7 +467,7 @@ RSpec.describe 'Conversation Messages API', type: :request do
               }
             }
           )
-          allow(Messages::EvolutionEditService).to receive(:new).and_raise(CustomExceptions::Evolution, :message_not_editable)
+          allow(Evolution::MessageEditService).to receive(:new).and_raise(CustomExceptions::Evolution, :message_not_editable)
 
           patch api_v1_account_conversation_message_url(
             account_id: account.id,

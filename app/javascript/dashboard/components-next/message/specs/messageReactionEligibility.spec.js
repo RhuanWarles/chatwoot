@@ -35,6 +35,21 @@ describe('message reaction eligibility', () => {
     ).toBe(true);
   });
 
+  it('accepts snake-case and alternate WhatsApp JID fields', () => {
+    expect(
+      hasReactionTarget(
+        {
+          whatsapp_message_key: {
+            id: 'message-id',
+            remote_jid_alt: '5511999999999@s.whatsapp.net',
+            from_me: true,
+          },
+        },
+        ''
+      )
+    ).toBe(true);
+  });
+
   it('accepts a usable WAID fallback but rejects messages without a target', () => {
     expect(hasReactionTarget({}, 'WAID:message-id')).toBe(true);
     expect(

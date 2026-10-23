@@ -6,7 +6,6 @@ class Evolution::MessageEditService
       message.content_type == 'text' &&
       !message.private? &&
       !message.content_attributes['deleted'] &&
-      message.source_id.present? &&
       message.created_at.present? &&
       message.created_at >= EDIT_WINDOW.ago
   end
@@ -36,15 +35,26 @@ class Evolution::MessageEditService
   end
 
   def message_key
-    @message_key ||= begin
-      stored_key = @message.content_attributes['whatsapp_message_key']
-      key = stored_key.is_a?(Hash) ? stored_key.stringify_keys : {}
-      key.reverse_merge(
-        'id' => @message.source_id.to_s.delete_prefix('WAID:'),
-        'remoteJid' => Evolution::GroupJidResolver.call(@message.conversation) ||
-                       @message.conversation.contact&.identifier ||
-                       @message.conversation.contact_inbox&.source_id
-      )
+    @message_key ||= stored_message_key.reverse_merge(default_message_key)
+  end
+
+  def stored_message_key
+    stored_key = @message.content_attributes['whatsapp_message_key']
+    return {} unless stored_key.is_a?(Hash)
+
+    stored_key.stringify_keys.tap do |key|
+      key['fromMe'] = key['from_me'] unless key.key?('fromMe')
+      key['remoteJid'] ||= key['remote_jid'] || key['remoteJidAlt'] || key['remote_jid_alt']
     end
+  end
+
+  def default_message_key
+    {
+      'id' => @message.source_id.to_s.delete_prefix('WAID:'),
+      'remoteJid' => Evolution::GroupJidResolver.call(@message.conversation) ||
+        @message.conversation.contact&.identifier ||
+        @message.conversation.contact_inbox&.source_id,
+      'fromMe' => true
+    }
   end
 end

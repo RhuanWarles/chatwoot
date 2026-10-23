@@ -38,6 +38,14 @@ RSpec.describe Evolution::MessageEditService do
     service.perform
   end
 
+  it 'uses the stored WhatsApp key when the Chatwoot source id is unavailable' do
+    message.update!(source_id: nil)
+
+    expect(client).to receive(:update_message).with(number: key['remoteJid'], key: key, text: 'Edited message')
+
+    service.perform
+  end
+
   it 'does not allow incoming messages to be edited' do
     message.update!(message_type: :incoming)
 
