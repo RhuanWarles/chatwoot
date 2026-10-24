@@ -30,6 +30,14 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(conversation.reload.additional_attributes['ai_agent_state']).to eq('active')
   end
 
+  it 'does not persist internal author context in the public reply' do
+    allow(provider).to receive(:generate).and_return(content: "[Participante: Larissa; identificador: Saas::AiAgent:3]\nOlá!", usage: {})
+
+    described_class.new(conversation, incoming).perform
+
+    expect(conversation.messages.outgoing.last.content).to eq('Olá!')
+  end
+
   it 'adds retrieved knowledge to native replies without publishing internal sources' do
     base = account.saas_knowledge_bases.create!(name: 'FAQ')
     agent.configure!({}, selected_knowledge_bases: [base])

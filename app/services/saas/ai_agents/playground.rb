@@ -40,7 +40,7 @@ class Saas::AiAgents::Playground
         tools: tools, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
       )
       assistant = {
-        'role' => 'assistant', 'content' => result.fetch(:content), 'request_id' => request_id,
+        'role' => 'assistant', 'content' => Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content)), 'request_id' => request_id,
         'created_at' => Time.current.iso8601,
         'knowledge_sources' => sources,
         'tool_calls_count' => result.fetch(:tool_calls_count, 0), 'tool_names' => result.fetch(:tool_names, []),

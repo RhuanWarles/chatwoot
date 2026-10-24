@@ -89,7 +89,10 @@ class Saas::AiAgents::Respond
       next false if @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i >= @incoming.id
 
       # After a handoff the AI is paused, so later chunks would be cancelled; send a single message.
-      chunks = Saas::AiAgents::MessageSplitter.call(result.fetch(:content), @agent.split_response_messages && !@builtin_tools.handed_off?)
+      response_content = Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content))
+      raise CustomExceptions::AiAgentError, 'empty_response' if response_content.blank?
+
+      chunks = Saas::AiAgents::MessageSplitter.call(response_content, @agent.split_response_messages && !@builtin_tools.handed_off?)
       batch_id = SecureRandom.uuid
       content_attributes = {
         'generated_by_ai' => true, 'ai_agent_id' => @agent.id, 'ai_agent_incoming_message_id' => @incoming.id,

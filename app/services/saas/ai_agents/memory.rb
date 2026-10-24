@@ -53,7 +53,7 @@ class Saas::AiAgents::Memory
         model: effective_model(account, agent), messages: [{ role: 'system', content: MEMORY_PROMPT },
                                        { role: 'user', content: transcript(messages) }], temperature: 0
       )
-      content = result.fetch(:content).to_s.strip.first(Saas::AiAgentMemory::MAX_CONTENT_LENGTH)
+      content = Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content)).first(Saas::AiAgentMemory::MAX_CONTENT_LENGTH)
       memory.assign_attributes(content: content, last_processed_message_id: message_id, last_processed_at: Time.current,
                                metadata: memory.metadata.merge('updated_from_conversation_id' => conversation.id))
       memory.save!

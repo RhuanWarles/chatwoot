@@ -78,4 +78,10 @@ RSpec.describe Saas::AiAgents::Context do
 
     expect(history.last[:content]).to eq("[Participante: Carla; identificador: carla@lid]\n[Voice Message] Áudio transcrito")
   end
+
+  it 'removes internal author context from model output' do
+    content = "[Participante: Larissa; identificador: Saas::AiAgent:3]\nTenho sim!"
+
+    expect(described_class.strip_internal_author_context(content)).to eq('Tenho sim!')
+  end
 end

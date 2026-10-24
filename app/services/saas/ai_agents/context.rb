@@ -9,6 +9,7 @@ class Saas::AiAgents::Context
     name identifier participant_identifier participant_id sender_identifier sender_id remote_jid remoteJid
     remote_jid_alt remoteJidAlt jid lid
   ].freeze
+  INTERNAL_AUTHOR_CONTEXT_PATTERN = /\[Participante:[^\]]+\]\s*/i
 
   def self.relevant(conversation)
     messages = conversation.messages.where(private: false, message_type: %w[incoming outgoing])
@@ -47,6 +48,10 @@ class Saas::AiAgents::Context
     return if content.blank?
 
     "#{author_context(message)}\n#{content}"
+  end
+
+  def self.strip_internal_author_context(content)
+    content.to_s.gsub(INTERNAL_AUTHOR_CONTEXT_PATTERN, '').strip
   end
 
   def self.author_context(message)
