@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_21_100000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_23_110000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1175,12 +1175,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_21_100000) do
     t.string "name", null: false
     t.text "description"
     t.boolean "active", default: true, null: false
-    t.decimal "similarity_threshold", precision: 4, scale: 3
-    t.integer "retrieval_top_k"
-    t.integer "chunk_size"
-    t.integer "chunk_overlap"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "won_automations", default: [], null: false
+    t.jsonb "lost_automations", default: [], null: false
     t.index ["account_id", "name"], name: "index_crm_pipelines_on_account_id_and_name", unique: true
     t.index ["account_id"], name: "index_crm_pipelines_on_account_id"
   end
@@ -1750,7 +1748,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_21_100000) do
     t.boolean "customer_memory_enabled", default: false, null: false
     t.boolean "audio_enabled", default: false, null: false
     t.integer "context_messages_limit", default: 20, null: false
+    t.integer "response_delay_seconds", default: 2, null: false
+    t.integer "max_messages_per_response", default: 3, null: false
+    t.boolean "split_response_messages", default: true, null: false
+    t.bigint "crm_pipeline_id"
+    t.text "handoff_conditions"
     t.index ["account_id"], name: "index_saas_ai_agents_on_account_id"
+    t.index ["crm_pipeline_id"], name: "index_saas_ai_agents_on_crm_pipeline_id"
   end
 
   create_table "saas_ai_settings", force: :cascade do |t|
@@ -1828,6 +1832,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_21_100000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "similarity_threshold", precision: 4, scale: 3
+    t.integer "retrieval_top_k"
+    t.integer "chunk_size"
+    t.integer "chunk_overlap"
     t.index ["account_id"], name: "index_saas_knowledge_bases_on_account_id"
   end
 

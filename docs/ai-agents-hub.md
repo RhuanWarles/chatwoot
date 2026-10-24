@@ -14,6 +14,8 @@ O menu principal tem um único item **AI Agents**, com abas Texto e Voz. O link 
 
 O componente existente foi movido para `TextAgents.vue`, sem recriar o CRUD, registros ou vínculos com inboxes. Provider, modelo, temperatura, prompt, ativação, transferência e opção de responder em grupos continuam usando `Saas::AiAgent` e `/api/v1/accounts/:account_id/ai_agents`.
 
+Cada card de agente tem um switch para ativar ou pausar o agente; o cabeçalho do editor tem o mesmo switch, aplicado ao salvar.
+
 A seção recolhível **Conexão do provedor de texto** reutiliza `/api/v1/accounts/:account_id/saas_ai`. As credenciais continuam criptografadas em `Saas::AiSetting`, vinculadas à conta. A resposta não devolve a chave salva. Salvar os campos de texto não envia nem sobrescreve opções de voz da configuração antiga; deixar a chave em branco preserva a existente, salvo a regra atual de troca de provider.
 
 Não há migração ou alteração dos agentes existentes, como a Larissa, nem mudança no runtime de respostas.

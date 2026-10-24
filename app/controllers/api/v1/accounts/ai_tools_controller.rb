@@ -39,9 +39,9 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
 
   def test
     agent = Current.account.saas_ai_agents.find(params[:agent_id])
-    conversation = Current.account.conversations.find_by(id: params[:conversation_id]) if params[:conversation_id].present?
+    conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id]) if params[:conversation_id].present?
     result = Saas::AiTools::Executor.new(account: Current.account, agent: agent, conversation: conversation,
-                                         playground_session_id: "test:#{SecureRandom.uuid}").call(@tool.slug, test_arguments)
+                                         playground_session_id: "test:#{SecureRandom.uuid}").test(@tool, test_arguments)
     render json: result
   end
 
@@ -87,6 +87,6 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
 
   def test_arguments
     value = params[:arguments]
-    value.respond_to?(:to_h) ? value.to_h : {}
+    value.respond_to?(:to_unsafe_h) ? value.to_unsafe_h : {}
   end
 end

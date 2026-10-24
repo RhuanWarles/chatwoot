@@ -109,8 +109,26 @@
         "RESET_ERROR": "Unable to regenerate access token. Please try again"
       },
       "AUDIO_NOTIFICATIONS_SECTION": {
-        "TITLE": "Audio Alerts",
-        "NOTE": "Enable audio alerts in dashboard for new messages and conversations.",
+        "TITLE": "Message alerts",
+        "NOTE": "Get a WhatsApp-style popup and a sound when a new message or an AI handoff arrives.",
+        "CHANNELS": {
+          "POPUP": {
+            "TITLE": "Popup in the dashboard",
+            "NOTE": "Shows a card in the bottom right corner while you are using the dashboard."
+          },
+          "SOUND": {
+            "TITLE": "Sound",
+            "NOTE": "Plays the alert tone chosen below."
+          },
+          "DESKTOP": {
+            "TITLE": "Desktop notification",
+            "NOTE": "Shows a system notification while this window is in the background. Turn this off if you already receive browser push notifications, to avoid duplicates.",
+            "UNAVAILABLE": "Desktop notifications are blocked or not supported by this browser. Allow them in the browser settings and try again."
+          }
+        },
+        "TEST": "Send test alert",
+        "TEST_NAME": "Test contact",
+        "TEST_MESSAGE": "This is how a new message will look.",
         "PLAY": "Play sound",
         "ALERT_TYPES": {
           "NONE": "None",
@@ -121,7 +139,7 @@
           "NOTME": "Open conversations assigned to others"
         },
         "ALERT_COMBINATIONS": {
-          "NONE": "You haven't selected any options, you won't receive any audio alerts.",
+          "NONE": "You haven't selected any options, you won't receive any alerts.",
           "ASSIGNED": "You'll receive alerts for conversations assigned to you.",
           "UNASSIGNED": "You'll receive alerts for any unassigned conversations.",
           "NOTME": "You'll receive alerts for conversations assigned to others.",
@@ -141,7 +159,7 @@
         },
         "CONDITIONS": {
           "TITLE": "Alert conditions:",
-          "CONDITION_ONE": "Send audio alerts only if the browser window is not active",
+          "CONDITION_ONE": "Play the sound only if the browser window is not active",
           "CONDITION_TWO": "Send alerts every 30s until all the assigned conversations are read"
         },
         "SOUND_PERMISSION_ERROR": "Autoplay is disabled in your browser. To hear alerts automatically, enable sound permission in your browser settings or interact with the page.",
@@ -239,6 +257,14 @@
         "PLACEHOLDER": "Please re-enter your new password"
       }
     }
+  },
+  "ALERT_POPUP": {
+    "REGION_LABEL": "New message alerts",
+    "OPEN_CONVERSATION": "Open conversation with {name}",
+    "CLOSE": "Dismiss alert",
+    "CONVERSATION_FALLBACK": "Conversation #{id}",
+    "HANDOFF_TITLE": "Handoff from the AI",
+    "HANDOFF_WAITING": "A customer is waiting for a human agent."
   },
   "SIDEBAR_ITEMS": {
     "CHANGE_AVAILABILITY_STATUS": "Change",

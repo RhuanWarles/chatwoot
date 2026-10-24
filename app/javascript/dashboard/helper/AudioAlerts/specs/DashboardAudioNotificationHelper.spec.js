@@ -164,7 +164,8 @@ describe('dashboard bot handoff alerts', () => {
       helper.onConversationBotHandoff(conversation);
 
       expect(helper.playAudioAlert).toHaveBeenCalledTimes(shouldAlert ? 1 : 0);
-      expect(showBadgeOnFavicon).toHaveBeenCalledTimes(shouldAlert ? 1 : 0);
+      // A visible window gets no favicon badge
+      expect(showBadgeOnFavicon).not.toHaveBeenCalled();
       expect(vi.getTimerCount()).toBe(shouldAlert ? 1 : 0);
     }
   );

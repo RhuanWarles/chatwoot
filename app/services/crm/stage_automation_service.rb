@@ -1,21 +1,41 @@
 class Crm::StageAutomationService
-  # Stops stage automations that move cards back and forth between stages.
+  # Stops automations that keep moving the card or flipping its status back and forth.
   MAX_DEPTH = 5
+  WEBHOOK_EVENTS = { 'stage' => 'crm_deal_stage_entered', 'won' => 'crm_deal_won', 'lost' => 'crm_deal_lost' }.freeze
 
-  def initialize(deal, depth: 0)
+  def initialize(deal, depth: 0, trigger: 'stage')
     @deal = deal
     @depth = depth
+    @trigger = trigger
+    # Changes made by the actions enqueue their follow-up automations one level deeper.
+    @deal.automation_depth = depth + 1
   end
 
   def perform
-    @deal.pipeline_stage.automations.each do |action|
+    results = actions.map do |action|
       run(action)
+      { type: action['type'], ok: true }
     rescue StandardError => e
-      Rails.logger.error({ event: 'crm_stage_automation', deal_id: @deal.id, action: action['type'], error: e.message }.to_json)
+      # A failed update! leaves its rejected attributes on the shared deal; drop them so later actions start clean.
+      @deal.restore_attributes
+      Rails.logger.error({ event: 'crm_stage_automation', deal_id: @deal.id, trigger: @trigger,
+                           action: action['type'], error: e.message }.to_json)
+      { type: action['type'], ok: false }
     end
+    return if results.empty?
+
+    @deal.events.create!(account_id: @deal.account_id, event_type: 'automation_run', metadata: { trigger: @trigger, actions: results })
   end
 
   private
+
+  def actions
+    @trigger == 'stage' ? @deal.pipeline_stage.automations : @deal.pipeline.outcome_automations(@trigger)
+  end
+
+  def ensure_depth_left!
+    raise "automation depth limit (#{MAX_DEPTH}) reached" if @depth >= MAX_DEPTH
+  end
 
   def run(action)
     handler = {
@@ -32,6 +52,7 @@ class Crm::StageAutomationService
   end
 
   def update_status(action)
+    ensure_depth_left!
     @deal.update!(status: action['status'])
   end
 
@@ -65,9 +86,7 @@ class Crm::StageAutomationService
   end
 
   def move_stage(action)
-    return if @depth >= MAX_DEPTH
-
-    @deal.automation_depth = @depth + 1
+    ensure_depth_left!
     @deal.update!(pipeline_id: action['pipeline_id'], pipeline_stage_id: action['stage_id'])
   end
 
@@ -88,7 +107,7 @@ class Crm::StageAutomationService
 
   def webhook_payload
     {
-      event: 'crm_deal_stage_entered',
+      event: WEBHOOK_EVENTS.fetch(@trigger),
       account_id: @deal.account_id,
       lead: lead_payload,
       contact: contact_payload,

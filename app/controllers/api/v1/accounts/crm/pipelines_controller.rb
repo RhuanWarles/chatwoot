@@ -41,6 +41,9 @@ class Api::V1::Accounts::Crm::PipelinesController < Api::V1::Accounts::BaseContr
   end
 
   def pipeline_params
-    params.require(:pipeline).permit(:name, :description, :active)
+    params.require(:pipeline).permit(
+      :name, :description, :active,
+      won_automations: Crm::Automatable::ACTION_KEYS, lost_automations: Crm::Automatable::ACTION_KEYS
+    )
   end
 end

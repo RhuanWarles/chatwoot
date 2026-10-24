@@ -12,7 +12,7 @@ RSpec.describe Saas::AiAgents::Providers::Platform do
 
     expect(result).to eq(content: 'Resposta', usage: { 'total_tokens' => 12 })
     expect(Saas::TextService).to have_received(:generate_messages).with(
-      messages: [{ role: 'system', content: 'Ajude' }], temperature: 0.4
+      messages: [{ role: 'system', content: 'Ajude' }], temperature: 0.4, tools: [], tool_handler: nil
     )
   end
 

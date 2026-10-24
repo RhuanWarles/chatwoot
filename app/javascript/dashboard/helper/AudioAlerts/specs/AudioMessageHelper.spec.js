@@ -64,12 +64,17 @@ describe('isMessageFromCurrentUser', () => {
   const currentUserId = 1;
 
   it('should return true when message is from current user', () => {
-    const message = { sender: { id: 1 } };
+    const message = { sender: { id: 1, type: 'user' } };
     expect(isMessageFromCurrentUser(message, currentUserId)).toBe(true);
   });
 
   it('should return false when message is from different user', () => {
-    const message = { sender: { id: 2 } };
+    const message = { sender: { id: 2, type: 'user' } };
+    expect(isMessageFromCurrentUser(message, currentUserId)).toBe(false);
+  });
+
+  it('should return false when a contact has the same id as the current user', () => {
+    const message = { sender: { id: 1, type: 'contact' } };
     expect(isMessageFromCurrentUser(message, currentUserId)).toBe(false);
   });
 

@@ -8,6 +8,8 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
+import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
 import TextCredentials from './TextCredentials.vue';
 
@@ -87,24 +89,35 @@ const openEditor = agent =>
     query: { type: 'text' },
   });
 const openNew = () => openEditor();
-const errorText = error =>
-  error.response?.data?.error === 'inbox_conflict'
-    ? t('AI_AGENTS.INBOX_CONFLICT')
-    : t('AI_AGENTS.SAVE_ERROR');
+const errorText = error => {
+  const code = error.response?.data?.error;
+  if (code === 'inbox_conflict') return t('AI_AGENTS.INBOX_CONFLICT');
+  if (code === 'text_ai_disabled') return t('AI_AGENTS.TEXT_AI_DISABLED');
+  return t('AI_AGENTS.TOGGLE_ERROR');
+};
+const toggleLabel = agent =>
+  agent.active ? t('AI_AGENTS.DEACTIVATE') : t('AI_AGENTS.ACTIVATE');
+const toggleAriaLabel = agent =>
+  agent.active
+    ? t('AI_AGENTS.DEACTIVATE_NAMED', { name: agent.name })
+    : t('AI_AGENTS.ACTIVATE_NAMED', { name: agent.name });
 const toggle = async agent => {
   if (busy.value) return;
   busy.value = true;
   actionError.value = '';
+  const previous = agent.active;
+  agent.active = !previous;
   try {
     const { data } = await aiAgentsAPI.update(agent.id, {
-      ai_agent: { active: !agent.active },
+      ai_agent: { active: !previous },
     });
     agents.value = agents.value.map(item =>
       item.id === data.id ? normalizeAgent(data) : item
     );
     window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
   } catch (error) {
-    actionError.value = errorText(error);
+    agent.active = previous;
+    useAlert(errorText(error));
   } finally {
     busy.value = false;
   }
@@ -155,23 +168,17 @@ const remove = async () => {
     busy.value = false;
   }
 };
-const actionMenuItems = agent => [
+const actionMenuItems = computed(() => [
   {
     action: 'memories',
     icon: 'i-lucide-brain',
     label: t('AI_AGENTS.MEMORIES'),
   },
-  {
-    action: 'toggle',
-    icon: agent.active ? 'i-lucide-pause' : 'i-lucide-play',
-    label: agent.active ? t('AI_AGENTS.DEACTIVATE') : t('AI_AGENTS.ACTIVATE'),
-  },
   { action: 'delete', icon: 'i-lucide-trash-2', label: t('AI_AGENTS.DELETE') },
-];
+]);
 const handleMenuAction = ({ action }, agent, hide) => {
   hide();
   if (action === 'memories') openMemories(agent);
-  if (action === 'toggle') toggle(agent);
   if (action === 'delete') requestDelete(agent);
 };
 defineExpose({ openNew, canCreate });
@@ -277,12 +284,25 @@ onMounted(load);
               {{ agent.inboxes.map(inbox => inbox.name).join(', ') }}
             </span>
           </p>
+          <p
+            v-if="agent.active && !agent.inboxes.length"
+            class="text-sm text-n-amber-11"
+          >
+            {{ t('AI_AGENTS.ACTIVE_WITHOUT_INBOX') }}
+          </p>
           <p class="text-xs text-n-slate-10">
             {{ t('AI_AGENTS.UPDATED') }}{{ t('AI_AGENTS.COLON') }}
             {{ formatUpdatedAt(agent.updated_at) }}
           </p>
         </div>
-        <div class="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+        <div class="flex shrink-0 flex-wrap items-center gap-3 lg:justify-end">
+          <Switch
+            v-tooltip="toggleLabel(agent)"
+            :model-value="agent.active"
+            :disabled="busy"
+            :aria-label="toggleAriaLabel(agent)"
+            @update:model-value="toggle(agent)"
+          />
           <Button
             variant="ghost"
             :label="t('AI_AGENTS.TEST')"
@@ -290,7 +310,7 @@ onMounted(load);
             @click="
               router.push({
                 name: 'ai_agent_playground',
-                params: { accountId: accountId.value, agentId: agent.id },
+                params: { accountId, agentId: agent.id },
               })
             "
           />
@@ -311,7 +331,7 @@ onMounted(load);
             <template #content="{ hide }">
               <DropdownMenu
                 class="!relative w-56 max-w-[calc(100vw-2rem)]"
-                :menu-items="actionMenuItems(agent)"
+                :menu-items="actionMenuItems"
                 @action="handleMenuAction($event, agent, hide)"
               />
             </template>

@@ -1,3 +1,5 @@
+export const HANDOFF_CONDITIONS_MAX_LENGTH = 1000;
+
 export const newAgent = () => ({
   name: '',
   description: '',
@@ -10,7 +12,9 @@ export const newAgent = () => ({
   system_prompt: '',
   inbox_ids: [],
   handoff_enabled: true,
+  handoff_conditions: '',
   crm_stage_automation_enabled: false,
+  crm_pipeline_id: null,
   respond_to_groups: false,
   customer_memory_enabled: false,
   audio_enabled: false,
@@ -31,7 +35,9 @@ export const agentPayload = agent => ({
   system_prompt: agent.system_prompt,
   inbox_ids: [...agent.inbox_ids],
   handoff_enabled: agent.handoff_enabled,
+  handoff_conditions: agent.handoff_conditions?.trim() || null,
   crm_stage_automation_enabled: agent.crm_stage_automation_enabled ?? false,
+  crm_pipeline_id: agent.crm_pipeline_id || null,
   respond_to_groups: agent.respond_to_groups,
   customer_memory_enabled: agent.customer_memory_enabled,
   audio_enabled: agent.audio_enabled === true,
@@ -61,5 +67,6 @@ export const validAgent = agent =>
       Number.isInteger(agent.response_delay_seconds) &&
       agent.response_delay_seconds >= 0 &&
       agent.response_delay_seconds <= 10 &&
-      typeof agent.split_response_messages === 'boolean'
+      typeof agent.split_response_messages === 'boolean' &&
+      (agent.handoff_conditions || '').length <= HANDOFF_CONDITIONS_MAX_LENGTH
   );

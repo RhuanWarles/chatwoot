@@ -16,13 +16,25 @@ class Saas::AiTools::Executor
   end
 
   def call(tool_name, arguments)
-    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    request_id = SecureRandom.uuid
     tool = @agent.tools.find_by(account_id: @account.id, slug: tool_name)
-    return record_failure(tool, request_id, 'tool_not_available', started) if tool && !tool.active?
     return failure('tool_not_available') unless tool
 
-    args = arguments.is_a?(Hash) ? arguments.stringify_keys : {}
+    perform(tool, arguments, ignore_inactive: false)
+  end
+
+  # Ignores the active flag and the agent attachment, but is still logged like any other execution.
+  def test(tool, arguments)
+    perform(tool, arguments, ignore_inactive: true)
+  end
+
+  private
+
+  def perform(tool, arguments, ignore_inactive:)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    request_id = SecureRandom.uuid
+    return record_failure(tool, request_id, 'tool_not_available', started) if !tool.active? && !ignore_inactive
+
+    args = arguments.is_a?(Hash) ? arguments.stringify_keys.compact : {}
     validation = validate_arguments(tool, args)
     return record_failure(tool, request_id, validation, started) unless validation == true
 
@@ -43,21 +55,22 @@ class Saas::AiTools::Executor
       'response_contract_valid' => normalized[:valid], 'result' => normalized[:result], 'error_code' => error_code,
       'error' => normalized[:error] }.compact
   rescue URI::InvalidURIError, CustomExceptions::SaasError => error
-    record_failure(tool, request_id || SecureRandom.uuid, error.respond_to?(:code) ? error.code : 'invalid_tool_request', started)
+    record_failure(tool, request_id, error.respond_to?(:code) ? error.code : 'invalid_tool_request', started)
   rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-    record_failure(tool, request_id || SecureRandom.uuid, 'tool_timeout_or_connection_error', started)
+    record_failure(tool, request_id, 'tool_timeout_or_connection_error', started)
   rescue StandardError => error
-    Rails.logger.warn({ event: 'saas_ai_tool', status: 'error', ai_tool_id: tool&.id, error: error.class.name }.to_json)
-    record_failure(tool, request_id || SecureRandom.uuid, 'tool_request_failed', started)
+    Rails.logger.warn({ event: 'saas_ai_tool', status: 'error', ai_tool_id: tool.id, error: error.class.name }.to_json)
+    record_failure(tool, request_id, 'tool_request_failed', started)
   end
-
-  private
 
   def validate_arguments(tool, arguments)
     parameters = tool.parameters.select { |item| item['value_source'].to_s.presence.in?([nil, 'ai']) }
     names = parameters.map { |item| item['name'] }
-    return 'unknown_argument' unless (arguments.keys - names).empty?
-    return 'missing_required_argument' unless parameters.select { |item| item['required'] == true }.all? { |item| arguments.key?(item['name']) }
+    unknown = arguments.keys - names
+    return "unknown_argument:#{unknown.first.to_s.first(64)}" if unknown.any?
+
+    missing = parameters.find { |item| item['required'] == true && !arguments.key?(item['name']) }
+    return "missing_required_argument:#{missing['name']}" if missing
 
     parameters.each do |parameter|
       next unless arguments.key?(parameter['name'])
@@ -70,7 +83,7 @@ class Saas::AiTools::Executor
               when 'boolean' then value == true || value == false
               end
       valid &&= Array(parameter['enum_values']).map(&:to_s).include?(value.to_s) if parameter['type'] == 'enum'
-      return 'invalid_argument' unless valid
+      return "invalid_argument:#{parameter['name']}" unless valid
     end
     true
   end
@@ -144,9 +157,9 @@ class Saas::AiTools::Executor
   end
 
   def record_failure(tool, request_id, error_code, started)
-    persist_execution(tool, request_id, {}, 'failed', nil, started, error_code) if tool
+    persist_execution(tool, request_id, {}, 'failed', nil, started, error_code)
     Rails.logger.warn({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id,
-                        conversation_id: @conversation&.id, ai_tool_id: tool&.id, status: 'failed',
+                        conversation_id: @conversation&.id, ai_tool_id: tool.id, status: 'failed',
                         error_code: error_code, execution_id: request_id, duration_ms: elapsed_ms(started) }.compact.to_json)
     { 'success' => false, 'error' => error_code.to_s, 'status' => nil, 'duration_ms' => elapsed_ms(started) }
   end

@@ -54,11 +54,10 @@ class Saas::AiAgents::Respond
                                                     incoming_message_id: @incoming.id)
     knowledge_context = Saas::Knowledge::Retrieval.messages(sources, enabled: @agent.knowledge_bases.exists?)
     @builtin_tools = Saas::AiAgents::BuiltinTools.new(agent: @agent, conversation: @conversation)
-    builtin_definitions = tools_supported?(mode) ? @builtin_tools.definitions : []
-    tool_definitions = Saas::AiTools::Catalog.for_agent(@agent) + builtin_definitions
+    tool_definitions, guidance = tool_context(mode)
     tool_executor = Saas::AiTools::Executor.new(account: @conversation.account, agent: @agent, conversation: @conversation)
     messages = Saas::AiAgents::Context.build(@conversation, @agent, @incoming, memory_context: memory_context, knowledge_context: knowledge_context)
-    messages.insert(1, { role: 'system', content: @builtin_tools.instructions }) if builtin_definitions.present? && @builtin_tools.instructions
+    messages.insert(1, { role: 'system', content: guidance }) if guidance.present?
     result = Saas::AiAgents::Provider.for(@conversation.account, @agent.provider, mode: mode).generate(
       model: @agent.model,
       messages: messages,
@@ -176,8 +175,16 @@ class Saas::AiAgents::Respond
     }
   end
 
-  def tools_supported?(mode)
-    effective_provider(mode) == 'openai'
+  def tool_context(mode)
+    custom = Saas::AiTools::Catalog.for_agent(@agent)
+    unless Saas::AiAgents::Provider.tools_supported?(effective_provider(mode))
+      log('tools_unsupported') if custom.present?
+      return [[], nil]
+    end
+
+    builtin = @builtin_tools.definitions
+    guidance = [Saas::AiTools::Catalog.instructions(custom), (@builtin_tools.instructions if builtin.present?)].compact.join("\n\n").presence
+    [custom + builtin, guidance]
   end
 
   def effective_provider(mode)

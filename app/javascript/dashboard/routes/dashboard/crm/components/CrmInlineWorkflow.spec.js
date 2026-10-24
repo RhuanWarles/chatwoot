@@ -27,6 +27,7 @@ const store = createStore({
     getCurrentRole: () => 'administrator',
     'agents/getAgents': () => [],
     'labels/getLabels': () => [],
+    getUISettings: () => ({}),
   },
   actions: { 'contacts/create': createContact },
 });

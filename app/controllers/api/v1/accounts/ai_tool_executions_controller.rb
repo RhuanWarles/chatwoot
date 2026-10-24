@@ -61,7 +61,8 @@ class Api::V1::Accounts::AiToolExecutionsController < Api::V1::Accounts::BaseCon
       agent: { id: execution.ai_agent_id, name: execution.ai_agent.name },
       tool: { id: execution.ai_tool_id, name: execution.ai_tool.name, slug: execution.ai_tool.slug },
       status: execution.status, response_status: execution.response_status, duration_ms: execution.duration_ms,
-      source: execution.source, conversation_id: execution.conversation_id, error_code: execution.error_code
+      source: execution.source, conversation_id: execution.conversation_id, conversation_display_id: execution.conversation&.display_id,
+      error_code: execution.error_code
     }
     data[:arguments] = execution.safe_arguments if detailed
     data

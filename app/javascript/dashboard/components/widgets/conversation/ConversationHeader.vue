@@ -16,7 +16,7 @@ import { useInbox } from 'dashboard/composables/useInbox';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
-import Button from 'dashboard/components-next/button/Button.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 
 const props = defineProps({
@@ -63,34 +63,38 @@ const loadAiState = async conversationId => {
   aiAvailable.value = false;
   if (!conversationId) return;
   aiStateLoading.value = true;
+  // A slower response for a conversation the user already left must not overwrite the current one.
+  const isStale = () => conversationId !== currentChat.value.id;
   try {
     const { data } = await ConversationApi.getAiState(conversationId);
-    aiAvailable.value = data.available === true;
+    if (!isStale()) aiAvailable.value = data.available === true;
   } catch {
-    aiAvailable.value = false;
+    if (!isStale()) aiAvailable.value = false;
   } finally {
-    aiStateLoading.value = false;
+    if (!isStale()) aiStateLoading.value = false;
   }
 };
 
-const updateLocalConversation = additionalAttributes => {
-  store.dispatch('updateConversation', {
-    ...currentChat.value,
-    additional_attributes: additionalAttributes,
-  });
+const updateLocalConversation = (conversationId, additionalAttributes) => {
+  const chat = store.getters.getConversationById(conversationId);
+  if (chat) {
+    store.dispatch('updateConversation', {
+      ...chat,
+      additional_attributes: additionalAttributes,
+    });
+  }
 };
 
 const toggleAiState = async () => {
   if (aiStateBusy.value || !aiAvailable.value) return;
   aiStateBusy.value = true;
+  const conversationId = currentChat.value.id;
   try {
-    const state = aiEnabled.value ? 'human' : 'ai';
     const { data } = await ConversationApi.updateAiState({
-      conversationId: currentChat.value.id,
-      state,
+      conversationId,
+      state: aiEnabled.value ? 'human' : 'ai',
     });
-    aiAvailable.value = data.available === true;
-    updateLocalConversation(data.additional_attributes);
+    updateLocalConversation(conversationId, data.additional_attributes);
   } catch {
     useAlert(t('CONVERSATION.HEADER.AI_UPDATE_ERROR'));
   } finally {
@@ -255,15 +259,21 @@ const copyConversationId = async () => {
         class="hidden md:flex"
       />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
-      <Button
+      <label
         v-if="aiAvailable"
         v-tooltip="aiHelp"
-        variant="ghost"
-        :label="`${t('CONVERSATION.HEADER.AI_LABEL')}: ${aiLabel}`"
-        :disabled="aiStateLoading || aiStateBusy"
-        :color="aiEnabled ? 'teal' : 'amber'"
-        @click="toggleAiState"
-      />
+        class="flex items-center gap-2 text-sm font-medium shrink-0 cursor-pointer"
+        :class="aiEnabled ? 'text-n-teal-11' : 'text-n-amber-11'"
+      >
+        <span class="i-lucide-bot size-4" />
+        {{ aiLabel }}
+        <Switch
+          :model-value="aiEnabled"
+          :disabled="aiStateLoading || aiStateBusy"
+          :aria-label="t('CONVERSATION.HEADER.AI_LABEL')"
+          @update:model-value="toggleAiState"
+        />
+      </label>
       <MoreActions :conversation-id="currentChat.id" />
     </div>
   </div>

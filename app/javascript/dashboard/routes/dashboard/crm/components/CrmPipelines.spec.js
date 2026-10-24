@@ -122,7 +122,12 @@ describe('Visual pipeline management', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(pipelinesAPI.create).toHaveBeenCalledWith({
-      pipeline: { name: 'New', active: true },
+      pipeline: {
+        name: 'New',
+        active: true,
+        won_automations: [],
+        lost_automations: [],
+      },
     });
     expect(api.create).toHaveBeenCalledTimes(5);
     expect(api.create).toHaveBeenNthCalledWith(1, {
@@ -198,7 +203,12 @@ describe('Visual pipeline management', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(pipelinesAPI.update).toHaveBeenCalledWith(1, {
-      pipeline: { name: 'Renamed', active: true },
+      pipeline: {
+        name: 'Renamed',
+        active: true,
+        won_automations: [],
+        lost_automations: [],
+      },
     });
     expect(api.update).toHaveBeenCalledWith(10, {
       pipeline_stage: {
@@ -265,7 +275,9 @@ describe('Visual pipeline management', () => {
     await wrapper.find('.confirm').trigger('click');
     await flushPromises();
     expect(wrapper.find('.dialog').exists()).toBe(true);
-    expect(wrapper.find('.dialog').text()).toContain(pt.CRM.SAVE_ERROR);
+    expect(wrapper.find('.dialog').text()).toContain(
+      pt.CRM.SAVE_ERROR_PIPELINE
+    );
   });
 });
 

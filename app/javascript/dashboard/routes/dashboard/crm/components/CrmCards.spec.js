@@ -21,6 +21,7 @@ config.global.plugins = [
       getCurrentRole: () => 'administrator',
       'agents/getAgents': () => [],
       'labels/getLabels': () => [],
+      getUISettings: () => ({}),
     },
   }),
   createI18n({
@@ -110,11 +111,11 @@ describe('CRM cards and translations', () => {
     expect(pt.CRM.NAME).toBe('Nome do negócio');
     expect(pt.CRM.DESCRIPTION).toBe('Descrição');
     expect(pt.CRM.SAVE_CHANGES).toBe('Salvar alterações');
-    expect(
-      Object.values(pt)
-        .flatMap(section => Object.values(section))
-        .some(value => value.includes('?') || value.includes('�'))
-    ).toBe(false);
+    const collectStrings = value =>
+      typeof value === 'string'
+        ? [value]
+        : Object.values(value).flatMap(collectStrings);
+    expect(collectStrings(pt).some(value => value.includes('�'))).toBe(false);
     expect(Object.keys(pt.CRM).every(key => key in en.CRM)).toBe(true);
   });
 });

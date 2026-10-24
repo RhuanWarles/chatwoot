@@ -2,7 +2,11 @@ import {
   ROLES,
   CONVERSATION_PERMISSIONS,
 } from 'dashboard/constants/permissions';
-import { getUserPermissions } from 'dashboard/helper/permissionsHelper';
+import {
+  getUserPermissions,
+  getUserRole,
+} from 'dashboard/helper/permissionsHelper';
+import { applyRoleFilter } from 'dashboard/store/modules/conversations/helpers';
 import wootConstants from 'dashboard/constants/globals';
 
 class AudioNotificationStore {
@@ -32,7 +36,7 @@ class AudioNotificationStore {
     return this.store.getters.getSelectedChat?.id === message.conversation_id;
   };
 
-  hasConversationPermission = user => {
+  hasConversationPermission = (user, message) => {
     const currentAccountId = this.store.getters.getCurrentAccountId;
     // Get the user permissions for the current account
     const userPermissions = getUserPermissions(user, currentAccountId);
@@ -40,7 +44,19 @@ class AudioNotificationStore {
     const hasRequiredPermission = [...ROLES, ...CONVERSATION_PERMISSIONS].some(
       permission => userPermissions.includes(permission)
     );
-    return hasRequiredPermission;
+    if (!hasRequiredPermission || !message) return hasRequiredPermission;
+
+    // Events reach every inbox member; a custom role may only see unassigned or own conversations
+    const assigneeId = message.conversation?.assignee_id;
+    const conversation = {
+      meta: { assignee: assigneeId ? { id: assigneeId } : null },
+    };
+    return applyRoleFilter(
+      conversation,
+      getUserRole(user, currentAccountId),
+      userPermissions,
+      user.id
+    );
   };
 }
 

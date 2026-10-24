@@ -109,8 +109,26 @@
         "RESET_ERROR": "Não foi possível regerar o token de acesso. Por favor, tente novamente"
       },
       "AUDIO_NOTIFICATIONS_SECTION": {
-        "TITLE": "Alertas de áudio",
-        "NOTE": "Habilitar notificações de áudio no painel para novas mensagens e conversas.",
+        "TITLE": "Alertas de mensagens",
+        "NOTE": "Receba um popup no estilo WhatsApp e um som quando chegar uma nova mensagem ou uma transferência da IA.",
+        "CHANNELS": {
+          "POPUP": {
+            "TITLE": "Popup no painel",
+            "NOTE": "Mostra um cartão no canto inferior direito enquanto você usa o painel."
+          },
+          "SOUND": {
+            "TITLE": "Som",
+            "NOTE": "Toca o tom de alerta escolhido abaixo."
+          },
+          "DESKTOP": {
+            "TITLE": "Notificação do computador",
+            "NOTE": "Mostra uma notificação do sistema enquanto esta janela estiver em segundo plano. Desative se você já recebe notificações push do navegador, para evitar duplicidade.",
+            "UNAVAILABLE": "As notificações do computador estão bloqueadas ou não são compatíveis com este navegador. Permita nas configurações do navegador e tente novamente."
+          }
+        },
+        "TEST": "Enviar alerta de teste",
+        "TEST_NAME": "Contato de teste",
+        "TEST_MESSAGE": "É assim que uma nova mensagem vai aparecer.",
         "PLAY": "Reproduzir áudio",
         "ALERT_TYPES": {
           "NONE": "Nenhuma",
@@ -121,14 +139,14 @@
           "NOTME": "Conversas abertas atribuídas a outras pessoas"
         },
         "ALERT_COMBINATIONS": {
-          "NONE": "Você não selecionou nenhuma opção, você não receberá nenhum alerta de áudio.",
+          "NONE": "Você não selecionou nenhuma opção, você não receberá nenhum alerta.",
           "ASSIGNED": "Você receberá alertas para conversas atribuídas a você.",
           "UNASSIGNED": "Você receberá alertas para quaisquer conversas não atribuídas.",
           "NOTME": "Você receberá alertas para conversas atribuídas a outras pessoas.",
           "ASSIGNED+UNASSIGNED": "Receberá alertas de conversas atribuídas e de quaisquer conversas não atendidas.",
           "ASSIGNED+NOTME": "Você receberá alertas para conversas atribuídas a você e a outros, mas não para conversas não atribuídas.",
           "NOTME+UNASSIGNED": "Você receberá alertas de conversas não atendidas e aquelas atribuídas a outros.",
-          "ASSIGNED+NOTME+UNASSIGNED": "Você receberá alertas para quaisquer conversas não atribuídas."
+          "ASSIGNED+NOTME+UNASSIGNED": "Você receberá alertas para todas as conversas."
         },
         "ALERT_TYPE": {
           "TITLE": "Eventos de alerta para conversas",
@@ -141,7 +159,7 @@
         },
         "CONDITIONS": {
           "TITLE": "Condições:",
-          "CONDITION_ONE": "Enviar alertas de áudio apenas se a janela do navegador não estiver ativa",
+          "CONDITION_ONE": "Tocar o som apenas se a janela do navegador não estiver ativa",
           "CONDITION_TWO": "Enviar alertas a cada 30 segundos até que todas as conversas atribuídas sejam lidas"
         },
         "SOUND_PERMISSION_ERROR": "A reprodução automática está desativada no seu navegador. Para ouvir alertas automaticamente, habilite a permissão de som nas configurações do seu navegador ou interaja com a página.",
@@ -239,6 +257,14 @@
         "PLACEHOLDER": "Por favor, digite sua nova senha "
       }
     }
+  },
+  "ALERT_POPUP": {
+    "REGION_LABEL": "Alertas de novas mensagens",
+    "OPEN_CONVERSATION": "Abrir conversa com {name}",
+    "CLOSE": "Dispensar alerta",
+    "CONVERSATION_FALLBACK": "Conversa #{id}",
+    "HANDOFF_TITLE": "Atendimento transferido pela IA",
+    "HANDOFF_WAITING": "Um cliente aguarda um atendente humano."
   },
   "SIDEBAR_ITEMS": {
     "CHANGE_AVAILABILITY_STATUS": "Trocar",

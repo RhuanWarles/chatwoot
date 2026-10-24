@@ -354,7 +354,10 @@ const runTest = async () => {
     );
     testResult.value = response.data;
   } catch (testError) {
-    error.value = testError.response?.data?.error || t('AI_TOOLS.TEST_ERROR');
+    error.value =
+      testError.response?.status === 404
+        ? t('AI_TOOLS.TEST_NOT_FOUND')
+        : testError.response?.data?.error || t('AI_TOOLS.TEST_ERROR');
   } finally {
     busy.value = false;
   }
@@ -469,9 +472,17 @@ onMounted(load);
             }}</span>
           </div>
         </div>
+        <Input
+          v-if="isEdit && form.slug"
+          :model-value="form.slug"
+          disabled
+          :label="t('AI_TOOLS.SLUG')"
+          :message="t('AI_TOOLS.SLUG_HELP')"
+        />
         <TextArea
           v-model="form.description"
           :label="t('AI_TOOLS.DESCRIPTION')"
+          :placeholder="t('AI_TOOLS.DESCRIPTION_PLACEHOLDER')"
           :message="`${t('AI_TOOLS.DESCRIPTION_HELP')} · ${descriptionMessage}`"
           :max-length="1000"
           :show-character-count="false"

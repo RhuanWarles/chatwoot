@@ -16,6 +16,7 @@ config.global.plugins = [
       getCurrentRole: () => 'administrator',
       'agents/getAgents': () => [],
       'labels/getLabels': () => [],
+      getUISettings: () => ({}),
     },
   }),
 ];
