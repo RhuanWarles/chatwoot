@@ -46,6 +46,33 @@ const preserveConversationMessageState = (
   dataFetched: existingConversation.dataFetched,
 });
 
+const mergeMessageUpdate = (existingMessage, message) => {
+  const mergedMessage = Object.entries(message).reduce(
+    (result, [key, value]) => {
+      if (value !== undefined) result[key] = value;
+      return result;
+    },
+    { ...existingMessage }
+  );
+
+  if ('content_attributes' in message) {
+    mergedMessage.content_attributes = {
+      ...(existingMessage.content_attributes || {}),
+      ...(message.content_attributes || {}),
+    };
+  }
+
+  // Provider edit events may be intentionally partial. A content update must
+  // never make the existing sender disappear from the message bubble.
+  ['sender', 'sender_id', 'sender_type'].forEach(field => {
+    if (message[field] == null && existingMessage[field] != null) {
+      mergedMessage[field] = existingMessage[field];
+    }
+  });
+
+  return mergedMessage;
+};
+
 // mutations
 export const mutations = {
   [types.SET_ALL_CONVERSATION](_state, conversationList) {
@@ -261,10 +288,10 @@ export const mutations = {
         existingMessage => existingMessage.id === message.id
       );
       if (existingMessageIndex !== -1) {
-        chat.messages[existingMessageIndex] = {
-          ...chat.messages[existingMessageIndex],
-          ...message,
-        };
+        chat.messages[existingMessageIndex] = mergeMessageUpdate(
+          chat.messages[existingMessageIndex],
+          message
+        );
         return;
       }
     }

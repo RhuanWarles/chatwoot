@@ -26,8 +26,11 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'crm_stage_automation_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
     'customer_memory_enabled' => ->(value) { [true, false].include?(value) },
+
     'crm_pipeline_id' => ->(value) { value.nil? || (value.is_a?(Integer) && value.positive?) },
     'handoff_conditions' => ->(value) { value.nil? || (value.is_a?(String) && value.length <= Saas::AiAgent::HANDOFF_CONDITIONS_MAX_LENGTH) },
+    'audio_enabled' => ->(value) { [true, false].include?(value) },
+
     'knowledge_base_ids' => lambda { |value|
       value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value
     },

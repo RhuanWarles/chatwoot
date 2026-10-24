@@ -41,7 +41,7 @@ RSpec.describe Evolution::ChatwootConfiguration do
   it 'returns only the instance and signing state when reading configuration' do
     result = described_class.new(inbox).show
 
-    expect(result).to eq(instance_name: 'rwhub', configured: true, sign_msg: true)
+    expect(result).to eq(instance_name: 'rwhub', configured: true, sign_msg: true, sign_delimiter: "\n")
     expect(HTTParty).to have_received(:get).with(
       'https://evolution.example.com/chatwoot/find/rwhub',
       hash_including(headers: hash_including('apikey' => 'secret'))
@@ -73,7 +73,7 @@ RSpec.describe Evolution::ChatwootConfiguration do
   it 'treats an unconfigured instance as a valid initial configuration' do
     response.parsed_response.replace('enabled' => false, 'signMsg' => false, 'accountId' => '', 'token' => '')
 
-    expect(described_class.new(inbox).show).to eq(instance_name: 'rwhub', configured: false, sign_msg: false)
+    expect(described_class.new(inbox).show).to eq(instance_name: 'rwhub', configured: false, sign_msg: false, sign_delimiter: nil)
   end
 
   it 'preserves authentication failures from Evolution' do

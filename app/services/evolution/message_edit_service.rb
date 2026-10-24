@@ -20,7 +20,7 @@ class Evolution::MessageEditService
     Evolution::GroupClient.new(@message.inbox).update_message(
       number: message_key.fetch('remoteJid'),
       key: message_key,
-      text: @content
+      text: formatted_content
     )
   end
 
@@ -36,6 +36,18 @@ class Evolution::MessageEditService
 
   def message_key
     @message_key ||= stored_message_key.reverse_merge(default_message_key)
+  end
+
+  def formatted_content
+    configuration = Evolution::ChatwootConfiguration.new(@message.inbox).show
+    sender_name = @message.sender&.available_name.presence || @message.sender&.name.presence
+
+    Evolution::MessageSignatureFormatter.call(
+      content: @content,
+      sender_name: sender_name,
+      sign_msg: configuration[:sign_msg],
+      sign_delimiter: configuration[:sign_delimiter]
+    )
   end
 
   def stored_message_key

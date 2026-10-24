@@ -31,4 +31,5 @@ en:
       already_member: "This participant is already in the group."
       participant_rejected: "WhatsApp did not confirm the addition. Check the number, privacy settings and group permissions."
       message_not_editable: "This message cannot be edited through Evolution WhatsApp."
+      message_edit_sync_invalid: "The WhatsApp message edit could not be validated."
       edit_window_expired: "This message is outside WhatsApp's editing window."

@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::Conversations::BaseController
-  before_action :ensure_api_inbox, only: :update
+  before_action :ensure_api_inbox, only: [:update, :evolution_edit]
   rescue_from CustomExceptions::Evolution, with: :render_evolution_error
 
   def index
@@ -22,6 +22,16 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
       update_content_attributes if permitted_params[:content_attributes].present?
     end
     @message = message
+  end
+
+  def evolution_edit
+    @message = Evolution::MessageEditSyncService.new(
+      message: message,
+      content: evolution_edit_params[:content],
+      instance_name: evolution_edit_params[:instance_name],
+      whatsapp_message_key: evolution_edit_params[:whatsapp_message_key],
+      edited_at: evolution_edit_params[:edited_at]
+    ).perform
   end
 
   def destroy
@@ -94,11 +104,14 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     params.permit(:id, :target_language, :status, :external_error, :content, content_attributes: {})
   end
 
+  def evolution_edit_params
+    params.permit(:content, :instance_name, :edited_at, whatsapp_message_key: {})
+  end
+
   def update_content
     attributes = permitted_params[:content_attributes].to_h.stringify_keys
-    provider_update = Current.user.blank? && attributes['whatsapp_message_edit_source'].present?
 
-    Evolution::MessageEditService.new(message: message, content: permitted_params[:content]).perform unless provider_update
+    Evolution::MessageEditService.new(message: message, content: permitted_params[:content]).perform
 
     message.update!(
       content: permitted_params[:content],

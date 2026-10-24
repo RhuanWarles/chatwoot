@@ -36,6 +36,17 @@ class Saas::AiAgents::Respond
     @incoming = Saas::AiAgents::Context.latest_incoming(@conversation)
     return unless @incoming && @incoming.id > @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i
 
+    if @incoming.attachments.any?(&:audio?)
+      return unless @agent.audio_enabled?
+
+      transcription = Saas::Audio::TranscriptionService.new(attachment: @incoming.attachments.find(&:audio?),
+                                                             account: @conversation.account, agent: @agent).perform
+      unless transcription[:success]
+        log('audio_transcription_failed', transcription[:error])
+        return
+      end
+    end
+
     mode = @conversation.account.saas_ai_setting&.text_mode || 'platform'
     memory_context = Saas::AiAgents::Memory.prompt_context(@agent, @conversation.contact)
     usage = reserve_credits(mode)

@@ -16,6 +16,10 @@ x-chatwoot: &chatwoot
     POSTGRES_USERNAME: postgres
     REDIS_URL: redis://redis:6379
     ACTIVE_STORAGE_SERVICE: local
+    SAAS_AUDIO_PROVIDER: ${SAAS_AUDIO_PROVIDER:-openai}
+    SAAS_AUDIO_MODEL: ${SAAS_AUDIO_MODEL:-}
+    SAAS_AUDIO_API_KEY: ${SAAS_AUDIO_API_KEY:-}
+    SAAS_AUDIO_CREDITS_PER_MINUTE: ${SAAS_AUDIO_CREDITS_PER_MINUTE:-1}
   volumes:
     - storage_data:/app/storage
   restart: unless-stopped

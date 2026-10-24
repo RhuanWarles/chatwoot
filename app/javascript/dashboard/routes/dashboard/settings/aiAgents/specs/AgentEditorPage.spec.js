@@ -70,6 +70,9 @@ it('organizes the editor into four tabs without losing the draft between tabs', 
 
   await tabs[1].trigger('click');
   expect(wrapper.find('section').text()).toContain('AI_AGENTS.PROMPT_SECTION');
+  await tabs[2].trigger('click');
+  expect(wrapper.find('section').text()).toContain('AI_AGENTS.AUDIO_ENABLED');
+  expect(wrapper.vm.draft.audio_enabled).toBe(false);
   await tabs[3].trigger('click');
   expect(wrapper.find('section').text()).toContain(
     'AI_AGENTS.CONNECTIONS_SECTION'
