@@ -70,11 +70,11 @@ class Saas::AiAgents::Memory
     messages.filter_map do |message|
       next unless remaining.positive?
 
-      content = message.content.to_s.strip.first(remaining)
+      content = Saas::AiAgents::Context.message_content(message).to_s.first(remaining)
       next if content.blank?
 
       remaining -= content.length
-      "#{message.incoming? ? 'Cliente' : 'Atendente'}: #{content}"
+      content
     end.join("\n")
   end
   private_class_method :transcript

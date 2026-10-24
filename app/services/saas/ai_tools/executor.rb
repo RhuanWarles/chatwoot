@@ -4,6 +4,20 @@ require 'securerandom'
 
 class Saas::AiTools::Executor
   MAX_RESPONSE_BYTES = 20_000
+  SENSITIVE_RESULT_PATTERN = /
+    ((?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|secret|token|client_secret)\s*[:=]\s*["']?)
+    [^,\s}"']+
+  /ix
+  ERROR_MESSAGES = {
+    'tool_timeout' => 'The tool request timed out.',
+    'tool_connection_refused' => 'The tool refused the connection.',
+    'tool_host_unreachable' => 'The tool host could not be reached.',
+    'tool_connection_error' => 'The tool connection failed.',
+    'tool_authentication_error' => 'The tool rejected authentication.',
+    'tool_http_error' => 'The tool returned an HTTP error.',
+    'invalid_tool_response' => 'The tool returned an invalid response.',
+    'tool_reported_failure' => 'The tool reported that the operation failed.'
+  }.freeze
 
   def initialize(account:, agent:, conversation: nil, playground_session_id: nil)
     @account = account
@@ -46,15 +60,19 @@ class Saas::AiTools::Executor
     persist_execution(tool, request_id, masked_arguments(tool, resolved), status, response.code.to_i, started, error_code)
     Rails.logger.info({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id, conversation_id: @conversation&.id,
                         ai_tool_id: tool.id, tool_name: tool.slug, execution_id: request_id, status: status,
-                        response_contract_valid: normalized[:valid], tool_result_preview: normalized[:result].to_s.byteslice(0, 200),
-                        error_code: error_code, duration_ms: elapsed_ms(started) }.compact.to_json)
+                        response_contract_valid: normalized[:valid], error_code: error_code,
+                        retryable: normalized[:retryable] == true, outcome_uncertain: normalized[:outcome_uncertain] == true,
+                        duration_ms: elapsed_ms(started) }.compact.to_json)
     { 'success' => normalized[:valid], 'status' => response.code.to_i, 'http_status' => response.code.to_i, 'duration_ms' => elapsed_ms(started),
       'response_contract_valid' => normalized[:valid], 'result' => normalized[:result], 'error_code' => error_code,
-      'error' => normalized[:error] }.compact
+      'error' => normalized[:error], 'retryable' => normalized[:retryable] == true,
+      'outcome_uncertain' => normalized[:outcome_uncertain] == true }.compact
   rescue URI::InvalidURIError, CustomExceptions::SaasError => error
     record_failure(tool, request_id, error.respond_to?(:code) ? error.code : 'invalid_tool_request', started)
-  rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-    record_failure(tool, request_id, 'tool_timeout_or_connection_error', started)
+  rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ETIMEDOUT, Errno::ECONNREFUSED, Errno::EHOSTUNREACH,
+         Errno::ENETUNREACH, Errno::ECONNRESET, Errno::EPIPE, SocketError => error
+    error_code, outcome_uncertain = transport_error(error)
+    record_failure(tool, request_id, error_code, started, outcome_uncertain: outcome_uncertain)
   rescue StandardError => error
     Rails.logger.warn({ event: 'saas_ai_tool', status: 'error', ai_tool_id: tool.id, error: error.class.name }.to_json)
     record_failure(tool, request_id, 'tool_request_failed', started)
@@ -102,33 +120,42 @@ class Saas::AiTools::Executor
 
   def normalize_response(response)
     body = response.body.to_s.byteslice(0, MAX_RESPONSE_BYTES)
-    return failure_response(response, 'invalid_tool_response', 'The tool response must be valid JSON.') unless response.code.to_i.between?(200, 299)
+    status = response.code.to_i
+    unless status.between?(200, 299)
+      error_code = status.in?([401, 403]) ? 'tool_authentication_error' : 'tool_http_error'
+      return failure_response(error_code, outcome_uncertain: status >= 500)
+    end
 
     parsed = JSON.parse(body)
-    return failure_response(response, 'invalid_tool_response', 'The tool response must be a JSON object.') unless parsed.is_a?(Hash)
-    return failure_response(response, 'success_field_missing', 'The tool response is missing the success field.') unless parsed.key?('success')
-    return failure_response(response, 'success_false', parsed['error'].presence || parsed['result'].presence || 'The tool reported failure.') unless parsed['success'] == true
-    return failure_response(response, 'result_field_missing', 'The tool response is missing the result field.') unless parsed.key?('result')
-    return failure_response(response, 'result_invalid', 'The tool result must be a non-empty string.') unless parsed['result'].is_a?(String) && parsed['result'].strip.present?
+    return failure_response('invalid_tool_response') unless parsed.is_a?(Hash)
+    return failure_response('invalid_tool_response') unless parsed.key?('success')
+    return failure_response('tool_reported_failure') unless parsed['success'] == true
+    return failure_response('invalid_tool_response') unless parsed.key?('result')
+    return failure_response('invalid_tool_response') unless parsed['result'].is_a?(String) && parsed['result'].strip.present?
 
-    { valid: true, result: parsed['result'] }
-  rescue JSON::ParserError
-    failure_response(response, 'invalid_tool_response', 'The tool response must be valid JSON.')
+    { valid: true, result: sanitize_result(parsed['result']), retryable: false, outcome_uncertain: false }
   rescue StandardError
-    failure_response(response, 'invalid_tool_response', 'The tool response could not be validated.')
+    failure_response('invalid_tool_response')
   end
 
-  def failure_response(response, error_code, error)
-    return { valid: false, error_code: error_code, error: error } if response.code.to_i.between?(200, 299)
+  def failure_response(error_code, retryable: false, outcome_uncertain: false)
+    { valid: false, error_code: error_code, error: ERROR_MESSAGES[error_code] || 'The tool request failed.',
+      retryable: retryable, outcome_uncertain: outcome_uncertain }
+  end
 
-    body = response.body.to_s.byteslice(0, MAX_RESPONSE_BYTES)
-    message = begin
-      parsed = JSON.parse(body)
-      parsed.is_a?(Hash) ? parsed['error'].to_s.presence : nil
-    rescue JSON::ParserError
-      nil
+  def sanitize_result(result)
+    result.to_s
+      .gsub(SENSITIVE_RESULT_PATTERN, '\\1[REDACTED]')
+      .gsub(/(Bearer\s+)[A-Za-z0-9._~-]+/i, '\\1[REDACTED]')
+  end
+
+  def transport_error(error)
+    case error
+    when Net::OpenTimeout, Net::ReadTimeout, Errno::ETIMEDOUT then ['tool_timeout', true]
+    when Errno::ECONNREFUSED then ['tool_connection_refused', false]
+    when Errno::EHOSTUNREACH, Errno::ENETUNREACH, SocketError then ['tool_host_unreachable', false]
+    else ['tool_connection_error', true]
     end
-    { valid: false, error_code: 'http_error', error: message || "Tool request failed with HTTP #{response.code.to_i}." }
   end
 
   def masked_arguments(tool, args)
@@ -142,16 +169,20 @@ class Saas::AiTools::Executor
                                   status: status, response_status: response_status, duration_ms: elapsed_ms(started), error_code: error_code)
   end
 
-  def record_failure(tool, request_id, error_code, started)
+  def record_failure(tool, request_id, error_code, started, outcome_uncertain: false)
     persist_execution(tool, request_id, {}, 'failed', nil, started, error_code)
     Rails.logger.warn({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id,
                         conversation_id: @conversation&.id, ai_tool_id: tool.id, status: 'failed',
-                        error_code: error_code, execution_id: request_id, duration_ms: elapsed_ms(started) }.compact.to_json)
-    { 'success' => false, 'error' => error_code.to_s, 'status' => nil, 'duration_ms' => elapsed_ms(started) }
+                        error_code: error_code, retryable: false, outcome_uncertain: outcome_uncertain, execution_id: request_id,
+                        duration_ms: elapsed_ms(started) }.compact.to_json)
+    { 'success' => false, 'error' => ERROR_MESSAGES[error_code] || error_code.to_s,
+      'error_code' => error_code.to_s, 'status' => nil, 'http_status' => nil,
+      'retryable' => false, 'outcome_uncertain' => outcome_uncertain, 'duration_ms' => elapsed_ms(started) }
   end
 
   def failure(code)
-    { 'success' => false, 'error' => code, 'status' => nil }
+    { 'success' => false, 'error' => code, 'error_code' => code, 'status' => nil, 'http_status' => nil,
+      'retryable' => false, 'outcome_uncertain' => false }
   end
 
   def elapsed_ms(started)

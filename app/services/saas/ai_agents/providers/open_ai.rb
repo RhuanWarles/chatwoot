@@ -3,6 +3,8 @@ class Saas::AiAgents::Providers::OpenAi
   OUTPUT_LIMIT = Saas::TextService::MAX_OUTPUT_TOKENS
   MAX_TOOL_CALLS = 5
   INVALID_ARGUMENTS = { 'success' => false, 'error' => 'invalid_arguments: the arguments must be a valid JSON object' }.freeze
+  TOOL_RETRY_BLOCKED = { 'success' => false, 'error' => 'tool_retry_blocked', 'retryable' => false,
+                         'outcome_uncertain' => true }.freeze
 
   def initialize(account)
     settings = account.saas_ai_setting
@@ -17,6 +19,7 @@ class Saas::AiAgents::Providers::OpenAi
     current_messages = messages.deep_dup
     total_usage = Hash.new(0)
     tool_calls = []
+    uncertain_tool_calls = []
     message = {}
     loop do
       parameters = { model: model, messages: current_messages, temperature: temperature, max_completion_tokens: OUTPUT_LIMIT }
@@ -33,7 +36,7 @@ class Saas::AiAgents::Providers::OpenAi
 
       current_messages << message
       calls.each do |call|
-        result = run_tool_call(call, tool_handler, tool_calls)
+        result = run_tool_call(call, tool_handler, tool_calls, uncertain_tool_calls)
         current_messages << { 'role' => 'tool', 'tool_call_id' => call['id'], 'content' => tool_message_content(result) }
       end
     end
@@ -50,24 +53,29 @@ class Saas::AiAgents::Providers::OpenAi
 
   private
 
-  def run_tool_call(call, tool_handler, tool_calls)
+  def run_tool_call(call, tool_handler, tool_calls, uncertain_tool_calls)
     return { 'success' => false, 'error' => 'tool_call_limit_reached' } if tool_calls.length >= MAX_TOOL_CALLS
 
     name = call.dig('function', 'name').to_s
+    arguments = parse_tool_arguments(call.dig('function', 'arguments'))
+    return INVALID_ARGUMENTS unless arguments
+
+    call_key = JSON.generate([name, arguments.sort.to_h])
+    return TOOL_RETRY_BLOCKED if uncertain_tool_calls.include?(call_key)
+
     started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = execute_tool(name, call.dig('function', 'arguments'), tool_handler)
+    result = tool_handler.call(name, arguments)
+    uncertain_tool_calls << call_key if result.is_a?(Hash) && result['outcome_uncertain'] == true
     tool_calls << { 'name' => name, 'status' => result['success'] == true ? 'completed' : 'failed',
                     'duration_ms' => ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round }
     result
   end
 
-  def execute_tool(name, raw_arguments, tool_handler)
+  def parse_tool_arguments(raw_arguments)
     arguments = JSON.parse(raw_arguments.to_s)
-    return INVALID_ARGUMENTS unless arguments.is_a?(Hash)
-
-    tool_handler.call(name, arguments)
+    arguments if arguments.is_a?(Hash)
   rescue JSON::ParserError
-    INVALID_ARGUMENTS
+    nil
   end
 
   def tool_message_content(result)

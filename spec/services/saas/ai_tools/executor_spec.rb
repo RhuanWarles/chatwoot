@@ -43,7 +43,43 @@ RSpec.describe Saas::AiTools::Executor do
   it 'rejects non-2xx responses without treating their body as a success contract' do
     result = described_class.allocate.send(:normalize_response, Response.new(404, '{"error":"Not found"}'))
 
-    expect(result).to include(valid: false, error_code: 'http_error', error: 'Not found')
+    expect(result).to include(valid: false, error_code: 'tool_http_error', retryable: false, outcome_uncertain: false)
+    expect(result[:error]).not_to include('Not found')
+  end
+
+  it 'classifies authentication failures without exposing the response body' do
+    result = described_class.allocate.send(:normalize_response, Response.new(401, '{"token":"secret"}'))
+
+    expect(result).to include(valid: false, error_code: 'tool_authentication_error', retryable: false, outcome_uncertain: false)
+    expect(result[:error]).not_to include('secret')
+  end
+
+  it 'marks server HTTP failures as uncertain without retrying them' do
+    result = described_class.allocate.send(:normalize_response, Response.new(503, '{"error":"temporary"}'))
+
+    expect(result).to include(valid: false, error_code: 'tool_http_error', retryable: false, outcome_uncertain: true)
+  end
+
+  it 'sanitizes credentials from successful tool results' do
+    result = described_class.allocate.send(:normalize_response,
+                                           Response.new(200, '{"success":true,"result":"token=secret Bearer abc.def"}'))
+
+    expect(result[:result]).to eq('token=[REDACTED] Bearer [REDACTED]')
+  end
+
+  describe '#transport_error' do
+    subject(:transport_error) { described_class.allocate.send(:transport_error, error) }
+
+    { Net::OpenTimeout => ['tool_timeout', true],
+      Errno::ECONNREFUSED => ['tool_connection_refused', false],
+      Errno::EHOSTUNREACH => ['tool_host_unreachable', false],
+      Errno::ECONNRESET => ['tool_connection_error', true] }.each do |error_class, expected|
+      context "when the error is #{error_class}" do
+        let(:error) { error_class.new }
+
+        it { is_expected.to eq(expected) }
+      end
+    end
   end
 
   describe '#validate_uri!' do
