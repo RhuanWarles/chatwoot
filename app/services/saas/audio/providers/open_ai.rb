@@ -1,5 +1,9 @@
 class Saas::Audio::Providers::OpenAi
   TIMEOUT = 60
+  ENDPOINT = '/audio/transcriptions'.freeze
+  OGG_CONTENT_TYPES = %w[audio/ogg audio/opus].freeze
+
+  attr_reader :request_metadata
 
   def initialize(api_key:, model:)
     @model = model
@@ -7,10 +11,18 @@ class Saas::Audio::Providers::OpenAi
   end
 
   def transcribe(blob:)
-    temp_file = Tempfile.new(['saas-audio', extension_for(blob.content_type)])
+    extension = extension_for(blob)
+    temp_file = Tempfile.new(['saas-audio', extension])
     blob.open { |source| IO.copy_stream(source, temp_file) }
     temp_file.rewind
-    response = @client.audio.transcribe(parameters: { model: @model, file: temp_file, temperature: 0.0 })
+    upload = Saas::Audio::Providers::MultipartUpload.new(
+      temp_file, filename: "audio#{extension}", content_type: content_type_for(blob)
+    )
+    @request_metadata = {
+      endpoint: ENDPOINT, method: 'POST', model: @model, field: 'file', filename: upload.original_filename,
+      content_type: upload.content_type, byte_size: temp_file.size, parameters: { temperature: 0.0 }
+    }
+    response = @client.audio.transcribe(parameters: { model: @model, file: upload, temperature: 0.0 })
     response.fetch('text').to_s.strip
   ensure
     temp_file&.close!
@@ -18,7 +30,22 @@ class Saas::Audio::Providers::OpenAi
 
   private
 
-  def extension_for(content_type)
-    ".#{content_type.to_s.split('/').last.to_s.split(';').first}".delete_suffix('.')
+  def extension_for(blob)
+    return '.ogg' if ogg_content_type?(blob.content_type)
+
+    extension = File.extname(blob.filename.to_s).downcase
+    return extension if extension.present?
+
+    ".#{blob.content_type.to_s.split('/').last.to_s.split(';').first}".delete_suffix('.')
+  end
+
+  def content_type_for(blob)
+    return 'audio/ogg' if ogg_content_type?(blob.content_type)
+
+    blob.content_type.presence || 'application/octet-stream'
+  end
+
+  def ogg_content_type?(content_type)
+    OGG_CONTENT_TYPES.include?(content_type.to_s.split(';').first)
   end
 end

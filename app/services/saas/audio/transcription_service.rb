@@ -88,7 +88,8 @@ class Saas::Audio::TranscriptionService
   def log_provider_error(error)
     Rails.logger.warn({ event: 'saas_audio_transcription', account_id: @account.id, ai_agent_id: @agent.id,
                         attachment_id: @attachment.id, provider: self.class.provider, model: self.class.model,
-                        status: 'provider_error', error: error.class.name.demodulize.underscore }.to_json)
+                        status: 'provider_error', error: error.class.name.demodulize.underscore,
+                        request: provider_request_metadata, provider_error: provider_error_details(error) }.to_json)
   end
 
   def log_transcription_error(error)
@@ -99,6 +100,39 @@ class Saas::Audio::TranscriptionService
 
   def provider
     @provider ||= Saas::Audio::Providers::OpenAi.new(api_key: self.class.api_key, model: self.class.model)
+  end
+
+  def provider_request_metadata
+    provider.respond_to?(:request_metadata) ? provider.request_metadata : nil
+  end
+
+  def provider_error_details(error)
+    response = error_response(error)
+    provider_error = response_error(response)
+
+    {
+      http_status: response_value(response, :status), type: response_value(provider_error, :type),
+      code: response_value(provider_error, :code), param: response_value(provider_error, :param),
+      message: response_value(provider_error, :message)
+    }
+  end
+
+  def error_response(error)
+    response = error.respond_to?(:response) ? error.response : nil
+    response.is_a?(Hash) ? response : {}
+  end
+
+  def response_error(response)
+    body = response_value(response, :body)
+    body = JSON.parse(body) if body.is_a?(String)
+    error = body.is_a?(Hash) ? (body['error'] || body[:error]) : nil
+    error.is_a?(Hash) ? error : {}
+  rescue JSON::ParserError
+    {}
+  end
+
+  def response_value(response, key)
+    response[key] || response[key.to_s]
   end
 
   def reserve_usage
