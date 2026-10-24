@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onActivated, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
@@ -116,6 +116,9 @@ const url = tool => tool.configuration?.url || t('AI_TOOLS.NO_URL');
 const description = tool => tool.description || t('AI_TOOLS.NO_DESCRIPTION');
 
 onMounted(load);
+onActivated(() => {
+  if (!loading.value) load();
+});
 </script>
 
 <template>

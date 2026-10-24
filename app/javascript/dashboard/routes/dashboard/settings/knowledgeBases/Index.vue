@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onActivated, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import api from 'dashboard/api/knowledgeBases';
@@ -97,6 +97,9 @@ const agentCount = count => t('KNOWLEDGE.AGENTS_COUNT', { count }, count);
 const description = base => base.description || t('KNOWLEDGE.NO_DESCRIPTION');
 
 onMounted(load);
+onActivated(() => {
+  if (!loading.value) load();
+});
 </script>
 
 <template>
