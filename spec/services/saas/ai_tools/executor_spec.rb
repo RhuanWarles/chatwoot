@@ -45,4 +45,14 @@ RSpec.describe Saas::AiTools::Executor do
 
     expect(result).to include(valid: false, error_code: 'http_error', error: 'Not found')
   end
+
+  describe '#validate_uri!' do
+    subject(:validate_uri) { described_class.allocate.send(:validate_uri!, uri) }
+
+    let(:uri) { 'http://10.10.100.40:5678/webhook/pitchyes/consultar-conta' }
+
+    it 'accepts a private endpoint when the URL is valid' do
+      expect { validate_uri }.not_to raise_error
+    end
+  end
 end

@@ -1,12 +1,9 @@
-require 'ipaddr'
 require 'cgi'
 require 'net/http'
-require 'resolv'
 require 'securerandom'
 
 class Saas::AiTools::Executor
   MAX_RESPONSE_BYTES = 20_000
-  RESERVED_HOSTS = %w[localhost metadata metadata.google.internal].freeze
 
   def initialize(account:, agent:, conversation: nil, playground_session_id: nil)
     @account = account
@@ -91,17 +88,6 @@ class Saas::AiTools::Executor
   def validate_uri!(uri)
     parsed = URI.parse(uri)
     raise CustomExceptions::SaasError, 'invalid_tool_url' unless parsed.is_a?(URI::HTTP) && parsed.userinfo.nil? && parsed.host.present?
-    host = parsed.hostname.downcase
-    raise CustomExceptions::SaasError, 'ssrf_blocked' if RESERVED_HOSTS.include?(host) || host.end_with?('.local')
-    addresses = Resolv.getaddresses(host)
-    raise CustomExceptions::SaasError, 'ssrf_blocked' if addresses.empty? || addresses.any? { |address| private_address?(address) }
-  end
-
-  def private_address?(address)
-    ip = IPAddr.new(address)
-    ip.loopback? || ip.private? || ip.link_local? || ip.to_i.zero? || ip.to_s == '169.254.169.254'
-  rescue IPAddr::InvalidAddressError
-    true
   end
 
   def perform_request(request, uri, timeout)
