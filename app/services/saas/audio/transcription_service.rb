@@ -64,7 +64,8 @@ class Saas::Audio::TranscriptionService
     metadata = {
       'source' => 'audio_transcription', 'ai_agent_id' => @agent.id, 'account_id' => @account.id,
       'attachment_id' => @attachment.id, 'provider' => self.class.provider, 'model' => self.class.model,
-      'duration_seconds' => duration_seconds, 'duration_ms' => elapsed_ms(started)
+      'duration_seconds' => duration_seconds, 'audio_minutes' => duration_seconds / 60.0,
+      'audio_credits_used' => usage.reserved_units, 'duration_ms' => elapsed_ms(started)
     }
     usage.wallet.settle!(usage, units: usage.reserved_units, metadata: metadata)
     persist_transcription(text)
@@ -101,12 +102,13 @@ class Saas::Audio::TranscriptionService
   end
 
   def reserve_usage
-    units = [((duration_seconds / 60.0).ceil * credits_per_minute), credits_per_minute].max
-    wallet = Saas::Wallet.for_account(@account, 'audio_minutes')
+    units = [(duration_seconds / 60.0 * credits_per_minute).ceil, 1].max
+    wallet = Saas::Wallet.for_account(@account, 'text_credits')
     wallet.reserve!(units: units, reference: usage_reference, expires_at: Time.current + RESERVATION_TTL,
                     metadata: { 'source' => 'audio_transcription', 'ai_agent_id' => @agent.id,
                                 'provider' => self.class.provider, 'model' => self.class.model,
-                                'duration_seconds' => duration_seconds })
+                                'duration_seconds' => duration_seconds, 'audio_minutes' => duration_seconds / 60.0,
+                                'audio_credits_used' => units })
   end
 
   def credits_per_minute
