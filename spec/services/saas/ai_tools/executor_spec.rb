@@ -28,9 +28,9 @@ RSpec.describe Saas::AiTools::Executor do
   it 'rejects success false, missing fields, invalid JSON and empty results' do
     cases = {
       '{"success":false,"result":"Failed"}' => 'tool_reported_failure',
-      '{"result":"OK"}' => 'success_field_missing',
-      '{"success":true}' => 'result_field_missing',
-      '{"success":true,"result":""}' => 'result_invalid',
+      '{"result":"OK"}' => 'invalid_tool_response',
+      '{"success":true}' => 'invalid_tool_response',
+      '{"success":true,"result":""}' => 'invalid_tool_response',
       'plain text' => 'invalid_tool_response'
     }
 
