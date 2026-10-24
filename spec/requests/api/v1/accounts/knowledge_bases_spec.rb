@@ -30,11 +30,36 @@ RSpec.describe 'Knowledge API', type: :request do
     post url, params: { knowledge_base: { name: 'Configured', similarity_threshold: 0.42, retrieval_top_k: 7,
                                           chunk_size: 1800, chunk_overlap: 180 } }, headers: headers, as: :json
     expect(response).to have_http_status(:created)
-    expect(response.parsed_body).to include('similarity_threshold' => '0.42', 'retrieval_top_k' => 7,
-                                             'chunk_size' => 1800, 'chunk_overlap' => 180)
-    post url, params: { knowledge_base: { name: 'Invalid', chunk_size: 400, chunk_overlap: 400 } },
-         headers: headers, as: :json
+    expect(response.parsed_body).to include(
+      'similarity_threshold' => '0.42', 'retrieval_top_k' => 7,
+      'chunk_size' => 1800, 'chunk_overlap' => 180
+    )
+    post url, params: { knowledge_base: { name: 'Invalid', chunk_size: 400, chunk_overlap: 400 } }, headers: headers,
+                                                                                                  as: :json
     expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  it 'accepts legacy nullable descriptions and serialized similarity thresholds' do
+    base = account.saas_knowledge_bases.create!(name: 'Legacy')
+
+    patch "#{url}/#{base.id}", params: {
+      knowledge_base: { name: 'Legacy', description: nil, similarity_threshold: '0.35' }
+    }, headers: headers, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(base.reload.description).to eq('')
+    expect(base.similarity_threshold).to eq(BigDecimal('0.35'))
+  end
+
+  it 'reports the invalid similarity threshold field' do
+    base = account.saas_knowledge_bases.create!(name: 'FAQ')
+
+    patch "#{url}/#{base.id}", params: {
+      knowledge_base: { name: 'FAQ', similarity_threshold: 'not-a-number' }
+    }, headers: headers, as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body).to include('error' => 'invalid_knowledge', 'field' => 'similarity_threshold')
   end
 
   it 'denies foreign bases and foreign agent assignments' do
@@ -42,7 +67,8 @@ RSpec.describe 'Knowledge API', type: :request do
     get "#{url}/#{foreign.id}", headers: headers
     expect(response).to have_http_status(:not_found)
     agent = account.saas_ai_agents.create!(name: 'Agent', provider: 'openai', model: 'gpt-4.1', system_prompt: 'Help')
-    patch "/api/v1/accounts/#{account.id}/ai_agents/#{agent.id}", params: { ai_agent: { knowledge_base_ids: [foreign.id] } }, headers: headers, as: :json
+    patch "/api/v1/accounts/#{account.id}/ai_agents/#{agent.id}",
+          params: { ai_agent: { knowledge_base_ids: [foreign.id] } }, headers: headers, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
     expect(agent.reload.knowledge_bases).to be_empty
   end
@@ -57,6 +83,11 @@ RSpec.describe 'Knowledge API', type: :request do
   end
 
   it 'queues manual text, validates uploads and exposes no vectors' do
+    patch "#{url}/#{base.id}", params: {
+      knowledge_base: { name: 'FAQ', description: nil, similarity_threshold: '0.35' }
+    }, headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+
     post "#{url}/#{base.id}/documents", params: { document: { name: 'Policy', content: '12 months' } }, headers: headers, as: :json
     expect(response).to have_http_status(:created)
     expect(response.parsed_body['status']).to eq('processing')

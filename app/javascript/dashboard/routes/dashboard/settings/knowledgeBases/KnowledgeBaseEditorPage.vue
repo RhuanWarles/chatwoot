@@ -115,8 +115,11 @@ const load = async () => {
       form.value = {
         ...defaults,
         ...data,
+        description: data.description ?? '',
         similarity_threshold:
-          data.similarity_threshold ?? data.effective_similarity_threshold,
+          data.similarity_threshold == null
+            ? data.effective_similarity_threshold
+            : Number(data.similarity_threshold),
         retrieval_top_k: data.retrieval_top_k ?? data.effective_retrieval_top_k,
         chunk_size: data.chunk_size ?? data.effective_chunk_size,
         chunk_overlap: data.chunk_overlap ?? data.effective_chunk_overlap,
@@ -156,11 +159,20 @@ const save = () =>
       chunk_size,
       chunk_overlap,
     } = form.value;
+    const normalizedSimilarityThreshold =
+      similarity_threshold == null ? null : Number(similarity_threshold);
+    if (
+      normalizedSimilarityThreshold !== null &&
+      !Number.isFinite(normalizedSimilarityThreshold)
+    ) {
+      error.value = t('KNOWLEDGE.ERROR');
+      return;
+    }
     const knowledge_base = {
       name,
-      description,
+      description: description ?? '',
       active,
-      similarity_threshold,
+      similarity_threshold: normalizedSimilarityThreshold,
       retrieval_top_k,
       chunk_size,
       chunk_overlap,

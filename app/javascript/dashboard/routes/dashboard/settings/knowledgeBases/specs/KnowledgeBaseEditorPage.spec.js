@@ -69,9 +69,9 @@ describe('Knowledge base editor', () => {
       data: {
         id: 7,
         name: 'Support',
-        description: 'Policies',
+        description: null,
         active: true,
-        effective_similarity_threshold: 0.4,
+        similarity_threshold: '0.4',
         effective_retrieval_top_k: 6,
         effective_chunk_size: 2000,
         effective_chunk_overlap: 200,
@@ -98,6 +98,7 @@ describe('Knowledge base editor', () => {
     await flushPromises();
     expect(wrapper.text()).toContain('Support');
     expect(wrapper.text()).toContain('Refunds');
+    expect(wrapper.vm.form.description).toBe('');
     expect(wrapper.vm.form.similarity_threshold).toBe(0.4);
     expect(wrapper.vm.form.retrieval_top_k).toBe(6);
     wrapper.vm.activeTab = 'advanced';
@@ -132,10 +133,47 @@ describe('Knowledge base editor', () => {
     expect(api.update).toHaveBeenCalledWith(7, {
       knowledge_base: expect.objectContaining({
         name: 'Support',
+        description: '',
         similarity_threshold: 0.4,
         retrieval_top_k: 6,
       }),
     });
+    wrapper.unmount();
+  });
+
+  it('uploads a pending file only after updating the existing base', async () => {
+    const wrapper = shallowMount(KnowledgeBaseEditorPage);
+    await flushPromises();
+    api.update.mockResolvedValue({ data: { id: 7 } });
+    api.saveDocument.mockResolvedValue({ data: { id: 12 } });
+    wrapper.vm.pendingFiles.push(
+      new File(['Warranty'], 'policy.txt', { type: 'text/plain' })
+    );
+
+    await wrapper.vm.save();
+
+    expect(api.update).toHaveBeenCalledWith(7, {
+      knowledge_base: expect.objectContaining({
+        description: '',
+        similarity_threshold: 0.4,
+      }),
+    });
+    expect(api.saveDocument).toHaveBeenCalledWith(7, expect.any(FormData));
+    expect(api.update.mock.invocationCallOrder[0]).toBeLessThan(
+      api.saveDocument.mock.invocationCallOrder[0]
+    );
+    wrapper.unmount();
+  });
+
+  it('does not send NaN when the similarity threshold is invalid', async () => {
+    const wrapper = shallowMount(KnowledgeBaseEditorPage);
+    await flushPromises();
+    wrapper.vm.form.similarity_threshold = 'invalid';
+
+    await wrapper.vm.save();
+
+    expect(api.update).not.toHaveBeenCalled();
+    expect(wrapper.vm.error).toBe('KNOWLEDGE.ERROR');
     wrapper.unmount();
   });
 });

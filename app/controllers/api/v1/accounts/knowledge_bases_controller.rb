@@ -13,7 +13,10 @@ class Api::V1::Accounts::KnowledgeBasesController < Api::V1::Accounts::BaseContr
   before_action :check_admin_authorization?
   before_action :fetch_base, only: [:show, :update, :destroy, :search]
   rescue_from CustomExceptions::SaasError do |error|
-    render json: { error: error.code }, status: :unprocessable_entity
+    code, field = error.code.split(':', 2)
+    body = { error: code }
+    body[:field] = field if code == 'invalid_knowledge' && field.present?
+    render json: body, status: :unprocessable_entity
   end
   rescue_from ActiveRecord::RecordInvalid do
     render json: { error: 'invalid_knowledge' }, status: :unprocessable_entity
@@ -59,10 +62,37 @@ class Api::V1::Accounts::KnowledgeBasesController < Api::V1::Accounts::BaseContr
 
   def base_params
     input = params.require(:knowledge_base)
-    valid = input.is_a?(ActionController::Parameters) && (input.keys - VALIDATORS.keys).empty? &&
-            input.each_pair.all? { |key, value| VALIDATORS.fetch(key).call(value) }
-    raise CustomExceptions::SaasError, 'invalid_knowledge' unless valid
+    invalid_knowledge! unless input.is_a?(ActionController::Parameters)
 
-    input.permit(:name, :description, :active, :similarity_threshold, :retrieval_top_k, :chunk_size, :chunk_overlap)
+    normalized = normalize_base_input(input)
+    invalid_key = normalized.keys.find { |key| !VALIDATORS.key?(key) || !VALIDATORS.fetch(key).call(normalized[key]) }
+    invalid_knowledge!(invalid_key) if invalid_key
+
+    ActionController::Parameters.new(normalized).permit(:name, :description, :active, :similarity_threshold,
+                                                        :retrieval_top_k, :chunk_size, :chunk_overlap)
+  end
+
+  def invalid_knowledge!(field = nil)
+    code = field.present? ? "invalid_knowledge:#{field}" : 'invalid_knowledge'
+    raise CustomExceptions::SaasError, code
+  end
+
+  def normalize_base_input(input)
+    normalized = input.each_pair.to_h
+    normalized['description'] = '' if normalized['description'].nil?
+    return normalized unless normalized.key?('similarity_threshold')
+
+    normalized['similarity_threshold'] = normalize_similarity_threshold(normalized['similarity_threshold'])
+    invalid_knowledge!('similarity_threshold') if normalized['similarity_threshold'] == :invalid
+    normalized
+  end
+
+  def normalize_similarity_threshold(value)
+    parsed = value.is_a?(String) ? Float(value) : value
+    return parsed if parsed.nil? || (parsed.is_a?(Numeric) && parsed.finite?)
+
+    :invalid
+  rescue ArgumentError, TypeError
+    :invalid
   end
 end
