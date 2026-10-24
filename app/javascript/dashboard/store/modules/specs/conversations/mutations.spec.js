@@ -209,12 +209,25 @@ describe('#mutations', () => {
       expect(emitter.emit).not.toHaveBeenCalled();
     });
 
-    it('replaces the existing message when a realtime update has the same id', () => {
+    it('merges a realtime update without losing sender or message attributes', () => {
       const state = {
         allConversations: [
           {
             id: 1,
-            messages: [{ id: 42, conversation_id: 1, content: 'Original' }],
+            messages: [
+              {
+                id: 42,
+                conversation_id: 1,
+                content: 'Original',
+                sender: { id: 7, name: 'Rhuan', thumbnail: 'avatar.png' },
+                sender_id: 7,
+                sender_type: 'User',
+                content_attributes: {
+                  whatsapp_message_key: { id: 'wamid-42' },
+                  existing_attribute: 'preserved',
+                },
+              },
+            ],
           },
         ],
         selectedChatId: 1,
@@ -227,14 +240,18 @@ describe('#mutations', () => {
         content_attributes: { whatsapp_message_edited: true },
       });
 
-      expect(state.allConversations[0].messages).toEqual([
-        {
-          id: 42,
-          conversation_id: 1,
-          content: 'Edited',
-          content_attributes: { whatsapp_message_edited: true },
+      expect(state.allConversations[0].messages[0]).toMatchObject({
+        id: 42,
+        content: 'Edited',
+        sender: { id: 7, name: 'Rhuan', thumbnail: 'avatar.png' },
+        sender_id: 7,
+        sender_type: 'User',
+        content_attributes: {
+          whatsapp_message_key: { id: 'wamid-42' },
+          existing_attribute: 'preserved',
+          whatsapp_message_edited: true,
         },
-      ]);
+      });
     });
   });
 

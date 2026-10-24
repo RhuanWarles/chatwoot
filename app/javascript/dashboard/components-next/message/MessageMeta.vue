@@ -143,7 +143,7 @@ const statusToShow = computed(() => {
 
 <template>
   <div class="text-xs flex items-center gap-1.5">
-    <div class="inline">
+    <div class="inline-flex items-center gap-1">
       <time
         v-tooltip.top="{
           content: exactTime,
@@ -153,7 +153,13 @@ const statusToShow = computed(() => {
       >
         {{ readableTime }}
       </time>
-      <span v-if="isEdited">{{ $t('CONVERSATION.MESSAGE_EDITED') }}</span>
+      <span
+        v-if="isEdited"
+        data-testid="message-edited-indicator"
+        class="ms-1.5 text-n-slate-11 before:me-1.5 before:content-['·']"
+      >
+        {{ $t('CONVERSATION.MESSAGE_EDITED') }}
+      </span>
     </div>
     <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
     <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />

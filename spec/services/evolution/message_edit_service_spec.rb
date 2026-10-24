@@ -5,7 +5,7 @@ RSpec.describe Evolution::MessageEditService do
 
   let(:account) { create(:account) }
   let(:inbox) { create(:channel_api, account: account).inbox }
-  let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+  let(:conversation) { create(:conversation, account: account, inbox: inbox).tap(&:reload) }
   let(:key) do
     {
       'id' => 'message-id',
@@ -26,16 +26,40 @@ RSpec.describe Evolution::MessageEditService do
     )
   end
   let(:client) { instance_double(Evolution::GroupClient) }
+  let(:chatwoot_configuration) { instance_double(Evolution::ChatwootConfiguration) }
 
   before do
     allow(Evolution::GroupClient).to receive(:new).with(inbox).and_return(client)
     allow(client).to receive(:update_message)
+    allow(Evolution::ChatwootConfiguration).to receive(:new).with(inbox).and_return(chatwoot_configuration)
+    allow(chatwoot_configuration).to receive(:show).and_return(sign_msg: false, sign_delimiter: "\n")
   end
 
-  it 'sends the original WhatsApp key and edited text to Evolution' do
+  it 'does not add an agent signature when signMsg is disabled' do
     expect(client).to receive(:update_message).with(number: key['remoteJid'], key: key, text: 'Edited message')
 
     service.perform
+  end
+
+  it 'reapplies the agent signature when signMsg is enabled' do
+    allow(chatwoot_configuration).to receive(:show).and_return(sign_msg: true, sign_delimiter: '\\n')
+
+    expect(client).to receive(:update_message).with(
+      number: key['remoteJid'], key: key, text: "*#{message.sender.available_name}:*\nEdited message"
+    )
+
+    service.perform
+    expect(message.reload.content).to eq('Original message')
+  end
+
+  it 'does not duplicate an existing agent signature' do
+    signed_content = "*#{message.sender.available_name}:*\nEdited message"
+    service_with_signed_content = described_class.new(message: message, content: signed_content)
+    allow(chatwoot_configuration).to receive(:show).and_return(sign_msg: true, sign_delimiter: "\n")
+
+    expect(client).to receive(:update_message).with(number: key['remoteJid'], key: key, text: signed_content)
+
+    service_with_signed_content.perform
   end
 
   it 'uses the stored WhatsApp key when the Chatwoot source id is unavailable' do

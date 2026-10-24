@@ -38,7 +38,8 @@ class Evolution::ChatwootConfiguration
     {
       instance_name: @configuration.instance_name,
       configured: payload['enabled'] == true,
-      sign_msg: payload['signMsg'] == true
+      sign_msg: payload['signMsg'] == true,
+      sign_delimiter: payload['signDelimiter']
     }
   end
 
