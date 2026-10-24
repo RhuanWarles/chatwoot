@@ -145,6 +145,7 @@ watch(
 const normalizeAgent = agent => ({
   ...agent,
   customer_memory_enabled: agent?.customer_memory_enabled === true,
+  audio_enabled: agent?.audio_enabled === true,
   split_response_messages: agent?.split_response_messages !== false,
   inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
 });
@@ -507,6 +508,14 @@ onMounted(load);
               }}</small>
             </span>
             <Switch v-model="draft.respond_to_groups" :disabled="busy" />
+          </label>
+          <label class="flex items-center justify-between gap-3"
+            ><span class="text-sm text-n-slate-12"
+              >{{ t('AI_AGENTS.AUDIO_ENABLED')
+              }}<small class="block text-xs text-n-slate-11">{{
+                t('AI_AGENTS.AUDIO_ENABLED_HELP')
+              }}</small></span
+            ><Switch v-model="draft.audio_enabled" :disabled="busy" />
           </label>
         </div>
         <div class="flex flex-col gap-3 p-4 rounded-lg bg-n-solid-1">

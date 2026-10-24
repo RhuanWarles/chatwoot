@@ -13,6 +13,7 @@ export const newAgent = () => ({
   crm_stage_automation_enabled: false,
   respond_to_groups: false,
   customer_memory_enabled: false,
+  audio_enabled: false,
   active: false,
   tool_ids: [],
   knowledge_base_ids: [],
@@ -33,9 +34,13 @@ export const agentPayload = agent => ({
   crm_stage_automation_enabled: agent.crm_stage_automation_enabled ?? false,
   respond_to_groups: agent.respond_to_groups,
   customer_memory_enabled: agent.customer_memory_enabled,
+  audio_enabled: agent.audio_enabled === true,
   active: agent.active,
   tool_ids: [...(agent.tool_ids || (agent.tools || []).map(tool => tool.id))],
-  knowledge_base_ids: [...(agent.knowledge_base_ids || (agent.knowledge_bases || []).map(base => base.id))],
+  knowledge_base_ids: [
+    ...(agent.knowledge_base_ids ||
+      (agent.knowledge_bases || []).map(base => base.id)),
+  ],
 });
 
 export const validAgent = agent =>
@@ -52,7 +57,9 @@ export const validAgent = agent =>
       agent.temperature <= 1 &&
       Number.isInteger(agent.context_messages_limit) &&
       agent.context_messages_limit >= 1 &&
-      agent.context_messages_limit <= 100
-      && Number.isInteger(agent.response_delay_seconds) && agent.response_delay_seconds >= 0 && agent.response_delay_seconds <= 10
-      && typeof agent.split_response_messages === 'boolean'
+      agent.context_messages_limit <= 100 &&
+      Number.isInteger(agent.response_delay_seconds) &&
+      agent.response_delay_seconds >= 0 &&
+      agent.response_delay_seconds <= 10 &&
+      typeof agent.split_response_messages === 'boolean'
   );

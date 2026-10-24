@@ -1748,6 +1748,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_21_100000) do
     t.datetime "updated_at", null: false
     t.boolean "respond_to_groups", default: false, null: false
     t.boolean "customer_memory_enabled", default: false, null: false
+    t.boolean "audio_enabled", default: false, null: false
     t.integer "context_messages_limit", default: 20, null: false
     t.index ["account_id"], name: "index_saas_ai_agents_on_account_id"
   end

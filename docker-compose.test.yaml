@@ -22,6 +22,10 @@ services:
     ports:
       - 3000:3000
     environment:
+      - SAAS_AUDIO_PROVIDER=${SAAS_AUDIO_PROVIDER:-openai}
+      - SAAS_AUDIO_MODEL=${SAAS_AUDIO_MODEL:-}
+      - SAAS_AUDIO_API_KEY=${SAAS_AUDIO_API_KEY:-}
+      - SAAS_AUDIO_CREDITS_PER_MINUTE=${SAAS_AUDIO_CREDITS_PER_MINUTE:-1}
       - NODE_ENV=production
       - RAILS_ENV=production
     entrypoint: docker/entrypoints/rails.sh
@@ -34,6 +38,10 @@ services:
       - postgres
       - redis
     environment:
+      - SAAS_AUDIO_PROVIDER=${SAAS_AUDIO_PROVIDER:-openai}
+      - SAAS_AUDIO_MODEL=${SAAS_AUDIO_MODEL:-}
+      - SAAS_AUDIO_API_KEY=${SAAS_AUDIO_API_KEY:-}
+      - SAAS_AUDIO_CREDITS_PER_MINUTE=${SAAS_AUDIO_CREDITS_PER_MINUTE:-1}
       - NODE_ENV=production
       - RAILS_ENV=production
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']

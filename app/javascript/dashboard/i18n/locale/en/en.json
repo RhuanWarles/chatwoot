@@ -251,6 +251,8 @@
     "GROUP_HELP": "When enabled, the agent also replies in groups from its selected inboxes. Disabled by default.",
     "CUSTOMER_MEMORY": "Customer memory",
     "CUSTOMER_MEMORY_HELP": "Keep a short, private summary of durable customer context for this agent. Disabled by default.",
+    "AUDIO_ENABLED": "Understand audio messages",
+    "AUDIO_ENABLED_HELP": "Allows this assistant to transcribe and understand received voice messages.",
     "MEMORIES": "Customer memories",
     "NO_MEMORIES": "No saved customer memories.",
     "CLEAR_MEMORY": "Clear",

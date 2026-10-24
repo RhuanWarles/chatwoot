@@ -1,5 +1,5 @@
 class Saas::Wallet < ApplicationRecord
-  RESOURCES = %w[text_credits voice_seconds].freeze
+  RESOURCES = %w[text_credits voice_seconds audio_minutes].freeze
 
   belongs_to :account
   has_many :usage_records, class_name: 'Saas::UsageRecord', dependent: :destroy
@@ -95,7 +95,7 @@ class Saas::Wallet < ApplicationRecord
 
   def self.release_expired!(now: Time.current)
     Saas::UsageRecord.joins(:wallet).where(status: 'reserved').where('expires_at IS NOT NULL AND expires_at <= ?', now)
-                     .where(saas_wallets: { resource: 'text_credits' }).find_each do |record|
+                     .where(saas_wallets: { resource: %w[text_credits audio_minutes] }).find_each do |record|
       record.wallet.with_lock do
         record.reload
         next unless record.status == 'reserved' && record.expires_at && record.expires_at <= now

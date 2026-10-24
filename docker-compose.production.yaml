@@ -4,6 +4,11 @@ services:
   base: &base
     image: chatwoot/chatwoot:latest
     env_file: .env ## Change this file for customized env variables
+    environment: &base-env
+      SAAS_AUDIO_PROVIDER: ${SAAS_AUDIO_PROVIDER:-openai}
+      SAAS_AUDIO_MODEL: ${SAAS_AUDIO_MODEL:-}
+      SAAS_AUDIO_API_KEY: ${SAAS_AUDIO_API_KEY:-}
+      SAAS_AUDIO_CREDITS_PER_MINUTE: ${SAAS_AUDIO_CREDITS_PER_MINUTE:-1}
     volumes:
       - storage_data:/app/storage
 
@@ -15,9 +20,10 @@ services:
     ports:
       - '127.0.0.1:3000:3000'
     environment:
-      - NODE_ENV=production
-      - RAILS_ENV=production
-      - INSTALLATION_ENV=docker
+      <<: *base-env
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
     entrypoint: docker/entrypoints/rails.sh
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
     restart: always
@@ -28,9 +34,10 @@ services:
       - postgres
       - redis
     environment:
-      - NODE_ENV=production
-      - RAILS_ENV=production
-      - INSTALLATION_ENV=docker
+      <<: *base-env
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
     restart: always
 

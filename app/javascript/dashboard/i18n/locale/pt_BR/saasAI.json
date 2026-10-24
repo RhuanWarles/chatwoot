@@ -84,6 +84,8 @@
     "GROUP_HELP": "Quando ativado, o assistente também responde em grupos das caixas selecionadas. Desativado por padrão.",
     "CUSTOMER_MEMORY": "Memória do cliente",
     "CUSTOMER_MEMORY_HELP": "Mantém um resumo privado e curto do contexto duradouro do cliente. Desativado por padrão.",
+    "AUDIO_ENABLED": "Entender mensagens de áudio",
+    "AUDIO_ENABLED_HELP": "Permite que o assistente transcreva e compreenda mensagens de voz recebidas.",
     "INBOX_HELP": "Cada caixa pode ter no máximo um assistente de texto ativo.",
     "OCCUPIED": "Já vinculada a um assistente ativo",
     "INBOX_CONFLICT": "Uma caixa já está vinculada a outro assistente ativo. Desative-o ou remova a caixa em conflito.",

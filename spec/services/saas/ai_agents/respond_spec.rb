@@ -191,6 +191,40 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(provider).not_to have_received(:generate)
   end
 
+  describe 'audio input' do
+    let(:audio_attachment) do
+      incoming.attachments.create!(account: account, file_type: :audio,
+                                   file: fixture_file_upload('public/audio/widget/ding.mp3'))
+    end
+
+    before do
+      audio_attachment
+      audio_attachment.update!(meta: { 'transcribed_text' => 'Quanto custa?' })
+      account.saas_ai_setting.update!(text_mode: 'byok')
+    end
+
+    it 'does not call transcription when audio understanding is disabled' do
+      expect(Saas::Audio::TranscriptionService).not_to receive(:new)
+
+      described_class.new(conversation, incoming).perform
+
+      expect(provider).not_to have_received(:generate)
+      expect(conversation.messages.outgoing).to be_empty
+    end
+
+    it 'transcribes enabled audio and sends one text-agent response without duplicating the message' do
+      agent.update!(audio_enabled: true)
+      service = instance_double(Saas::Audio::TranscriptionService, perform: { success: true, text: 'Quanto custa?' })
+      allow(Saas::Audio::TranscriptionService).to receive(:new).and_return(service)
+
+      described_class.new(conversation, incoming).perform
+
+      expect(service).to have_received(:perform)
+      expect(provider).to have_received(:generate).with(hash_including(messages: include(hash_including(content: 'Quanto custa?'))))
+      expect(conversation.messages.where(message_type: :outgoing).count).to eq(1)
+    end
+  end
+
   it 'refuses concurrent generation while another database session owns the conversation lock' do
     message = incoming
     key = described_class::LOCK_NAMESPACE + conversation.id
