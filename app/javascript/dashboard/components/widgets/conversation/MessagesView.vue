@@ -441,8 +441,11 @@ export default {
         const messageElement = document.getElementById('message' + messageId);
         if (messageElement) {
           this.isProgrammaticScroll = true;
-          messageElement.scrollIntoView({ behavior: 'smooth' });
-          this.fetchPreviousMessages();
+          messageElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest',
+          });
         } else {
           this.scrollToBottom();
         }
@@ -480,9 +483,11 @@ export default {
 
       const panelTop = this.conversationPanel.getBoundingClientRect().top;
       const activeSeparator =
-        separators.filter(
-          separator => separator.getBoundingClientRect().top <= panelTop + 12
-        ).at(-1) || separators[0];
+        separators
+          .filter(
+            separator => separator.getBoundingClientRect().top <= panelTop + 12
+          )
+          .at(-1) || separators[0];
 
       this.floatingDateLabel = this.floatingDateText(activeSeparator);
     },
