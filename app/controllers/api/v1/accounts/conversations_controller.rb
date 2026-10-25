@@ -72,6 +72,15 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     render json: ai_state_data(agent).merge(additional_attributes: @conversation.reload.additional_attributes)
   end
 
+  def mark_handoff_seen
+    attributes = @conversation.additional_attributes
+    if attributes['ai_handoff'] == true
+      @conversation.update!(additional_attributes: attributes.except('ai_handoff'))
+    end
+
+    render json: { additional_attributes: @conversation.reload.additional_attributes }
+  end
+
   def filter
     result = ::Conversations::FilterService.new(params.permit!, current_user, current_account).perform
     @conversations = result[:conversations]

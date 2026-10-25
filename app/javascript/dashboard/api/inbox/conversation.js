@@ -88,6 +88,10 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${id}/unread`);
   }
 
+  markHandoffSeen({ conversationId }) {
+    return axios.post(`${this.url}/${conversationId}/mark_handoff_seen`);
+  }
+
   toggleTyping({ conversationId, status, isPrivate }) {
     return axios.post(`${this.url}/${conversationId}/toggle_typing_status`, {
       typing_status: status,

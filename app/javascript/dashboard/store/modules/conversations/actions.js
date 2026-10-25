@@ -292,6 +292,19 @@ const actions = {
 
   async setActiveChat({ commit, dispatch }, { data, after }) {
     commit(types.SET_CURRENT_CHAT_WINDOW, data);
+    if (data.additional_attributes?.ai_handoff === true) {
+      try {
+        const response = await ConversationApi.markHandoffSeen({
+          conversationId: data.id,
+        });
+        commit(types.UPDATE_CONVERSATION, {
+          id: data.id,
+          additional_attributes: response.data.additional_attributes,
+        });
+      } catch (error) {
+        // Keep the marker visible if the server could not persist it as seen.
+      }
+    }
     if (data.dataFetched === undefined) {
       // Reset only when refetching — a re-activated short conversation has no scroll to earn it back.
       commit(types.CLEAR_ALL_MESSAGES_LOADED, data.id);

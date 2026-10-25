@@ -1057,6 +1057,39 @@ RSpec.describe 'Conversations API', type: :request do
     end
   end
 
+  describe 'POST /api/v1/accounts/{account.id}/conversations/:id/mark_handoff_seen' do
+    let(:conversation) do
+      create(:conversation, account: account,
+             additional_attributes: { 'ai_handoff' => true, 'ai_handoff_at' => '2026-10-25T20:00:00Z' })
+    end
+    let(:agent) { create(:user, account: account, role: :agent) }
+
+    before do
+      create(:inbox_member, user: agent, inbox: conversation.inbox)
+    end
+
+    it 'clears only the visual handoff marker' do
+      post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/mark_handoff_seen",
+           headers: agent.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(conversation.reload.additional_attributes).to eq('ai_handoff_at' => '2026-10-25T20:00:00Z')
+      expect(response.parsed_body['additional_attributes']).to eq('ai_handoff_at' => '2026-10-25T20:00:00Z')
+    end
+
+    it 'is idempotent when the marker is already cleared' do
+      conversation.update!(additional_attributes: { 'ai_handoff_at' => '2026-10-25T20:00:00Z' })
+
+      post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/mark_handoff_seen",
+           headers: agent.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(conversation.reload.additional_attributes).to eq('ai_handoff_at' => '2026-10-25T20:00:00Z')
+    end
+  end
+
   describe 'POST /api/v1/accounts/{account.id}/conversations/:id/unread' do
     let(:conversation) { create(:conversation, account: account) }
 

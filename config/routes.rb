@@ -246,6 +246,7 @@ Rails.application.routes.draw do
             member do
               get :ai_state
               patch :ai_state, action: :update_ai_state
+              post :mark_handoff_seen
               post :mute
               post :unmute
               post :transcript
