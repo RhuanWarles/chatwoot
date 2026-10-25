@@ -62,6 +62,10 @@ const isAIAssignee = computed(() =>
   ['AgentBot', 'Captain::Assistant'].includes(props.chat?.meta?.assignee_type)
 );
 
+const hasAiHandoff = computed(
+  () => props.chat?.additional_attributes?.ai_handoff === true
+);
+
 const hasSlaPolicyId = computed(
   () => props.chat?.applied_sla?.id && !props.currentContact?.blocked
 );
@@ -183,6 +187,15 @@ watch(
         :class="hasUnread ? 'font-semibold' : 'font-medium'"
       >
         {{ currentContact.name }}
+        <span
+          v-if="hasAiHandoff"
+          v-tooltip.top="$t('CONVERSATION.HANDOFF_MARKER')"
+          class="inline-block ms-1"
+          role="img"
+          :aria-label="$t('CONVERSATION.HANDOFF_MARKER')"
+        >
+          {{ $t('CONVERSATION.HANDOFF_EMOJI') }}
+        </span>
       </h4>
       <VoiceCallStatus
         v-if="voiceCallData.status"

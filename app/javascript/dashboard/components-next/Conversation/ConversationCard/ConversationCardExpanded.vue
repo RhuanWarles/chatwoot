@@ -34,6 +34,9 @@ const emit = defineEmits([
 
 const lastMessageInChat = computed(() => getLastMessage(props.chat));
 const showLabelsSection = computed(() => props.chat.labels?.length > 0);
+const hasAiHandoff = computed(
+  () => props.chat?.additional_attributes?.ai_handoff === true
+);
 
 const voiceCallData = computed(() => {
   const last = lastMessageInChat.value;
@@ -156,6 +159,15 @@ const selectedModel = computed({
         class="text-heading-3 my-0 capitalize truncate text-n-slate-12 font-medium w-32 flex-shrink-0"
       >
         {{ currentContact.name }}
+        <span
+          v-if="hasAiHandoff"
+          v-tooltip.top="$t('CONVERSATION.HANDOFF_MARKER')"
+          class="inline-block ms-1"
+          role="img"
+          :aria-label="$t('CONVERSATION.HANDOFF_MARKER')"
+        >
+          {{ $t('CONVERSATION.HANDOFF_EMOJI') }}
+        </span>
       </h4>
 
       <CardContent

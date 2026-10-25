@@ -70,4 +70,12 @@ describe('ConversationCard', () => {
       'i-lucide-bot'
     );
   });
+
+  it('shows the handoff marker when the conversation was handed off', () => {
+    const wrapper = mountComponent({
+      additional_attributes: { ai_handoff: true },
+    });
+
+    expect(wrapper.find('[role="img"]').exists()).toBe(true);
+  });
 });

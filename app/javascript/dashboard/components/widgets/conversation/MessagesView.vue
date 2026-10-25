@@ -326,6 +326,7 @@ export default {
     },
     visibleCampaignHistory() {
       if (!this.conversationPanel) return;
+      if (this.isProgrammaticScroll) return;
       const conversationId = this.currentChat.id;
       const restoreAnchor = captureTimelineAnchor(
         this.conversationPanel,
@@ -436,21 +437,53 @@ export default {
       emitter.off(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, this.leaveReadingMode);
       emitter.off(CMD_AI_ASSIST, this.leaveReadingMode);
     },
-    onScrollToMessage({ messageId = '' } = {}) {
-      this.$nextTick(() => {
-        const messageElement = document.getElementById('message' + messageId);
-        if (messageElement) {
-          this.isProgrammaticScroll = true;
-          messageElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'nearest',
-          });
-        } else {
-          this.scrollToBottom();
-        }
-      });
+    async onScrollToMessage({ messageId = '' } = {}) {
+      if (!messageId) {
+        this.makeMessagesRead();
+        this.$nextTick(() => this.scrollToBottom());
+        return;
+      }
+
+      this.isProgrammaticScroll = true;
       this.makeMessagesRead();
+      await new Promise(resolve => {
+        this.$nextTick(() => resolve());
+      });
+
+      let messageElement = document.getElementById('message' + messageId);
+      if (!messageElement) {
+        const targetMessageId = Number(messageId);
+        if (!Number.isInteger(targetMessageId) || targetMessageId < 1) {
+          this.isProgrammaticScroll = false;
+          return;
+        }
+
+        try {
+          await this.$store.dispatch('fetchPreviousMessages', {
+            conversationId: this.currentChat.id,
+            before: targetMessageId + 100,
+            after: Math.max(targetMessageId - 100, 0),
+          });
+          await new Promise(resolve => {
+            this.$nextTick(() => resolve());
+          });
+          messageElement = document.getElementById('message' + messageId);
+        } catch {
+          this.isProgrammaticScroll = false;
+          return;
+        }
+      }
+
+      if (!messageElement) {
+        this.isProgrammaticScroll = false;
+        return;
+      }
+
+      messageElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      });
     },
     addScrollListener() {
       this.conversationPanel = this.$el.querySelector('.conversation-panel');

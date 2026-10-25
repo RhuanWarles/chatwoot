@@ -264,7 +264,7 @@
     "MEMORY_CLEAR_ERROR": "Could not clear this memory.",
     "OCCUPIED": "Already linked to an active agent",
     "HANDOFF": "Allow handoff to a human",
-    "HANDOFF_HELP": "When the agent cannot answer or the customer asks for a person, it pauses itself, opens the conversation and leaves a private note (up to 250 characters) summarizing what was discussed.",
+    "HANDOFF_HELP": "When the agent cannot answer or the customer asks for a person, it opens the conversation, marks the handoff and leaves a private note (up to 250 characters) summarizing what was discussed.",
     "CRM_STAGE_AUTOMATION": "Move leads in the pipeline",
     "CRM_STAGE_AUTOMATION_HELP": "The agent moves the contact's card between pipeline stages based on the conversation, using each stage's AI instructions. Creates the card if none exists.",
     "UPDATED": "Last updated",

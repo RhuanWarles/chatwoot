@@ -89,7 +89,6 @@ class Saas::AiAgents::Respond
       end
       next false if @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i >= @incoming.id
 
-      # After a handoff the AI is paused, so later chunks would be cancelled; send a single message.
       response_content = Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content))
       raise CustomExceptions::AiAgentError, 'empty_response' if response_content.blank?
 
@@ -110,7 +109,7 @@ class Saas::AiAgents::Respond
       schedule_response_chunks(chunks, batch_id, first_message.id) if chunks.length > 1
       usage&.wallet&.settle!(usage, units: usage.reserved_units, metadata: usage_metadata(result, mode))
       @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
-        Saas::AiAgents::Runtime::STATE_KEY => @builtin_tools.handed_off? ? 'human' : 'active', CURSOR_KEY => @incoming.id,
+        Saas::AiAgents::Runtime::STATE_KEY => 'active', CURSOR_KEY => @incoming.id,
         Saas::AiAgents::ResponseBatch::KEY => { 'id' => batch_id, 'agent_id' => @agent.id, 'incoming_message_id' => @incoming.id,
                                                 'chunks' => chunks, 'first_message_id' => first_message.id, 'sent_count' => chunks.length > 1 ? 0 : 1,
                                                 'status' => chunks.length > 1 ? 'pending' : 'completed',

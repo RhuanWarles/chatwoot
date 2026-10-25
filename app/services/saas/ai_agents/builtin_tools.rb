@@ -5,6 +5,7 @@ class Saas::AiAgents::BuiltinTools
   HANDOFF_NOTE_LIMIT = 250
   HANDOFF_NOTE_PREFIX = 'Transferido pela IA. Resumo: '.freeze
   HANDOFF_NOTE_WITHOUT_SUMMARY = 'Transferido pela IA. Resumo não informado.'.freeze
+  HANDOFF_MARKER_KEY = 'ai_handoff'.freeze
   HANDOFF_SUMMARY_HELP = 'Resumo fiel do que foi conversado, em português, com no máximo 200 caracteres: o que o cliente quer, ' \
                          'o que já foi respondido e o que falta resolver. Sem dados sensíveis.'.freeze
 
@@ -27,7 +28,7 @@ class Saas::AiAgents::BuiltinTools
     parts << <<~TEXT if @agent.handoff_enabled?
       Se você não souber responder com segurança, não tiver a informação na sua base, o cliente pedir para falar com uma pessoa, \
       reclamar ou o assunto exigir decisão humana, chame a ferramenta #{HANDOFF} e depois avise o cliente, de forma breve, \
-      que um atendente humano continuará a conversa. Nunca invente respostas.
+      que o atendimento humano foi solicitado. Nunca invente respostas.
 
       Ao chamar #{HANDOFF}, preencha summary com um resumo fiel da conversa para o atendente humano: o que o cliente quer, \
       o que você já respondeu e o que ainda falta resolver. Escreva em português, em 1 ou 2 frases curtas \
@@ -61,7 +62,7 @@ class Saas::AiAgents::BuiltinTools
   def handoff_definition
     return unless @agent.handoff_enabled?
 
-    function(HANDOFF, 'Transfere a conversa para um atendente humano, pausa a IA nesta conversa e deixa uma nota interna com o resumo.',
+    function(HANDOFF, 'Sinaliza a necessidade de atendimento humano e deixa uma nota interna com o resumo da conversa.',
              { 'summary' => { 'type' => 'string', 'description' => HANDOFF_SUMMARY_HELP } }, ['summary'])
   end
 
@@ -84,9 +85,12 @@ class Saas::AiAgents::BuiltinTools
     return 'Transferência já registrada.' if @handed_off
 
     @conversation.with_lock do
-      @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
-        Saas::AiAgents::Runtime::STATE_KEY => 'human', 'ai_agent_paused_at' => Time.current.iso8601
-      ))
+      attributes = @conversation.additional_attributes.merge(
+        Saas::AiAgents::Runtime::STATE_KEY => 'active', HANDOFF_MARKER_KEY => true, 'ai_handoff_at' => Time.current.iso8601
+      )
+      attributes.delete('ai_agent_paused_at')
+      attributes.delete('ai_agent_paused_by_id')
+      @conversation.update!(additional_attributes: attributes)
       Messages::MessageBuilder.new(@agent, @conversation, {
                                      content: handoff_note(summary), message_type: 'outgoing', private: true,
                                      content_attributes: { 'ai_agent_id' => @agent.id, 'ai_handoff' => true }
@@ -94,7 +98,7 @@ class Saas::AiAgents::BuiltinTools
     end
     @handed_off = true
     @conversation.bot_handoff!
-    'Transferência registrada. Avise o cliente brevemente que um atendente humano vai continuar o atendimento.'
+    'Atendimento humano solicitado. Avise o cliente brevemente que o atendimento humano foi solicitado.'
   rescue ActiveRecord::RecordInvalid
     # The rolled-back update! still holds its attributes in memory, which would make the next with_lock raise.
     @conversation.reload

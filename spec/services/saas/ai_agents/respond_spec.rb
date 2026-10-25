@@ -83,6 +83,21 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(provider).to have_received(:generate).once
   end
 
+  it 'keeps the AI active and marks the conversation when handing off' do
+    conversation.update!(status: :pending)
+    tools = Saas::AiAgents::BuiltinTools.new(agent: agent, conversation: conversation)
+
+    result = tools.call(Saas::AiAgents::BuiltinTools::HANDOFF, { 'summary' => 'Precisa de atendimento humano.' })
+
+    expect(result).to include('success' => true)
+    expect(conversation.reload).to be_open
+    expect(conversation.additional_attributes).to include(
+      'ai_agent_state' => 'active', 'ai_handoff' => true
+    )
+    expect(conversation.ai_assignee).to be_nil
+    expect(conversation.messages.where(private: true).last.content).to include('Precisa de atendimento humano.')
+  end
+
   it 'discards the generated reply when a human takes over during generation' do
     allow(provider).to receive(:generate) do
       create(:message, account: account, inbox: inbox, conversation: conversation,
