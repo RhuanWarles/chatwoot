@@ -53,7 +53,8 @@ RSpec.describe Saas::AiAgents::Providers::OpenAi do
 
     expect(requests.length).to eq(2)
     requests.each do |request|
-      time_messages = request[:messages].select { |message| message[:content].to_s.start_with?('Data e hora atuais:') }
+      messages = request.fetch(:parameters).fetch(:messages)
+      time_messages = messages.select { |message| message[:content].to_s.start_with?('Data e hora atuais:') }
       expect(time_messages.length).to eq(1)
       expect(time_messages.first[:content]).to include('Fuso horário do assistente: Europe/Lisbon')
     end
