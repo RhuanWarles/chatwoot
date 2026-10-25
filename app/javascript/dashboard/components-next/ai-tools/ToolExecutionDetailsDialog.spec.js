@@ -13,19 +13,27 @@ vi.mock('dashboard/components-next/dialog/Dialog.vue', async () => {
   const { defineComponent, ref: vueRef } = await import('vue');
   return {
     default: defineComponent({
-      props: ['title', 'cancelButtonLabel'],
+      props: {
+        title: { type: String, required: true },
+        cancelButtonLabel: { type: String, required: true },
+      },
       emits: ['close'],
-      setup(props, { expose }) {
+      setup(props, { expose, emit }) {
         const opened = vueRef(false);
         expose({
           open: () => {
             opened.value = true;
           },
         });
-        return { opened };
+        return {
+          opened,
+          dialogTitle: props.title,
+          closeLabel: props.cancelButtonLabel,
+          closeDialog: () => emit('close'),
+        };
       },
       template:
-        '<div v-if="opened" role="dialog"><h3>{{ title }}</h3><slot /><button @click="$emit(\'close\')">{{ cancelButtonLabel }}</button></div>',
+        '<div v-if="opened" role="dialog"><h3>{{ dialogTitle }}</h3><slot /><button @click="closeDialog">{{ closeLabel }}</button></div>',
     }),
   };
 });
@@ -46,6 +54,7 @@ const execution = {
   created_at: '2026-10-12T06:22:40Z',
   execution_id: 'request-12',
   arguments: { secret: '***REDACTED***' },
+  response: '{"saldo":"27h 17m"}',
 };
 beforeEach(() => {
   aiTools.execution.mockReset();
@@ -74,7 +83,8 @@ it('opens immediately with loading, then renders one scoped sanitized detail', a
   expect(dialog.text()).toContain('#9');
   expect(dialog.text()).toContain('request-12');
   expect(dialog.get('pre').text()).toContain('***REDACTED***');
-  expect(dialog.text()).toContain('RESPONSE_NOT_STORED');
+  expect(dialog.text()).toContain('RESPONSE');
+  expect(dialog.text()).toContain('27h 17m');
   await dialog.get('button').trigger('click');
   expect(dialog.emitted('close')).toHaveLength(1);
 });

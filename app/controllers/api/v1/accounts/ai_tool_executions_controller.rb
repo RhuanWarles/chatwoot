@@ -65,6 +65,7 @@ class Api::V1::Accounts::AiToolExecutionsController < Api::V1::Accounts::BaseCon
       error_code: execution.error_code
     }
     data[:arguments] = execution.safe_arguments if detailed
+    data[:response] = execution.safe_response if detailed && execution.response_body.present?
     data
   end
 end

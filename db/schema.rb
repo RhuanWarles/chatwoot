@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_24_000000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_24_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1797,6 +1797,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_24_000000) do
     t.jsonb "arguments", default: {}, null: false
     t.string "status", null: false
     t.integer "response_status"
+    t.text "response_body"
     t.integer "duration_ms"
     t.string "error_code"
     t.datetime "created_at", null: false

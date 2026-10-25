@@ -513,6 +513,7 @@
       "CONVERSATION": "Conversation",
       "TECHNICAL": "Technical information",
       "SENT": "Sent data",
+      "RESPONSE": "Tool response",
       "RESPONSE_NOT_STORED": "Response not stored.",
       "TITLE": "Tool executions",
       "SUCCESS": "Success",

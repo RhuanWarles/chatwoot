@@ -66,6 +66,16 @@ const fields = computed(() => {
     ['ERROR_CODE', item.error_code],
   ].filter(([, value]) => value !== null && value !== undefined);
 });
+const formattedResponse = computed(() => {
+  const response = detail.value?.response;
+  if (!response) return null;
+
+  try {
+    return JSON.stringify(JSON.parse(response), null, 2);
+  } catch {
+    return response;
+  }
+});
 onMounted(() => dialog.value.open());
 </script>
 
@@ -128,7 +138,16 @@ onMounted(() => dialog.value.open());
             >{{ JSON.stringify(detail.arguments, null, 2) }}</pre
           >
         </section>
-        <p class="mb-0 text-xs text-n-slate-11">
+        <section v-if="formattedResponse" class="min-w-0">
+          <h4 class="text-sm font-medium text-n-slate-12">
+            {{ t('CONVERSATION.TOOL_EXECUTIONS.RESPONSE') }}
+          </h4>
+          <pre
+            class="max-h-64 overflow-auto whitespace-pre-wrap break-all p-3 rounded-lg bg-n-alpha-2 font-mono text-xs text-n-slate-12"
+            >{{ formattedResponse }}</pre
+          >
+        </section>
+        <p v-else class="mb-0 text-xs text-n-slate-11">
           {{ t('CONVERSATION.TOOL_EXECUTIONS.RESPONSE_NOT_STORED') }}
         </p>
       </div>

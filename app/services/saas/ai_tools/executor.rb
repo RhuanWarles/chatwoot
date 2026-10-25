@@ -4,10 +4,7 @@ require 'securerandom'
 
 class Saas::AiTools::Executor
   MAX_RESPONSE_BYTES = 20_000
-  SENSITIVE_RESULT_PATTERN = /
-    ((?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|secret|token|client_secret)\s*[:=]\s*["']?)
-    [^,\s}"']+
-  /ix
+  MAX_LOG_RESPONSE_BYTES = 2_000
   ERROR_MESSAGES = {
     'tool_timeout' => 'The tool request timed out.',
     'tool_connection_refused' => 'The tool refused the connection.',
@@ -57,11 +54,14 @@ class Saas::AiTools::Executor
     normalized = normalize_response(response)
     status = normalized[:valid] ? 'completed' : 'failed'
     error_code = normalized[:valid] ? nil : normalized[:error_code]
-    persist_execution(tool, request_id, masked_arguments(tool, resolved), status, response.code.to_i, started, error_code)
+    persist_execution(tool, request_id,
+                      arguments: masked_arguments(tool, resolved), status: status, response_status: response.code.to_i,
+                      started: started, error_code: error_code, response_body: normalized[:result])
     Rails.logger.info({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id, conversation_id: @conversation&.id,
                         ai_tool_id: tool.id, tool_name: tool.slug, execution_id: request_id, status: status,
                         response_contract_valid: normalized[:valid], error_code: error_code,
                         retryable: normalized[:retryable] == true, outcome_uncertain: normalized[:outcome_uncertain] == true,
+                        response_preview: normalized[:result]&.byteslice(0, MAX_LOG_RESPONSE_BYTES),
                         duration_ms: elapsed_ms(started) }.compact.to_json)
     { 'success' => normalized[:valid], 'status' => response.code.to_i, 'http_status' => response.code.to_i, 'duration_ms' => elapsed_ms(started),
       'response_contract_valid' => normalized[:valid], 'result' => normalized[:result], 'error_code' => error_code,
@@ -144,9 +144,7 @@ class Saas::AiTools::Executor
   end
 
   def sanitize_result(result)
-    result.to_s
-      .gsub(SENSITIVE_RESULT_PATTERN, '\\1[REDACTED]')
-      .gsub(/(Bearer\s+)[A-Za-z0-9._~-]+/i, '\\1[REDACTED]')
+    Saas::AiToolExecution.sanitize_response(result)
   end
 
   def transport_error(error)
@@ -163,14 +161,24 @@ class Saas::AiTools::Executor
     args.merge(args.slice(*sensitive).transform_values { '***' })
   end
 
-  def persist_execution(tool, request_id, args, status, response_status, started, error_code)
+  def persist_execution(tool, request_id, attributes)
     Saas::AiToolExecution.create!(account: @account, ai_agent: @agent, ai_tool: tool, conversation: @conversation,
-                                  playground_session_id: @playground_session_id, request_id: request_id, arguments: args,
-                                  status: status, response_status: response_status, duration_ms: elapsed_ms(started), error_code: error_code)
+                                  playground_session_id: @playground_session_id, request_id: request_id,
+                                  arguments: attributes[:arguments], status: attributes[:status],
+                                  response_status: attributes[:response_status], duration_ms: elapsed_ms(attributes[:started]),
+                                  error_code: attributes[:error_code], response_body: attributes[:response_body])
   end
 
   def record_failure(tool, request_id, error_code, started, outcome_uncertain: false)
-    persist_execution(tool, request_id, {}, 'failed', nil, started, error_code)
+    persist_execution(
+      tool,
+      request_id,
+      arguments: {},
+      status: 'failed',
+      response_status: nil,
+      started: started,
+      error_code: error_code
+    )
     Rails.logger.warn({ event: 'saas_ai_tool', account_id: @account.id, ai_agent_id: @agent.id,
                         conversation_id: @conversation&.id, ai_tool_id: tool.id, status: 'failed',
                         error_code: error_code, retryable: false, outcome_uncertain: outcome_uncertain, execution_id: request_id,

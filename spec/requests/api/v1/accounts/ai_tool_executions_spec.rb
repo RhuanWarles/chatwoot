@@ -49,6 +49,17 @@ RSpec.describe 'AI tool executions API', type: :request do
     expect(data).not_to have_key('secret_headers')
   end
 
+  it 'returns the sanitized tool response in execution details' do
+    execution = account.saas_ai_tool_executions.create!(ai_agent: agent, ai_tool: tool, conversation: conversation,
+                                                      request_id: SecureRandom.uuid, status: 'completed', response_status: 200,
+                                                      response_body: '{"saldo":"27h 17m","token":"secret"}')
+
+    get "/api/v1/accounts/#{account.id}/ai_tool_executions/#{execution.id}", params: { conversation_id: conversation.display_id }, headers: headers
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.dig('execution', 'response')).to eq('{"saldo":"27h 17m","token":"[REDACTED]"}')
+  end
+
   it 'rejects conversations in another account and mismatched detail IDs' do
     foreign = create(:conversation)
     foreign.update!(display_id: conversation.display_id + 100_000)
