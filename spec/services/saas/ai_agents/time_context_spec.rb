@@ -32,7 +32,8 @@ RSpec.describe Saas::AiAgents::TimeContext do
       { role: 'system', content: 'Prompt' },
       { role: 'system', content: described_class.message('America/Sao_Paulo', now: instant) },
       { role: 'user', content: 'Question' },
-      { 'role' => 'tool', 'content' => 'Result' }
+      { 'role' => 'tool', 'content' => 'Result' },
+      'legacy message entry'
     ]
 
     described_class.refresh!(messages, 'Europe/Lisbon', now: instant + 1.hour)

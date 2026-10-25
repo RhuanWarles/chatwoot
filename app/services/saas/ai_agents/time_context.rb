@@ -20,7 +20,11 @@ class Saas::AiAgents::TimeContext
     replacement = { role: 'system', content: message(timezone, now: now) }
     indexes = messages.each_index.select { |index| time_context_message?(messages[index]) }
     if indexes.empty?
-      system_index = messages.index { |item| item[:role].to_s == 'system' || item['role'].to_s == 'system' }
+      system_index = messages.index do |item|
+        next false unless item.is_a?(Hash)
+
+        item[:role].to_s == 'system' || item['role'].to_s == 'system'
+      end
       messages.insert((system_index || -1) + 1, replacement)
     else
       first_index = indexes.first
@@ -40,6 +44,8 @@ class Saas::AiAgents::TimeContext
   end
 
   def self.time_context_message?(message)
+    return false unless message.is_a?(Hash)
+
     message[:content].to_s.start_with?(HEADER) || message['content'].to_s.start_with?(HEADER)
   end
   private_class_method :time_context_message?
