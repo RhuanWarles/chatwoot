@@ -33,8 +33,12 @@ class Saas::AiAgents::Respond
     return unless @agent
 
     @agent_revision = @agent.updated_at
-    @incoming = Saas::AiAgents::Context.latest_incoming(@conversation)
+    @incoming = Saas::AiAgents::Context.latest_incoming(
+      @conversation, include_attachments: @agent.attachment_interpretation_enabled?
+    )
     return unless @incoming && @incoming.id > @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i
+
+    return if @incoming.attachments.any? { |attachment| !attachment.audio? } && !@agent.attachment_interpretation_enabled?
 
     if @incoming.attachments.any?(&:audio?)
       return unless @agent.audio_enabled?

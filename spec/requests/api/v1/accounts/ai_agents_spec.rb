@@ -19,6 +19,7 @@ RSpec.describe 'AI Agents API', type: :request do
     expect(response.parsed_body['context_messages_limit']).to eq(20)
     expect(response.parsed_body['split_response_messages']).to be(true)
     expect(response.parsed_body['audio_enabled']).to be(false)
+    expect(response.parsed_body['attachment_interpretation_enabled']).to be(false)
     expect(response.parsed_body['timezone']).to eq('America/Sao_Paulo')
     expect(response.parsed_body).not_to have_key('max_messages_per_response')
     expect(response.parsed_body.keys).not_to include('api_key')
@@ -43,6 +44,18 @@ RSpec.describe 'AI Agents API', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body['audio_enabled']).to be(false)
     expect(account.saas_ai_agents.find(id).audio_enabled).to be(false)
+  end
+
+  it 'persists the attachment interpretation toggle per agent' do
+    post url, params: { ai_agent: attributes.merge(attachment_interpretation_enabled: true) }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    id = response.parsed_body.fetch('id')
+    expect(response.parsed_body['attachment_interpretation_enabled']).to be(true)
+
+    patch "#{url}/#{id}", params: { ai_agent: { attachment_interpretation_enabled: false } }, headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['attachment_interpretation_enabled']).to be(false)
+    expect(account.saas_ai_agents.find(id).attachment_interpretation_enabled).to be(false)
   end
 
   it 'persists valid timezones and rejects an invalid update' do

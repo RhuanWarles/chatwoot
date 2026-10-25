@@ -20,6 +20,7 @@ export const newAgent = () => ({
   respond_to_groups: false,
   customer_memory_enabled: false,
   audio_enabled: false,
+  attachment_interpretation_enabled: false,
   active: false,
   tool_ids: [],
   knowledge_base_ids: [],
@@ -44,6 +45,8 @@ export const agentPayload = agent => ({
   respond_to_groups: agent.respond_to_groups,
   customer_memory_enabled: agent.customer_memory_enabled,
   audio_enabled: agent.audio_enabled === true,
+  attachment_interpretation_enabled:
+    agent.attachment_interpretation_enabled === true,
   active: agent.active,
   tool_ids: [...(agent.tool_ids || (agent.tools || []).map(tool => tool.id))],
   knowledge_base_ids: [

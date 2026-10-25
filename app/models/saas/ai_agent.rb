@@ -8,7 +8,8 @@ class Saas::AiAgent < ApplicationRecord
   PUBLIC_ATTRIBUTES = %w[
     id account_id name description system_prompt provider model timezone temperature context_messages_limit
     response_delay_seconds split_response_messages active handoff_enabled crm_stage_automation_enabled
-    respond_to_groups customer_memory_enabled crm_pipeline_id handoff_conditions created_at updated_at
+    respond_to_groups customer_memory_enabled audio_enabled attachment_interpretation_enabled crm_pipeline_id
+    handoff_conditions created_at updated_at
   ].freeze
 
   belongs_to :account
@@ -34,7 +35,8 @@ class Saas::AiAgent < ApplicationRecord
   validates :response_delay_seconds, numericality: { only_integer: true, in: 0..10 }
   validates :max_messages_per_response, numericality: { only_integer: true, in: 1..5 }
   validates :split_response_messages, :active, :handoff_enabled, :crm_stage_automation_enabled,
-            :respond_to_groups, :customer_memory_enabled, :audio_enabled, inclusion: { in: [true, false] }
+            :respond_to_groups, :customer_memory_enabled, :audio_enabled, :attachment_interpretation_enabled,
+            inclusion: { in: [true, false] }
   validate :validate_inboxes
   validate :validate_crm_pipeline
   validate :validate_runtime_provider
@@ -57,6 +59,7 @@ class Saas::AiAgent < ApplicationRecord
   def public_data
     attributes.slice(*PUBLIC_ATTRIBUTES).merge(
                        'audio_enabled' => audio_enabled,
+                       'attachment_interpretation_enabled' => attachment_interpretation_enabled,
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } },
                        'knowledge_bases' => knowledge_bases.map { |base| { id: base.id, name: base.name, active: base.active } },

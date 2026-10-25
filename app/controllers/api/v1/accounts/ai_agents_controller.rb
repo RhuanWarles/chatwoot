@@ -36,6 +36,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'crm_pipeline_id' => ->(value) { value.nil? || (value.is_a?(Integer) && value.positive?) },
     'handoff_conditions' => ->(value) { value.nil? || (value.is_a?(String) && value.length <= Saas::AiAgent::HANDOFF_CONDITIONS_MAX_LENGTH) },
     'audio_enabled' => ->(value) { [true, false].include?(value) },
+    'attachment_interpretation_enabled' => ->(value) { [true, false].include?(value) },
 
     'knowledge_base_ids' => lambda { |value|
       value.is_a?(Array) && value.all? { |id| id.is_a?(Integer) && id.positive? } && value.uniq == value

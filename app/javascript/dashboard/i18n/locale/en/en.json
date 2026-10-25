@@ -256,6 +256,8 @@
     "CUSTOMER_MEMORY_HELP": "Keep a short, private summary of durable customer context for this agent. Disabled by default.",
     "AUDIO_ENABLED": "Understand audio messages",
     "AUDIO_ENABLED_HELP": "Allows this assistant to transcribe and understand received voice messages.",
+    "ATTACHMENT_INTERPRETATION_ENABLED": "Interpret images and files",
+    "ATTACHMENT_INTERPRETATION_ENABLED_HELP": "Allows this assistant to read images, PDFs, text files, DOCX and XLSX attachments sent in the conversation.",
     "MEMORIES": "Customer memories",
     "NO_MEMORIES": "No saved customer memories.",
     "CLEAR_MEMORY": "Clear",

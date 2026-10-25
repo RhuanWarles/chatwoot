@@ -81,6 +81,21 @@ RSpec.describe Saas::AiAgents::Context do
     expect(history.last[:content]).to eq("[Participante: Carla; identificador: carla@lid]\n[Voice Message] Áudio transcrito")
   end
 
+  it 'adds image attachments to the model payload when interpretation is enabled' do
+    agent = instance_double(Saas::AiAgent, system_prompt: 'Prompt', context_messages_limit: 20,
+                            attachment_interpretation_enabled?: true)
+    incoming = create(:message, account: conversation.account, inbox: conversation.inbox, conversation: conversation,
+                      content: nil)
+    incoming.attachments.create!(account: conversation.account, file_type: :image,
+                                 file: fixture_file_upload('spec/assets/avatar.png', 'image/png'))
+
+    history = described_class.build(conversation, agent, incoming)
+
+    expect(history.last[:content]).to include('[Imagem anexada: avatar.png]')
+    expect(history.last[:attachments].first).to include(filename: 'avatar.png', mime_type: 'image/png')
+    expect(history.last[:attachments].first[:data]).to be_present
+  end
+
   it 'removes internal author context from model output' do
     content = "[Participante: Larissa; identificador: Saas::AiAgent:3]\nTenho sim!"
 

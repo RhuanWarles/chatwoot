@@ -1,4 +1,6 @@
 require 'ostruct'
+require 'base64'
+require 'stringio'
 
 class Saas::TextService
   MAX_OUTPUT_TOKENS = 1024
@@ -35,7 +37,9 @@ class Saas::TextService
                   .with_temperature(temperature)
                   .with_params(**OUTPUT_LIMITS.fetch(config[:provider]))
     Saas::AiAgents::TimeContext.refresh!(messages, timezone)
-    messages.each { |message| chat.add_message(role: message.fetch(:role).to_sym, content: message.fetch(:content)) }
+    messages.each do |message|
+      chat.add_message(role: message.fetch(:role).to_sym, content: content_for(message))
+    end
     response = chat.complete
     content = response&.content
     raise CustomExceptions::SaasError, 'empty_response' unless content.is_a?(String) && content.strip.present?
@@ -54,6 +58,22 @@ class Saas::TextService
     provider = Saas::AiAgents::Providers::OpenAi.new(OpenStruct.new(saas_ai_setting: OpenStruct.new(text_mode: 'byok', text_provider: 'openai', text_api_key: ENV.fetch('SAAS_TEXT_API_KEY'))))
     provider.generate(model: platform_config[:model], messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler,
                       timezone: timezone)
+  end
+
+  def self.content_for(message)
+    attachments = message[:attachments]
+    return message.fetch(:content) if attachments.blank?
+
+    content = RubyLLM::Content.new(message.fetch(:content))
+    attachments.each do |attachment|
+      source = if attachment[:data].present?
+                 StringIO.new(Base64.decode64(attachment.fetch(:data)))
+               else
+                 attachment.fetch(:url)
+               end
+      content.add_attachment(source, filename: attachment.fetch(:filename))
+    end
+    content
   end
 
   def self.credits_per_request

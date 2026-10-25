@@ -7,6 +7,7 @@ describe('AI agent configuration', () => {
     expect(newAgent().context_messages_limit).toBe(20);
     expect(newAgent().response_delay_seconds).toBe(2);
     expect(newAgent().split_response_messages).toBe(true);
+    expect(newAgent().attachment_interpretation_enabled).toBe(false);
     expect(newAgent().timezone).toBe('America/Sao_Paulo');
     expect(validAgent(newAgent())).toBe(false);
   });
@@ -46,6 +47,10 @@ describe('AI agent configuration', () => {
     expect(agent.inbox_ids).toEqual([5]);
     expect(
       agentPayload({ ...agent, respond_to_groups: true }).respond_to_groups
+    ).toBe(true);
+    expect(
+      agentPayload({ ...agent, attachment_interpretation_enabled: true })
+        .attachment_interpretation_enabled
     ).toBe(true);
     expect(
       agentPayload({ ...agent, context_messages_limit: 5 })

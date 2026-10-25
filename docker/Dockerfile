@@ -138,6 +138,7 @@ RUN apk update && apk add --no-cache \
   postgresql-client \
   imagemagick \
   poppler-utils \
+  unzip \
   git \
   vips \
   && gem install bundler -v "$BUNDLER_VERSION"

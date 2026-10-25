@@ -57,6 +57,13 @@ RSpec.describe Saas::AiAgent do
     expect(agent.errors.attribute_names).to include(:timezone)
   end
 
+  it 'defaults attachment interpretation to disabled and exposes the setting' do
+    agent.configure!(attributes)
+
+    expect(agent.reload.attachment_interpretation_enabled).to be(false)
+    expect(agent.public_data).to include('attachment_interpretation_enabled' => false)
+  end
+
   it 'rejects invalid temperature and boolean values' do
     agent.assign_attributes(attributes.merge(temperature: 1.1, active: nil))
     expect(agent).not_to be_valid

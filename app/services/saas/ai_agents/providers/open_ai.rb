@@ -23,7 +23,8 @@ class Saas::AiAgents::Providers::OpenAi
     message = {}
     loop do
       Saas::AiAgents::TimeContext.refresh!(current_messages, timezone)
-      parameters = { model: model, messages: current_messages, temperature: temperature, max_completion_tokens: OUTPUT_LIMIT }
+      parameters = { model: model, messages: current_messages.map { |item| format_message(item) }, temperature: temperature,
+                     max_completion_tokens: OUTPUT_LIMIT }
       parameters[:tools] = tools if tools.present?
       parameters[:tool_choice] = 'none' if tools.present? && tool_calls.length >= MAX_TOOL_CALLS
       response = @client.chat(parameters: parameters)
@@ -70,6 +71,28 @@ class Saas::AiAgents::Providers::OpenAi
     tool_calls << { 'name' => name, 'status' => result['success'] == true ? 'completed' : 'failed',
                     'duration_ms' => ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round }
     result
+  end
+
+  def format_message(message)
+    attachments = message[:attachments] || message['attachments']
+    return message if attachments.blank?
+
+    parts = [{ type: 'text', text: message[:content] || message['content'].to_s }]
+    parts.concat(attachments.filter_map { |attachment| image_content_part(attachment) })
+    message.except(:attachments, 'attachments').merge(content: parts)
+  end
+
+  def image_content_part(attachment)
+    image_url = attachment_url(attachment)
+    { type: 'image_url', image_url: { url: image_url } } if image_url.present?
+  end
+
+  def attachment_url(attachment)
+    return attachment[:url] || attachment['url'] if (attachment[:url] || attachment['url']).present?
+
+    mime_type = attachment[:mime_type] || attachment['mime_type']
+    data = attachment[:data] || attachment['data']
+    "data:#{mime_type};base64,#{data}" if mime_type.present? && data.present?
   end
 
   def parse_tool_arguments(raw_arguments)
