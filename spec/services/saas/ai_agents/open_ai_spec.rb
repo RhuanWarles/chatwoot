@@ -51,10 +51,10 @@ RSpec.describe Saas::AiAgents::Providers::OpenAi do
     described_class.new(account).generate(**parameters, timezone: 'Europe/Lisbon', tools: [{ 'type' => 'function' }],
                                            tool_handler: ->(_name, args) { args })
 
-    expect(requests).to have_length(2)
+    expect(requests.length).to eq(2)
     requests.each do |request|
       time_messages = request[:messages].select { |message| message[:content].to_s.start_with?('Data e hora atuais:') }
-      expect(time_messages).to have_length(1)
+      expect(time_messages.length).to eq(1)
       expect(time_messages.first[:content]).to include('Fuso horário do assistente: Europe/Lisbon')
     end
   end
