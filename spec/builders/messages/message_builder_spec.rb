@@ -20,6 +20,18 @@ describe Messages::MessageBuilder do
       message = message_builder
       expect(message.content).to eq params[:content]
     end
+
+    context 'when delivery is deferred' do
+      let(:params) do
+        ActionController::Parameters.new({ content: 'test', defer_send: true })
+      end
+
+      it 'does not enqueue channel delivery' do
+        expect(SendReplyJob).not_to receive(:perform_later)
+
+        message_builder
+      end
+    end
   end
 
   describe '#content_attributes' do

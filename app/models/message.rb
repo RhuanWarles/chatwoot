@@ -84,6 +84,8 @@ class Message < ApplicationRecord
 
   # when you have a temperory id in your frontend and want it echoed back via action cable
   attr_accessor :echo_id
+  # Allows ordered AI response batches to persist a message before dispatching it.
+  attr_accessor :defer_send
   # Transient flag used to skip waiting_since clearing for specific bot/system messages.
   attr_accessor :preserve_waiting_since
 
@@ -419,6 +421,8 @@ class Message < ApplicationRecord
   end
 
   def send_reply
+    return if defer_send
+
     # FIXME: Giving it few seconds for the attachment to be uploaded to the service
     # active storage attaches the file only after commit
     attachments.blank? ? ::SendReplyJob.perform_later(id) : ::SendReplyJob.set(wait: 2.seconds).perform_later(id)

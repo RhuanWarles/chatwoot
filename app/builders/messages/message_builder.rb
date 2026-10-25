@@ -7,6 +7,7 @@ class Messages::MessageBuilder
 
   def initialize(user, conversation, params)
     @params = params
+    @defer_send = params[:defer_send]
     @private = ActiveModel::Type::Boolean.new.cast(params[:private]) || false
     @conversation = conversation
     @user = user
@@ -24,6 +25,7 @@ class Messages::MessageBuilder
   def perform
     Messages::GroupMentionsValidator.new(@conversation, @params).validate!
     @message = @conversation.messages.build(message_params)
+    @message.defer_send = @defer_send
     process_attachments
     process_emails
     # When the message has no quoted content, it will just be rendered as a regular message
