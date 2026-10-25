@@ -36,4 +36,27 @@ RSpec.describe Saas::Audio::Providers::OpenAi, type: :service do
       parameters: { temperature: 0.0 }
     )
   end
+
+  it 'sends MPEG audio with a supported filename and MIME metadata' do
+    attachment.file.blob.update!(filename: 'voice.mpga', content_type: 'audio/mpeg')
+    request = stub_request(:post, 'https://api.openai.com/v1/audio/transcriptions')
+              .with do |req|
+                expect(req.body).to include(
+                  'name="model"', 'gpt-transcribe', 'name="file"; filename="audio.mp3"',
+                  'Content-Type: audio/mpeg', 'Content-Length:'
+                )
+              end
+              .to_return(status: 200, body: { text: 'Olá' }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+    provider = described_class.new(api_key: 'test-key', model: 'gpt-transcribe')
+    result = provider.transcribe(blob: attachment.file.blob)
+
+    expect(result).to eq('Olá')
+    expect(request).to have_been_requested
+    expect(provider.request_metadata).to include(
+      endpoint: '/audio/transcriptions', method: 'POST', model: 'gpt-transcribe', field: 'file',
+      filename: 'audio.mp3', content_type: 'audio/mpeg', byte_size: attachment.file.blob.byte_size,
+      parameters: { temperature: 0.0 }
+    )
+  end
 end

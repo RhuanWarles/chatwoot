@@ -2,6 +2,7 @@ class Saas::Audio::Providers::OpenAi
   TIMEOUT = 60
   ENDPOINT = '/audio/transcriptions'.freeze
   OGG_CONTENT_TYPES = %w[audio/ogg audio/opus].freeze
+  MPEG_CONTENT_TYPES = %w[audio/mpeg audio/mp3].freeze
 
   attr_reader :request_metadata
 
@@ -32,6 +33,7 @@ class Saas::Audio::Providers::OpenAi
 
   def extension_for(blob)
     return '.ogg' if ogg_content_type?(blob.content_type)
+    return '.mp3' if mpeg_content_type?(blob.content_type) || mpeg_filename?(blob.filename)
 
     extension = File.extname(blob.filename.to_s).downcase
     return extension if extension.present?
@@ -41,11 +43,20 @@ class Saas::Audio::Providers::OpenAi
 
   def content_type_for(blob)
     return 'audio/ogg' if ogg_content_type?(blob.content_type)
+    return 'audio/mpeg' if mpeg_content_type?(blob.content_type) || mpeg_filename?(blob.filename)
 
     blob.content_type.presence || 'application/octet-stream'
   end
 
   def ogg_content_type?(content_type)
     OGG_CONTENT_TYPES.include?(content_type.to_s.split(';').first)
+  end
+
+  def mpeg_content_type?(content_type)
+    MPEG_CONTENT_TYPES.include?(content_type.to_s.split(';').first)
+  end
+
+  def mpeg_filename?(filename)
+    %w[.mp3 .mpga].include?(File.extname(filename.to_s).downcase)
   end
 end
