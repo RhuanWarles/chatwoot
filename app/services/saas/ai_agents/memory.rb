@@ -51,7 +51,7 @@ class Saas::AiAgents::Memory
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       result = Saas::AiAgents::Provider.for(account, agent.provider).generate(
         model: effective_model(account, agent), messages: [{ role: 'system', content: MEMORY_PROMPT },
-                                       { role: 'user', content: transcript(messages) }], temperature: 0
+                                       { role: 'user', content: transcript(messages) }], temperature: 0, timezone: agent.timezone
       )
       content = Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content)).first(Saas::AiAgentMemory::MAX_CONTENT_LENGTH)
       memory.assign_attributes(content: content, last_processed_message_id: message_id, last_processed_at: Time.current,

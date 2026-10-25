@@ -19,7 +19,7 @@ class Saas::TextService
     { provider: ENV.fetch('SAAS_TEXT_PROVIDER'), model: ENV.fetch('SAAS_TEXT_MODEL') }
   end
 
-  def self.generate_messages(messages:, temperature:, tools: [], tool_handler: nil)
+  def self.generate_messages(messages:, temperature:, tools: [], tool_handler: nil, timezone: nil)
     config = platform_config
     context = RubyLLM.context do |settings|
       settings.public_send("#{config[:provider]}_api_key=", ENV.fetch('SAAS_TEXT_API_KEY'))
@@ -29,11 +29,12 @@ class Saas::TextService
     if tools.present? && config[:provider] != 'openai'
       raise CustomExceptions::SaasError, 'tools_provider_unsupported'
     end
-    return generate_openai_messages(messages:, temperature:, tools:, tool_handler:) if tools.present?
+    return generate_openai_messages(messages:, temperature:, tools:, tool_handler:, timezone:) if tools.present?
 
     chat = context.chat(model: config[:model], provider: config[:provider], assume_model_exists: true)
                   .with_temperature(temperature)
                   .with_params(**OUTPUT_LIMITS.fetch(config[:provider]))
+    Saas::AiAgents::TimeContext.refresh!(messages, timezone)
     messages.each { |message| chat.add_message(role: message.fetch(:role).to_sym, content: message.fetch(:content)) }
     response = chat.complete
     content = response&.content
@@ -49,9 +50,10 @@ class Saas::TextService
     { content: content.strip, usage: usage.compact }
   end
 
-  def self.generate_openai_messages(messages:, temperature:, tools:, tool_handler:)
+  def self.generate_openai_messages(messages:, temperature:, tools:, tool_handler:, timezone:)
     provider = Saas::AiAgents::Providers::OpenAi.new(OpenStruct.new(saas_ai_setting: OpenStruct.new(text_mode: 'byok', text_provider: 'openai', text_api_key: ENV.fetch('SAAS_TEXT_API_KEY'))))
-    provider.generate(model: platform_config[:model], messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler)
+    provider.generate(model: platform_config[:model], messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler,
+                      timezone: timezone)
   end
 
   def self.credits_per_request

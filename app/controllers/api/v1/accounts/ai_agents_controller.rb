@@ -8,7 +8,12 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
   end
   rescue_from ActiveRecord::RecordInvalid do |error|
     conflict = error.record.errors.details.fetch(:inboxes, []).any? { |detail| detail[:error] == :taken }
-    render json: { error: conflict ? 'inbox_conflict' : 'invalid_settings' }, status: :unprocessable_entity
+    payload = { error: conflict ? 'inbox_conflict' : 'invalid_settings' }
+    if !conflict && error.record.errors.attribute_names.include?(:timezone)
+      payload[:field] = 'timezone'
+      payload[:message] = 'Use um identificador de fuso horário IANA válido.'
+    end
+    render json: payload, status: :unprocessable_entity
   end
 
   VALIDATORS = {
@@ -17,6 +22,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'system_prompt' => ->(value) { value.is_a?(String) && value.strip.present? },
     'provider' => ->(value) { Saas::AiAgent::PROVIDERS.include?(value) },
     'model' => ->(value) { value.is_a?(String) && value.strip.present? && value.length <= 100 },
+    'timezone' => ->(value) { value.is_a?(String) && value.strip.present? },
     'temperature' => ->(value) { value.is_a?(Numeric) && value.finite? && Saas::AiAgent::TEMPERATURE_RANGE.cover?(value) },
     'context_messages_limit' => ->(value) { value.is_a?(Integer) && (1..100).cover?(value) },
     'response_delay_seconds' => ->(value) { value.is_a?(Integer) && (0..10).cover?(value) },
@@ -94,6 +100,13 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     input = params.require(:ai_agent)
     unless input.is_a?(ActionController::Parameters) && (input.keys - VALIDATORS.keys).empty? &&
            input.each_pair.all? { |key, value| VALIDATORS.fetch(key).call(value) }
+      invalid_timezone = input.is_a?(ActionController::Parameters) && input.key?('timezone') &&
+                         !VALIDATORS['timezone'].call(input['timezone'])
+      if invalid_timezone
+        @agent.errors.add(:timezone, :invalid)
+        raise ActiveRecord::RecordInvalid, @agent
+      end
+
       raise CustomExceptions::SaasError, 'invalid_settings'
     end
 

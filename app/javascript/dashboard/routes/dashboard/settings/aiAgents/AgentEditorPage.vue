@@ -15,6 +15,7 @@ import { suggestedModelsForProvider } from './models';
 import {
   agentPayload,
   HANDOFF_CONDITIONS_MAX_LENGTH,
+  DEFAULT_TIMEZONE,
   newAgent,
   validAgent,
 } from './form';
@@ -26,6 +27,7 @@ const store = useStore();
 const loading = ref(true);
 const busy = ref(false);
 const error = ref('');
+const timezoneError = ref('');
 const activeTab = ref('general');
 const promptExpanded = ref(false);
 const connectionSearch = ref({ inboxes: '', tools: '', knowledge: '' });
@@ -173,6 +175,7 @@ const pipelineOptions = computed(() =>
 const normalizeAgent = agent => ({
   ...agent,
   handoff_conditions: agent?.handoff_conditions ?? '',
+  timezone: agent?.timezone || DEFAULT_TIMEZONE,
   customer_memory_enabled: agent?.customer_memory_enabled === true,
   audio_enabled: agent?.audio_enabled === true,
   split_response_messages: agent?.split_response_messages !== false,
@@ -231,6 +234,7 @@ const save = async () => {
   if (!canSave.value || busy.value) return;
   busy.value = true;
   error.value = '';
+  timezoneError.value = '';
   try {
     const payload = { ai_agent: agentPayload(draft.value) };
     if (isEdit.value) await aiAgentsAPI.update(route.params.agentId, payload);
@@ -238,10 +242,14 @@ const save = async () => {
     window.dispatchEvent(new Event('saas-ai-credit-status-changed'));
     router.push({ name: 'ai_agents_settings', query: { type: 'text' } });
   } catch (saveError) {
-    error.value =
-      saveError.response?.data?.error === 'inbox_conflict'
-        ? t('AI_AGENTS.INBOX_CONFLICT')
-        : t('AI_AGENTS.SAVE_ERROR');
+    if (saveError.response?.data?.field === 'timezone') {
+      timezoneError.value = t('AI_AGENTS.INVALID_TIMEZONE');
+    } else {
+      error.value =
+        saveError.response?.data?.error === 'inbox_conflict'
+          ? t('AI_AGENTS.INBOX_CONFLICT')
+          : t('AI_AGENTS.SAVE_ERROR');
+    }
   } finally {
     busy.value = false;
   }
@@ -346,6 +354,17 @@ onMounted(load);
           :label="t('AI_AGENTS.DESCRIPTION')"
           :disabled="busy"
         />
+        <Input
+          v-model="draft.timezone"
+          :label="t('AI_AGENTS.TIMEZONE')"
+          :message="timezoneError"
+          message-type="error"
+          :disabled="busy"
+          @input="timezoneError = ''"
+        />
+        <p class="text-xs text-n-slate-11">
+          {{ t('AI_AGENTS.TIMEZONE_HELP') }}
+        </p>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div class="flex flex-col gap-2">
             <label class="text-sm font-medium text-n-slate-12">{{

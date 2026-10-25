@@ -12,7 +12,8 @@ RSpec.describe Saas::AiAgents::Context do
     incoming = create(:message, account: conversation.account, inbox: conversation.inbox, conversation: conversation, content: 'A' * 5000)
     history = described_class.build(conversation, agent, incoming)
     expect(history.first).to eq(role: 'system', content: agent.system_prompt)
-    expect(history.drop(1).map { |entry| entry[:role] }).to eq(%w[user assistant user])
+    expect(history[1][:content]).to include('Data e hora atuais:', 'America/Sao_Paulo')
+    expect(history.drop(2).map { |entry| entry[:role] }).to eq(%w[user assistant user])
     expect(history.last[:content].length).to eq(4000)
     expect(history.to_s).not_to include('Private secret')
   end
@@ -24,6 +25,7 @@ RSpec.describe Saas::AiAgents::Context do
     expect(messages[0]).to eq(role: 'system', content: agent.system_prompt)
     expect(messages[1]).to eq(role: 'system', content: 'Customer name: Rhuan')
     expect(messages[2..3]).to eq(knowledge)
+    expect(messages[4][:content]).to include('Data e hora atuais:')
     expect(messages.last[:role]).to eq('user')
     expect(messages.last[:content]).to end_with("\nWarranty?")
   end
@@ -44,9 +46,9 @@ RSpec.describe Saas::AiAgents::Context do
 
     history = described_class.build(conversation, agent, incoming)
 
-    expect(history.drop(1).map { |entry| entry[:role] }).to eq(%w[user user user])
-    expect(history.drop(1).map { |entry| entry[:content].split("\n").last }).to eq(%w[First Second Third])
-    expect(history.drop(1).count { |entry| entry[:content].end_with?(incoming.content) }).to eq(1)
+    expect(history.drop(2).map { |entry| entry[:role] }).to eq(%w[user user user])
+    expect(history.drop(2).map { |entry| entry[:content].split("\n").last }).to eq(%w[First Second Third])
+    expect(history.drop(2).count { |entry| entry[:content].end_with?(incoming.content) }).to eq(1)
   end
 
   it 'keeps the name and identifier of different group participants in chronological order' do
@@ -58,7 +60,7 @@ RSpec.describe Saas::AiAgents::Context do
                     content_attributes: { participant_name: 'Bruno', participant_identifier: 'bruno@s.whatsapp.net' })
 
     history = described_class.build(conversation, agent, second)
-    contents = history.drop(1).map { |entry| entry[:content] }
+    contents = history.drop(2).map { |entry| entry[:content] }
 
     expect(contents).to eq(
       ["[Participante: Alice; identificador: alice@lid]\nFirst",

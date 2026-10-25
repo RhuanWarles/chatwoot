@@ -37,7 +37,7 @@ class Saas::AiAgents::Playground
       sources = Saas::Knowledge::Retrieval.for_agent(@agent, prompt)
       result = Saas::AiAgents::Provider.for(@account, @agent.provider, mode: mode).generate(
         model: effective_model(mode), messages: build_messages(data, prompt, sources, tools), temperature: @agent.temperature.to_f,
-        tools: tools, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
+        tools: tools, timezone: @agent.timezone, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
       )
       assistant = {
         'role' => 'assistant', 'content' => Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content)), 'request_id' => request_id,

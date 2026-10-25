@@ -63,6 +63,7 @@ class Saas::AiAgents::Respond
       messages: messages,
       temperature: @agent.temperature.to_f,
       tools: tool_definitions,
+      timezone: @agent.timezone,
       tool_handler: lambda { |name, arguments|
         Saas::AiAgents::BuiltinTools::NAMES.include?(name) ? @builtin_tools.call(name, arguments) : tool_executor.call(name, arguments)
       }

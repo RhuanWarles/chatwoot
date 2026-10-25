@@ -1,10 +1,12 @@
 export const HANDOFF_CONDITIONS_MAX_LENGTH = 1000;
+export const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
 
 export const newAgent = () => ({
   name: '',
   description: '',
   provider: 'openai',
   model: '',
+  timezone: DEFAULT_TIMEZONE,
   temperature: 0.7,
   context_messages_limit: 20,
   response_delay_seconds: 2,
@@ -28,6 +30,7 @@ export const agentPayload = agent => ({
   description: agent.description,
   provider: agent.provider,
   model: agent.model,
+  timezone: agent.timezone?.trim() || DEFAULT_TIMEZONE,
   temperature: agent.temperature,
   context_messages_limit: agent.context_messages_limit ?? 20,
   response_delay_seconds: agent.response_delay_seconds ?? 2,
@@ -55,6 +58,8 @@ export const validAgent = agent =>
       agent.name.length <= 100 &&
       agent.model.trim() &&
       agent.model.length <= 100 &&
+      typeof agent.timezone === 'string' &&
+      agent.timezone.trim().length > 0 &&
       agent.system_prompt.trim() &&
       agent.provider &&
       typeof agent.temperature === 'number' &&

@@ -7,6 +7,7 @@ describe('AI agent configuration', () => {
     expect(newAgent().context_messages_limit).toBe(20);
     expect(newAgent().response_delay_seconds).toBe(2);
     expect(newAgent().split_response_messages).toBe(true);
+    expect(newAgent().timezone).toBe('America/Sao_Paulo');
     expect(validAgent(newAgent())).toBe(false);
   });
 
@@ -19,10 +20,14 @@ describe('AI agent configuration', () => {
     };
     expect(validAgent(agent)).toBe(true);
     expect(agentPayload(agent).system_prompt).toBe(agent.system_prompt);
+    expect(
+      agentPayload({ ...agent, timezone: ' Europe/Lisbon ' }).timezone
+    ).toBe('Europe/Lisbon');
     [NaN, -0.1, 1.1, '0.7', ''].forEach(temperature => {
       expect(validAgent({ ...agent, temperature })).toBe(false);
     });
     expect(validAgent({ ...agent, system_prompt: '   ' })).toBe(false);
+    expect(validAgent({ ...agent, timezone: '   ' })).toBe(false);
   });
 
   it('sends only configuration and copies relationships when editing', () => {
@@ -39,9 +44,18 @@ describe('AI agent configuration', () => {
     expect(payload).not.toHaveProperty('id');
     payload.inbox_ids.push(6);
     expect(agent.inbox_ids).toEqual([5]);
-    expect(agentPayload({ ...agent, respond_to_groups: true }).respond_to_groups).toBe(true);
-    expect(agentPayload({ ...agent, context_messages_limit: 5 }).context_messages_limit).toBe(5);
-    const linked = agentPayload({ ...agent, knowledge_base_ids: undefined, knowledge_bases: [{ id: 3 }] });
+    expect(
+      agentPayload({ ...agent, respond_to_groups: true }).respond_to_groups
+    ).toBe(true);
+    expect(
+      agentPayload({ ...agent, context_messages_limit: 5 })
+        .context_messages_limit
+    ).toBe(5);
+    const linked = agentPayload({
+      ...agent,
+      knowledge_base_ids: undefined,
+      knowledge_bases: [{ id: 3 }],
+    });
     expect(linked.knowledge_base_ids).toEqual([3]);
     linked.knowledge_base_ids.push(4);
     expect(agent.knowledge_base_ids).toEqual([]);

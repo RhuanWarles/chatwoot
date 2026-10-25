@@ -38,9 +38,10 @@ class Saas::AiAgents::Context
       remaining -= content.length
       { role: message.incoming? ? 'user' : 'assistant', content: content }
     end.reverse
-    system_messages = [{ role: 'system', content: agent.system_prompt }]
+    timezone = agent.respond_to?(:timezone) ? agent.timezone : nil
+    system_messages = [{ role: 'system', content: Saas::AiAgents::TimeContext.render_legacy_now(agent.system_prompt, timezone) }]
     system_messages << { role: 'system', content: memory_context } if memory_context.present?
-    system_messages + knowledge_context + history
+    system_messages + knowledge_context + [Saas::AiAgents::TimeContext.for_agent(agent)] + history
   end
 
   def self.message_content(message)

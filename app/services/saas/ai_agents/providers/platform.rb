@@ -1,6 +1,8 @@
 class Saas::AiAgents::Providers::Platform
-  def generate(model:, messages:, temperature:, tools: [], tool_handler: nil)
-    Saas::TextService.generate_messages(messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler)
+  def generate(model:, messages:, temperature:, tools: [], tool_handler: nil, timezone: nil)
+    options = { messages: messages, temperature: temperature, tools: tools, tool_handler: tool_handler }
+    options[:timezone] = timezone if timezone.present?
+    Saas::TextService.generate_messages(**options)
   rescue Faraday::TimeoutError, Faraday::ConnectionFailed
     raise CustomExceptions::AiAgentError::Transient, 'provider_timeout_or_connection_error', cause: nil
   rescue Faraday::Error => e

@@ -47,6 +47,16 @@ RSpec.describe Saas::AiAgent do
     expect(agent).not_to be_valid
   end
 
+  it 'defaults to Sao Paulo and rejects unknown timezones' do
+    agent.assign_attributes(attributes)
+    expect(agent.timezone).to eq(Saas::AiAgent::DEFAULT_TIMEZONE)
+    expect(agent).to be_valid
+
+    agent.timezone = 'Mars/Olympus'
+    expect(agent).not_to be_valid
+    expect(agent.errors.attribute_names).to include(:timezone)
+  end
+
   it 'rejects invalid temperature and boolean values' do
     agent.assign_attributes(attributes.merge(temperature: 1.1, active: nil))
     expect(agent).not_to be_valid

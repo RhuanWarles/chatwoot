@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_24_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_25_090000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1738,6 +1738,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_24_120000) do
     t.text "system_prompt", null: false
     t.string "provider", null: false
     t.string "model", null: false
+    t.string "timezone", default: "America/Sao_Paulo", null: false
     t.decimal "temperature", precision: 3, scale: 2, default: "0.7", null: false
     t.boolean "active", default: false, null: false
     t.boolean "handoff_enabled", default: true, null: false

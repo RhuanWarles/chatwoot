@@ -40,7 +40,7 @@ vi.mock('dashboard/api/crm', () => ({
   pipelinesAPI: { get: vi.fn() },
 }));
 
-const mountEditor = async (agentId = null) => {
+const mountEditor = async (agentId = null, agentData = null) => {
   mocks.route = reactive({ params: agentId ? { agentId } : {}, query: {} });
   mocks.dispatch.mockResolvedValue(true);
   aiAgentsAPI.get.mockResolvedValue({
@@ -49,7 +49,7 @@ const mountEditor = async (agentId = null) => {
   aiAgentsAPI.tools.mockResolvedValue({ data: { tools: [] } });
   knowledgeAPI.get.mockResolvedValue({ data: { bases: [] } });
   pipelinesAPI.get.mockResolvedValue({ data: [] });
-  aiAgentsAPI.show.mockResolvedValue({ data: null });
+  aiAgentsAPI.show.mockResolvedValue({ data: agentData });
   const wrapper = shallowMount(AgentEditorPage, {
     global: { stubs: { RouterLink: true } },
   });
@@ -88,4 +88,19 @@ it('keeps the existing save payload contract while showing unsaved state', async
   expect(wrapper.text()).toContain('AI_AGENTS.UNSAVED');
   expect(wrapper.find('header').exists()).toBe(true);
   expect(wrapper.vm.draft.name).toBe('Support assistant');
+});
+
+it('loads the persisted timezone when editing an agent', async () => {
+  const wrapper = await mountEditor('3', {
+    id: 3,
+    name: 'Support assistant',
+    description: null,
+    provider: 'openai',
+    model: 'model',
+    system_prompt: 'Help customers',
+    timezone: 'Europe/Lisbon',
+    inboxes: [],
+  });
+
+  expect(wrapper.vm.draft.timezone).toBe('Europe/Lisbon');
 });

@@ -33,6 +33,32 @@ RSpec.describe Saas::AiAgents::Providers::OpenAi do
     expect(result[:usage]).to include('total_tokens' => 10)
   end
 
+  it 'refreshes the current time context in every tool continuation request' do
+    tool_call = {
+      'id' => 'call_1',
+      'function' => { 'name' => 'lookup_order', 'arguments' => '{"order_id":"123"}' }
+    }
+    responses = [
+      { 'choices' => [{ 'message' => { 'tool_calls' => [tool_call] } }] },
+      { 'choices' => [{ 'message' => { 'content' => 'Order found.' } }] }
+    ]
+    requests = []
+    allow(client).to receive(:chat) do |request|
+      requests << request
+      responses.shift
+    end
+
+    described_class.new(account).generate(**parameters, timezone: 'Europe/Lisbon', tools: [{ 'type' => 'function' }],
+                                           tool_handler: ->(_name, args) { args })
+
+    expect(requests).to have_length(2)
+    requests.each do |request|
+      time_messages = request[:messages].select { |message| message[:content].to_s.start_with?('Data e hora atuais:') }
+      expect(time_messages).to have_length(1)
+      expect(time_messages.first[:content]).to include('Fuso horário do assistente: Europe/Lisbon')
+    end
+  end
+
   it 'rejects empty responses' do
     allow(client).to receive(:chat).and_return('choices' => [{ 'message' => { 'content' => '  ' } }])
     expect { described_class.new(account).generate(**parameters) }.to raise_error(CustomExceptions::AiAgentError, 'empty_response')

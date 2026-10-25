@@ -15,13 +15,14 @@ class Saas::AiAgents::Providers::OpenAi
     @client = OpenAI::Client.new(access_token: settings.text_api_key, request_timeout: TIMEOUT, log_errors: false)
   end
 
-  def generate(model:, messages:, temperature:, tools: [], tool_handler: nil)
+  def generate(model:, messages:, temperature:, tools: [], tool_handler: nil, timezone: nil)
     current_messages = messages.deep_dup
     total_usage = Hash.new(0)
     tool_calls = []
     uncertain_tool_calls = []
     message = {}
     loop do
+      Saas::AiAgents::TimeContext.refresh!(current_messages, timezone)
       parameters = { model: model, messages: current_messages, temperature: temperature, max_completion_tokens: OUTPUT_LIMIT }
       parameters[:tools] = tools if tools.present?
       parameters[:tool_choice] = 'none' if tools.present? && tool_calls.length >= MAX_TOOL_CALLS

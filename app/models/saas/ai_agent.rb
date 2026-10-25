@@ -2,8 +2,14 @@ class Saas::AiAgent < ApplicationRecord
   self.table_name = 'saas_ai_agents'
 
   PROVIDERS = Saas::AiSetting::PROVIDERS
+  DEFAULT_TIMEZONE = 'America/Sao_Paulo'.freeze
   TEMPERATURE_RANGE = 0..1
   HANDOFF_CONDITIONS_MAX_LENGTH = 1000
+  PUBLIC_ATTRIBUTES = %w[
+    id account_id name description system_prompt provider model timezone temperature context_messages_limit
+    response_delay_seconds split_response_messages active handoff_enabled crm_stage_automation_enabled
+    respond_to_groups customer_memory_enabled crm_pipeline_id handoff_conditions created_at updated_at
+  ].freeze
 
   belongs_to :account
   belongs_to :crm_pipeline, class_name: 'Crm::Pipeline', optional: true, inverse_of: :ai_agents
@@ -20,6 +26,7 @@ class Saas::AiAgent < ApplicationRecord
   validates :name, :system_prompt, :provider, :model, presence: true
   validates :name, :model, length: { maximum: 100 }
   validates :system_prompt, length: { minimum: 1 }
+  validates :timezone, presence: true, inclusion: { in: TZInfo::Timezone.all_identifiers }
   validates :handoff_conditions, length: { maximum: HANDOFF_CONDITIONS_MAX_LENGTH }
   validates :provider, inclusion: { in: PROVIDERS }
   validates :temperature, numericality: { in: TEMPERATURE_RANGE }
@@ -48,8 +55,7 @@ class Saas::AiAgent < ApplicationRecord
   end
 
   def public_data
-    attributes.slice('id', 'account_id', 'name', 'description', 'system_prompt', 'provider', 'model',
-                     'temperature', 'context_messages_limit', 'response_delay_seconds', 'split_response_messages', 'active', 'handoff_enabled', 'crm_stage_automation_enabled', 'respond_to_groups', 'customer_memory_enabled', 'crm_pipeline_id', 'handoff_conditions', 'created_at', 'updated_at').merge(
+    attributes.slice(*PUBLIC_ATTRIBUTES).merge(
                        'audio_enabled' => audio_enabled,
                        'temperature' => temperature.to_f,
                        'inboxes' => inboxes.map { |inbox| { id: inbox.id, name: inbox.name } },
