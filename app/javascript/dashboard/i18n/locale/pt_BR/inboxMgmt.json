@@ -806,6 +806,24 @@
     },
     "CHANNEL_PREFERENCES": "Preferências do Canal",
     "WIDGET_FEATURES": "Recursos do widget",
+    "WIDGET_BRANDING": {
+      "TITLE": "Rodapé do widget",
+      "LOGO": {
+        "LABEL": "Logo do rodapé",
+        "HELP_TEXT": "PNG, JPG, GIF ou WEBP, até 1 MB. Se vazio, usa a logo padrão."
+      },
+      "TEXT": {
+        "LABEL": "Texto do rodapé",
+        "PLACEHOLDER": "Desenvolvido por Sua Empresa",
+        "HELP_TEXT": "Aparece no final do chat aberto. Se vazio, usa o texto padrão."
+      },
+      "URL": {
+        "LABEL": "Link do rodapé",
+        "PLACEHOLDER": "https://suaempresa.com.br",
+        "HELP_TEXT": "Para onde o rodapé leva ao ser clicado. Se vazio, o rodapé não é clicável.",
+        "ERROR": "Informe uma URL válida começando com http:// ou https://"
+      }
+    },
     "ACCOUNT_HEALTH": {
       "TITLE": "Gerencie sua conta do WhatsApp",
       "DESCRIPTION": "Revise a integridade do seu número de telefone do WhatsApp, a capacidade de envio de mensagens e os detalhes da conta comercial da Meta vinculada.",

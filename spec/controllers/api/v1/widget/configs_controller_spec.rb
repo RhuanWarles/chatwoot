@@ -19,6 +19,19 @@ RSpec.describe '/api/v1/widget/config', type: :request do
       end
     end
 
+    context 'with footer branding configured on the web widget' do
+      it 'returns the branding in the website channel config' do
+        web_widget.update!(branding_text: 'Powered by Acme', branding_url: 'https://acme.com')
+
+        post '/api/v1/widget/config', params: params, as: :json
+
+        config = response.parsed_body['website_channel_config']
+        expect(config['branding_text']).to eq('Powered by Acme')
+        expect(config['branding_url']).to eq('https://acme.com')
+        expect(config['branding_logo_url']).to eq('')
+      end
+    end
+
     context 'with correct website token and missing X-Auth-Token' do
       it 'returns widget config along with a new contact' do
         expect do

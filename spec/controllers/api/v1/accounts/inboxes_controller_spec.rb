@@ -973,6 +973,47 @@ RSpec.describe 'Inboxes API', type: :request do
         expect(response).to have_http_status(:success)
         expect(inbox.reload.allow_messages_after_resolved).to be_falsey
       end
+
+      it 'updates the webwidget footer branding' do
+        file = fixture_file_upload(Rails.root.join('spec/assets/avatar.png'), 'image/png')
+
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: valid_params.merge(channel: { branding_text: 'Powered by Acme', branding_url: 'https://acme.com', branding_logo: file })
+
+        expect(response).to have_http_status(:success)
+        channel = inbox.reload.channel
+        expect(channel.branding_text).to eq('Powered by Acme')
+        expect(channel.branding_url).to eq('https://acme.com')
+        expect(channel.branding_logo).to be_attached
+        expect(response.parsed_body['branding_text']).to eq('Powered by Acme')
+        expect(response.parsed_body['branding_url']).to eq('https://acme.com')
+        expect(response.parsed_body['branding_logo_url']).to be_present
+      end
+
+      it 'does not accept a webwidget footer link that is not http(s)' do
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: valid_params.merge(channel: { branding_url: 'javascript:alert(1)' }),
+              as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(inbox.reload.channel.branding_url).to be_nil
+      end
+
+      it 'removes the webwidget footer logo' do
+        inbox.channel.branding_logo.attach(io: File.open(Rails.root.join('spec/assets/avatar.png')),
+                                           filename: 'avatar.png', content_type: 'image/png')
+
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: valid_params.merge(channel: { remove_branding_logo: true }),
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(inbox.reload.channel.branding_logo).not_to be_attached
+        expect(response.parsed_body['branding_logo_url']).to eq('')
+      end
     end
 
     context 'when an authenticated user updates email inbox' do

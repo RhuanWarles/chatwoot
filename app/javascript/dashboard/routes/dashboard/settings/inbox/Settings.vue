@@ -127,6 +127,11 @@ export default {
       widgetBubblePosition: 'right',
       widgetBubbleType: 'standard',
       widgetBubbleLauncherTitle: '',
+      brandingText: '',
+      brandingUrl: '',
+      brandingLogoUrl: '',
+      brandingLogoFile: null,
+      removeBrandingLogo: false,
     };
   },
   computed: {
@@ -575,6 +580,7 @@ export default {
       this.selectedPortalSlug = this.inbox.help_center
         ? this.inbox.help_center.slug
         : '';
+      this.syncBrandingData();
 
       const savedBubbleSettings = LocalStorage.get(
         this.widgetBuilderStorageKey
@@ -589,6 +595,23 @@ export default {
         this.widgetBubbleType = 'standard';
         this.widgetBubbleLauncherTitle = '';
       }
+    },
+    syncBrandingData() {
+      this.brandingText = this.inbox.branding_text || '';
+      this.brandingUrl = this.inbox.branding_url || '';
+      this.brandingLogoUrl = this.inbox.branding_logo_url || '';
+      this.brandingLogoFile = null;
+      this.removeBrandingLogo = false;
+    },
+    handleBrandingLogoUpload({ file, url }) {
+      this.brandingLogoFile = file;
+      this.brandingLogoUrl = url;
+      this.removeBrandingLogo = false;
+    },
+    handleBrandingLogoDelete() {
+      this.brandingLogoFile = null;
+      this.brandingLogoUrl = '';
+      this.removeBrandingLogo = Boolean(this.inbox.branding_logo_url);
     },
     async fetchHealthData() {
       if (!this.inbox) return;
@@ -717,10 +740,23 @@ export default {
               this.isInboundEmailEnabled && this.continuityViaEmail,
           },
         };
+        if (this.isAWebWidgetInbox) {
+          payload.channel.branding_text = this.brandingText || '';
+          payload.channel.branding_url = this.brandingUrl || '';
+          if (this.brandingLogoFile) {
+            payload.channel.branding_logo = this.brandingLogoFile;
+          }
+          if (this.removeBrandingLogo) {
+            payload.channel.remove_branding_logo = true;
+          }
+        }
         if (this.avatarFile) {
           payload.avatar = this.avatarFile;
         }
         await this.$store.dispatch('inboxes/updateInbox', payload);
+        if (this.isAWebWidgetInbox) {
+          this.syncBrandingData();
+        }
         useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
         this.showBusinessNameInput = false;
       } catch (error) {
@@ -766,6 +802,9 @@ export default {
   },
   validations: {
     webhookUrl: {
+      shouldBeUrl,
+    },
+    brandingUrl: {
       shouldBeUrl,
     },
     selectedInboxName: {},
@@ -1286,6 +1325,60 @@ export default {
                     </label>
                   </div>
                 </div>
+              </SettingsFieldSection>
+            </SettingsAccordion>
+
+            <SettingsAccordion
+              v-if="isAWebWidgetInbox"
+              :title="$t('INBOX_MGMT.WIDGET_BRANDING.TITLE')"
+              class="mt-6"
+            >
+              <SettingsFieldSection
+                :label="$t('INBOX_MGMT.WIDGET_BRANDING.LOGO.LABEL')"
+                :help-text="$t('INBOX_MGMT.WIDGET_BRANDING.LOGO.HELP_TEXT')"
+              >
+                <Avatar
+                  :src="brandingLogoUrl"
+                  :size="48"
+                  name=""
+                  allow-upload
+                  @upload="handleBrandingLogoUpload"
+                  @delete="handleBrandingLogoDelete"
+                />
+              </SettingsFieldSection>
+
+              <SettingsFieldSection
+                :label="$t('INBOX_MGMT.WIDGET_BRANDING.TEXT.LABEL')"
+                :help-text="$t('INBOX_MGMT.WIDGET_BRANDING.TEXT.HELP_TEXT')"
+              >
+                <woot-input
+                  v-model="brandingText"
+                  class="[&>input]:!mb-0"
+                  maxlength="100"
+                  :placeholder="
+                    $t('INBOX_MGMT.WIDGET_BRANDING.TEXT.PLACEHOLDER')
+                  "
+                />
+              </SettingsFieldSection>
+
+              <SettingsFieldSection
+                :label="$t('INBOX_MGMT.WIDGET_BRANDING.URL.LABEL')"
+                :help-text="$t('INBOX_MGMT.WIDGET_BRANDING.URL.HELP_TEXT')"
+              >
+                <woot-input
+                  v-model="brandingUrl"
+                  class="[&>input]:!mb-0"
+                  :class="{ error: v$.brandingUrl.$error }"
+                  :placeholder="
+                    $t('INBOX_MGMT.WIDGET_BRANDING.URL.PLACEHOLDER')
+                  "
+                  :error="
+                    v$.brandingUrl.$error
+                      ? $t('INBOX_MGMT.WIDGET_BRANDING.URL.ERROR')
+                      : ''
+                  "
+                  @blur="v$.brandingUrl.$touch"
+                />
               </SettingsFieldSection>
             </SettingsAccordion>
 
