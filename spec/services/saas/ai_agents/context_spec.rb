@@ -96,6 +96,16 @@ RSpec.describe Saas::AiAgents::Context do
     expect(history.last[:attachments].first[:data]).to be_present
   end
 
+  it 'finds attachment-only incoming messages when interpretation is enabled' do
+    incoming = create(:message, account: conversation.account, inbox: conversation.inbox, conversation: conversation,
+                      content: nil)
+    incoming.attachments.create!(account: conversation.account, file_type: :image,
+                                 file: fixture_file_upload('spec/assets/avatar.png', 'image/png'))
+
+    expect(described_class.latest_incoming(conversation, include_attachments: true)).to eq(incoming)
+    expect(described_class.latest_incoming(conversation)).to be_nil
+  end
+
   it 'removes internal author context from model output' do
     content = "[Participante: Larissa; identificador: Saas::AiAgent:3]\nTenho sim!"
 

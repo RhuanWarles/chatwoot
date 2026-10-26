@@ -212,7 +212,9 @@ class Saas::AiAgents::Respond
   end
 
   def latest_incoming_current?
-    Saas::AiAgents::Context.latest_incoming(@conversation)&.id == @incoming.id
+    Saas::AiAgents::Context.latest_incoming(
+      @conversation, include_attachments: @agent.attachment_interpretation_enabled?
+    )&.id == @incoming.id
   end
 
   def duration

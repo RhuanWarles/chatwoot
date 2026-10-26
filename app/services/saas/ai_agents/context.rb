@@ -23,9 +23,10 @@ class Saas::AiAgents::Context
   end
 
   def self.latest_incoming(conversation, include_attachments: false)
-    relevant(conversation, include_attachments: include_attachments).where(message_type: :incoming)
-                          .where("COALESCE((content_attributes #>> '{}')::jsonb->>'generated_by_ai', 'false') <> 'true'")
-                          .includes(:attachments, :sender).reorder(id: :desc).find { |message| message_content(message).present? }
+    messages = relevant(conversation, include_attachments: include_attachments).where(message_type: :incoming)
+    messages = messages.where("COALESCE((content_attributes #>> '{}')::jsonb->>'generated_by_ai', 'false') <> 'true'")
+    messages.includes(:attachments, :sender).reorder(id: :desc)
+            .find { |message| message_content(message, include_attachments: include_attachments).present? }
   end
 
   def self.build(conversation, agent, incoming, memory_context: nil, knowledge_context: [])
@@ -57,10 +58,11 @@ class Saas::AiAgents::Context
 
   def self.message_content(message, include_attachments: false, attachment_data: nil)
     content = message.content_for_llm.to_s.strip
-    return if content.blank?
+    attachment_data ||= Saas::AiAgents::AttachmentInterpreter.call(message) if include_attachments
+    attachment_text = attachment_data&.[](:text)
+    return if content.blank? && attachment_text.blank? && attachment_data&.[](:images).blank?
 
-    attachment_text = (attachment_data || Saas::AiAgents::AttachmentInterpreter.call(message))[:text] if include_attachments
-    [author_context(message), content, attachment_text].compact.join("\n")
+    [author_context(message), content.presence, attachment_text].compact.join("\n")
   end
 
   def self.message_payload(message, include_attachments: false)

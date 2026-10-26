@@ -248,6 +248,20 @@ RSpec.describe Saas::AiAgents::Respond do
     end
   end
 
+  it 'responds immediately to an image-only incoming message when interpretation is enabled' do
+    agent.update!(attachment_interpretation_enabled: true)
+    incoming.update!(content: nil)
+    incoming.attachments.create!(account: account, file_type: :image,
+                                 file: fixture_file_upload('spec/assets/avatar.png', 'image/png'))
+
+    described_class.new(conversation, incoming).perform
+
+    expect(provider).to have_received(:generate).with(hash_including(messages: include(
+      hash_including(attachments: include(hash_including(filename: 'avatar.png')))
+    )))
+    expect(conversation.messages.outgoing.count).to eq(1)
+  end
+
   it 'refuses concurrent generation while another database session owns the conversation lock' do
     message = incoming
     key = described_class::LOCK_NAMESPACE + conversation.id
