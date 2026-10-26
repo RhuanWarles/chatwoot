@@ -172,6 +172,17 @@ export default {
     inbox() {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
     },
+    contact() {
+      const contactId = this.currentChat?.meta?.sender?.id;
+      return contactId
+        ? this.$store.getters['contacts/getContact'](contactId)
+        : null;
+    },
+    shouldShowMissingContactEmailBanner() {
+      const email =
+        this.contact?.email || this.currentChat?.meta?.sender?.email || '';
+      return Boolean(this.currentChat?.meta?.sender?.id && !email.trim());
+    },
     typingUsersList() {
       const userList = this.$store.getters[
         'conversationTypingStatus/getUserList'
@@ -649,6 +660,12 @@ export default {
         :banner-message="$t('CONVERSATION.INSTAGRAM_RESTRICTION_BANNER')"
         :href-link="instagramRestrictionStatusUrl"
         :href-link-text="$t('CONVERSATION.INSTAGRAM_RESTRICTION_STATUS_LINK')"
+      />
+      <Banner
+        v-if="shouldShowMissingContactEmailBanner"
+        color-scheme="warning"
+        class="mx-2 mt-2 overflow-hidden rounded-lg"
+        :banner-message="$t('CONVERSATION.MISSING_CONTACT_EMAIL_BANNER')"
       />
       <Banner
         v-if="!currentChat.can_reply"
