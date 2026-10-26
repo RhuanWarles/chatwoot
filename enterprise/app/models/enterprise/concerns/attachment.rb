@@ -16,11 +16,21 @@ module Enterprise::Concerns::Attachment
 
   def enqueue_audio_transcription
     return unless file_type.to_sym == :audio
+    return if ai_agent_audio_enabled?
 
     # No file.attached? guard: the social-media ingest path saves the
     # Attachment before attaching the blob. AudioTranscriptionJob retries
     # on ActiveStorage::FileNotFoundError to ride out that race.
     Messages::AudioTranscriptionJob.perform_later(id)
+  end
+
+  def ai_agent_audio_enabled?
+    conversation = message&.conversation
+    return false unless conversation
+
+    conversation.account.saas_ai_agents.where(active: true).joins(:ai_agent_inboxes)
+                .where(saas_ai_agent_inboxes: { inbox_id: conversation.inbox_id })
+                .exists?(audio_enabled: true)
   end
 
   def broadcast_message_update_for_audio

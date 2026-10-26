@@ -18,6 +18,7 @@ RSpec.describe 'AI Agents API', type: :request do
     expect(response.parsed_body['respond_to_groups']).to be(false)
     expect(response.parsed_body['context_messages_limit']).to eq(20)
     expect(response.parsed_body['split_response_messages']).to be(true)
+    expect(response.parsed_body['audio_enabled']).to be(false)
     expect(response.parsed_body).not_to have_key('max_messages_per_response')
     expect(response.parsed_body.keys).not_to include('api_key')
     patch "#{url}/#{id}", params: { ai_agent: { active: true, description: 'Updated', respond_to_groups: true } }, headers: headers, as: :json
@@ -29,6 +30,18 @@ RSpec.describe 'AI Agents API', type: :request do
     delete "#{url}/#{id}", headers: headers
     expect(response).to have_http_status(:no_content)
     expect(Saas::AiAgentInbox.where(ai_agent_id: id)).to be_empty
+  end
+
+  it 'persists the audio understanding toggle per agent' do
+    post url, params: { ai_agent: attributes.merge(audio_enabled: true) }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    id = response.parsed_body.fetch('id')
+    expect(response.parsed_body['audio_enabled']).to be(true)
+
+    patch "#{url}/#{id}", params: { ai_agent: { audio_enabled: false } }, headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['audio_enabled']).to be(false)
+    expect(account.saas_ai_agents.find(id).audio_enabled).to be(false)
   end
 
   it 'scopes lists and direct reads to the current account' do

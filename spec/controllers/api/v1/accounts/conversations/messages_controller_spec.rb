@@ -393,7 +393,7 @@ RSpec.describe 'Conversation Messages API', type: :request do
     let(:api_channel) { create(:channel_api, account: account) }
     let(:api_inbox) { create(:inbox, channel: api_channel, account: account) }
     let(:agent) { create(:user, account: account, role: :agent) }
-    let!(:conversation) { create(:conversation, inbox: api_inbox, account: account) }
+    let!(:conversation) { create(:conversation, inbox: api_inbox, account: account).tap(&:reload) }
     let!(:message) { create(:message, conversation: conversation, account: account, status: :sent) }
 
     context 'when unauthenticated' do
@@ -576,6 +576,109 @@ RSpec.describe 'Conversation Messages API', type: :request do
           expect(message.reload.external_error).to eq('err123')
         end
       end
+    end
+  end
+
+  describe 'POST /api/v1/accounts/{account.id}/conversations/:conversation_id/messages/:id/evolution_edit' do
+    let(:api_channel) { create(:channel_api, account: account, additional_attributes: { 'evolution_instance_name' => 'account-1-test' }) }
+    let(:api_inbox) { api_channel.inbox }
+    let(:agent) { create(:user, account: account, role: :agent) }
+    let!(:conversation) { create(:conversation, inbox: api_inbox, account: account).tap(&:reload) }
+    let!(:message) do
+      create(
+        :message,
+        conversation: conversation,
+        account: account,
+        inbox: api_inbox,
+        message_type: :incoming,
+        source_id: 'WAID:message-id',
+        content_attributes: {
+          'whatsapp_message_key' => {
+            'id' => 'message-id',
+            'remoteJid' => '5511999999999@s.whatsapp.net',
+            'fromMe' => false
+          },
+          'existing_attribute' => 'preserved'
+        }
+      )
+    end
+
+    before { create(:inbox_member, inbox: api_inbox, user: agent) }
+
+    def evolution_edit_path(account_id:, conversation_id:, message_id:)
+      "/api/v1/accounts/#{account_id}/conversations/#{conversation_id}/messages/#{message_id}/evolution_edit"
+    end
+
+    it 'syncs an incoming edit through the dedicated endpoint' do
+      post evolution_edit_path(account_id: account.id, conversation_id: conversation.display_id, message_id: message.id),
+           params: {
+             content: 'Edited message',
+             instance_name: 'account-1-test',
+             edited_at: '2026-10-23T19:00:00Z',
+             whatsapp_message_key: {
+               id: 'message-id',
+               remoteJid: '5511999999999@s.whatsapp.net',
+               fromMe: false
+             }
+           }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(message.reload.content).to eq('Edited message')
+      expect(message.content_attributes['existing_attribute']).to eq('preserved')
+      expect(message.content_attributes['whatsapp_message_edited']).to be(true)
+    end
+
+    it 'rejects a message key from another WhatsApp message' do
+      post evolution_edit_path(account_id: account.id, conversation_id: conversation.display_id, message_id: message.id),
+           params: {
+             content: 'Edited message',
+             instance_name: 'account-1-test',
+             whatsapp_message_key: { id: 'other-message-id' }
+           }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error_code']).to eq('message_edit_sync_invalid')
+      expect(message.reload.content).not_to eq('Edited message')
+    end
+
+    it 'does not allow an incorrect Evolution instance to update the message' do
+      post evolution_edit_path(account_id: account.id, conversation_id: conversation.display_id, message_id: message.id),
+           params: {
+             content: 'Edited message',
+             instance_name: 'another-instance',
+             whatsapp_message_key: { id: 'message-id' }
+           }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(message.reload.content).not_to eq('Edited message')
+    end
+
+    it 'does not allow another account to address the message' do
+      other_account = create(:account)
+
+      post evolution_edit_path(account_id: other_account.id, conversation_id: conversation.display_id, message_id: message.id),
+           params: {
+             content: 'Edited message',
+             instance_name: 'account-1-test',
+             whatsapp_message_key: { id: 'message-id' }
+           }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(message.reload.content).not_to eq('Edited message')
+    end
+
+    it 'does not find a message from another conversation through the requested conversation' do
+      other_conversation = create(:conversation, account: account, inbox: api_inbox)
+
+      post evolution_edit_path(account_id: account.id, conversation_id: other_conversation.display_id, message_id: message.id),
+           params: {
+             content: 'Edited message',
+             instance_name: 'account-1-test',
+             whatsapp_message_key: { id: 'message-id' }
+           }, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:not_found)
+      expect(message.reload.content).not_to eq('Edited message')
     end
   end
 end

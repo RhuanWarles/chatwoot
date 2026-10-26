@@ -4,7 +4,11 @@ class Saas::AiAgents::Runtime
 
   def self.incoming?(message)
     message.incoming? && !message.private? && message.sender_type == 'Contact' &&
-      message.content.to_s.strip.present? && message.content_attributes['generated_by_ai'] != true
+      (message.content.to_s.strip.present? || audio_attachment?(message)) && message.content_attributes['generated_by_ai'] != true
+  end
+
+  def self.audio_attachment?(message)
+    message.attachments.any?(&:audio?)
   end
 
   def self.agent_for(conversation)

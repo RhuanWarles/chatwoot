@@ -5,14 +5,16 @@ class Saas::AiAgents::Context
   MESSAGE_CHARACTER_LIMIT = 4000
 
   def self.relevant(conversation)
-    conversation.messages.where(private: false, message_type: %w[incoming outgoing]).where.not(content: [nil, ''])
-                .where('message_type = ? OR sender_type = ?', Message.message_types.fetch('outgoing'), 'Contact')
+    messages = conversation.messages.where(private: false, message_type: %w[incoming outgoing])
+    messages.where('content IS NOT NULL AND content <> ? OR id IN (?)', '',
+                   Attachment.where(file_type: Attachment.file_types[:audio]).select(:message_id))
+            .where('message_type = ? OR sender_type = ?', Message.message_types.fetch('outgoing'), 'Contact')
   end
 
   def self.latest_incoming(conversation)
-    relevant(conversation).where(message_type: :incoming).where("content ~ '[^[:space:]]'")
+    relevant(conversation).where(message_type: :incoming)
                           .where("COALESCE((content_attributes #>> '{}')::jsonb->>'generated_by_ai', 'false') <> 'true'")
-                          .reorder(id: :desc).first
+                          .includes(:attachments).reorder(id: :desc).find { |message| message.content_for_llm.to_s.strip.present? }
   end
 
   def self.build(conversation, agent, incoming, memory_context: nil, knowledge_context: [])
@@ -23,7 +25,7 @@ class Saas::AiAgents::Context
       next if message.content_attributes['generated_by_ai'] == true && message.incoming?
       next unless remaining.positive?
 
-      content = message.content.strip.first([MESSAGE_CHARACTER_LIMIT, remaining].min)
+      content = message.content_for_llm.to_s.strip.first([MESSAGE_CHARACTER_LIMIT, remaining].min)
       next if content.blank?
 
       remaining -= content.length
