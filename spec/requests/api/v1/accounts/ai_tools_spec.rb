@@ -15,6 +15,18 @@ RSpec.describe 'AI Tools API', type: :request do
     expect(account.saas_ai_tools.find_by(slug: 'send_link')).to be_present
   end
 
+  it 'lists the most recently created tools first' do
+    older = account.saas_ai_tools.create!(name: 'Zeta', description: 'Older', tool_type: 'http',
+                                          configuration: configuration, created_at: 2.days.ago)
+    newer = account.saas_ai_tools.create!(name: 'Alpha', description: 'Newer', tool_type: 'http',
+                                          configuration: configuration, created_at: 1.day.ago)
+
+    get url, headers: headers
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['tools'].map { |tool| tool['id'] }).to eq([newer.id, older.id])
+  end
+
   it 'returns validation errors instead of 500 for invalid configuration' do
     post url, params: { ai_tool: { name: 'Invalid', description: 'Invalid',
                                   configuration: configuration.merge(url: 'ftp://example.com') } }, headers: headers, as: :json

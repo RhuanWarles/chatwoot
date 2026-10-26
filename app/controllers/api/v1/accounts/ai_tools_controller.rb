@@ -5,7 +5,7 @@ class Api::V1::Accounts::AiToolsController < Api::V1::Accounts::BaseController
   before_action :fetch_tool, only: [:show, :update, :destroy, :test]
 
   def index
-    render json: { tools: Current.account.saas_ai_tools.order(:name, :id).map(&:public_data) }
+    render json: { tools: Current.account.saas_ai_tools.order(created_at: :desc, id: :desc).map(&:public_data) }
   end
 
   def show

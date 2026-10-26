@@ -23,7 +23,7 @@ class Api::V1::Accounts::KnowledgeBasesController < Api::V1::Accounts::BaseContr
   end
 
   def index
-    render json: { bases: Current.account.saas_knowledge_bases.includes(:agents).order(:name).map(&:public_data) }
+    render json: { bases: Current.account.saas_knowledge_bases.includes(:agents).order(created_at: :desc, id: :desc).map(&:public_data) }
   end
 
   def show

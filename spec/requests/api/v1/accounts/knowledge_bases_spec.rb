@@ -26,6 +26,16 @@ RSpec.describe 'Knowledge API', type: :request do
     expect(response).to have_http_status(:no_content)
   end
 
+  it 'lists the most recently created bases first' do
+    older = account.saas_knowledge_bases.create!(name: 'Zeta', created_at: 2.days.ago)
+    newer = account.saas_knowledge_bases.create!(name: 'Alpha', created_at: 1.day.ago)
+
+    get url, headers: headers
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['bases'].map { |base| base['id'] }).to eq([newer.id, older.id])
+  end
+
   it 'persists retrieval and chunking settings with safe defaults' do
     post url, params: { knowledge_base: { name: 'Configured', similarity_threshold: 0.42, retrieval_top_k: 7,
                                           chunk_size: 1800, chunk_overlap: 180 } }, headers: headers, as: :json
