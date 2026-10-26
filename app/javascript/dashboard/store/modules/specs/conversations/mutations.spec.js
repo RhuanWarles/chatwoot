@@ -169,7 +169,9 @@ describe('#mutations', () => {
           timestamp: 1602256198,
         },
       ]);
-      expect(emitter.emit).toHaveBeenCalledWith('SCROLL_TO_MESSAGE');
+      expect(emitter.emit).toHaveBeenCalledWith('SCROLL_TO_MESSAGE', {
+        forceScroll: false,
+      });
     });
 
     it('update message if it exist in the store', () => {

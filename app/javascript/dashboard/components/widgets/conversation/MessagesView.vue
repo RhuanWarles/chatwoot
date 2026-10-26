@@ -347,7 +347,7 @@ export default {
       );
       this.$nextTick(() => {
         if (this.currentChat.id !== conversationId) return;
-        if (!this.hasUserScrolled && !this.$route.query.messageId) {
+        if (!this.$route.query.messageId && this.isAtBottom()) {
           this.scrollToBottom();
         } else {
           restoreAnchor();
@@ -450,8 +450,19 @@ export default {
       emitter.off(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, this.leaveReadingMode);
       emitter.off(CMD_AI_ASSIST, this.leaveReadingMode);
     },
-    async onScrollToMessage({ messageId = '' } = {}) {
+    isAtBottom() {
+      if (!this.conversationPanel) return false;
+
+      const distanceFromBottom =
+        this.conversationPanel.scrollHeight -
+        this.conversationPanel.scrollTop -
+        this.conversationPanel.clientHeight;
+
+      return distanceFromBottom <= 24;
+    },
+    async onScrollToMessage({ messageId = '', forceScroll = true } = {}) {
       if (!messageId) {
+        if (!forceScroll && !this.isAtBottom()) return;
         this.makeMessagesRead();
         this.$nextTick(() => this.scrollToBottom());
         return;
