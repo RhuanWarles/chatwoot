@@ -22,6 +22,25 @@ RSpec.describe AiAgentListener do
     expect(Saas::AiAgents::RespondJob).to have_received(:perform_later).once
   end
 
+  it 'handles the first message of a conversation whose display_id is still marked as changed' do
+    agent.configure!({ name: 'AI', system_prompt: 'Help', provider: 'openai', model: 'test-model', active: true },
+                     selected_inboxes: [inbox])
+    message.conversation.display_id_will_change!
+    expect { message.conversation.with_lock {} }.to raise_error(RuntimeError, /unpersisted changes/)
+
+    expect { described_class.instance.message_created(event) }.not_to raise_error
+    expect(Saas::AiAgents::RespondJob).to have_received(:perform_later).with(account.id, conversation.id, message.id)
+  end
+
+  it 'does not raise when the AI runtime fails, so the customer message is not rejected' do
+    allow(Saas::AiAgents::Runtime).to receive(:enabled?).and_raise(StandardError, 'boom')
+    allow(ChatwootExceptionTracker).to receive(:new).and_call_original
+
+    expect { described_class.instance.message_created(event) }.not_to raise_error
+    expect(ChatwootExceptionTracker).to have_received(:new).with(an_instance_of(StandardError), account: account)
+    expect(Saas::AiAgents::RespondJob).not_to have_received(:perform_later)
+  end
+
   it 'does not use an agent from another account or inbox' do
     other = create(:account)
     other.saas_ai_agents.build.configure!({ name: 'AI', system_prompt: 'Help', provider: 'openai', model: 'test-model', active: true },
