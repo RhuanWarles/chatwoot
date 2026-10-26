@@ -353,7 +353,7 @@ export const mutations = {
       const { messages, ...updates } = conversation;
       allConversations[index] = { ...selectedConversation, ...updates };
       if (_state.selectedChatId === conversation.id) {
-        emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
+        emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE, { forceScroll: false });
       }
     } else {
       const { conversationType } = _state.conversationFilters || {};
