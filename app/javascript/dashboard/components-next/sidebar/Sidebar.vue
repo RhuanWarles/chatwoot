@@ -998,6 +998,12 @@ const menuItems = computed(() => {
           icon: 'i-lucide-blocks',
           to: accountScopedRoute('settings_applications'),
         },
+        {
+          name: 'Settings CRM API',
+          label: t('SIDEBAR.CRM_API'),
+          icon: 'i-lucide-book-open',
+          to: accountScopedRoute('crm_api_docs_settings'),
+        },
 
         ...(hasDataImport.value
           ? [
