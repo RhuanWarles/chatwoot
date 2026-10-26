@@ -2,12 +2,12 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useElementSize } from '@vueuse/core';
-import { LineChart } from '@chatwoot/viz';
 import { useLocale } from 'shared/composables/useLocale';
 import Select from 'dashboard/components-next/select/Select.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 import aiAnalyticsAPI from 'dashboard/api/aiAnalytics';
+import ActivityLineChart from './ActivityLineChart.vue';
 
 const { t } = useI18n();
 const { resolvedLocale } = useLocale();
@@ -326,7 +326,7 @@ onMounted(load);
             ref="chartContainer"
             class="mt-4 flex h-44 min-h-0 items-center justify-center overflow-visible sm:h-52"
           >
-            <LineChart
+            <ActivityLineChart
               v-if="data.summary.messages || data.billing.credits_consumed"
               :data="chartData"
               :height="Math.max(60, Math.floor(chartHeight))"
