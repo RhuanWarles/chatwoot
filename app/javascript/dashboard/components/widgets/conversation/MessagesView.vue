@@ -181,7 +181,9 @@ export default {
     shouldShowMissingContactEmailBanner() {
       const email =
         this.contact?.email || this.currentChat?.meta?.sender?.email || '';
-      return Boolean(this.currentChat?.meta?.sender?.id && !email.trim());
+      return Boolean(
+        this.currentChat?.meta?.sender?.id && !String(email).trim()
+      );
     },
     typingUsersList() {
       const userList = this.$store.getters[
@@ -689,7 +691,7 @@ export default {
       leave-to-class="opacity-0"
     >
       <div
-        v-if="floatingDateVisible && floatingDateLabel"
+        v-if="floatingDateVisible && floatingDateLabel && !topBannerHeight"
         class="absolute z-10 left-1/2 top-3 -translate-x-1/2 pointer-events-none"
         aria-live="polite"
       >

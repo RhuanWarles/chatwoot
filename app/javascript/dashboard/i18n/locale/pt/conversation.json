@@ -54,6 +54,7 @@
     "OLD_INSTAGRAM_INBOX_REPLY_BANNER": "Esta conta do Instagram foi migrada para a nova caixa de entrada do canal Instagram. Todas as novas mensagens aparecerão lá. Já não poderá enviar mensagens a partir desta conversa.",
     "INSTAGRAM_RESTRICTION_BANNER": "Instagram messaging is currently affected by an API-level issue on Meta’s side, not a problem with Chatwoot. Some messages or actions may be delayed or unavailable. We’re working closely with Meta to resolve it as quickly as possible.",
     "INSTAGRAM_RESTRICTION_STATUS_LINK": "View status updates",
+    "MISSING_CONTACT_EMAIL_BANNER": "Este contacto não possui um e-mail associado. Adicione um e-mail nos detalhes do contacto para manter as informações completas.",
     "REPLYING_TO": "Está a responder a:",
     "REMOVE_SELECTION": "Remover seleção",
     "DOWNLOAD": "Descarregar",
