@@ -66,12 +66,13 @@ export default {
     closeWindow() {
       if (IFrameHelper.isIFrame()) {
         IFrameHelper.sendMessage({ event: 'closeWindow' });
-      } else if (RNHelper.isRNWebView) {
+      } else if (RNHelper.isRNWebView()) {
         RNHelper.sendMessage({ type: 'close-widget' });
       }
     },
-    resolveConversation() {
-      this.$store.dispatch('conversation/resolveConversation');
+    async resolveConversation() {
+      await this.$store.dispatch('conversation/resolveConversation');
+      this.closeWindow();
     },
   },
 };
