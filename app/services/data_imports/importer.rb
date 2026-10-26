@@ -318,9 +318,7 @@ class DataImports::Importer
   end
 
   def contact_email_available?(contact, email)
-    return false if contact.email.present? || email.blank?
-
-    @account.contacts.where.not(id: contact.id).where('LOWER(email) = ?', email.downcase).empty?
+    contact.email.blank? && email.present?
   end
 
   def contact_phone_number_available?(contact, phone_number)
@@ -335,7 +333,6 @@ class DataImports::Importer
 
   def find_existing_contact(contact_payload)
     identifier = normalized_identifier(contact_payload)
-    email = normalized_email(contact_payload)
     phone_number = normalized_phone(contact_payload)
 
     if identifier.present?
@@ -343,10 +340,6 @@ class DataImports::Importer
       return contact if contact.present?
     end
 
-    if email.present?
-      contact = @account.contacts.from_email(email)
-      return contact if contact.present?
-    end
     return @account.contacts.find_by(phone_number: phone_number) if phone_number.present?
 
     nil

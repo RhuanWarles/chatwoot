@@ -39,9 +39,7 @@ const updateContact = async updatedData => {
   } catch (error) {
     const i18nPrefix = 'CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM';
     if (error instanceof DuplicateContactException) {
-      if (error.data.includes('email')) {
-        useAlert(t(`${i18nPrefix}.EMAIL_ADDRESS.DUPLICATE`));
-      } else if (error.data.includes('phone_number')) {
+      if (error.data.includes('phone_number')) {
         useAlert(t(`${i18nPrefix}.PHONE_NUMBER.DUPLICATE`));
       }
     } else if (error instanceof ExceptionWithMessage) {

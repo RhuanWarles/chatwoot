@@ -38,6 +38,15 @@ RSpec.describe Contact do
       expect(contact.contact_type).to eq('visitor')
     end
 
+    it 'allows multiple contacts in the same account to use the same email' do
+      account = create(:account)
+      first_contact = create(:contact, account: account, email: 'same@example.com')
+      second_contact = create(:contact, account: account, email: 'same@example.com')
+
+      expect(second_contact).to be_persisted
+      expect(account.contacts.where(email: first_contact.email).count).to eq(2)
+    end
+
     it 'sets custom_attributes to {} when nil' do
       contact = create(:contact, custom_attributes: nil)
       expect(contact.custom_attributes).to eq({})

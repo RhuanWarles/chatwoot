@@ -31,7 +31,7 @@ class Saas::AiTools::ParameterResolver
       'contact_phone' => digits.presence,
       'contact_phone_e164' => digits.presence && "+#{digits}",
       'contact_name' => contact&.name.presence,
-      'contact_email' => contact&.email.presence,
+      'contact_email' => contact&.then { |value| value.email.to_s },
       'contact_id' => contact&.id,
       'conversation_id' => @conversation&.id,
       'account_id' => @account.id,

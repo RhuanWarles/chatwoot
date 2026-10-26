@@ -19,7 +19,6 @@ class DataImport::ContactManager
 
   def find_existing_contact(params)
     contact = find_contact_by_identifier(params)
-    contact ||= find_contact_by_email(params)
     contact ||= find_contact_by_phone_number(params)
 
     update_contact_with_merged_attributes(params, contact) if contact.present? && contact.valid?
@@ -30,12 +29,6 @@ class DataImport::ContactManager
     return unless params[:identifier]
 
     @account.contacts.find_by(identifier: params[:identifier])
-  end
-
-  def find_contact_by_email(params)
-    return unless params[:email]
-
-    @account.contacts.from_email(params[:email])
   end
 
   def find_contact_by_phone_number(params)

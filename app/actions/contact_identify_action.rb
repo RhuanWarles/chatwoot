@@ -14,7 +14,6 @@ class ContactIdentifyAction
 
     ActiveRecord::Base.transaction do
       merge_if_existing_identified_contact
-      merge_if_existing_email_contact
       merge_if_existing_phone_number_contact
       update_contact
     end
@@ -33,12 +32,6 @@ class ContactIdentifyAction
     process_contact_merge(existing_identified_contact)
   end
 
-  def merge_if_existing_email_contact
-    return unless merge_contacts?(existing_email_contact, :email)
-
-    process_contact_merge(existing_email_contact)
-  end
-
   def merge_if_existing_phone_number_contact
     return unless merge_contacts?(existing_phone_number_contact, :phone_number)
     return unless mergable_phone_contact?
@@ -55,12 +48,6 @@ class ContactIdentifyAction
     return if params[:identifier].blank?
 
     @existing_identified_contact ||= account.contacts.find_by(identifier: params[:identifier])
-  end
-
-  def existing_email_contact
-    return if params[:email].blank?
-
-    @existing_email_contact ||= account.contacts.from_email(params[:email])
   end
 
   def existing_phone_number_contact
@@ -101,7 +88,7 @@ class ContactIdentifyAction
     @contact.attributes = params.slice(*@attributes_to_update).reject do |_k, v|
       v.blank?
     end.merge({ custom_attributes: custom_attributes, additional_attributes: additional_attributes })
-    # blank identifier or email will throw unique index error
+    # Blank identifier or phone number can throw a unique index error.
     # TODO: replace reject { |_k, v| v.blank? } with compact_blank when rails is upgraded
     @contact.discard_invalid_attrs if discard_invalid_attrs
     @contact.save! if @contact.changed?

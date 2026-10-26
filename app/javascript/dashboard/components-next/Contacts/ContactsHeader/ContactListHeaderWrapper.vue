@@ -90,9 +90,7 @@ const onCreate = async contact => {
   } catch (error) {
     const i18nPrefix = 'CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION';
     if (error instanceof DuplicateContactException) {
-      if (error.data.includes('email')) {
-        useAlert(t(`${i18nPrefix}.EMAIL_ADDRESS_DUPLICATE`));
-      } else if (error.data.includes('phone_number')) {
+      if (error.data.includes('phone_number')) {
         useAlert(t(`${i18nPrefix}.PHONE_NUMBER_DUPLICATE`));
       }
     } else if (error instanceof ExceptionWithMessage) {

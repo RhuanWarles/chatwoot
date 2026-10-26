@@ -44,7 +44,9 @@ RSpec.describe Saas::AiTools::RequestBuilder do
   end
 
   it 'renders custom bodies and internal context variables' do
-    tool_configuration = configuration.merge('body' => { 'phone' => '{{contact_phone}}', 'cpf' => '{{cpf}}', 'conversation' => '{{conversation_id}}' })
+    tool_configuration = configuration.merge(
+      'body' => { 'phone' => '{{contact_phone}}', 'cpf' => '{{cpf}}', 'conversation' => '{{conversation_id}}' }
+    )
     allow(tool).to receive(:configuration).and_return(tool_configuration)
 
     request, = builder.build({ 'cpf' => '123' })
@@ -52,7 +54,17 @@ RSpec.describe Saas::AiTools::RequestBuilder do
     expect(JSON.parse(request.body)).to eq('phone' => '5562999999999', 'cpf' => '123', 'conversation' => '4')
   end
 
-  it 'does not call an external endpoint when a required context value is missing' do
+  it 'renders an empty contact email instead of dropping the request' do
+    allow(contact).to receive(:email).and_return(nil)
+    tool_configuration = configuration.merge('body' => { 'email' => '{{contact_email}}' })
+    allow(tool).to receive(:configuration).and_return(tool_configuration)
+
+    request, = builder.build({})
+
+    expect(JSON.parse(request.body)).to eq('email' => '')
+  end
+
+  it 'does not build a request when a required context value is missing' do
     allow(contact).to receive(:phone_number).and_return(nil)
     tool_configuration = configuration.merge('body' => { 'phone' => '{{contact_phone}}' })
     allow(tool).to receive(:configuration).and_return(tool_configuration)

@@ -26,11 +26,11 @@ RSpec.describe Saas::AiTools::ParameterResolver do
     expect(resolver.call('pedido_id' => '4382', 'telefone' => '000')).to include('telefone' => '5562999999999')
   end
 
-  it 'omits an optional internal value that is unavailable' do
+  it 'preserves an empty contact email for an internal parameter' do
     allow(contact).to receive(:email).and_return(nil)
-    allow(tool).to receive(:parameters).and_return([{ 'name' => 'email', 'value_source' => 'contact_email', 'required' => false }])
+    allow(tool).to receive(:parameters).and_return([{ 'name' => 'email', 'value_source' => 'contact_email', 'required' => true }])
 
-    expect(resolver.call).to eq({})
+    expect(resolver.call).to eq('email' => '')
   end
 
   it 'fails when a required internal value is unavailable' do

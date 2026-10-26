@@ -1231,14 +1231,14 @@ RSpec.describe DataImports::Intercom::Importer do
     end
     let!(:existing_contact) { create(:contact, account: account, email: 'customer@example.com', identifier: nil) }
 
-    it 'updates the existing contact instead of creating a duplicate', :aggregate_failures do
+    it 'creates a separate contact instead of using email as identity', :aggregate_failures do
       described_class.new(data_import: data_import).import_contacts_page
 
-      expect(existing_contact.reload.identifier).to eq('external_1')
-      expect(existing_contact.last_activity_at).to eq(Time.zone.at(1_700_000_090))
-      expect(account.contacts.where(email: 'customer@example.com').count).to eq(1)
+      expect(existing_contact.reload.identifier).to be_nil
+      expect(account.contacts.where(email: 'customer@example.com').count).to eq(2)
       item = data_import.items.imported.find_by!(source_object_type: 'contact', source_object_id: 'contact_1')
-      expect(item).to have_attributes(chatwoot_record_type: 'Contact', chatwoot_record_id: existing_contact.id)
+      expect(item.chatwoot_record_type).to eq('Contact')
+      expect(item.chatwoot_record_id).not_to eq(existing_contact.id)
     end
   end
 
@@ -1291,15 +1291,15 @@ RSpec.describe DataImports::Intercom::Importer do
     let!(:email_owner) { create(:contact, account: account, email: 'customer@example.com') }
     let!(:phone_owner) { create(:contact, account: account, phone_number: '+15551234567') }
 
-    it 'does not copy the conflicting email or phone number', :aggregate_failures do
+    it 'copies the email but keeps the unique phone number protected', :aggregate_failures do
       described_class.new(data_import: data_import).import_contacts_page
 
-      expect(existing_contact.reload.email).to be_nil
+      expect(existing_contact.reload.email).to eq('customer@example.com')
       expect(existing_contact.phone_number).to be_nil
-      expect(existing_contact).to be_visitor
+      expect(existing_contact).to be_lead
       expect(email_owner.reload.email).to eq('customer@example.com')
       expect(phone_owner.reload.phone_number).to eq('+15551234567')
-      expect(account.contacts.where(email: 'customer@example.com').count).to eq(1)
+      expect(account.contacts.where(email: 'customer@example.com').count).to eq(2)
       expect(account.contacts.where(phone_number: '+15551234567').count).to eq(1)
 
       item = data_import.items.imported.find_by!(source_object_type: 'contact', source_object_id: 'contact_1')

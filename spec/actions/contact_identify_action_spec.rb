@@ -59,22 +59,23 @@ describe ContactIdentifyAction do
     end
 
     context 'when contact with same email exists' do
-      it 'merges the current contact to email contact' do
+      it 'does not merge contacts based on email' do
         existing_email_contact = create(:contact, account: account, email: 'test@test.com', name: 'old name')
         params = { name: 'new name', email: 'test@test.com' }
         result = described_class.new(contact: contact, params: params).perform
-        expect(result.id).to eq existing_email_contact.id
+        expect(result.id).to eq contact.id
         expect(result.name).to eq 'new name'
-        expect { contact.reload }.to raise_error(ActiveRecord::RecordNotFound)
+        expect(result.email).to eq params[:email]
+        expect(existing_email_contact.reload).to be_present
       end
 
-      it 'will not merge the current contact to email contact if identifier of email contact is different' do
+      it 'allows the same email when the contacts have different identifiers' do
         existing_email_contact = create(:contact, account: account, identifier: '1', email: 'test@test.com')
         params = { identifier: '2', email: 'test@test.com' }
         result = described_class.new(contact: contact, params: params).perform
         expect(result.id).not_to eq existing_email_contact.id
         expect(result.identifier).to eq params[:identifier]
-        expect(result.email).to be_nil
+        expect(result.email).to eq params[:email]
       end
     end
 
@@ -118,11 +119,11 @@ describe ContactIdentifyAction do
     end
 
     context 'when retain_original_contact_name is set to true' do
-      it 'will not update the name of the existing contact' do
-        existing_email_contact = create(:contact, account: account, name: 'old name', email: 'test@test.com')
-        params = { email: 'test@test.com', name: 'new name' }
+      it 'will not update the name of the existing contact after a phone merge' do
+        existing_phone_contact = create(:contact, account: account, name: 'old name', phone_number: '+919999888877')
+        params = { phone_number: '+919999888877', name: 'new name' }
         result = described_class.new(contact: contact, params: params, retain_original_contact_name: true).perform
-        expect(result.id).to eq existing_email_contact.id
+        expect(result.id).to eq existing_phone_contact.id
         expect(result.name).to eq 'old name'
         expect { contact.reload }.to raise_error(ActiveRecord::RecordNotFound)
       end

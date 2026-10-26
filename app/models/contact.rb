@@ -35,7 +35,6 @@
 #  index_contacts_on_nonempty_fields                     (account_id,email,phone_number,identifier) WHERE (((email)::text <> ''::text) OR ((phone_number)::text <> ''::text) OR ((identifier)::text <> ''::text))
 #  index_contacts_on_phone_number_and_account_id         (phone_number,account_id)
 #  index_resolved_contact_account_id                     (account_id) WHERE (((email)::text <> ''::text) OR ((phone_number)::text <> ''::text) OR ((identifier)::text <> ''::text))
-#  uniq_email_per_account_contact                        (email,account_id) UNIQUE
 #  uniq_identifier_per_account_contact                   (identifier,account_id) UNIQUE
 #
 
@@ -48,7 +47,7 @@ class Contact < ApplicationRecord
   include LlmFormattable
 
   validates :account_id, presence: true
-  validates :email, allow_blank: true, uniqueness: { scope: [:account_id], case_sensitive: false },
+  validates :email, allow_blank: true,
                     format: { with: Devise.email_regexp, message: I18n.t('errors.contacts.email.invalid') }
   validates :identifier, allow_blank: true, uniqueness: { scope: [:account_id] }
   validates :phone_number,
@@ -214,7 +213,7 @@ class Contact < ApplicationRecord
   end
 
   def prepare_email_attribute
-    # So that the db unique constraint won't throw error when email is ''
+    # Store blank email values consistently as NULL.
     self.email = email.present? ? email.downcase : nil
   end
 
