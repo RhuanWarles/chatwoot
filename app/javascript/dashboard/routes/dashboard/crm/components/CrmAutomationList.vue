@@ -11,6 +11,7 @@ import CrmAutomationForm from './CrmAutomationForm.vue';
 import CrmAutomationPicker from './CrmAutomationPicker.vue';
 import {
   AI_INSTRUCTIONS_MAX_LENGTH,
+  CUSTOM_FIELDS_KEY,
   DESTINATIONS_KEY,
   MAX_AUTOMATIONS,
   TRIGGERS,
@@ -23,7 +24,7 @@ const props = defineProps({
   kind: {
     type: String,
     required: true,
-    validator: value => ['stage', 'won', 'lost'].includes(value),
+    validator: value => ['stage', 'won', 'lost', 'field'].includes(value),
   },
   triggerName: { type: String, default: '' },
 });
@@ -39,6 +40,7 @@ const aiInstructions = defineModel('aiInstructions', {
 const { t } = useI18n();
 const agents = useMapGetter('agents/getAgents');
 const destinations = inject(DESTINATIONS_KEY, ref(null));
+const fields = inject(CUSTOM_FIELDS_KEY, ref(null));
 const pickerOpen = ref(false);
 const justAddedKey = ref('');
 const lastRemoved = ref(null);
@@ -147,8 +149,8 @@ const undo = () => {
         :index="index"
         :total="automations.length"
         :type="action.type"
-        :valid="isAutomationValid(action, { destinations })"
-        :summary="getActionSummary(action, { t, agents, destinations })"
+        :valid="isAutomationValid(action, { destinations, fields })"
+        :summary="getActionSummary(action, { t, agents, destinations, fields })"
         :default-expanded="action.key === justAddedKey"
         @move="move(index, $event)"
         @remove="remove(index)"

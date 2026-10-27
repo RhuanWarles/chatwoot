@@ -688,6 +688,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('crm_custom_fields'),
           activeOn: ['crm_custom_fields'],
         },
+        {
+          name: 'Segments',
+          label: t('CRM.SEGMENTS_TITLE'),
+          to: accountScopedRoute('crm_segments'),
+          activeOn: ['crm_segments'],
+        },
       ],
     },
     ...(currentAccount.value?.features?.text_ai ||

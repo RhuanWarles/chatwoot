@@ -66,6 +66,7 @@ Rails.application.routes.draw do
             post :test, on: :member
           end
           get 'ai_analytics', to: 'ai_analytics#show'
+          get 'ai_analytics/replies', to: 'ai_analytics#replies'
           resources :ai_tool_executions, only: [:index, :show], controller: 'ai_tool_executions'
           resources :knowledge_bases, only: [:index, :show, :create, :update, :destroy] do
             post :search, on: :member
@@ -400,6 +401,7 @@ Rails.application.routes.draw do
           namespace :crm do
             resource :google_calendar, only: [:show, :create, :destroy], controller: 'google_calendar'
             resources :custom_fields
+            resources :segments, only: [:index, :create, :update, :destroy]
             resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
               resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
                 collection { patch :reorder }

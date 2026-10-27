@@ -1,9 +1,46 @@
-export const MAX_AUTOMATIONS = 10;
+export const MAX_AUTOMATIONS = 50;
 export const MAX_DUE_IN_HOURS = 2160;
 export const MAX_MESSAGE_LENGTH = 2000;
 export const MAX_ACTIVITY_TITLE_LENGTH = 255;
+export const MAX_RULE_VALUE_LENGTH = 255;
+export const MAX_RANDOM_OWNERS = 100;
+export const MAX_ROUTES = 50;
 export const AI_INSTRUCTIONS_MAX_LENGTH = 500;
 export const DESTINATIONS_KEY = 'crmAutomationDestinations';
+export const CUSTOM_FIELDS_KEY = 'crmAutomationCustomFields';
+
+const VALUELESS_OPERATORS = ['filled', 'empty'];
+const ORDERED_OPERATORS = ['gt', 'lt'];
+const OPERATORS_BY_FIELD_TYPE = {
+  text: ['equals', 'not_equals', 'contains', 'filled', 'empty'],
+  textarea: ['equals', 'not_equals', 'contains', 'filled', 'empty'],
+  number: ['equals', 'not_equals', 'gt', 'lt', 'filled', 'empty'],
+  currency: ['equals', 'not_equals', 'gt', 'lt', 'filled', 'empty'],
+  date: ['equals', 'gt', 'lt', 'filled', 'empty'],
+  datetime: ['gt', 'lt', 'filled', 'empty'],
+  boolean: ['equals', 'filled', 'empty'],
+  select: ['equals', 'not_equals', 'filled', 'empty'],
+  multiselect: ['equals', 'filled', 'empty'],
+};
+export const OPERATOR_LABEL_KEYS = {
+  equals: 'CRM.AUTOMATION_OPERATOR_EQUALS',
+  not_equals: 'CRM.AUTOMATION_OPERATOR_NOT_EQUALS',
+  contains: 'CRM.AUTOMATION_OPERATOR_CONTAINS',
+  gt: 'CRM.AUTOMATION_OPERATOR_GT',
+  lt: 'CRM.AUTOMATION_OPERATOR_LT',
+  filled: 'CRM.AUTOMATION_OPERATOR_FILLED',
+  empty: 'CRM.AUTOMATION_OPERATOR_EMPTY',
+};
+
+export const getFieldOperators = field =>
+  OPERATORS_BY_FIELD_TYPE[field?.field_type] || OPERATORS_BY_FIELD_TYPE.text;
+export const isValuelessOperator = operator =>
+  VALUELESS_OPERATORS.includes(operator);
+// On a multiselect field, "equals" means that the list has the option.
+export const getOperatorLabelKey = (operator, field) =>
+  operator === 'equals' && field?.field_type === 'multiselect'
+    ? 'CRM.AUTOMATION_OPERATOR_INCLUDES'
+    : OPERATOR_LABEL_KEYS[operator];
 
 export const STATUSES = ['open', 'won', 'lost'];
 export const ACTIVITY_TYPES = ['task', 'call', 'meeting', 'follow_up'];
@@ -41,6 +78,14 @@ export const TEMPLATE_VARIABLES = [
   { key: 'owner_name', helpKey: 'CRM.AUTOMATION_VARIABLE_HELP.OWNER_NAME' },
 ];
 
+export const createRoute = () => ({
+  key: crypto.randomUUID(),
+  operator: 'equals',
+  value: '',
+  pipeline_id: null,
+  stage_id: null,
+});
+
 export const ACTION_TYPES = {
   set_status: {
     icon: 'i-lucide-flag',
@@ -55,6 +100,31 @@ export const ACTION_TYPES = {
     labelKey: 'CRM.AUTOMATION_TYPE_ASSIGN_OWNER',
     descriptionKey: 'CRM.AUTOMATION_TYPE_ASSIGN_OWNER_DESC',
     defaults: () => ({ user_id: null }),
+  },
+  assign_random: {
+    icon: 'i-lucide-shuffle',
+    group: 'deal',
+    labelKey: 'CRM.AUTOMATION_TYPE_ASSIGN_RANDOM',
+    descriptionKey: 'CRM.AUTOMATION_TYPE_ASSIGN_RANDOM_DESC',
+    defaults: () => ({ user_ids: [] }),
+  },
+  route_by_field: {
+    icon: 'i-lucide-git-branch',
+    group: 'deal',
+    labelKey: 'CRM.AUTOMATION_TYPE_ROUTE_BY_FIELD',
+    descriptionKey: 'CRM.AUTOMATION_TYPE_ROUTE_BY_FIELD_DESC',
+    defaults: () => ({
+      custom_field_id: null,
+      routes: [createRoute()],
+      fallback: null,
+    }),
+  },
+  set_field: {
+    icon: 'i-lucide-pencil-line',
+    group: 'deal',
+    labelKey: 'CRM.AUTOMATION_TYPE_SET_FIELD',
+    descriptionKey: 'CRM.AUTOMATION_TYPE_SET_FIELD_DESC',
+    defaults: () => ({ custom_field_id: null, value: '' }),
   },
   create_activity: {
     icon: 'i-lucide-calendar-plus',
@@ -108,7 +178,15 @@ export const ACTION_GROUPS = [
   {
     id: 'deal',
     labelKey: 'CRM.AUTOMATION_GROUP_DEAL',
-    types: ['move_stage', 'assign_owner', 'create_activity', 'set_status'],
+    types: [
+      'move_stage',
+      'route_by_field',
+      'assign_owner',
+      'assign_random',
+      'set_field',
+      'create_activity',
+      'set_status',
+    ],
   },
   {
     id: 'conversation',
@@ -154,6 +232,16 @@ export const TRIGGERS = {
     descriptionKey: 'CRM.CLOSING_LOST_DESC',
     webhookEvent: 'crm_deal_lost',
   },
+  field: {
+    icon: 'i-lucide-text-cursor-input',
+    badgeClass: 'bg-n-amber-3 text-n-amber-11',
+    textClass: 'text-n-amber-11',
+    titleKey: 'CRM.TRIGGER_FIELD_TITLE',
+    helpKey: 'CRM.TRIGGER_FIELD_HELP',
+    emptyKey: 'CRM.AUTOMATION_EMPTY_FIELD',
+    railKey: 'CRM.AUTOMATION_RAIL_FIELD',
+    webhookEvent: 'crm_deal_field_changed',
+  },
 };
 
 export const createAction = (type, kind = 'stage') => ({
@@ -162,21 +250,154 @@ export const createAction = (type, kind = 'stage') => ({
   ...ACTION_TYPES[type].defaults(kind),
 });
 
+export const createCondition = () => ({
+  custom_field_id: null,
+  operator: 'equals',
+  value: '',
+});
+
+const withKeys = items =>
+  (items || []).map(item => ({ ...item, key: crypto.randomUUID() }));
+
 export const cloneAutomations = actions =>
-  (actions || []).map(action => ({ ...action, key: crypto.randomUUID() }));
+  (actions || []).map(action => ({
+    ...action,
+    key: crypto.randomUUID(),
+    ...(action.routes ? { routes: withKeys(action.routes) } : {}),
+  }));
+
+const serializeCondition = ({ custom_field_id: fieldId, operator, value }) => ({
+  custom_field_id: fieldId,
+  operator,
+  ...(isValuelessOperator(operator) ? {} : { value }),
+});
+
+const serializeRoute = ({ key, ...route }) =>
+  isValuelessOperator(route.operator) ? { ...route, value: undefined } : route;
 
 export const serializeAutomations = actions =>
-  (actions || []).map(({ key, ...action }) => action);
+  (actions || []).map(({ key, condition, routes, fallback, ...action }) => ({
+    ...action,
+    ...(routes ? { routes: routes.map(serializeRoute) } : {}),
+    ...(fallback ? { fallback } : {}),
+    ...(condition ? { condition: serializeCondition(condition) } : {}),
+  }));
 
 // Only RFC 3986 characters: the backend parses the URL with URI.parse and rejects anything else.
 const WEBHOOK_URL = /^https?:\/\/[\w.~:/?#[\]@!$&'()*+,;=%-]+$/;
 const ERROR_PREFIX = 'CRM.AUTOMATION_ERRORS.';
 const isBlank = value => !value?.trim();
 
-export const getActionErrors = (action, { destinations = null } = {}) => {
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
+const isComparable = value =>
+  value.trim() !== '' && (!Number.isNaN(Number(value)) || ISO_DATE.test(value));
+const stageAvailable = (destinations, pipelineId, stageId) =>
+  !destinations ||
+  destinations.some(
+    pipeline =>
+      pipeline.id === pipelineId &&
+      pipeline.stages.some(stage => stage.id === stageId)
+  );
+
+// Error code of the value of a rule (a condition or a route), or '' when it is fine.
+const getRuleValueError = ({ operator, value }) => {
+  if (isValuelessOperator(operator)) return '';
+  if (typeof value !== 'string' || isBlank(value)) return 'RULE_VALUE_REQUIRED';
+  if (value.length > MAX_RULE_VALUE_LENGTH) return 'RULE_VALUE_TOO_LONG';
+  if (ORDERED_OPERATORS.includes(operator) && !isComparable(value)) {
+    return 'RULE_VALUE_NOT_COMPARABLE';
+  }
+  return '';
+};
+
+// Error code of a value typed for a custom field (what set_field writes), or '' when the field accepts it.
+const getFieldValueError = (field, value) => {
+  const { field_type: type, options = [] } = field;
+  if (type === 'multiselect') {
+    const items = Array.isArray(value) ? value : [];
+    if (!items.length) return 'FIELD_VALUE_REQUIRED';
+    return items.every(item => options.includes(item))
+      ? ''
+      : 'FIELD_VALUE_INVALID';
+  }
+  const text = typeof value === 'string' ? value : String(value ?? '');
+  if (isBlank(text)) return 'FIELD_VALUE_REQUIRED';
+  const valid = {
+    select: () => options.includes(text),
+    boolean: () => ['true', 'false'].includes(text),
+    number: () => /^-?\d+(\.\d+)?$/.test(text),
+    currency: () => /^-?\d+(\.\d+)?$/.test(text),
+    date: () => /^\d{4}-\d{2}-\d{2}$/.test(text),
+    datetime: () => !Number.isNaN(Date.parse(text)),
+  }[type];
+  return !valid || valid() ? '' : 'FIELD_VALUE_INVALID';
+};
+
+const getOperatorError = (operator, field) => {
+  if (!getFieldOperators(field).includes(operator)) return 'OPTION_REQUIRED';
+  return '';
+};
+
+export const getConditionErrors = (condition, { fields = null } = {}) => {
+  const errors = {};
+  const field = fields?.find(({ id }) => id === condition.custom_field_id);
+  if (!Number.isInteger(condition.custom_field_id)) {
+    errors.custom_field_id = `${ERROR_PREFIX}FIELD_REQUIRED`;
+  } else if (fields && !field) {
+    errors.custom_field_id = `${ERROR_PREFIX}FIELD_UNAVAILABLE`;
+  }
+  const operatorError = getOperatorError(condition.operator, field);
+  if (operatorError) errors.operator = `${ERROR_PREFIX}${operatorError}`;
+  else {
+    const valueError = getRuleValueError(condition);
+    if (valueError) errors.value = `${ERROR_PREFIX}${valueError}`;
+  }
+  return errors;
+};
+
+export const getDestinationErrors = (destination, destinations = null) => {
+  const errors = {};
+  if (!Number.isInteger(destination.pipeline_id)) {
+    errors.pipeline_id = `${ERROR_PREFIX}PIPELINE_REQUIRED`;
+  } else if (!Number.isInteger(destination.stage_id)) {
+    errors.stage_id = `${ERROR_PREFIX}STAGE_REQUIRED`;
+  } else if (
+    !stageAvailable(destinations, destination.pipeline_id, destination.stage_id)
+  ) {
+    errors.stage_id = `${ERROR_PREFIX}STAGE_UNAVAILABLE`;
+  }
+  return errors;
+};
+
+export const getRouteErrors = (
+  route,
+  { destinations = null, field = null } = {}
+) => {
+  const errors = getDestinationErrors(route, destinations);
+  const operatorError = getOperatorError(route.operator, field);
+  if (operatorError) errors.operator = `${ERROR_PREFIX}${operatorError}`;
+  else {
+    const valueError = getRuleValueError(route);
+    if (valueError) errors.value = `${ERROR_PREFIX}${valueError}`;
+  }
+  return errors;
+};
+
+export const getActionErrors = (
+  action,
+  { destinations = null, fields = null } = {}
+) => {
   const errors = {};
   const fail = (field, code) => {
     errors[field] = `${ERROR_PREFIX}${code}`;
+  };
+  const customField = fields?.find(({ id }) => id === action.custom_field_id);
+  const checkCustomField = () => {
+    if (!Number.isInteger(action.custom_field_id)) {
+      fail('custom_field_id', 'FIELD_REQUIRED');
+    } else if (fields && !customField) {
+      fail('custom_field_id', 'FIELD_UNAVAILABLE');
+    }
   };
 
   switch (action.type) {
@@ -234,8 +455,51 @@ export const getActionErrors = (action, { destinations = null } = {}) => {
       if (isBlank(action.url)) fail('url', 'URL_REQUIRED');
       else if (!WEBHOOK_URL.test(action.url)) fail('url', 'URL_INVALID');
       break;
+    case 'assign_random':
+      if (!Array.isArray(action.user_ids) || !action.user_ids.length) {
+        fail('user_ids', 'OWNERS_REQUIRED');
+      } else if (action.user_ids.length > MAX_RANDOM_OWNERS) {
+        fail('user_ids', 'OWNERS_TOO_MANY');
+      }
+      break;
+    case 'set_field': {
+      checkCustomField();
+      const valueError =
+        customField && getFieldValueError(customField, action.value);
+      if (!errors.custom_field_id && valueError) fail('value', valueError);
+      break;
+    }
+    case 'route_by_field': {
+      checkCustomField();
+      const routes = Array.isArray(action.routes) ? action.routes : [];
+      if (!routes.length) fail('routes', 'ROUTES_REQUIRED');
+      else if (routes.length > MAX_ROUTES) fail('routes', 'ROUTES_TOO_MANY');
+      else if (
+        routes.some(
+          route =>
+            Object.keys(
+              getRouteErrors(route, { destinations, field: customField })
+            ).length
+        )
+      ) {
+        fail('routes', 'ROUTES_INVALID');
+      }
+      if (
+        action.fallback &&
+        Object.keys(getDestinationErrors(action.fallback, destinations)).length
+      ) {
+        fail('fallback', 'FALLBACK_INVALID');
+      }
+      break;
+    }
     default:
       fail('type', 'OPTION_REQUIRED');
+  }
+  if (
+    action.condition &&
+    Object.keys(getConditionErrors(action.condition, { fields })).length
+  ) {
+    fail('condition', 'CONDITION_INVALID');
   }
   return errors;
 };
@@ -243,12 +507,13 @@ export const getActionErrors = (action, { destinations = null } = {}) => {
 export const isAutomationValid = (action, context) =>
   !Object.keys(getActionErrors(action, context)).length;
 
-export const getActionSummary = (
+const describeAction = (
   action,
-  { t, agents, destinations = null }
+  { t, agents, destinations = null, fields = null }
 ) => {
   const unset = t('CRM.AUTOMATION_SUMMARY_UNSET');
   if (!isAutomationValid(action)) return unset;
+  const fieldName = id => fields?.find(item => item.id === id)?.name ?? unset;
 
   switch (action.type) {
     case 'set_status':
@@ -280,9 +545,47 @@ export const getActionSummary = (
       const stage = pipeline?.stages.find(({ id }) => id === action.stage_id);
       return stage ? `${pipeline.name} › ${stage.name}` : unset;
     }
+    case 'assign_random': {
+      const names = agents
+        .filter(({ id }) => action.user_ids.includes(id))
+        .map(({ name }) => name);
+      return t('CRM.AUTOMATION_SUMMARY_RANDOM', {
+        count: action.user_ids.length,
+        names: names.join(', '),
+      });
+    }
+    case 'set_field': {
+      const { value } = action;
+      return t('CRM.AUTOMATION_SUMMARY_SET_FIELD', {
+        field: fieldName(action.custom_field_id),
+        value: Array.isArray(value) ? value.join(', ') : String(value),
+      });
+    }
+    case 'route_by_field':
+      return t('CRM.AUTOMATION_SUMMARY_ROUTE', {
+        field: fieldName(action.custom_field_id),
+        count: action.routes.length,
+      });
     default:
       return action.url;
   }
+};
+
+export const getActionSummary = (action, context) => {
+  const summary = describeAction(action, context);
+  const { condition } = action;
+  if (!condition || !isAutomationValid(action)) return summary;
+
+  const { t, fields = null } = context;
+  const field = fields?.find(({ id }) => id === condition.custom_field_id);
+  const operator = t(getOperatorLabelKey(condition.operator, field));
+  const value = isValuelessOperator(condition.operator)
+    ? ''
+    : ` ${condition.value}`;
+  return `${summary} · ${t('CRM.AUTOMATION_SUMMARY_CONDITION', {
+    field: field?.name ?? '',
+    condition: `${operator}${value}`,
+  })}`;
 };
 
 export const getWebhookSample = kind => ({

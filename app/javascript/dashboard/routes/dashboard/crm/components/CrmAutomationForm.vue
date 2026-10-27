@@ -7,21 +7,31 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
+import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
+import CrmAutomationCondition from './CrmAutomationCondition.vue';
 import CrmAutomationField from './CrmAutomationField.vue';
+import CrmAutomationFieldValue from './CrmAutomationFieldValue.vue';
 import {
   ACTIVITY_LABEL_KEYS,
   AI_STATES,
   AI_STATE_DESCRIPTION_KEYS,
   AI_STATE_LABEL_KEYS,
+  CUSTOM_FIELDS_KEY,
   DESTINATIONS_KEY,
   MAX_DUE_IN_HOURS,
   MAX_MESSAGE_LENGTH,
+  MAX_ROUTES,
   STATUSES,
   STATUS_LABEL_KEYS,
   TEMPLATE_VARIABLES,
+  createRoute,
   getActionErrors,
+  getFieldOperators,
+  getOperatorLabelKey,
+  getRouteErrors,
   getWebhookSample,
+  isValuelessOperator,
 } from './automationHelpers';
 
 const props = defineProps({
@@ -36,11 +46,15 @@ const uid = useId();
 const agents = useMapGetter('agents/getAgents');
 const labels = useMapGetter('labels/getLabels');
 const destinations = inject(DESTINATIONS_KEY, ref(null));
+const fields = inject(CUSTOM_FIELDS_KEY, ref(null));
 const messageField = ref(null);
 const caret = ref(null);
 
 const errors = computed(() =>
-  getActionErrors(action.value, { destinations: destinations.value })
+  getActionErrors(action.value, {
+    destinations: destinations.value,
+    fields: fields.value,
+  })
 );
 const errorText = field =>
   props.showErrors && errors.value[field] ? t(errors.value[field]) : '';
@@ -61,6 +75,64 @@ const activityOptions = computed(() =>
 const agentOptions = computed(() =>
   agents.value.map(agent => ({ value: agent.id, label: agent.name }))
 );
+const customField = computed(() =>
+  (fields.value ?? []).find(({ id }) => id === action.value.custom_field_id)
+);
+const fieldOptions = computed(() =>
+  (fields.value ?? []).map(({ id, name }) => ({ value: id, label: name }))
+);
+const operatorOptions = computed(() =>
+  getFieldOperators(customField.value).map(operator => ({
+    value: operator,
+    label: t(getOperatorLabelKey(operator, customField.value)),
+  }))
+);
+const stageOptionsFor = pipelineId =>
+  (
+    (destinations.value ?? []).find(pipeline => pipeline.id === pipelineId)
+      ?.stages ?? []
+  ).map(stage => ({ value: stage.id, label: stage.name }));
+const routeErrors = route =>
+  props.showErrors
+    ? getRouteErrors(route, {
+        destinations: destinations.value,
+        field: customField.value,
+      })
+    : {};
+const routeError = (route, key) =>
+  routeErrors(route)[key] ? t(routeErrors(route)[key]) : '';
+// A new field has other operators and other kinds of values, so the old rules would no longer make sense.
+const changeRouteField = id => {
+  action.value.custom_field_id = id;
+  action.value.routes = [createRoute()];
+};
+const changeRouteOperator = (route, operator) => {
+  route.operator = operator;
+  if (isValuelessOperator(operator)) route.value = '';
+};
+const addRoute = () => {
+  action.value.routes = [...action.value.routes, createRoute()];
+};
+const removeRoute = index => {
+  action.value.routes = action.value.routes.filter((_, i) => i !== index);
+};
+const toggleFallback = () => {
+  action.value.fallback = action.value.fallback
+    ? null
+    : { pipeline_id: null, stage_id: null };
+};
+const fallbackErrors = computed(() =>
+  props.showErrors && action.value.fallback
+    ? getRouteErrors(
+        { ...action.value.fallback, operator: 'filled' },
+        { destinations: destinations.value }
+      )
+    : {}
+);
+const changeSetField = id => {
+  action.value.custom_field_id = id;
+  action.value.value = '';
+};
 const labelOptions = computed(() =>
   labels.value.map(label => ({ value: label.title, label: label.title }))
 );
@@ -152,6 +224,204 @@ const insertVariable = token => {
         :has-error="Boolean(errorText('user_id'))"
       />
     </CrmAutomationField>
+
+    <template v-else-if="action.type === 'assign_random'">
+      <CrmAutomationField
+        group
+        class="md:col-span-2"
+        :label="t('CRM.AUTOMATION_RANDOM_OWNERS')"
+        :hint="t('CRM.AUTOMATION_RANDOM_HINT')"
+        :error="errorText('user_ids')"
+      >
+        <TagMultiSelectComboBox
+          v-model="action.user_ids"
+          :options="agentOptions"
+          :placeholder="t('CRM.AUTOMATION_SELECT_OWNERS')"
+          :has-error="Boolean(errorText('user_ids'))"
+        />
+      </CrmAutomationField>
+    </template>
+
+    <template v-else-if="action.type === 'set_field'">
+      <CrmAutomationField
+        group
+        :label="t('CRM.AUTOMATION_FIELD_CUSTOM_FIELD')"
+        :error="errorText('custom_field_id')"
+      >
+        <ComboBox
+          :model-value="action.custom_field_id"
+          :options="fieldOptions"
+          :placeholder="t('CRM.AUTOMATION_SELECT_FIELD')"
+          :empty-state="t('CRM.AUTOMATION_NO_FIELDS')"
+          :has-error="Boolean(errorText('custom_field_id'))"
+          @update:model-value="changeSetField"
+        />
+      </CrmAutomationField>
+      <CrmAutomationField
+        v-if="customField"
+        group
+        :label="t('CRM.AUTOMATION_FIELD_VALUE')"
+        :error="errorText('value')"
+      >
+        <CrmAutomationFieldValue
+          v-model="action.value"
+          :field="customField"
+          multiple
+          :has-error="Boolean(errorText('value'))"
+        />
+      </CrmAutomationField>
+    </template>
+
+    <template v-else-if="action.type === 'route_by_field'">
+      <CrmAutomationField
+        group
+        class="md:col-span-2"
+        :label="t('CRM.AUTOMATION_ROUTE_FIELD')"
+        :hint="t('CRM.AUTOMATION_ROUTE_HINT')"
+        :error="errorText('custom_field_id')"
+      >
+        <ComboBox
+          :model-value="action.custom_field_id"
+          :options="fieldOptions"
+          :placeholder="t('CRM.AUTOMATION_SELECT_FIELD')"
+          :empty-state="t('CRM.AUTOMATION_NO_FIELDS')"
+          :has-error="Boolean(errorText('custom_field_id'))"
+          @update:model-value="changeRouteField"
+        />
+      </CrmAutomationField>
+      <div
+        v-if="customField"
+        class="flex flex-col gap-3 md:col-span-2"
+        data-test="routes"
+      >
+        <p
+          v-if="errorText('routes')"
+          class="m-0 text-label-small text-n-ruby-11"
+        >
+          {{ errorText('routes') }}
+        </p>
+        <div
+          v-for="(route, index) in action.routes"
+          :key="route.key"
+          class="grid grid-cols-1 gap-3 p-3 rounded-lg md:grid-cols-[1fr_1fr_auto] bg-n-solid-2"
+          data-test="route"
+        >
+          <div class="flex flex-col gap-3 md:col-span-1">
+            <span class="text-label-small text-n-slate-11">
+              {{ t('CRM.AUTOMATION_ROUTE_WHEN', { number: index + 1 }) }}
+            </span>
+            <ComboBox
+              :model-value="route.operator"
+              :options="operatorOptions"
+              :has-error="Boolean(routeError(route, 'operator'))"
+              @update:model-value="changeRouteOperator(route, $event)"
+            />
+            <CrmAutomationFieldValue
+              v-if="!isValuelessOperator(route.operator)"
+              v-model="route.value"
+              :field="customField"
+              :has-error="Boolean(routeError(route, 'value'))"
+            />
+            <p
+              v-if="routeError(route, 'value') || routeError(route, 'operator')"
+              class="m-0 text-label-small text-n-ruby-11"
+            >
+              {{ routeError(route, 'value') || routeError(route, 'operator') }}
+            </p>
+          </div>
+          <div class="flex flex-col gap-3 md:col-span-1">
+            <span class="text-label-small text-n-slate-11">
+              {{ t('CRM.AUTOMATION_ROUTE_SEND_TO') }}
+            </span>
+            <ComboBox
+              v-model="route.pipeline_id"
+              :options="pipelineOptions"
+              :placeholder="t('CRM.SELECT_PIPELINE')"
+              :empty-state="t('CRM.AUTOMATION_NO_DESTINATIONS')"
+              :has-error="Boolean(routeError(route, 'pipeline_id'))"
+              @update:model-value="route.stage_id = null"
+            />
+            <ComboBox
+              v-model="route.stage_id"
+              :options="stageOptionsFor(route.pipeline_id)"
+              :placeholder="t('CRM.AUTOMATION_SELECT_STAGE')"
+              :has-error="Boolean(routeError(route, 'stage_id'))"
+            />
+            <p
+              v-if="
+                routeError(route, 'pipeline_id') ||
+                routeError(route, 'stage_id')
+              "
+              class="m-0 text-label-small text-n-ruby-11"
+            >
+              {{
+                routeError(route, 'pipeline_id') ||
+                routeError(route, 'stage_id')
+              }}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            color="ruby"
+            size="xs"
+            icon="i-lucide-trash-2"
+            class="self-start"
+            :disabled="action.routes.length === 1"
+            :aria-label="t('CRM.AUTOMATION_ROUTE_REMOVE')"
+            @click="removeRoute(index)"
+          />
+        </div>
+        <Button
+          type="button"
+          variant="faded"
+          color="slate"
+          size="sm"
+          icon="i-lucide-plus"
+          class="self-start"
+          :label="t('CRM.AUTOMATION_ROUTE_ADD')"
+          :disabled="action.routes.length >= MAX_ROUTES"
+          @click="addRoute"
+        />
+        <div class="flex flex-col gap-3 pt-3 border-t border-n-weak">
+          <Button
+            type="button"
+            variant="link"
+            color="blue"
+            size="sm"
+            class="self-start"
+            :label="
+              action.fallback
+                ? t('CRM.AUTOMATION_FALLBACK_REMOVE')
+                : t('CRM.AUTOMATION_FALLBACK_ADD')
+            "
+            @click="toggleFallback"
+          />
+          <div
+            v-if="action.fallback"
+            class="grid grid-cols-1 gap-3 md:grid-cols-2"
+            data-test="fallback"
+          >
+            <ComboBox
+              v-model="action.fallback.pipeline_id"
+              :options="pipelineOptions"
+              :placeholder="t('CRM.SELECT_PIPELINE')"
+              :has-error="Boolean(fallbackErrors.pipeline_id)"
+              @update:model-value="action.fallback.stage_id = null"
+            />
+            <ComboBox
+              v-model="action.fallback.stage_id"
+              :options="stageOptionsFor(action.fallback.pipeline_id)"
+              :placeholder="t('CRM.AUTOMATION_SELECT_STAGE')"
+              :has-error="Boolean(fallbackErrors.stage_id)"
+            />
+            <p class="m-0 text-label-small text-n-slate-11 md:col-span-2">
+              {{ t('CRM.AUTOMATION_FALLBACK_HINT') }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <template v-else-if="action.type === 'create_activity'">
       <CrmAutomationField
@@ -365,5 +635,11 @@ const insertVariable = token => {
         </div>
       </Accordion>
     </template>
+
+    <CrmAutomationCondition
+      v-model:condition="action.condition"
+      class="md:col-span-2"
+      :show-errors="showErrors"
+    />
   </div>
 </template>

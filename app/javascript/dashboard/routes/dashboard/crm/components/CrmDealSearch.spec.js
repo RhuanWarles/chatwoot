@@ -22,6 +22,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock('dashboard/api/crm', () => ({
+  segmentsAPI: { get: vi.fn() },
   dealsAPI: { get: vi.fn() },
   pipelinesAPI: { get: vi.fn() },
 }));

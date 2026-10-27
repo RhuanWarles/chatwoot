@@ -8,6 +8,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 import aiAnalyticsAPI from 'dashboard/api/aiAnalytics';
 import ActivityLineChart from './ActivityLineChart.vue';
+import ResponderComparison from './ResponderComparison.vue';
 
 const { t } = useI18n();
 const { resolvedLocale } = useLocale();
@@ -315,6 +316,7 @@ onMounted(load);
           </p>
         </article>
       </section>
+      <ResponderComparison />
       <div class="grid min-h-0 gap-4 lg:grid-cols-3">
         <section
           class="flex min-w-0 flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:col-span-3"

@@ -9,7 +9,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import AgentsAPI from 'dashboard/api/agents';
-import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
+import { dealsAPI, pipelinesAPI, segmentsAPI } from 'dashboard/api/crm';
 import CrmActivities from '../components/CrmActivities.vue';
 import CrmDealCustomFields from '../components/CrmDealCustomFields.vue';
 import CrmDealConversations from '../components/CrmDealConversations.vue';
@@ -25,6 +25,7 @@ const deal = ref(null);
 const summaryExpanded = ref(true);
 const pipelines = ref([]);
 const agents = ref([]);
+const segments = ref([]);
 const events = ref([]);
 const { run, isPending: loading } = useAbortableRequest();
 const error = ref('');
@@ -42,6 +43,7 @@ const summaryFields = [
   { key: 'pipeline_stage_id', label: 'CRM.STAGE' },
   { key: 'value', label: 'CRM.VALUE' },
   { key: 'owner_id', label: 'CRM.OWNER' },
+  { key: 'segment_id', label: 'CRM.SEGMENT' },
   { key: 'status', label: 'CRM.STATUS' },
   { key: 'description', label: 'CRM.DESCRIPTION' },
 ];
@@ -97,6 +99,19 @@ const ownerOptions = computed(() => [
   { value: '', label: t('CRM.UNASSIGNED') },
   ...agents.value.map(agent => ({ value: agent.id, label: agent.name })),
 ]);
+const segmentOptions = computed(() => [
+  { value: '', label: t('CRM.NO_SEGMENT') },
+  ...segments.value
+    .filter(segment => segment.active || segment.id === deal.value?.segment_id)
+    .map(segment => ({ value: segment.id, label: segment.name })),
+]);
+const loadSegments = async () => {
+  try {
+    segments.value = (await segmentsAPI.get()).data;
+  } catch {
+    segments.value = [];
+  }
+};
 const visibleEvents = computed(() =>
   events.value.filter(event => {
     if (tab.value === 'notes') return event.event_type === 'note_created';
@@ -184,6 +199,8 @@ const summaryValue = key => {
   if (key === 'pipeline_stage_id') return deal.value.pipeline_stage.name;
   if (key === 'value') return money(deal.value.value);
   if (key === 'owner_id') return deal.value.owner?.name || t('CRM.UNASSIGNED');
+  if (key === 'segment_id')
+    return deal.value.segment?.name || t('CRM.NO_SEGMENT');
   if (key === 'status') return statusLabel(deal.value.status);
   return deal.value.description || t('CRM.NOT_SET');
 };
@@ -197,11 +214,13 @@ const editSummary = async key => {
       pipelines.value = results[0].data;
       agents.value = results[1].data;
     }
+    if (key === 'segment_id') await loadSegments();
     summaryDraft.value = {
       pipeline_id: deal.value.pipeline_id,
       pipeline_stage_id: deal.value.pipeline_stage_id,
       value: deal.value.value ?? '',
       owner_id: deal.value.owner_id ?? '',
+      segment_id: deal.value.segment_id ?? '',
       status: deal.value.status,
       description: deal.value.description || '',
     };
@@ -223,7 +242,8 @@ const saveSummary = async () => {
   )
     return;
   let value = summaryDraft.value[key];
-  if (['value', 'owner_id'].includes(key) && value === '') value = null;
+  if (['value', 'owner_id', 'segment_id'].includes(key) && value === '')
+    value = null;
   const payload = { [key]: value };
   if (key === 'pipeline_id' && value !== deal.value.pipeline_id) {
     const firstStage = [...summaryStages.value].sort(
@@ -291,12 +311,14 @@ const openEditor = async () => {
     const results = await Promise.all([pipelinesAPI.get(), AgentsAPI.get()]);
     pipelines.value = results[0].data;
     agents.value = results[1].data;
+    await loadSegments();
     draft.value = {
       name: deal.value.name,
       pipeline_id: deal.value.pipeline_id,
       pipeline_stage_id: deal.value.pipeline_stage_id,
       contact_id: deal.value.contact_id,
       owner_id: deal.value.owner_id ?? '',
+      segment_id: deal.value.segment_id ?? '',
       status: deal.value.status,
       value: deal.value.value ?? '',
       description: deal.value.description || '',
@@ -326,6 +348,7 @@ const save = () => {
     ...draft.value,
     value: draft.value.value === '' ? null : draft.value.value,
     owner_id: draft.value.owner_id === '' ? null : draft.value.owner_id,
+    segment_id: draft.value.segment_id === '' ? null : draft.value.segment_id,
   });
 };
 const addNote = async () => {
@@ -600,6 +623,12 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                         v-model="summaryDraft.owner_id"
                         :options="ownerOptions"
                         :placeholder="t('CRM.OWNER')"
+                      />
+                      <ComboBox
+                        v-if="field.key === 'segment_id'"
+                        v-model="summaryDraft.segment_id"
+                        :options="segmentOptions"
+                        :placeholder="t('CRM.SEGMENT')"
                       />
                       <ComboBox
                         v-if="field.key === 'status'"
@@ -911,6 +940,11 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           v-model="draft.owner_id"
           :options="ownerOptions"
           :placeholder="t('CRM.OWNER')"
+        />
+        <ComboBox
+          v-model="draft.segment_id"
+          :options="segmentOptions"
+          :placeholder="t('CRM.SEGMENT')"
         />
         <ComboBox
           v-model="draft.status"

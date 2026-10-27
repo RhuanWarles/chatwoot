@@ -13,7 +13,8 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import CrmDealSearchResults from '../components/CrmDealSearchResults.vue';
-import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
+import { pipelinesAPI, dealsAPI, segmentsAPI } from 'dashboard/api/crm';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useCrmCardConfig } from '../components/cardConfig';
 import { brlFormatter } from '../components/currencyHelpers';
 import CrmCardCustomizer from '../components/CrmCardCustomizer.vue';
@@ -24,6 +25,9 @@ import CrmPipelineEditor from '../components/CrmPipelineEditor.vue';
 
 const { t } = useI18n();
 const { isAdmin } = useAdmin();
+const store = useStore();
+const agents = useMapGetter('agents/getAgents');
+const segments = ref([]);
 const pipelineEditor = ref(null);
 const route = useRoute();
 const router = useRouter();
@@ -247,6 +251,8 @@ const advancedFilters = ref({
   updatedFrom: '',
   updatedTo: '',
   stageIds: [],
+  segmentIds: [],
+  answeredBy: [],
   minValue: '',
   maxValue: '',
   contactId: '',
@@ -273,6 +279,7 @@ const form = ref({
   name: '',
   contact_id: '',
   pipeline_stage_id: '',
+  segment_id: '',
   value: '',
   description: '',
 });
@@ -281,6 +288,13 @@ const pipeline = computed(() =>
   pipelines.value.find(item => item.id === Number(selectedPipeline.value))
 );
 const stages = computed(() => pipeline.value?.stages || []);
+// A deal matches when any of the chosen people, or the AI, replied to the customer.
+const answeredByAny = (deal, chosen) =>
+  chosen.some(who =>
+    who === 'ai'
+      ? Boolean(deal.answered_by?.ai)
+      : Boolean(deal.answered_by?.user_ids?.includes(who))
+  );
 const visibleDeals = computed(() =>
   deals.value.filter(deal => {
     const f = advancedFilters.value;
@@ -303,6 +317,9 @@ const visibleDeals = computed(() =>
         selectedStatuses.value.includes(deal.status)) &&
       ownerMatches &&
       (!f.stageIds.length || f.stageIds.includes(deal.pipeline_stage_id)) &&
+      (!f.segmentIds.length ||
+        f.segmentIds.includes(deal.segment_id ?? 'none')) &&
+      (!f.answeredBy.length || answeredByAny(deal, f.answeredBy)) &&
       (!f.contactId || deal.contact_id === Number(f.contactId)) &&
       (!f.company || company.toLowerCase().includes(f.company.toLowerCase())) &&
       range(created, f.createdFrom, f.createdTo) &&
@@ -332,9 +349,22 @@ const ownerOptions = computed(() => [
   ).values(),
   { value: 'none', label: t('CRM.FILTER_UNASSIGNED') },
 ]);
+const segmentOptions = computed(() => [
+  ...segments.value.map(segment => ({
+    value: segment.id,
+    label: segment.name,
+  })),
+  { value: 'none', label: t('CRM.NO_SEGMENT') },
+]);
+const responderOptions = computed(() => [
+  { value: 'ai', label: t('CRM.FILTER_AI') },
+  ...agents.value.map(agent => ({ value: agent.id, label: agent.name })),
+]);
 const cloneAdvancedFilters = filters => ({
   ...filters,
   stageIds: [...filters.stageIds],
+  segmentIds: [...filters.segmentIds],
+  answeredBy: [...filters.answeredBy],
 });
 const clearAdvancedFilters = () => {
   const target = filterDraft.value || advancedFilters.value;
@@ -345,6 +375,8 @@ const clearAdvancedFilters = () => {
     updatedFrom: '',
     updatedTo: '',
     stageIds: [],
+    segmentIds: [],
+    answeredBy: [],
     minValue: '',
     maxValue: '',
     contactId: '',
@@ -451,6 +483,7 @@ const openForm = () => {
     name: '',
     contact_id: '',
     pipeline_stage_id: stages.value[0]?.id || '',
+    segment_id: '',
     value: '',
     description: '',
   };
@@ -461,9 +494,11 @@ const createDeal = async () => {
   if (saving.value || newValueInput.value?.isInvalid) return;
   saving.value = true;
   try {
+    const { segment_id: segmentId, ...fields } = form.value;
     await dealsAPI.create({
       deal: {
-        ...form.value,
+        ...fields,
+        ...(segmentId ? { segment_id: segmentId } : {}),
         value: form.value.value === '' ? null : form.value.value,
         pipeline_id: selectedPipeline.value,
       },
@@ -530,8 +565,17 @@ const setDealStatus = async (deal, status) => {
   }, OUTCOME_AUTOMATION_REFRESH_MS);
 };
 
+const loadFilterOptions = async () => {
+  try {
+    segments.value = (await segmentsAPI.get()).data;
+  } catch {
+    segments.value = [];
+  }
+  if (!agents.value.length) store.dispatch('agents/get');
+};
 onMounted(() => {
   load();
+  loadFilterOptions();
   activityClock = window.setInterval(() => {
     now.value = Date.now();
   }, 60 * 1000);
@@ -766,6 +810,43 @@ onUnmounted(() => {
                     type="checkbox"
                     :value="stage.id"
                   />{{ stage.name }}</label
+                >
+              </div>
+            </div>
+            <div v-if="segmentOptions.length > 1" class="flex flex-col gap-2">
+              <p class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('CRM.FILTER_SEGMENT') }}
+              </p>
+              <div class="flex flex-col gap-2 p-3 rounded-lg bg-n-alpha-2">
+                <label
+                  v-for="option in segmentOptions"
+                  :key="option.value"
+                  class="flex items-center gap-2 text-sm text-n-slate-12"
+                  ><input
+                    v-model="filterDraft.segmentIds"
+                    type="checkbox"
+                    :value="option.value"
+                  />{{ option.label }}</label
+                >
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <p class="mb-0 text-sm font-medium text-n-slate-12">
+                {{ t('CRM.FILTER_ANSWERED_BY') }}
+              </p>
+              <p class="mt-0 mb-0 text-xs text-n-slate-11">
+                {{ t('CRM.FILTER_ANSWERED_BY_HINT') }}
+              </p>
+              <div class="flex flex-col gap-2 p-3 rounded-lg bg-n-alpha-2">
+                <label
+                  v-for="option in responderOptions"
+                  :key="option.value"
+                  class="flex items-center gap-2 text-sm text-n-slate-12"
+                  ><input
+                    v-model="filterDraft.answeredBy"
+                    type="checkbox"
+                    :value="option.value"
+                  />{{ option.label }}</label
                 >
               </div>
             </div>
@@ -1042,6 +1123,24 @@ onUnmounted(() => {
             t('CRM.CONTACT')
           }}</span>
           <CrmContactPicker v-model="form.contact_id" />
+        </div>
+        <div
+          v-if="segments.some(segment => segment.active)"
+          class="flex flex-col gap-1"
+        >
+          <span class="text-sm font-medium text-n-slate-12">{{
+            t('CRM.SEGMENT')
+          }}</span>
+          <ComboBox
+            v-model="form.segment_id"
+            :options="[
+              { value: '', label: t('CRM.NO_SEGMENT') },
+              ...segments
+                .filter(segment => segment.active)
+                .map(segment => ({ value: segment.id, label: segment.name })),
+            ]"
+            :placeholder="t('CRM.SEGMENT')"
+          />
         </div>
         <CrmCurrencyInput ref="newValueInput" v-model="form.value" />
         <Input v-model="form.description" :label="t('CRM.DESCRIPTION')" />

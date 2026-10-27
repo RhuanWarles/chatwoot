@@ -89,6 +89,7 @@ class Account < ApplicationRecord
   has_many :crm_pipeline_stages, class_name: 'Crm::PipelineStage', dependent: :destroy_async
   has_many :crm_deals, class_name: 'Crm::Deal', dependent: :destroy_async
   has_many :crm_custom_fields, class_name: 'Crm::CustomField', dependent: :destroy_async
+  has_many :crm_segments, class_name: 'Crm::Segment', dependent: :destroy_async
   has_many :canned_responses, dependent: :destroy_async
   has_many :categories, dependent: :destroy_async, class_name: '::Category'
   has_many :contacts, dependent: :destroy_async

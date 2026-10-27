@@ -54,7 +54,7 @@ class Api::V1::Accounts::Crm::PipelineStagesController < Api::V1::Accounts::Base
   def stage_params
     params.require(:pipeline_stage).permit(
       :name, :position, :color, :probability, :ai_instructions,
-      automations: Crm::Automatable::ACTION_KEYS
+      automations: Crm::Automatable::PERMITTED_ACTION_PARAMS
     )
   end
 
