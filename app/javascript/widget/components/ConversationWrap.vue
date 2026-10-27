@@ -30,6 +30,9 @@ export default {
     return {
       previousScrollHeight: 0,
       previousConversationSize: 0,
+      floatingDateLabel: '',
+      floatingDateVisible: false,
+      floatingDateTimer: null,
     };
   },
   computed: {
@@ -73,6 +76,7 @@ export default {
   },
   unmounted() {
     this.$el.removeEventListener('scroll', this.handleScroll);
+    clearTimeout(this.floatingDateTimer);
   },
   methods: {
     ...mapActions('conversation', ['fetchOldConversations']),
@@ -99,12 +103,39 @@ export default {
         this.senderKey(messages[index]) !== this.senderKey(messages[index - 1])
       );
     },
+    updateFloatingDate() {
+      const separators = [
+        ...this.$el.querySelectorAll('[data-message-day-separator]'),
+      ];
+      if (!separators.length) return;
+
+      const containerTop = this.$el.getBoundingClientRect().top;
+      const activeSeparator =
+        separators
+          .filter(
+            separator =>
+              separator.getBoundingClientRect().top <= containerTop + 12
+          )
+          .at(-1) || separators[0];
+
+      this.floatingDateLabel = activeSeparator.dataset.dayValue || '';
+    },
+    showFloatingDate() {
+      this.updateFloatingDate();
+      this.floatingDateVisible = true;
+      clearTimeout(this.floatingDateTimer);
+      this.floatingDateTimer = setTimeout(() => {
+        this.floatingDateVisible = false;
+      }, 1000);
+    },
     scrollToBottom() {
       const container = this.$el;
       container.scrollTop = container.scrollHeight - this.previousScrollHeight;
       this.previousScrollHeight = 0;
     },
     handleScroll() {
+      this.showFloatingDate();
+
       if (
         this.isFetchingList ||
         this.allMessagesLoaded ||
@@ -125,6 +156,24 @@ export default {
 <template>
   <div class="conversation--container" :class="colorSchemeClass">
     <div class="conversation-wrap" :class="{ 'is-typing': isAgentTyping }">
+      <Transition
+        enter-active-class="transition-opacity duration-150"
+        leave-active-class="transition-opacity duration-300"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="floatingDateVisible && floatingDateLabel"
+          class="sticky top-3 z-10 flex h-0 justify-center pointer-events-none"
+          aria-live="polite"
+        >
+          <span
+            class="px-3 py-1 text-xs rounded-full shadow-sm bg-n-alpha-2 text-n-slate-11"
+          >
+            {{ floatingDateLabel }}
+          </span>
+        </div>
+      </Transition>
       <div v-if="isFetchingList" class="message--loader">
         <Spinner />
       </div>
@@ -136,6 +185,8 @@ export default {
         <DateSeparator
           :date="groupedMessage.date"
           :date-label="formatDay(groupedMessage.messages)"
+          data-message-day-separator
+          :data-day-value="formatDay(groupedMessage.messages)"
         />
         <ChatMessage
           v-for="(message, index) in groupedMessage.messages"
