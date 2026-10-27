@@ -376,9 +376,9 @@ onMounted(load);
 </script>
 
 <template>
-  <main class="flex flex-col w-full max-w-5xl gap-5 mx-auto pb-8">
+  <main class="mx-auto flex w-full max-w-5xl flex-col gap-5 pb-8">
     <header
-      class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 py-3 -mx-2 px-2 border-b border-n-weak bg-n-solid-1/95 backdrop-blur-sm"
+      class="sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-4 rounded-b-2xl border-b border-n-container bg-n-surface-1/95 px-2 py-3 backdrop-blur-sm"
     >
       <div class="min-w-0">
         <p
@@ -425,7 +425,7 @@ onMounted(load);
     </p>
 
     <nav
-      class="flex gap-1 p-1 overflow-x-auto rounded-xl bg-n-solid-2"
+      class="flex gap-1 overflow-x-auto rounded-xl bg-n-surface-1 p-1 outline outline-1 outline-n-container"
       :aria-label="t('AI_TOOLS.EDITOR_NAVIGATION')"
     >
       <Button
@@ -444,7 +444,7 @@ onMounted(load);
     <template v-else>
       <section
         v-if="activeTab === 'general'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+        class="flex flex-col gap-5 rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
       >
         <div>
           <h2 class="text-base font-semibold text-n-slate-12">
@@ -516,7 +516,7 @@ onMounted(load);
 
       <section
         v-if="activeTab === 'parameters'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+        class="flex flex-col gap-5 rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
       >
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -694,7 +694,7 @@ onMounted(load);
 
       <section
         v-if="activeTab === 'request'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+        class="flex flex-col gap-5 rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
       >
         <div>
           <h2 class="text-base font-semibold text-n-slate-12">
@@ -790,7 +790,7 @@ onMounted(load);
 
       <section
         v-if="activeTab === 'test'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+        class="flex flex-col gap-5 rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
       >
         <div>
           <h2 class="text-base font-semibold text-n-slate-12">

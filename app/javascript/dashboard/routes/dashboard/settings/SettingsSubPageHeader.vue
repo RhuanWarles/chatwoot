@@ -8,7 +8,7 @@ export default {
 </script>
 
 <template>
-  <div class="flex flex-col gap-1.5 w-full items-start mb-4">
+  <div class="mb-4 flex w-full flex-col items-start gap-1.5">
     <h2 class="text-heading-1 text-n-slate-12 break-words">
       {{ headerTitle }}
     </h2>

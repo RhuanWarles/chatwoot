@@ -272,7 +272,7 @@ onMounted(load);
       </header>
 
       <div
-        class="flex flex-col gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-3 sm:flex-row sm:items-end"
+        class="flex flex-col gap-3 rounded-2xl border border-n-container bg-n-surface-1 p-3 shadow-sm sm:flex-row sm:items-end"
       >
         <div class="min-w-0 flex-1">
           <Input
@@ -314,7 +314,7 @@ onMounted(load);
       <div
         v-else-if="filteredFields.length"
         role="table"
-        class="overflow-hidden rounded-xl border border-n-weak bg-n-solid-1"
+        class="overflow-hidden rounded-2xl border border-n-container bg-n-surface-1 shadow-sm"
         :aria-label="t('CRM.CUSTOM_FIELDS_TITLE')"
       >
         <div

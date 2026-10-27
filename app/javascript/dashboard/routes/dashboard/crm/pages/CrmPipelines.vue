@@ -72,7 +72,7 @@ onMounted(load);
       <article
         v-for="pipeline in pipelines"
         :key="pipeline.id"
-        class="flex flex-col gap-3 p-4 border border-n-weak rounded-xl bg-n-alpha-2"
+        class="flex flex-col gap-3 p-4 border border-n-container rounded-2xl bg-n-surface-1 shadow-sm"
       >
         <div class="flex items-start justify-between gap-3">
           <h2 class="min-w-0 mb-0 font-semibold text-n-slate-12 break-words">

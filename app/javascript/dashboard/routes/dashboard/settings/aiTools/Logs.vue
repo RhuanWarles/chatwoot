@@ -110,7 +110,9 @@ onMounted(load);
         @click="router.push({ name: 'ai_tools_settings' })"
       />
     </header>
-    <section class="flex flex-wrap gap-3 p-4 rounded-xl bg-n-solid-2">
+    <section
+      class="flex flex-wrap gap-3 p-4 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+    >
       <div class="flex flex-col gap-1 text-sm text-n-slate-12">
         <p class="mb-0">{{ t('AI_TOOLS.LOGS_AGENT') }}</p>
         <select
@@ -197,14 +199,17 @@ onMounted(load);
     </p>
     <div
       v-else-if="!executions.length"
-      class="p-8 text-center rounded-xl bg-n-solid-2"
+      class="p-8 text-center rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
     >
       <p class="text-sm text-n-slate-12">{{ t('AI_TOOLS.LOGS_EMPTY') }}</p>
       <p class="mt-1 text-sm text-n-slate-11">
         {{ t('AI_TOOLS.LOGS_EMPTY_HELP') }}
       </p>
     </div>
-    <div v-else class="overflow-x-auto rounded-xl bg-n-solid-2">
+    <div
+      v-else
+      class="overflow-x-auto rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+    >
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-n-slate-11 border-b border-n-weak">
