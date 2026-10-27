@@ -10,4 +10,8 @@ class Api::V1::Accounts::AiAnalyticsController < Api::V1::Accounts::BaseControll
   def show
     render json: Saas::AiAnalytics.new(Current.account, params).perform
   end
+
+  def replies
+    render json: Crm::ResponderReport.new(Current.account, params).perform
+  end
 end
