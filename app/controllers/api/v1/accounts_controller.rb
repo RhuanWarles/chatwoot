@@ -71,17 +71,6 @@ class Api::V1::AccountsController < Api::BaseController
     head :ok
   end
 
-  def branding_logo
-    if request.delete?
-      @account.branding_logo.purge if @account.branding_logo.attached?
-    else
-      @account.branding_logo.attach(params.require(:branding_logo))
-      @account.save!
-    end
-
-    render json: { branding_logo_url: @account.branding_logo_url }
-  end
-
   private
 
   def latest_chatwoot_version

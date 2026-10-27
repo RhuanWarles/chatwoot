@@ -4,22 +4,13 @@ import { useMapGetter } from 'dashboard/composables/store';
 
 const attrs = useAttrs();
 const globalConfig = useMapGetter('globalConfig/get');
-const currentAccount = useMapGetter('getCurrentAccount');
 </script>
 
 <template>
   <img
-    v-if="
-      currentAccount.branding_logo_url ||
-      globalConfig.accountLogo ||
-      globalConfig.logoThumbnail
-    "
+    v-if="globalConfig.logoThumbnail"
     v-bind="attrs"
-    :src="
-      currentAccount.branding_logo_url ||
-      globalConfig.accountLogo ||
-      globalConfig.logoThumbnail
-    "
+    :src="globalConfig.logoThumbnail"
   />
   <svg
     v-else

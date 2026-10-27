@@ -49,13 +49,6 @@ class DashboardController < ActionController::Base
 
   def set_global_config
     @global_config = GlobalConfig.get(*GLOBAL_CONFIG_KEYS).merge(app_config)
-    @global_config['ACCOUNT_LOGO'] = account_branding_logo
-  end
-
-  def account_branding_logo
-    return '' unless current_user && params[:account_id].present?
-
-    current_user.accounts.find_by(id: params[:account_id])&.branding_logo_url.to_s
   end
 
   def set_dashboard_scripts

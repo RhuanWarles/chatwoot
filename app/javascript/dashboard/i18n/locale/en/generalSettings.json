@@ -15,11 +15,6 @@
       "ERROR": "Could not update settings, try again!",
       "SUCCESS": "Successfully updated account settings"
     },
-    "BRANDING_LOGO": {
-      "SUCCESS": "Account logo updated successfully",
-      "REMOVE_SUCCESS": "Account logo removed successfully",
-      "ERROR": "Could not update the account logo, try again!"
-    },
     "ACCOUNT_DELETE_SECTION": {
       "TITLE": "Delete your Account",
       "NOTE": "Once you delete your account, all your data will be deleted.",
@@ -87,12 +82,6 @@
         "LABEL": "Site language",
         "PLACEHOLDER": "Your account name",
         "ERROR": ""
-      },
-      "BRANDING_LOGO": {
-        "LABEL": "Account logo",
-        "HELP": "This logo appears in the sidebar and browser favicon for this account. PNG, JPG, GIF or WebP up to 1 MB.",
-        "UPLOAD": "Upload logo",
-        "REMOVE": "Remove logo"
       },
       "DOMAIN": {
         "LABEL": "Incoming Email Domain",

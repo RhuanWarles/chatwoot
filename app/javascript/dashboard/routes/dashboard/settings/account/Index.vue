@@ -44,8 +44,6 @@ export default {
       locale: 'en',
       domain: '',
       supportEmail: '',
-      brandingLogoUrl: '',
-      brandingLogoFile: null,
       features: {},
     };
   },
@@ -112,15 +110,8 @@ export default {
   methods: {
     async initializeAccount() {
       try {
-        const {
-          name,
-          locale,
-          id,
-          domain,
-          support_email,
-          branding_logo_url,
-          features,
-        } = this.getAccount(this.accountId);
+        const { name, locale, id, domain, support_email, features } =
+          this.getAccount(this.accountId);
 
         const effectiveLocale = this.uiSettings?.locale || locale;
         if (effectiveLocale) {
@@ -131,8 +122,6 @@ export default {
         this.id = id;
         this.domain = domain;
         this.supportEmail = support_email;
-        this.brandingLogoUrl = branding_logo_url || '';
-        this.brandingLogoFile = null;
         this.features = features;
       } catch (error) {
         // Ignore error
@@ -161,42 +150,6 @@ export default {
         useAlert(this.$t('GENERAL_SETTINGS.UPDATE.SUCCESS'));
       } catch (error) {
         useAlert(this.$t('GENERAL_SETTINGS.UPDATE.ERROR'));
-      }
-    },
-
-    handleBrandingLogoChange(event) {
-      const [file] = event.target.files || [];
-      if (!file) return;
-
-      this.brandingLogoFile = file;
-      this.brandingLogoUrl = URL.createObjectURL(file);
-    },
-
-    async uploadBrandingLogo() {
-      if (!this.brandingLogoFile) return;
-
-      try {
-        const { branding_logo_url: brandingLogoUrl } =
-          await this.$store.dispatch(
-            'accounts/uploadBrandingLogo',
-            this.brandingLogoFile
-          );
-        this.brandingLogoUrl = brandingLogoUrl;
-        this.brandingLogoFile = null;
-        useAlert(this.$t('GENERAL_SETTINGS.BRANDING_LOGO.SUCCESS'));
-      } catch (error) {
-        useAlert(this.$t('GENERAL_SETTINGS.BRANDING_LOGO.ERROR'));
-      }
-    },
-
-    async removeBrandingLogo() {
-      try {
-        await this.$store.dispatch('accounts/deleteBrandingLogo');
-        this.brandingLogoUrl = '';
-        this.brandingLogoFile = null;
-        useAlert(this.$t('GENERAL_SETTINGS.BRANDING_LOGO.REMOVE_SUCCESS'));
-      } catch (error) {
-        useAlert(this.$t('GENERAL_SETTINGS.BRANDING_LOGO.ERROR'));
       }
     },
   },
@@ -246,48 +199,6 @@ export default {
                 {{ lang.name }}
               </option>
             </select>
-          </WithLabel>
-          <WithLabel
-            name="account-branding-logo"
-            :label="$t('GENERAL_SETTINGS.FORM.BRANDING_LOGO.LABEL')"
-          >
-            <div class="flex flex-col gap-3">
-              <img
-                v-if="brandingLogoUrl"
-                :src="brandingLogoUrl"
-                :alt="name"
-                class="object-contain w-16 h-16 rounded-lg bg-n-slate-2"
-              />
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                class="block w-full text-sm text-n-slate-11"
-                @change="handleBrandingLogoChange"
-              />
-              <p class="text-xs text-n-slate-11">
-                {{ $t('GENERAL_SETTINGS.FORM.BRANDING_LOGO.HELP') }}
-              </p>
-              <div class="flex gap-2">
-                <NextButton
-                  v-if="brandingLogoFile"
-                  type="button"
-                  blue
-                  :is-loading="isUpdating"
-                  @click="uploadBrandingLogo"
-                >
-                  {{ $t('GENERAL_SETTINGS.FORM.BRANDING_LOGO.UPLOAD') }}
-                </NextButton>
-                <NextButton
-                  v-if="brandingLogoUrl && !brandingLogoFile"
-                  type="button"
-                  variant="hollow"
-                  :is-loading="isUpdating"
-                  @click="removeBrandingLogo"
-                >
-                  {{ $t('GENERAL_SETTINGS.FORM.BRANDING_LOGO.REMOVE') }}
-                </NextButton>
-              </div>
-            </div>
           </WithLabel>
           <WithLabel
             v-if="featureCustomReplyDomainEnabled"
