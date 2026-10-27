@@ -1,22 +1,10 @@
 <script setup>
-import { watch } from 'vue';
 import { useAttrs } from 'vue';
-import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useMapGetter } from 'dashboard/composables/store';
 
 const attrs = useAttrs();
-const store = useStore();
 const globalConfig = useMapGetter('globalConfig/get');
 const currentAccount = useMapGetter('getCurrentAccount');
-
-watch(
-  () => currentAccount.value?.branding_logo_url || '',
-  brandingLogoUrl => {
-    if (globalConfig.value.accountLogo !== brandingLogoUrl) {
-      store.commit('globalConfig/setAccountLogo', brandingLogoUrl);
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <template>
