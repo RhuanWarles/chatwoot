@@ -529,6 +529,24 @@
     "FILTER_SEGMENT": "Segment",
     "FILTER_AI": "AI",
     "FILTER_ANSWERED_BY": "Answered by",
-    "FILTER_ANSWERED_BY_HINT": "Shows the customers answered by any of the selected, including the AI. It is not the owner: a customer from one seller can be answered by someone else."
+    "FILTER_ANSWERED_BY_HINT": "Shows the customers answered by any of the selected, including the AI. It is not the owner: a customer from one seller can be answered by someone else.",
+    "RESPONDER_REPORT": {
+      "TITLE": "AI vs people, month by month",
+      "SUBTITLE": "How much of the service the AI is taking over. The filters choose the customers and conversations that are counted.",
+      "FILTER_MONTHS": "Period",
+      "MONTHS": "Last {count} months",
+      "ALL": "All",
+      "LOADING": "Loading...",
+      "LOAD_ERROR": "Could not load the comparison. Try again.",
+      "EMPTY": "No replies in this period.",
+      "SHARE_AI": "Replies sent by the AI",
+      "SHARE_AI_ONLY": "Conversations handled only by the AI",
+      "REPLIES": "Replies in the period",
+      "LEGEND_AI": "AI",
+      "LEGEND_HUMAN": "People",
+      "COL_MONTH": "Month",
+      "COL_SHARE": "% AI",
+      "COL_AI_ONLY": "Only AI"
+    }
   }
 }

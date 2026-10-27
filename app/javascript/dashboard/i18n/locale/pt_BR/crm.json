@@ -529,7 +529,25 @@
     "FILTER_SEGMENT": "Segmento",
     "FILTER_AI": "IA",
     "FILTER_ANSWERED_BY": "Respondido por",
-    "FILTER_ANSWERED_BY_HINT": "Mostra os clientes respondidos por qualquer um dos marcados, inclusive a IA. Não é o responsável: um cliente da base de um vendedor pode ser respondido por outra pessoa."
+    "FILTER_ANSWERED_BY_HINT": "Mostra os clientes respondidos por qualquer um dos marcados, inclusive a IA. Não é o responsável: um cliente da base de um vendedor pode ser respondido por outra pessoa.",
+    "RESPONDER_REPORT": {
+      "TITLE": "IA × pessoas, mês a mês",
+      "SUBTITLE": "Quanto do atendimento a IA está assumindo. Os filtros escolhem os clientes e as conversas que entram na conta.",
+      "FILTER_MONTHS": "Período",
+      "MONTHS": "Últimos {count} meses",
+      "ALL": "Todos",
+      "LOADING": "Carregando...",
+      "LOAD_ERROR": "Não foi possível carregar a comparação. Tente novamente.",
+      "EMPTY": "Nenhuma resposta neste período.",
+      "SHARE_AI": "Respostas enviadas pela IA",
+      "SHARE_AI_ONLY": "Conversas atendidas só pela IA",
+      "REPLIES": "Respostas no período",
+      "LEGEND_AI": "IA",
+      "LEGEND_HUMAN": "Pessoas",
+      "COL_MONTH": "Mês",
+      "COL_SHARE": "% IA",
+      "COL_AI_ONLY": "Só IA"
+    }
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",
