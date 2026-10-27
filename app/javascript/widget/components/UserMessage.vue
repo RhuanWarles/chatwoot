@@ -5,7 +5,7 @@ import ImageBubble from 'widget/components/ImageBubble.vue';
 import VideoBubble from 'widget/components/VideoBubble.vue';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
 import FileBubble from 'widget/components/FileBubble.vue';
-import { messageDateTime } from 'shared/helpers/timeHelper';
+import MessageTimestamp from 'widget/components/MessageTimestamp.vue';
 import messageMixin from '../mixins/messageMixin';
 import ReplyToChip from 'widget/components/ReplyToChip.vue';
 import DragWrapper from 'widget/components/DragWrapper.vue';
@@ -24,6 +24,7 @@ export default {
     FluentIcon,
     ReplyToChip,
     DragWrapper,
+    MessageTimestamp,
   },
   mixins: [messageMixin],
   props: {
@@ -54,10 +55,6 @@ export default {
     showTextBubble() {
       const { message } = this;
       return !!message.content;
-    },
-    readableTime() {
-      const { created_at: createdAt = '' } = this.message;
-      return messageDateTime(createdAt, this.$i18n?.locale?.replace('_', '-'));
     },
     isFailed() {
       const { status = '' } = this.message;
@@ -121,44 +118,50 @@ export default {
             />
           </div>
           <DragWrapper direction="left" @dragged="toggleReply">
-            <UserMessageBubble
-              v-if="showTextBubble"
-              :message="message.content"
-              :status="message.status"
-              :widget-color="widgetColor"
-            />
-            <div
-              v-if="hasAttachments"
-              class="chat-bubble has-attachment user"
-              :style="{ backgroundColor: widgetColor }"
-            >
+            <div class="relative inline-block max-w-full">
+              <UserMessageBubble
+                v-if="showTextBubble"
+                :message="message.content"
+                :status="message.status"
+                :widget-color="widgetColor"
+                :class="{ 'pb-5': message.created_at }"
+              />
               <div
-                v-for="attachment in message.attachments"
-                :key="attachment.id"
+                v-if="hasAttachments"
+                class="chat-bubble has-attachment user pb-5"
+                :style="{ backgroundColor: widgetColor }"
               >
-                <ImageBubble
-                  v-if="attachment.file_type === 'image' && !hasImageError"
-                  :url="attachment.data_url"
-                  :thumb="attachment.data_url"
-                  :readable-time="readableTime"
-                  @error="onImageLoadError"
-                />
+                <div
+                  v-for="attachment in message.attachments"
+                  :key="attachment.id"
+                >
+                  <ImageBubble
+                    v-if="attachment.file_type === 'image' && !hasImageError"
+                    :url="attachment.data_url"
+                    :thumb="attachment.data_url"
+                    @error="onImageLoadError"
+                  />
 
-                <VideoBubble
-                  v-if="attachment.file_type === 'video' && !hasVideoError"
-                  :url="attachment.data_url"
-                  :readable-time="readableTime"
-                  @error="onVideoLoadError"
-                />
+                  <VideoBubble
+                    v-if="attachment.file_type === 'video' && !hasVideoError"
+                    :url="attachment.data_url"
+                    @error="onVideoLoadError"
+                  />
 
-                <FileBubble
-                  v-else
-                  :url="attachment.data_url"
-                  :is-in-progress="isInProgress"
-                  :widget-color="widgetColor"
-                  is-user-bubble
-                />
+                  <FileBubble
+                    v-else
+                    :url="attachment.data_url"
+                    :is-in-progress="isInProgress"
+                    :widget-color="widgetColor"
+                    is-user-bubble
+                  />
+                </div>
               </div>
+              <MessageTimestamp
+                v-if="message.created_at"
+                :time="message.created_at"
+                class="text-white/75"
+              />
             </div>
           </DragWrapper>
         </div>
@@ -175,12 +178,6 @@ export default {
             <FluentIcon icon="arrow-clockwise" size="14" />
           </button>
         </div>
-        <p
-          v-if="message.created_at"
-          class="mt-1 text-end text-xs text-n-slate-10"
-        >
-          {{ readableTime }}
-        </p>
       </div>
     </div>
   </div>

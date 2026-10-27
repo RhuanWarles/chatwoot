@@ -1,7 +1,7 @@
 import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import { groupBy } from 'widget/helpers/utils';
 import { groupConversationBySender } from './helpers';
-import { formatUnixDate } from 'shared/helpers/DateHelper';
+import { messageDayKey } from 'widget/helpers/messageTime';
 
 export const getters = {
   getAllMessagesLoaded: _state => _state.uiFlags.allMessagesLoaded,
@@ -26,12 +26,15 @@ export const getters = {
   getGroupedConversation: _state => {
     const conversationGroupedByDate = groupBy(
       Object.values(_state.conversations),
-      message => formatUnixDate(message.created_at)
+      message => messageDayKey(message.created_at)
     );
-    return Object.keys(conversationGroupedByDate).map(date => ({
-      date,
-      messages: groupConversationBySender(conversationGroupedByDate[date]),
-    }));
+    return Object.keys(conversationGroupedByDate).map(date => {
+      const messages = conversationGroupedByDate[date];
+      return {
+        date,
+        messages: groupConversationBySender(messages),
+      };
+    });
   },
   getPendingCustomAttributes: _state => _state.pendingCustomAttributes,
   getPendingLabels: _state => _state.pendingLabels,

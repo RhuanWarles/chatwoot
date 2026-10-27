@@ -97,7 +97,7 @@ describe('#getters', () => {
       })
     ).toEqual([
       {
-        date: 'Nov 18, 2019',
+        date: '2019-11-18',
         messages: [
           {
             id: 1,
@@ -123,7 +123,7 @@ describe('#getters', () => {
         ],
       },
       {
-        date: 'Dec 14, 2019',
+        date: '2019-12-14',
         messages: [
           {
             id: 4,
@@ -198,7 +198,7 @@ describe('#getters', () => {
       })
     ).toEqual([
       {
-        date: 'Nov 18, 2019',
+        date: '2019-11-18',
         messages: [
           {
             id: 1,
@@ -224,7 +224,7 @@ describe('#getters', () => {
         ],
       },
       {
-        date: 'Dec 14, 2019',
+        date: '2019-12-14',
         messages: [
           {
             id: 4,
@@ -266,6 +266,33 @@ describe('#getters', () => {
         ],
       },
     ]);
+  });
+
+  it('groups messages by the America/Sao_Paulo calendar day', () => {
+    const groupedConversation = getters.getGroupedConversation({
+      conversations: {
+        1: {
+          id: 1,
+          content: 'Late in Brazil',
+          created_at: Math.floor(
+            new Date('2026-10-27T02:30:00.000Z').getTime() / 1000
+          ),
+          message_type: 0,
+        },
+        2: {
+          id: 2,
+          content: 'New day in Brazil',
+          created_at: Math.floor(
+            new Date('2026-10-27T03:30:00.000Z').getTime() / 1000
+          ),
+          message_type: 0,
+        },
+      },
+    });
+
+    expect(groupedConversation).toHaveLength(2);
+    expect(groupedConversation[0].messages).toHaveLength(1);
+    expect(groupedConversation[1].messages).toHaveLength(1);
   });
 
   describe('getUnreadMessageCount returns', () => {

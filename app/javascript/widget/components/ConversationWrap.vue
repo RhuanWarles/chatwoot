@@ -6,6 +6,7 @@ import Spinner from 'shared/components/Spinner.vue';
 import { useDarkMode } from 'widget/composables/useDarkMode';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 import { mapActions, mapGetters } from 'vuex';
+import { formatMessageDay } from 'widget/helpers/messageTime';
 
 export default {
   name: 'ConversationWrap',
@@ -75,6 +76,29 @@ export default {
   },
   methods: {
     ...mapActions('conversation', ['fetchOldConversations']),
+    formatDay(messages) {
+      return formatMessageDay(messages[0]?.created_at, {
+        locale: this.$i18n?.locale || 'pt-BR',
+        todayLabel: this.$t('TODAY'),
+        yesterdayLabel: this.$t('YESTERDAY'),
+      });
+    },
+    senderKey(message) {
+      const sender = message.sender || {};
+      const senderIdentifier =
+        sender.id ||
+        sender.name ||
+        message.additional_attributes?.sender_name ||
+        'contact';
+      return `${message.message_type}:${senderIdentifier}`;
+    },
+    isSenderChange(messages, index) {
+      if (index === 0) return false;
+
+      return (
+        this.senderKey(messages[index]) !== this.senderKey(messages[index - 1])
+      );
+    },
     scrollToBottom() {
       const container = this.$el;
       container.scrollTop = container.scrollHeight - this.previousScrollHeight;
@@ -109,11 +133,17 @@ export default {
         :key="groupedMessage.date"
         class="messages-wrap"
       >
-        <DateSeparator :date="groupedMessage.date" />
+        <DateSeparator
+          :date="groupedMessage.date"
+          :date-label="formatDay(groupedMessage.messages)"
+        />
         <ChatMessage
-          v-for="message in groupedMessage.messages"
+          v-for="(message, index) in groupedMessage.messages"
           :key="message.id"
           :message="message"
+          :class="{
+            '!mt-4': isSenderChange(groupedMessage.messages, index),
+          }"
         />
       </div>
       <AgentTypingBubble v-if="showStatusIndicator" />

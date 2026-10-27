@@ -28,6 +28,10 @@ export default {
       type: Object,
       default: () => {},
     },
+    showTimestamp: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup() {
     const { formatMessage, getPlainText, truncateMessage, highlightContent } =
@@ -96,6 +100,7 @@ export default {
         !isCards && !isOptions && !isForm && !isArticle && !isCards && !isCSAT
       "
       class="chat-bubble agent bg-n-background dark:bg-n-solid-3 text-n-slate-12"
+      :class="{ 'pb-5': showTimestamp }"
     >
       <div
         v-dompurify-html="formatMessage(message, false)"

@@ -2,7 +2,36 @@ import {
   findUndeliveredMessage,
   createTemporaryMessage,
   getNonDeletedMessages,
+  groupConversationBySender,
 } from '../../conversation/helpers';
+
+describe('#groupConversationBySender', () => {
+  it('keeps separate authors visible when sender data is in message attributes', () => {
+    const groupedMessages = groupConversationBySender([
+      {
+        id: 1,
+        message_type: 1,
+        additional_attributes: { sender_name: 'Alice' },
+      },
+      {
+        id: 2,
+        message_type: 1,
+        additional_attributes: { sender_name: 'Bob' },
+      },
+      {
+        id: 3,
+        message_type: 1,
+        additional_attributes: { sender_name: 'Bob' },
+      },
+    ]);
+
+    expect(groupedMessages.map(message => message.showAvatar)).toEqual([
+      true,
+      false,
+      true,
+    ]);
+  });
+});
 
 describe('#findUndeliveredMessage', () => {
   it('returns message objects if exist', () => {

@@ -2,7 +2,7 @@
 import UserMessage from 'widget/components/UserMessage.vue';
 import AgentMessageBubble from 'widget/components/AgentMessageBubble.vue';
 import MessageReplyButton from 'widget/components/MessageReplyButton.vue';
-import { messageDateTime } from 'shared/helpers/timeHelper';
+import MessageTimestamp from 'widget/components/MessageTimestamp.vue';
 import ImageBubble from 'widget/components/ImageBubble.vue';
 import VideoBubble from 'widget/components/VideoBubble.vue';
 import FileBubble from 'widget/components/FileBubble.vue';
@@ -26,6 +26,7 @@ export default {
     FileBubble,
     MessageReplyButton,
     ReplyToChip,
+    MessageTimestamp,
   },
   mixins: [configMixin, messageMixin],
   props: {
@@ -54,10 +55,6 @@ export default {
         return false;
       }
       return this.message.content;
-    },
-    readableTime() {
-      const { created_at: createdAt = '' } = this.message;
-      return messageDateTime(createdAt, this.$i18n?.locale?.replace('_', '-'));
     },
     messageType() {
       const { message_type: type = 1 } = this.message;
@@ -196,47 +193,53 @@ export default {
                 !messageContentAttributes?.submitted_values,
             }"
           >
-            <AgentMessageBubble
-              v-if="shouldDisplayAgentMessage"
-              :content-type="contentType"
-              :message-content-attributes="messageContentAttributes"
-              :message-id="message.id"
-              :message-type="messageType"
-              :message="message.content"
-            />
-            <div
-              v-if="hasAttachments"
-              class="space-y-2 chat-bubble has-attachment agent bg-n-background dark:bg-n-solid-3"
-              :class="wrapClass"
-            >
+            <div class="relative inline-block max-w-full">
+              <AgentMessageBubble
+                v-if="shouldDisplayAgentMessage"
+                :content-type="contentType"
+                :message-content-attributes="messageContentAttributes"
+                :message-id="message.id"
+                :message-type="messageType"
+                :message="message.content"
+                :show-timestamp="!!message.created_at"
+              />
               <div
-                v-for="attachment in message.attachments"
-                :key="attachment.id"
+                v-if="hasAttachments"
+                class="space-y-2 chat-bubble has-attachment agent bg-n-background dark:bg-n-solid-3 pb-5"
+                :class="wrapClass"
               >
-                <ImageBubble
-                  v-if="attachment.file_type === 'image' && !hasImageError"
-                  :url="attachment.data_url"
-                  :thumb="attachment.data_url"
-                  :readable-time="readableTime"
-                  @error="onImageLoadError"
-                />
-
-                <VideoBubble
-                  v-if="attachment.file_type === 'video' && !hasVideoError"
-                  :url="attachment.data_url"
-                  :readable-time="readableTime"
-                  @error="onVideoLoadError"
-                />
-
-                <audio
-                  v-else-if="attachment.file_type === 'audio'"
-                  controls
-                  class="h-10 dark:invert"
+                <div
+                  v-for="attachment in message.attachments"
+                  :key="attachment.id"
                 >
-                  <source :src="attachment.data_url" />
-                </audio>
-                <FileBubble v-else :url="attachment.data_url" />
+                  <ImageBubble
+                    v-if="attachment.file_type === 'image' && !hasImageError"
+                    :url="attachment.data_url"
+                    :thumb="attachment.data_url"
+                    @error="onImageLoadError"
+                  />
+
+                  <VideoBubble
+                    v-if="attachment.file_type === 'video' && !hasVideoError"
+                    :url="attachment.data_url"
+                    @error="onVideoLoadError"
+                  />
+
+                  <audio
+                    v-else-if="attachment.file_type === 'audio'"
+                    controls
+                    class="h-10 dark:invert"
+                  >
+                    <source :src="attachment.data_url" />
+                  </audio>
+                  <FileBubble v-else :url="attachment.data_url" />
+                </div>
               </div>
+              <MessageTimestamp
+                v-if="message.created_at"
+                :time="message.created_at"
+                class="text-n-slate-10"
+              />
             </div>
           </div>
           <div class="flex flex-col justify-end">
@@ -251,9 +254,6 @@ export default {
           class="agent-name text-n-slate-11"
         >
           {{ agentName }}
-        </p>
-        <p v-if="message.created_at" class="mt-1 text-xs text-n-slate-10">
-          {{ readableTime }}
         </p>
       </div>
     </div>

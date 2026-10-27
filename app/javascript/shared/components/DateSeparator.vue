@@ -7,9 +7,15 @@ export default {
       type: String,
       required: true,
     },
+    dateLabel: {
+      type: String,
+      default: '',
+    },
   },
   computed: {
     formattedDate() {
+      if (this.dateLabel) return this.dateLabel;
+
       return formatDate({
         date: this.date,
         todayText: this.$t('TODAY'),
