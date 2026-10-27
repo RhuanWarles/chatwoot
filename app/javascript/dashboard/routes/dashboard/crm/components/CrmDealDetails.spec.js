@@ -37,6 +37,7 @@ vi.mock('../components/CrmDealConversations.vue', () => ({
 }));
 vi.mock('dashboard/api/agents', () => ({ default: { get: vi.fn() } }));
 vi.mock('dashboard/api/crm', () => ({
+  segmentsAPI: { get: vi.fn() },
   dealsAPI: {
     customFields: vi.fn(),
     updateCustomFields: vi.fn(),

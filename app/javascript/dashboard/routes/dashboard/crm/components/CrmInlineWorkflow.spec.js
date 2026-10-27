@@ -13,6 +13,7 @@ vi.mock('dashboard/api/contacts', () => ({
   default: { get: vi.fn(), search: vi.fn() },
 }));
 vi.mock('dashboard/api/crm', () => ({
+  segmentsAPI: { get: vi.fn() },
   pipelinesAPI: { get: vi.fn() },
   dealsAPI: { get: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));

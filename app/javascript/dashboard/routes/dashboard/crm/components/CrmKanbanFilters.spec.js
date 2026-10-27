@@ -8,6 +8,7 @@ import { pipelinesAPI, dealsAPI } from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
 
 vi.mock('dashboard/api/crm', () => ({
+  segmentsAPI: { get: vi.fn() },
   pipelinesAPI: { get: vi.fn() },
   dealsAPI: { get: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));
