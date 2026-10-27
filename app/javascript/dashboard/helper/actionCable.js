@@ -196,6 +196,12 @@ class ActionCableConnector extends BaseActionCableConnector {
       conversation_id: conversationId,
     } = data;
     this.app.$store.dispatch('addMessage', data);
+    if (data.conversation) {
+      this.app.$store.dispatch('updateConversation', {
+        id: conversationId,
+        ...data.conversation,
+      });
+    }
     this.app.$store.dispatch('updateConversationLastActivity', {
       lastActivityAt,
       conversationId,

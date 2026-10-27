@@ -110,6 +110,7 @@ class Saas::AiAgents::Respond
                                                       content_type: 'text', content_attributes: content_attributes,
                                                       defer_send: chunks.length > 1
                                                     }).perform
+      apply_system_label
       schedule_response_chunks(chunks, batch_id, first_message.id) if chunks.length > 1
       usage&.wallet&.settle!(usage, units: usage.reserved_units, metadata: usage_metadata(result, mode))
       @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
@@ -128,6 +129,13 @@ class Saas::AiAgents::Respond
 
   def schedule_response_chunks(_chunks, batch_id, first_message_id)
     Saas::AiAgents::ResponseChunkJob.perform_later(@conversation.account_id, @conversation.id, batch_id, 0, first_message_id)
+  end
+
+  def apply_system_label
+    Saas::AiAgents::SystemLabelService.apply!(@conversation)
+  rescue StandardError => e
+    Rails.logger.warn({ event: 'ai_agent_system_label', account_id: @conversation.account_id,
+                        conversation_id: @conversation.id, error: e.class.name }.to_json)
   end
 
   def enqueue_memory_update

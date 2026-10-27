@@ -15,6 +15,12 @@ vi.mock('dashboard/api/contacts', () => ({
   },
 }));
 
+vi.mock('dashboard/api/aiAgents', () => ({
+  default: {
+    get: vi.fn(),
+  },
+}));
+
 vi.mock('dashboard/composables/store.js', () => ({
   useMapGetter: vi.fn(),
 }));

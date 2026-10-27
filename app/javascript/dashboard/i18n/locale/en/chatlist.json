@@ -18,7 +18,8 @@
     "ASSIGNEE_TYPE_TABS": {
       "me": "Mine",
       "unassigned": "Unassigned",
-      "all": "All"
+      "all": "All",
+      "unanswered": "Unanswered"
     },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {

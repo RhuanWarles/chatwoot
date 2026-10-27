@@ -316,6 +316,9 @@ export const mutations = {
       );
     } else {
       chat.messages.push(message);
+      if (!message.private && [0, 1].includes(message.message_type)) {
+        chat.last_relevant_message_type = message.message_type;
+      }
       chat.timestamp = message.created_at;
       const { conversation: { unread_count: unreadCount = 0 } = {} } = message;
       chat.unread_count = unreadCount;

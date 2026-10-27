@@ -15,6 +15,9 @@ class ConversationApi extends ApiClient {
       labels,
       teamId,
       conversationType,
+      unanswered,
+      aiState,
+      aiAgentId,
       sortBy,
       updatedWithin,
     },
@@ -30,6 +33,9 @@ class ConversationApi extends ApiClient {
         page,
         labels,
         conversation_type: conversationType,
+        unanswered,
+        ai_state: aiState,
+        ai_agent_id: aiAgentId,
         sort_by: sortBy,
         updated_within: updatedWithin,
       },
@@ -107,7 +113,17 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${conversationId}/unmute`);
   }
 
-  meta({ inboxId, status, assigneeType, labels, teamId, conversationType }) {
+  meta({
+    inboxId,
+    status,
+    assigneeType,
+    labels,
+    teamId,
+    conversationType,
+    unanswered,
+    aiState,
+    aiAgentId,
+  }) {
     return axios.get(`${this.url}/meta`, {
       params: {
         inbox_id: inboxId,
@@ -116,6 +132,9 @@ class ConversationApi extends ApiClient {
         labels,
         team_id: teamId,
         conversation_type: conversationType,
+        unanswered,
+        ai_state: aiState,
+        ai_agent_id: aiAgentId,
       },
     });
   }

@@ -179,7 +179,8 @@ describe ConversationFinder do
                                        mine_count: 2,
                                        assigned_count: 4,
                                        unassigned_count: 1,
-                                       all_count: 5
+                                       all_count: 5,
+                                       unanswered_count: 0
                                      })
       end
     end
@@ -204,6 +205,48 @@ describe ConversationFinder do
 
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 1
+      end
+    end
+
+    context 'with unanswered' do
+      let(:params) { { status: 'all', assignee_type: 'all', unanswered: true } }
+
+      it 'returns only conversations whose latest visible message is incoming' do
+        waiting = inbox.conversations.first
+        create(:message, account: account, inbox: inbox, conversation: waiting, message_type: :incoming, private: false)
+
+        answered = inbox.conversations.second
+        create(:message, account: account, inbox: inbox, conversation: answered, message_type: :incoming, private: false)
+        create(:message, account: account, inbox: inbox, conversation: answered, message_type: :outgoing, private: false)
+
+        note_after_incoming = inbox.conversations.third
+        create(:message, account: account, inbox: inbox, conversation: note_after_incoming, message_type: :incoming, private: false)
+        create(:message, account: account, inbox: inbox, conversation: note_after_incoming, message_type: :outgoing, private: true)
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to include(waiting, note_after_incoming)
+        expect(result[:conversations]).not_to include(answered)
+      end
+    end
+
+    context 'with AI state' do
+      let(:params) { { status: 'all', assignee_type: 'all', ai_state: 'active' } }
+      let(:ai_agent) do
+        account.saas_ai_agents.create!(name: 'Assistente', system_prompt: 'Ajude', provider: 'openai', model: 'test', active: true,
+                                       inboxes: [inbox])
+      end
+
+      it 'uses the stored conversation state and active inbox agent' do
+        active_conversation = inbox.conversations.first
+        active_conversation.update!(additional_attributes: { 'ai_agent_state' => 'active' })
+        human_conversation = inbox.conversations.second
+        human_conversation.update!(additional_attributes: { 'ai_agent_state' => 'human' })
+
+        result = conversation_finder.perform
+
+        expect(result[:conversations]).to include(active_conversation)
+        expect(result[:conversations]).not_to include(human_conversation)
       end
     end
 
@@ -274,7 +317,8 @@ describe ConversationFinder do
                                        mine_count: 2,
                                        assigned_count: 3,
                                        unassigned_count: 1,
-                                       all_count: 4
+                                       all_count: 4,
+                                       unanswered_count: 0
                                      })
       end
 

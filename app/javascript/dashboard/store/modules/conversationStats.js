@@ -6,6 +6,7 @@ const state = {
   mineCount: 0,
   unAssignedCount: 0,
   allCount: 0,
+  unansweredCount: 0,
 };
 
 export const getters = {
@@ -19,6 +20,9 @@ const getViewKey = ({
   labels,
   teamId,
   conversationType,
+  unanswered,
+  aiState,
+  aiAgentId,
   queryData,
 }) =>
   JSON.stringify([
@@ -29,6 +33,9 @@ const getViewKey = ({
       labels,
       teamId,
       conversationType,
+      unanswered,
+      aiState,
+      aiAgentId,
     },
   ]);
 
@@ -114,11 +121,13 @@ export const mutations = {
       mine_count: mineCount,
       unassigned_count: unAssignedCount,
       all_count: allCount,
+      unanswered_count: unansweredCount,
     } = {}
   ) {
     $state.mineCount = mineCount;
     $state.allCount = allCount;
     $state.unAssignedCount = unAssignedCount;
+    if (unansweredCount !== undefined) $state.unansweredCount = unansweredCount;
     $state.updatedOn = new Date();
   },
 };

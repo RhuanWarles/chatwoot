@@ -89,6 +89,64 @@ class Conversation < ApplicationRecord
   scope :unassigned, -> { where(assignee_id: nil, assignee_agent_bot_id: nil) }
   scope :assigned, -> { where.not(assignee_id: nil).or(where.not(assignee_agent_bot_id: nil)) }
   scope :assigned_to, ->(agent) { where(assignee_id: agent.id) }
+
+  def self.awaiting_response_sql
+    "EXISTS (#{latest_relevant_message_sql})"
+  end
+
+  def self.latest_relevant_message_sql
+    <<~SQL.squish
+      SELECT 1
+      FROM messages relevant_messages
+      WHERE relevant_messages.conversation_id = conversations.id
+        AND relevant_messages.account_id = conversations.account_id
+        AND relevant_messages.private = FALSE
+        AND relevant_messages.message_type IN (#{relevant_message_types})
+        AND relevant_messages.message_type = #{Message.message_types['incoming']}
+        AND NOT EXISTS (#{newer_relevant_message_sql})
+    SQL
+  end
+
+  def self.newer_relevant_message_sql
+    <<~SQL.squish
+      SELECT 1
+      FROM messages newer_messages
+      WHERE newer_messages.conversation_id = relevant_messages.conversation_id
+        AND newer_messages.account_id = relevant_messages.account_id
+        AND newer_messages.private = FALSE
+        AND newer_messages.message_type IN (#{relevant_message_types})
+        AND (
+          newer_messages.created_at > relevant_messages.created_at
+          OR (newer_messages.created_at = relevant_messages.created_at AND newer_messages.id > relevant_messages.id)
+        )
+    SQL
+  end
+
+  scope :awaiting_response, -> { where(awaiting_response_sql) }
+
+  def self.with_last_relevant_message_type
+    select(
+      'conversations.*',
+      Arel.sql(<<~SQL.squish).as('last_relevant_message_type')
+        (
+          SELECT relevant_messages.message_type
+          FROM messages relevant_messages
+          WHERE relevant_messages.conversation_id = conversations.id
+            AND relevant_messages.account_id = conversations.account_id
+            AND relevant_messages.private = FALSE
+            AND relevant_messages.message_type IN (#{relevant_message_types})
+          ORDER BY relevant_messages.created_at DESC, relevant_messages.id DESC
+          LIMIT 1
+        )
+      SQL
+    )
+  end
+
+  def self.relevant_message_types
+    Message.message_types.values_at('incoming', 'outgoing').join(',')
+  end
+
+  private_class_method :latest_relevant_message_sql, :newer_relevant_message_sql, :relevant_message_types
   scope :sort_on_unread, lambda { |_direction|
     order(unread_messages_count_arel.desc).sort_on_last_activity_at('desc')
   }
@@ -167,6 +225,11 @@ class Conversation < ApplicationRecord
 
   def last_incoming_message
     messages.where(account_id: account_id)&.incoming&.last
+  end
+
+  def last_relevant_message
+    messages.where(account_id: account_id, private: false, message_type: Message.message_types.values_at('incoming', 'outgoing'))
+            .reorder(created_at: :desc, id: :desc).first
   end
 
   def toggle_status

@@ -173,8 +173,15 @@ class Message < ApplicationRecord
       assignee_id: conversation.assignee_id,
       unread_count: conversation.unread_incoming_messages.count,
       last_activity_at: conversation.last_activity_at.to_i,
+      last_relevant_message_type: relevant_message_type_for_conversation_event,
       contact_inbox: { source_id: conversation.contact_inbox.source_id }
     }
+  end
+
+  def relevant_message_type_for_conversation_event
+    return message_type_before_type_cast if !private? && (incoming? || outgoing?)
+
+    conversation.last_relevant_message&.message_type_before_type_cast
   end
 
   def merge_sender_attributes(data)

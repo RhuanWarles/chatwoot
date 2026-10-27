@@ -80,6 +80,18 @@ conversations:
       - "not_equal_to"
       - "is_present"
       - "is_not_present"
+  ai_agent_id:
+    attribute_type: "standard"
+    data_type: "number"
+    filter_operators:
+      - "equal_to"
+      - "not_equal_to"
+  ai_state:
+    attribute_type: "standard"
+    data_type: "text"
+    filter_operators:
+      - "equal_to"
+      - "not_equal_to"
   browser_language:
     attribute_type: "additional_attributes"
     data_type: "text"

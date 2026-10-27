@@ -11,6 +11,8 @@ export const CONVERSATION_ATTRIBUTES = {
   STATUS: 'status',
   PRIORITY: 'priority',
   ASSIGNEE_ID: 'assignee_id',
+  AI_AGENT_ID: 'ai_agent_id',
+  AI_STATE: 'ai_state',
   INBOX_ID: 'inbox_id',
   TEAM_ID: 'team_id',
   CONTACT_ID: 'contact_id',

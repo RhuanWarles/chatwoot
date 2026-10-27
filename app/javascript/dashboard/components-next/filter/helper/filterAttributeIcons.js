@@ -19,6 +19,8 @@ const ATTRIBUTE_ICONS = {
   status: 'i-lucide-circle-dot',
   priority: 'i-lucide-signal-high',
   assignee_id: 'i-lucide-user-round',
+  ai_agent_id: 'i-ph-sparkle-fill',
+  ai_state: 'i-ph-robot',
   inbox_id: 'i-lucide-inbox',
   team_id: 'i-lucide-users-round',
   contact_id: 'i-lucide-contact',

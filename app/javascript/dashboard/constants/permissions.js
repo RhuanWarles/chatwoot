@@ -50,4 +50,8 @@ export const ASSIGNEE_TYPE_TAB_PERMISSIONS = {
       CONVERSATION_PARTICIPATING_PERMISSIONS,
     ],
   },
+  unanswered: {
+    count: 'unansweredCount',
+    permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
+  },
 };

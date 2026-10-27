@@ -247,15 +247,20 @@ const conversationListPagination = computed(() => {
 });
 
 const conversationFilters = computed(() => {
+  const isUnansweredTab =
+    activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNANSWERED;
   return {
     inboxId: props.conversationInbox ? props.conversationInbox : undefined,
-    assigneeType: activeAssigneeTab.value,
+    assigneeType: isUnansweredTab
+      ? wootConstants.ASSIGNEE_TYPE.ALL
+      : activeAssigneeTab.value,
     status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
     labels: props.label ? [props.label] : undefined,
     teamId: props.teamId || undefined,
     conversationType: props.conversationType || undefined,
+    unanswered: isUnansweredTab,
   };
 });
 
@@ -637,7 +642,13 @@ function updateAssigneeTab(selectedTab) {
     resetBulkActions();
     emitter.emit('clearSearchInput');
     activeAssigneeTab.value = selectedTab;
-    if (!currentPage.value) {
+    if (
+      !currentPage.value ||
+      selectedTab === wootConstants.ASSIGNEE_TYPE.UNANSWERED ||
+      activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNANSWERED
+    ) {
+      store.dispatch('conversationPage/reset');
+      store.dispatch('emptyAllConversations');
       fetchConversations();
     } else {
       store.dispatch('invalidateConversationListRequests');

@@ -23,7 +23,7 @@ class ConversationFinder
   def perform
     set_up
 
-    mine_count, unassigned_count, all_count = set_count_for_all_conversations
+    mine_count, unassigned_count, all_count, unanswered_count = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
     filter_by_assignee_type
@@ -34,7 +34,8 @@ class ConversationFinder
         mine_count: mine_count,
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
-        all_count: all_count
+        all_count: all_count,
+        unanswered_count: unanswered_count
       }
     }
   end
@@ -42,7 +43,7 @@ class ConversationFinder
   def perform_meta_only
     set_up
 
-    mine_count, unassigned_count, all_count, = set_count_for_all_conversations
+    mine_count, unassigned_count, all_count, unanswered_count = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
     {
@@ -50,7 +51,8 @@ class ConversationFinder
         mine_count: mine_count,
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
-        all_count: all_count
+        all_count: all_count,
+        unanswered_count: unanswered_count
       }
     }
   end
@@ -66,6 +68,9 @@ class ConversationFinder
     filter_by_status unless params[:q]
     filter_by_team
     filter_by_labels
+    filter_by_unanswered
+    filter_by_ai_state
+    filter_by_ai_agent
     filter_by_query
     filter_by_source_id
   end
@@ -102,6 +107,7 @@ class ConversationFinder
       current_user,
       current_account
     ).perform
+    @conversations = @conversations.with_last_relevant_message_type
     filter_by_conversation_type if params[:conversation_type]
     @conversations
   end
@@ -160,6 +166,37 @@ class ConversationFinder
     @conversations = @conversations.tagged_with(params[:labels], any: true)
   end
 
+  def filter_by_unanswered
+    @conversations = @conversations.awaiting_response if ActiveModel::Type::Boolean.new.cast(params[:unanswered])
+  end
+
+  def filter_by_ai_state
+    return if params[:ai_state].blank?
+
+    active = ai_runtime_active_query
+    @conversations = if params[:ai_state].to_s == 'active'
+                       @conversations.where(active)
+                     elsif params[:ai_state].to_s == 'inactive'
+                       @conversations.where.not(active)
+                     else
+                       @conversations.none
+                     end
+  end
+
+  def filter_by_ai_agent
+    return if params[:ai_agent_id].blank?
+
+    @conversations = @conversations.where(
+      Conversations::AiFilterQuery.agent(':agent_id', assignment_placeholder: ':agent_id_int'),
+      agent_id: params[:ai_agent_id].to_i.to_s,
+      agent_id_int: params[:ai_agent_id].to_i
+    )
+  end
+
+  def ai_runtime_active_query
+    Conversations::AiFilterQuery.active
+  end
+
   def filter_by_source_id
     return unless params[:source_id]
 
@@ -173,16 +210,18 @@ class ConversationFinder
     counts = @conversations.unscope(:order).pick(
       Arel.sql("COUNT(*) FILTER (WHERE assignee_id = #{current_user.id})"),
       Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NULL AND assignee_agent_bot_id IS NULL)'),
-      Arel.sql('COUNT(*)')
+      Arel.sql('COUNT(*)'),
+      Arel.sql("COUNT(*) FILTER (WHERE #{Conversation.awaiting_response_sql})")
     )
-    counts || [0, 0, 0]
+    counts || [0, 0, 0, 0]
   end
 
   def legacy_count_for_all_conversations
     [
       @conversations.assigned_to(current_user).count,
       @conversations.unassigned.count,
-      @conversations.count
+      @conversations.count,
+      @conversations.awaiting_response.count
     ]
   end
 

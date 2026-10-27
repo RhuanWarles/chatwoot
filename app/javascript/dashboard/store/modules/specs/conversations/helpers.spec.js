@@ -5,6 +5,7 @@ import {
   filterByTeam,
   filterByLabel,
   filterByUnattended,
+  filterByUnanswered,
 } from '../../conversations/helpers';
 
 const conversationList = [
@@ -170,5 +171,19 @@ describe('#filterByUnattended', () => {
   });
   it('returns true if conversation type is unattended and has first reply', () => {
     expect(filterByUnattended(true, 'mentions', 123)).toEqual(true);
+  });
+});
+
+describe('#filterByUnanswered', () => {
+  it('matches conversations whose latest relevant message is incoming', () => {
+    expect(filterByUnanswered(true, true, 0)).toEqual(true);
+  });
+
+  it('excludes conversations whose latest relevant message is outgoing', () => {
+    expect(filterByUnanswered(true, true, 1)).toEqual(false);
+  });
+
+  it('does not filter when the unanswered tab is inactive', () => {
+    expect(filterByUnanswered(true, false, 1)).toEqual(true);
   });
 });

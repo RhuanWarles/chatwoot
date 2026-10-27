@@ -53,6 +53,8 @@
     "ATTRIBUTES": {
       "STATUS": "Status",
       "ASSIGNEE_NAME": "Assignee name",
+      "AI_AGENT_NAME": "AI assistant",
+      "AI_STATE": "AI state",
       "INBOX_NAME": "Inbox name",
       "TEAM_NAME": "Team name",
       "CONTACT": "Contact",
@@ -70,6 +72,10 @@
       "CUSTOM_ATTRIBUTE_CHECKBOX": "Checkbox",
       "CREATED_AT": "Created at",
       "LAST_ACTIVITY": "Last activity"
+    },
+    "AI_STATE": {
+      "ACTIVE": "AI active",
+      "INACTIVE": "AI inactive"
     },
     "ERRORS": {
       "VALUE_REQUIRED": "Value is required",

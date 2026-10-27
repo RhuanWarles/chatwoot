@@ -18,7 +18,7 @@ class Conversations::EventDataPresenter < SimpleDelegator
       priority: priority,
       waiting_since: waiting_since.to_i,
       **push_timestamps
-    }
+    }.merge(last_relevant_message_type: last_relevant_message&.message_type_before_type_cast)
   end
 
   # Like #push_data but with message text normalized for external integrations (webhooks).

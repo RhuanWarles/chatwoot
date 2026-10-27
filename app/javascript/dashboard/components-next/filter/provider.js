@@ -1,4 +1,4 @@
-import { computed, h } from 'vue';
+import { computed, getCurrentInstance, h, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useOperators } from './operators';
 import { useMapGetter } from 'dashboard/composables/store.js';
@@ -11,6 +11,7 @@ import {
 } from './helper/filterHelper';
 import { groupFilterTypes } from './helper/filterAttributeIcons';
 import languages from 'dashboard/components/widgets/conversation/advancedFilterItems/languages.js';
+import aiAgentsAPI from 'dashboard/api/aiAgents';
 
 /**
  * @typedef {Object} FilterOption
@@ -59,6 +60,7 @@ export function useConversationFilterContext() {
 
   const labels = useMapGetter('labels/getLabels');
   const agents = useMapGetter('agents/getAgents');
+  const aiAgents = ref([]);
   const inboxes = useMapGetter('inboxes/getInboxes');
   const teams = useMapGetter('teams/getTeams');
   const campaigns = useMapGetter('campaigns/getAllCampaigns');
@@ -72,6 +74,17 @@ export function useConversationFilterContext() {
   } = useOperators();
 
   const searchContacts = createContactSearcher();
+
+  if (getCurrentInstance()) {
+    onMounted(async () => {
+      try {
+        const { data } = await aiAgentsAPI.get();
+        aiAgents.value = data.agents || [];
+      } catch {
+        aiAgents.value = [];
+      }
+    });
+  }
 
   const contactOptionName = contact =>
     contact.name ||
@@ -156,6 +169,34 @@ export function useConversationFilterContext() {
       }),
       dataType: 'text',
       filterOperators: presenceOperators.value,
+      attributeModel: 'standard',
+    },
+    {
+      attributeKey: CONVERSATION_ATTRIBUTES.AI_AGENT_ID,
+      value: CONVERSATION_ATTRIBUTES.AI_AGENT_ID,
+      attributeName: t('FILTER.ATTRIBUTES.AI_AGENT_NAME'),
+      label: t('FILTER.ATTRIBUTES.AI_AGENT_NAME'),
+      inputType: 'searchSelect',
+      options: aiAgents.value.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+      })),
+      dataType: 'number',
+      filterOperators: equalityOperators.value,
+      attributeModel: 'standard',
+    },
+    {
+      attributeKey: CONVERSATION_ATTRIBUTES.AI_STATE,
+      value: CONVERSATION_ATTRIBUTES.AI_STATE,
+      attributeName: t('FILTER.ATTRIBUTES.AI_STATE'),
+      label: t('FILTER.ATTRIBUTES.AI_STATE'),
+      inputType: 'multiSelect',
+      options: [
+        { id: 'active', name: t('FILTER.AI_STATE.ACTIVE') },
+        { id: 'inactive', name: t('FILTER.AI_STATE.INACTIVE') },
+      ],
+      dataType: 'text',
+      filterOperators: equalityOperators.value,
       attributeModel: 'standard',
     },
     {

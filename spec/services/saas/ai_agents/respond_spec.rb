@@ -26,6 +26,7 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(reply.push_event_data[:sender]).to include(name: 'Assistente', type: 'agent_bot')
     expect(reply.content_attributes).to include('generated_by_ai' => true, 'ai_agent_id' => agent.id)
     expect(conversation.messages.outgoing.count).to eq(1)
+    expect(conversation.reload.labels).to include('atendida por ia')
     expect(provider).to have_received(:generate).once
     expect(conversation.reload.additional_attributes['ai_agent_state']).to eq('active')
   end

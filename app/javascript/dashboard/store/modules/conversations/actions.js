@@ -544,13 +544,17 @@ const actions = {
     const hasAppliedFilters = !!appliedFilters.length;
     const isMatchingInboxFilter =
       !currentInbox || Number(currentInbox) === inboxId;
+    const isMatchingUnansweredFilter =
+      !state.conversationFilters?.unanswered ||
+      conversation.last_relevant_message_type === 0;
     if (
       !hasAppliedFilters &&
       !isOnFoldersView(rootState) &&
       !isOnMentionsView(rootState) &&
       !isOnParticipatingView(rootState) &&
       !isOnUnattendedView(rootState) &&
-      isMatchingInboxFilter
+      isMatchingInboxFilter &&
+      isMatchingUnansweredFilter
     ) {
       commit(types.ADD_CONVERSATION, conversation);
       dispatch('contacts/setContact', sender);
@@ -569,7 +573,7 @@ const actions = {
     }
   },
 
-  updateConversation({ commit, dispatch, rootGetters }, conversation) {
+  updateConversation({ commit, dispatch, rootGetters, state }, conversation) {
     const sender = conversation.meta?.sender;
 
     commit(types.UPDATE_CONVERSATION, conversation);
@@ -581,6 +585,17 @@ const actions = {
     });
 
     if (sender) dispatch('contacts/setContact', sender);
+
+    if (state?.conversationFilters?.unanswered) {
+      const exists = state.allConversations.some(
+        chat => chat.id === conversation.id
+      );
+      if (conversation.last_relevant_message_type === undefined) return;
+      const isUnanswered = conversation.last_relevant_message_type === 0;
+      if (!isUnanswered && exists)
+        commit(types.DELETE_CONVERSATION, conversation.id);
+      if (isUnanswered && !exists) commit(types.ADD_CONVERSATION, conversation);
+    }
   },
 
   updateConversationLastActivity(
