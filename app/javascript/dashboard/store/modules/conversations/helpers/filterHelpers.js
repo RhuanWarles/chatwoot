@@ -90,6 +90,15 @@ const getValueFromConversation = (conversation, attributeKey) => {
     case 'browser_language':
     case 'referer':
       return conversation.additional_attributes?.[attributeKey];
+    case 'ai_state':
+      return (
+        conversation.ai_state ||
+        (['active', 'ai'].includes(
+          conversation.additional_attributes?.ai_agent_state ?? 'active'
+        )
+          ? 'active'
+          : 'inactive')
+      );
     default:
       return conversation.custom_attributes?.[attributeKey] ?? null;
   }

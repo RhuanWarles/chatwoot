@@ -6,6 +6,12 @@ class Conversations::AiFilterQuery
     SQL
   end
 
+  def self.state
+    <<~SQL.squish
+      CASE WHEN #{active} THEN 'active' ELSE 'inactive' END
+    SQL
+  end
+
   def self.agent(placeholder, assignment_placeholder: placeholder)
     <<~SQL.squish
       (

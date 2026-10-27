@@ -36,12 +36,13 @@ class Conversations::FilterService < FilterService
     )
     conversations = conversations.with_last_relevant_message_type
 
-    Conversations::PermissionFilterService.new(
+    conversations = Conversations::PermissionFilterService.new(
       conversations,
       @user,
       @account,
       plan_hint_selective_filter: label_filter_present?
     ).perform
+    ai_state_filter_present? ? conversations.with_ai_state : conversations
   end
 
   def current_page
@@ -94,6 +95,10 @@ class Conversations::FilterService < FilterService
     return false if payload.any? { |query_hash| query_hash[:query_operator].to_s.casecmp('or').zero? }
 
     payload.any? { |query_hash| query_hash[:attribute_key] == 'labels' && query_hash[:filter_operator] == 'equal_to' }
+  end
+
+  def ai_state_filter_present?
+    @params[:payload].to_a.any? { |query_hash| query_hash['attribute_key'] == 'ai_state' }
   end
 
   def set_count_for_all_conversations

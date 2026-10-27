@@ -1707,6 +1707,31 @@ describe('filterHelpers', () => {
       expect(matchesFilters(conversation, filters)).toBe(false);
     });
 
+    it.each([
+      [{ ai_state: 'active' }, 'active', true],
+      [{ ai_state: 'inactive' }, 'active', false],
+      [{ ai_state: 'inactive' }, 'inactive', true],
+      [
+        { additional_attributes: { ai_agent_state: 'human' } },
+        'inactive',
+        true,
+      ],
+      [{ additional_attributes: {} }, 'active', true],
+    ])(
+      'matches the normalized AI state for %j and %s',
+      (conversation, state, expected) => {
+        expect(
+          matchesFilters(conversation, [
+            {
+              attribute_key: 'ai_state',
+              filter_operator: 'equal_to',
+              values: [state],
+            },
+          ])
+        ).toBe(expected);
+      }
+    );
+
     // Test for default case (returning null) in getValueFromConversation
     it('should not match conversation when attribute key is not recognized', () => {
       const conversation = { status: 'open' };

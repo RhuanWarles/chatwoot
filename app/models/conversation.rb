@@ -101,6 +101,11 @@ class Conversation < ApplicationRecord
   def self.with_last_relevant_message_type
     select('conversations.*')
   end
+
+  scope :with_ai_state, lambda {
+    select('conversations.*', Arel.sql("#{Conversations::AiFilterQuery.state} AS ai_state"))
+  }
+
   scope :sort_on_unread, lambda { |_direction|
     order(unread_messages_count_arel.desc).sort_on_last_activity_at('desc')
   }
