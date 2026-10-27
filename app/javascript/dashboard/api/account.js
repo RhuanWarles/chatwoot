@@ -22,6 +22,21 @@ class AccountAPI extends ApiClient {
     );
     return response.data.cache_keys;
   }
+
+  uploadBrandingLogo(file) {
+    const formData = new FormData();
+    formData.append('branding_logo', file);
+    return axios.post(
+      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/branding_logo`,
+      formData
+    );
+  }
+
+  deleteBrandingLogo() {
+    return axios.delete(
+      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/branding_logo`
+    );
+  }
 }
 
 export default new AccountAPI();

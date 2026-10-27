@@ -12,8 +12,9 @@ export const initFaviconSwitcher = () => {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      const accountLogo = window.globalConfig?.ACCOUNT_LOGO;
       favicons.forEach(favicon => {
-        const oldFileName = `/favicon-${favicon.sizes[[0]]}.png`;
+        const oldFileName = accountLogo || `/favicon-${favicon.sizes[[0]]}.png`;
         favicon.href = oldFileName;
       });
     }

@@ -29,6 +29,7 @@ const {
   DISABLE_META_MESSAGE_SENDING: disableMetaMessageSending,
   DEPLOYMENT_ENV: deploymentEnv,
   ACTIVE_PLATFORM_BANNERS: activePlatformBanners,
+  ACCOUNT_LOGO: accountLogo,
 } = window.globalConfig || {};
 
 const state = {
@@ -59,6 +60,7 @@ const state = {
   isEnterprise: parseBoolean(isEnterprise),
   whatsappConnectionsEnabled: parseBoolean(whatsappConnectionsEnabled),
   activePlatformBanners: activePlatformBanners || [],
+  accountLogo,
 };
 
 export const getters = {
@@ -75,7 +77,23 @@ export const getters = {
 
 export const actions = {};
 
-export const mutations = {};
+export const mutations = {
+  setAccountLogo($state, accountLogoUrl) {
+    $state.accountLogo = accountLogoUrl || '';
+    if (window.globalConfig) {
+      window.globalConfig.ACCOUNT_LOGO = $state.accountLogo;
+    }
+    document.querySelectorAll('link[rel="icon"]').forEach(favicon => {
+      const size = favicon.getAttribute('sizes');
+      const fallback =
+        size === '512x512'
+          ? window.globalConfig?.LOGO_THUMBNAIL ||
+            '/brand-assets/logo_thumbnail.svg'
+          : `/favicon-${size}.png`;
+      favicon.href = $state.accountLogo || fallback;
+    });
+  },
+};
 
 export default {
   namespaced: true,

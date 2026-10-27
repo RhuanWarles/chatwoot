@@ -33,6 +33,7 @@ json.features features
 json.id @account.id
 json.locale @account.locale
 json.name @account.name
+json.branding_logo_url resource.branding_logo_url
 json.support_email @account.support_email
 json.status @account.status
 json.cache_keys @account.cache_keys

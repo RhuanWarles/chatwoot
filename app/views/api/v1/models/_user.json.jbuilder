@@ -27,6 +27,7 @@ json.accounts do
   json.array! account_users do |account_user|
     json.id account_user.account_id
     json.name account_user.account.name
+    json.branding_logo_url account_user.account.branding_logo_url
     json.status account_user.account.status
     json.onboarding_step account_user.account.onboarding_step
     json.active_at account_user.active_at

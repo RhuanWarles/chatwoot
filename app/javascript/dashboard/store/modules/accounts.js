@@ -96,6 +96,30 @@ export const actions = {
       throw new Error(error);
     }
   },
+  uploadBrandingLogo: async ({ commit }, file) => {
+    commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await AccountAPI.uploadBrandingLogo(file);
+      commit(types.default.EDIT_ACCOUNT, response.data);
+      commit('globalConfig/setAccountLogo', response.data.branding_logo_url, {
+        root: true,
+      });
+      return response.data;
+    } finally {
+      commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });
+    }
+  },
+  deleteBrandingLogo: async ({ commit }) => {
+    commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: true });
+    try {
+      const response = await AccountAPI.deleteBrandingLogo();
+      commit(types.default.EDIT_ACCOUNT, response.data);
+      commit('globalConfig/setAccountLogo', '', { root: true });
+      return response.data;
+    } finally {
+      commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false });
+    }
+  },
   finishOnboarding: async ({ commit }, payload) => {
     commit(types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: true });
     try {
