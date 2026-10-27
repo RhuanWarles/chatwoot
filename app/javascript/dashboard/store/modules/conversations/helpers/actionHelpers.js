@@ -1,5 +1,14 @@
 import types from '../../../mutation-types';
 
+const CONVERSATIONS_PER_PAGE = 25;
+
+const countForFilter = (metaData, filterType) => {
+  if (filterType === 'me') return metaData.mine_count;
+  if (filterType === 'unassigned') return metaData.unassigned_count;
+  if (filterType === 'unanswered') return metaData.unanswered_count;
+  return metaData.all_count;
+};
+
 export const setPageFilter = ({ dispatch, filter, page, markEndReached }) => {
   dispatch('conversationPage/setCurrentPage', { filter, page }, { root: true });
   if (markEndReached) {
@@ -70,10 +79,14 @@ export const buildConversationList = (
   );
   context.commit(types.CLEAR_LIST_LOADING_STATUS);
   setContacts(context.commit, conversationList);
+  const totalCount = countForFilter(metaData, filterType);
+  const hasReachedEnd = Number.isFinite(totalCount)
+    ? requestPayload.page * CONVERSATIONS_PER_PAGE >= totalCount
+    : !conversationList.length;
   setPageFilter({
     dispatch: context.dispatch,
     filter: filterType,
     page: requestPayload.page,
-    markEndReached: !conversationList.length,
+    markEndReached: hasReachedEnd,
   });
 };

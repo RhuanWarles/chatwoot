@@ -25,6 +25,7 @@ import {
 
 // Page size MessageFinder uses when walking backwards through a conversation.
 const MESSAGES_PER_PAGE = 20;
+const SYSTEM_AI_LABEL_TITLE = 'atendida por ia';
 
 const pendingHistoryRequests = new Map();
 
@@ -583,6 +584,12 @@ const actions = {
       id: conversation.id,
       data: conversation.labels,
     });
+
+    const accountLabels = rootGetters?.['labels/getLabels'] || [];
+    const hasUnknownSystemLabel =
+      conversation.labels?.includes(SYSTEM_AI_LABEL_TITLE) &&
+      !accountLabels.some(label => label.title === SYSTEM_AI_LABEL_TITLE);
+    if (hasUnknownSystemLabel) dispatch('labels/get', null, { root: true });
 
     if (sender) dispatch('contacts/setContact', sender);
 

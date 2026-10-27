@@ -8,6 +8,7 @@ import ConversationBasicFilter from './widgets/conversation/ConversationBasicFil
 import SwitchLayout from 'dashboard/routes/dashboard/conversation/search/SwitchLayout.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import ConversationCreateMenu from 'dashboard/components-next/whatsapp-groups/ConversationCreateMenu.vue';
+import ConversationQuickFilters from './widgets/conversation/ConversationQuickFilters.vue';
 
 const props = defineProps({
   pageTitle: { type: String, required: true },
@@ -18,6 +19,18 @@ const props = defineProps({
   isOnExpandedLayout: { type: Boolean, required: true },
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
+  agents: { type: Array, default: () => [] },
+  inboxes: { type: Array, default: () => [] },
+  labels: { type: Array, default: () => [] },
+  quickFilters: {
+    type: Object,
+    default: () => ({
+      aiAgentId: null,
+      inboxId: null,
+      label: null,
+      aiState: null,
+    }),
+  },
 });
 
 const emit = defineEmits([
@@ -26,6 +39,7 @@ const emit = defineEmits([
   'resetFilters',
   'basicFilterChange',
   'filtersModal',
+  'quickFilterChange',
 ]);
 
 const { uiSettings, updateUISettings } = useUISettings();
@@ -183,4 +197,15 @@ const toggleConversationLayout = () => {
       />
     </div>
   </div>
+  <ConversationQuickFilters
+    v-if="!isContactScoped && !hasAppliedFiltersOrActiveFolders"
+    :agents="agents"
+    :inboxes="inboxes"
+    :labels="labels"
+    :ai-agent-id="quickFilters.aiAgentId"
+    :inbox-id="quickFilters.inboxId"
+    :label="quickFilters.label"
+    :ai-state="quickFilters.aiState"
+    @change="emit('quickFilterChange', $event)"
+  />
 </template>

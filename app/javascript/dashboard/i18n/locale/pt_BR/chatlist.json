@@ -18,7 +18,21 @@
     "ASSIGNEE_TYPE_TABS": {
       "me": "Minhas",
       "unassigned": "Não atribuídas",
-      "all": "Todos"
+      "all": "Todos",
+      "unanswered": "Sem resposta"
+    },
+    "QUICK_FILTERS": {
+      "ASSISTANT": "Assistente",
+      "INBOX": "Caixa de entrada",
+      "TAG": "Tag",
+      "AI_STATE": "Estado da IA",
+      "ALL": "Todos",
+      "AI_ACTIVE": "IA ativa",
+      "AI_INACTIVE": "IA inativa",
+      "SEARCH_ASSISTANT": "Buscar assistente...",
+      "SEARCH_INBOX": "Buscar caixa de entrada...",
+      "SEARCH_TAG": "Buscar tag...",
+      "SEARCH_AI_STATE": "Buscar estado da IA..."
     },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {
