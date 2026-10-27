@@ -16,6 +16,7 @@ module Crm
     belongs_to :pipeline_stage, class_name: 'Crm::PipelineStage'
     belongs_to :contact
     belongs_to :owner, class_name: 'User', optional: true
+    belongs_to :segment, class_name: 'Crm::Segment', optional: true
     has_many :activities, class_name: 'Crm::Activity', dependent: :destroy
     has_many :custom_field_values, class_name: 'Crm::DealCustomFieldValue', dependent: :destroy
     has_many :events, class_name: 'Crm::DealEvent', dependent: :destroy
@@ -69,6 +70,7 @@ module Crm
       errors.add(:pipeline_stage, 'must belong to the selected pipeline') if pipeline_stage && pipeline_stage.pipeline_id != pipeline_id
       errors.add(:contact, 'must belong to the same account') if contact && contact.account_id != account_id
       errors.add(:owner, 'must belong to the same account') if owner && !account.users.exists?(id: owner_id)
+      errors.add(:segment, 'must belong to the same account') if segment && segment.account_id != account_id
     end
   end
 end

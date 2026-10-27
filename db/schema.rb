@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_27_100000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_110000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1131,6 +1131,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_100000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "segment_id"
     t.index ["account_id", "contact_id"], name: "index_crm_deals_on_account_id_and_contact_id"
     t.index ["account_id", "pipeline_id"], name: "index_crm_deals_on_account_id_and_pipeline_id"
     t.index ["account_id", "pipeline_stage_id"], name: "index_crm_deals_on_account_id_and_pipeline_stage_id"
@@ -1140,6 +1141,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_100000) do
     t.index ["owner_id"], name: "index_crm_deals_on_owner_id"
     t.index ["pipeline_id"], name: "index_crm_deals_on_pipeline_id"
     t.index ["pipeline_stage_id"], name: "index_crm_deals_on_pipeline_stage_id"
+    t.index ["segment_id"], name: "index_crm_deals_on_segment_id"
   end
 
   create_table "crm_google_calendar_connections", force: :cascade do |t|
@@ -1186,6 +1188,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_100000) do
     t.jsonb "field_automations", default: [], null: false
     t.index ["account_id", "name"], name: "index_crm_pipelines_on_account_id_and_name", unique: true
     t.index ["account_id"], name: "index_crm_pipelines_on_account_id"
+  end
+
+  create_table "crm_segments", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "color"
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_crm_segments_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_crm_segments_on_account_id"
   end
 
   create_table "csat_survey_responses", force: :cascade do |t|
@@ -2191,7 +2205,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_100000) do
   add_foreign_key "crm_deal_custom_field_values", "accounts"
   add_foreign_key "crm_deal_custom_field_values", "crm_custom_fields", column: "custom_field_id"
   add_foreign_key "crm_deal_custom_field_values", "crm_deals", column: "deal_id"
+  add_foreign_key "crm_deals", "crm_segments", column: "segment_id", on_delete: :nullify
   add_foreign_key "crm_deals", "users", column: "owner_id"
+  add_foreign_key "crm_segments", "accounts"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "saas_ai_agent_memories", "accounts"
   add_foreign_key "saas_ai_agent_memories", "contacts"
