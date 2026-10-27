@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onActivated, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
@@ -183,6 +183,9 @@ const handleMenuAction = ({ action }, agent, hide) => {
 };
 defineExpose({ openNew, canCreate });
 onMounted(load);
+onActivated(() => {
+  if (!loading.value) load();
+});
 </script>
 
 <template>
