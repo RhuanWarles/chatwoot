@@ -21,6 +21,20 @@
       "all": "All",
       "unanswered": "Unanswered"
     },
+    "VIEW_PREFERENCES": {
+      "TOOLTIP": "Customize conversation list",
+      "TITLE": "Customize conversation list",
+      "DESCRIPTION": "Choose which tabs and filters are visible for your user.",
+      "TABS": "Tabs",
+      "FILTERS": "Filters",
+      "SAVE": "Save",
+      "FILTER_NAMES": {
+        "assistant": "Assistant",
+        "inbox": "Inbox",
+        "tag": "Tag",
+        "ai": "AI state"
+      }
+    },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {
         "TEXT": "Open"

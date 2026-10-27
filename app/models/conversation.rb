@@ -19,6 +19,8 @@
 #  status_changed_at      :datetime
 #  uuid                   :uuid             not null
 #  waiting_since          :datetime
+#  waiting_for_reply      :boolean          default(FALSE), not null
+#  last_relevant_message_type :integer
 #  created_at             :datetime         not null
 #  updated_at             :datetime         not null
 #  account_id             :integer          not null
@@ -91,62 +93,14 @@ class Conversation < ApplicationRecord
   scope :assigned_to, ->(agent) { where(assignee_id: agent.id) }
 
   def self.awaiting_response_sql
-    "EXISTS (#{latest_relevant_message_sql})"
+    'conversations.waiting_for_reply = TRUE'
   end
 
-  def self.latest_relevant_message_sql
-    <<~SQL.squish
-      SELECT 1
-      FROM messages relevant_messages
-      WHERE relevant_messages.conversation_id = conversations.id
-        AND relevant_messages.account_id = conversations.account_id
-        AND relevant_messages.private = FALSE
-        AND relevant_messages.message_type IN (#{relevant_message_types})
-        AND relevant_messages.message_type = #{Message.message_types['incoming']}
-        AND NOT EXISTS (#{newer_relevant_message_sql})
-    SQL
-  end
-
-  def self.newer_relevant_message_sql
-    <<~SQL.squish
-      SELECT 1
-      FROM messages newer_messages
-      WHERE newer_messages.conversation_id = relevant_messages.conversation_id
-        AND newer_messages.account_id = relevant_messages.account_id
-        AND newer_messages.private = FALSE
-        AND newer_messages.message_type IN (#{relevant_message_types})
-        AND (
-          newer_messages.created_at > relevant_messages.created_at
-          OR (newer_messages.created_at = relevant_messages.created_at AND newer_messages.id > relevant_messages.id)
-        )
-    SQL
-  end
-
-  scope :awaiting_response, -> { where(awaiting_response_sql) }
+  scope :awaiting_response, -> { where(waiting_for_reply: true) }
 
   def self.with_last_relevant_message_type
-    select(
-      'conversations.*',
-      Arel.sql(<<~SQL.squish).as('last_relevant_message_type')
-        (
-          SELECT relevant_messages.message_type
-          FROM messages relevant_messages
-          WHERE relevant_messages.conversation_id = conversations.id
-            AND relevant_messages.account_id = conversations.account_id
-            AND relevant_messages.private = FALSE
-            AND relevant_messages.message_type IN (#{relevant_message_types})
-          ORDER BY relevant_messages.created_at DESC, relevant_messages.id DESC
-          LIMIT 1
-        )
-      SQL
-    )
+    select('conversations.*')
   end
-
-  def self.relevant_message_types
-    Message.message_types.values_at('incoming', 'outgoing').join(',')
-  end
-
-  private_class_method :latest_relevant_message_sql, :newer_relevant_message_sql, :relevant_message_types
   scope :sort_on_unread, lambda { |_direction|
     order(unread_messages_count_arel.desc).sort_on_last_activity_at('desc')
   }

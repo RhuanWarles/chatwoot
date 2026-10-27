@@ -17,6 +17,7 @@ import DeleteCustomViews from 'dashboard/routes/dashboard/customviews/DeleteCust
 import ConversationBulkActions from './widgets/conversation/conversationBulkActions/Index.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+import ConversationViewPreferencesDialog from './ConversationViewPreferencesDialog.vue';
 
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
@@ -49,6 +50,7 @@ import { createFiltersMatcher } from '../store/modules/conversations/helpers/fil
 import { sortComparator } from '../store/modules/conversations/helpers';
 import { CONVERSATION_EVENTS } from '../helper/AnalyticsHelper/events';
 import { ASSIGNEE_TYPE_TAB_PERMISSIONS } from 'dashboard/constants/permissions.js';
+import { normalizeConversationViewPreferences } from 'dashboard/helper/conversationViewPreferences';
 
 const props = defineProps({
   conversationInbox: { type: [String, Number], default: 0 },
@@ -61,7 +63,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['conversationLoad']);
-const { uiSettings } = useUISettings();
+const { uiSettings, updateUISettings } = useUISettings();
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
@@ -75,6 +77,7 @@ const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ME);
 const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const showAdvancedFilters = ref(false);
+const viewPreferencesDialogRef = ref(null);
 // chatsOnView is to store the chats that are currently visible on the screen,
 // which mirrors the conversationList.
 const chatsOnView = ref([]);
@@ -176,15 +179,32 @@ const userPermissions = computed(() => {
 });
 
 const assigneeTabItems = computed(() => {
+  const preferences = normalizeConversationViewPreferences(
+    uiSettings.value.conversation_view_preferences
+  );
   return filterItemsByPermission(
     ASSIGNEE_TYPE_TAB_PERMISSIONS,
     userPermissions.value,
     item => item.permissions
-  ).map(({ key, count: countKey }) => ({
-    key,
-    name: t(`CHAT_LIST.ASSIGNEE_TYPE_TABS.${key}`),
-    count: conversationStats.value[countKey] || 0,
-  }));
+  )
+    .filter(({ key }) => preferences.tabs[key])
+    .map(({ key, count: countKey }) => ({
+      key,
+      name: t(`CHAT_LIST.ASSIGNEE_TYPE_TABS.${key}`),
+      count: conversationStats.value[countKey] || 0,
+    }));
+});
+
+const hiddenFilterKeys = computed(() => {
+  const filters = normalizeConversationViewPreferences(
+    uiSettings.value.conversation_view_preferences
+  ).filters;
+  return [
+    ...(!filters.assistant ? ['assignee_id', 'ai_agent_id'] : []),
+    ...(!filters.inbox ? ['inbox_id'] : []),
+    ...(!filters.tag ? ['labels'] : []),
+    ...(!filters.ai ? ['ai_state'] : []),
+  ];
 });
 
 const showAssigneeInConversationCard = computed(() => {
@@ -222,8 +242,8 @@ const conversationCustomAttributes = useFunctionGetter(
 const activeAssigneeTabCount = computed(() => {
   const count = assigneeTabItems.value.find(
     item => item.key === activeAssigneeTab.value
-  ).count;
-  return count;
+  )?.count;
+  return count || 0;
 });
 
 const conversationListPagination = computed(() => {
@@ -657,6 +677,37 @@ function updateAssigneeTab(selectedTab) {
   }
 }
 
+function openViewPreferences() {
+  viewPreferencesDialogRef.value?.open();
+}
+
+function saveViewPreferences(preferences) {
+  const visibleKeys = new Set([
+    ...(preferences.filters.assistant ? ['assignee_id', 'ai_agent_id'] : []),
+    ...(preferences.filters.inbox ? ['inbox_id'] : []),
+    ...(preferences.filters.tag ? ['labels'] : []),
+    ...(preferences.filters.ai ? ['ai_state'] : []),
+  ]);
+  const currentFilters = appliedFilters.value;
+  const filteredAppliedFilters = currentFilters.filter(filter => {
+    const key = filter.attributeKey || filter.attribute_key;
+    return (
+      ![
+        'assignee_id',
+        'ai_agent_id',
+        'inbox_id',
+        'labels',
+        'ai_state',
+      ].includes(key) || visibleKeys.has(key)
+    );
+  });
+
+  updateUISettings({ conversation_view_preferences: preferences });
+  if (filteredAppliedFilters.length !== currentFilters.length) {
+    onApplyFilter(filteredAppliedFilters);
+  }
+}
+
 function onBasicFilterChange(value, type) {
   if (type === 'status') {
     activeStatus.value = value;
@@ -841,6 +892,13 @@ useEmitter('fetch_conversation_stats', () => {
 });
 
 onMounted(() => {
+  const firstVisibleTab = assigneeTabItems.value[0]?.key;
+  if (
+    firstVisibleTab &&
+    !assigneeTabItems.value.some(item => item.key === activeAssigneeTab.value)
+  ) {
+    activeAssigneeTab.value = firstVisibleTab;
+  }
   store.dispatch('setChatListFilters', conversationFilters.value);
   setFiltersFromUISettings();
   store.dispatch('setChatStatusFilter', activeStatus.value);
@@ -906,6 +964,12 @@ watch(activeFolder, (newVal, oldVal) => {
   resetAndFetchData();
 });
 
+watch(assigneeTabItems, items => {
+  if (!items.length || items.some(item => item.key === activeAssigneeTab.value))
+    return;
+  updateAssigneeTab(items[0].key);
+});
+
 watch(chatLists, () => {
   chatsOnView.value = conversationList.value;
 });
@@ -937,6 +1001,7 @@ watch(appliedFilters, () => resetBulkActions());
       @filters-modal="onToggleAdvanceFiltersModal"
       @reset-filters="resetFilters"
       @basic-filter-change="onBasicFilterChange"
+      @view-preferences="openViewPreferences"
     />
 
     <TeleportWithDirection
@@ -1017,11 +1082,17 @@ watch(appliedFilters, () => resetBulkActions());
         v-model="appliedFilter"
         :folder-name="activeFolderName"
         :is-folder-view="hasActiveFolders"
+        :hidden-attribute-keys="hiddenFilterKeys"
         @apply-filter="onApplyFilter"
         @update-folder="onUpdateSavedFilter"
         @close="closeAdvanceFiltersModal"
       />
     </TeleportWithDirection>
+    <ConversationViewPreferencesDialog
+      ref="viewPreferencesDialogRef"
+      :preferences="uiSettings.conversation_view_preferences"
+      @save="saveViewPreferences"
+    />
     <ConversationResolveAttributesModal
       ref="resolveAttributesModalRef"
       @submit="handleResolveWithAttributes"

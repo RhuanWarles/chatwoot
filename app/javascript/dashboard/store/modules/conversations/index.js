@@ -318,6 +318,11 @@ export const mutations = {
       chat.messages.push(message);
       if (!message.private && [0, 1].includes(message.message_type)) {
         chat.last_relevant_message_type = message.message_type;
+        if (message.conversation?.waiting_for_reply !== undefined) {
+          chat.waiting_for_reply = message.conversation.waiting_for_reply;
+        } else {
+          chat.waiting_for_reply = message.message_type === 0;
+        }
       }
       chat.timestamp = message.created_at;
       const { conversation: { unread_count: unreadCount = 0 } = {} } = message;

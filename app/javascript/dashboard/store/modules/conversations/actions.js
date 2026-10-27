@@ -551,7 +551,8 @@ const actions = {
       !currentInbox || Number(currentInbox) === inboxId;
     const isMatchingUnansweredFilter =
       !state.conversationFilters?.unanswered ||
-      conversation.last_relevant_message_type === 0;
+      (conversation.waiting_for_reply ??
+        conversation.last_relevant_message_type === 0);
     if (
       !hasAppliedFilters &&
       !isOnFoldersView(rootState) &&
@@ -601,8 +602,14 @@ const actions = {
       const exists = state.allConversations.some(
         chat => chat.id === conversation.id
       );
-      if (conversation.last_relevant_message_type === undefined) return;
-      const isUnanswered = conversation.last_relevant_message_type === 0;
+      if (
+        conversation.waiting_for_reply === undefined &&
+        conversation.last_relevant_message_type === undefined
+      )
+        return;
+      const isUnanswered =
+        conversation.waiting_for_reply ??
+        conversation.last_relevant_message_type === 0;
       if (!isUnanswered && exists)
         commit(types.DELETE_CONVERSATION, conversation.id);
       if (isUnanswered && !exists) commit(types.ADD_CONVERSATION, conversation);

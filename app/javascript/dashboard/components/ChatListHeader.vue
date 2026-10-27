@@ -18,6 +18,7 @@ const props = defineProps({
   isOnExpandedLayout: { type: Boolean, required: true },
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
+  showViewPreferences: { type: Boolean, default: true },
 });
 
 const emit = defineEmits([
@@ -26,6 +27,7 @@ const emit = defineEmits([
   'resetFilters',
   'basicFilterChange',
   'filtersModal',
+  'viewPreferences',
 ]);
 
 const { uiSettings, updateUISettings } = useUISettings();
@@ -111,6 +113,15 @@ const toggleConversationLayout = () => {
     </div>
     <div class="flex items-center gap-1 shrink-0">
       <ConversationCreateMenu />
+      <NextButton
+        v-if="showViewPreferences && !hasAppliedFiltersOrActiveFolders"
+        v-tooltip.top-end="$t('CHAT_LIST.VIEW_PREFERENCES.TOOLTIP')"
+        icon="i-lucide-sliders-horizontal"
+        slate
+        xs
+        faded
+        @click="emit('viewPreferences')"
+      />
       <template v-if="hasAppliedFilters && !hasActiveFolders">
         <div class="relative">
           <NextButton

@@ -68,6 +68,9 @@ class Message < ApplicationRecord
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
   before_create :pause_ai_agent_for_human_response
+  after_create :update_conversation_reply_state, if: :reply_state_relevant?
+  after_update :update_conversation_reply_state, if: :reply_state_attributes_changed?
+  after_destroy :update_conversation_reply_state, if: :reply_state_relevant?
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
@@ -173,7 +176,8 @@ class Message < ApplicationRecord
       assignee_id: conversation.assignee_id,
       unread_count: conversation.unread_incoming_messages.count,
       last_activity_at: conversation.last_activity_at.to_i,
-      last_relevant_message_type: relevant_message_type_for_conversation_event,
+      last_relevant_message_type: conversation.last_relevant_message_type,
+      waiting_for_reply: conversation.waiting_for_reply,
       contact_inbox: { source_id: conversation.contact_inbox.source_id }
     }
   end
@@ -182,6 +186,53 @@ class Message < ApplicationRecord
     return message_type_before_type_cast if !private? && (incoming? || outgoing?)
 
     conversation.last_relevant_message&.message_type_before_type_cast
+  end
+
+  def update_conversation_reply_state
+    return unless reply_state_relevant? || reply_state_attributes_changed?
+
+    reply_conversation = Conversation.find_by(id: conversation_id)
+    return unless reply_conversation
+
+    reply_conversation.with_lock do
+      latest_message = Message.where(
+        conversation_id: conversation_id,
+        account_id: account_id,
+        private: false,
+        message_type: Message.message_types.values_at('incoming', 'outgoing')
+      ).reorder(created_at: :desc, id: :desc).first
+
+      waiting_for_reply = latest_message&.incoming? || false
+      last_relevant_message_type = latest_message&.message_type_before_type_cast
+      persist_reply_state(reply_conversation, waiting_for_reply, last_relevant_message_type)
+    end
+  end
+
+  def persist_reply_state(reply_conversation, waiting_for_reply, last_relevant_message_type)
+    # This is a derived state update. It must not run Conversation callbacks while
+    # holding the conversation lock, because the message event carries the state.
+    reply_conversation.update_columns( # rubocop:disable Rails/SkipsModelValidations
+      waiting_for_reply: waiting_for_reply,
+      last_relevant_message_type: last_relevant_message_type
+    )
+    reply_conversation.assign_attributes(
+      waiting_for_reply: waiting_for_reply,
+      last_relevant_message_type: last_relevant_message_type
+    )
+    return unless association(:conversation).loaded?
+
+    conversation.assign_attributes(
+      waiting_for_reply: waiting_for_reply,
+      last_relevant_message_type: last_relevant_message_type
+    )
+  end
+
+  def reply_state_relevant?
+    !private? && (incoming? || outgoing?)
+  end
+
+  def reply_state_attributes_changed?
+    saved_change_to_private? || saved_change_to_message_type?
   end
 
   def merge_sender_attributes(data)

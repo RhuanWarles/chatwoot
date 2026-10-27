@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_26_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_090000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -987,10 +987,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_26_120000) do
     t.bigint "assignee_agent_bot_id"
     t.string "ai_assignee_type"
     t.datetime "status_changed_at"
+    t.boolean "waiting_for_reply", default: false, null: false
+    t.integer "last_relevant_message_type"
     t.index ["account_id", "display_id"], name: "index_conversations_on_account_id_and_display_id", unique: true
     t.index ["account_id", "id"], name: "index_conversations_on_id_and_account_id"
     t.index ["account_id", "inbox_id", "status", "assignee_id"], name: "conv_acid_inbid_stat_asgnid_idx"
     t.index ["account_id", "status", "created_at"], name: "index_conversations_on_account_id_status_created_at"
+    t.index ["account_id", "status", "waiting_for_reply"], name: "index_conversations_on_reply_state"
     t.index ["account_id"], name: "index_conversations_on_account_id"
     t.index ["assignee_id", "account_id"], name: "index_conversations_on_assignee_id_and_account_id"
     t.index ["campaign_id"], name: "index_conversations_on_campaign_id"
@@ -1533,6 +1536,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_26_120000) do
     t.index ["account_id"], name: "index_messages_on_account_id"
     t.index ["content"], name: "index_messages_on_content", opclass: :gin_trgm_ops, using: :gin
     t.index ["conversation_id", "account_id", "message_type", "created_at"], name: "index_messages_on_conversation_account_type_created"
+    t.index ["conversation_id", "created_at", "id"], name: "index_messages_on_relevant_conversation_created_at", where: "((private = false) AND (message_type = ANY (ARRAY[0, 1])))"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["created_at"], name: "index_messages_on_created_at"
     t.index ["inbox_id"], name: "index_messages_on_inbox_id"

@@ -107,7 +107,6 @@ class ConversationFinder
       current_user,
       current_account
     ).perform
-    @conversations = @conversations.with_last_relevant_message_type
     filter_by_conversation_type if params[:conversation_type]
     @conversations
   end
@@ -211,7 +210,7 @@ class ConversationFinder
       Arel.sql("COUNT(*) FILTER (WHERE assignee_id = #{current_user.id})"),
       Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NULL AND assignee_agent_bot_id IS NULL)'),
       Arel.sql('COUNT(*)'),
-      Arel.sql("COUNT(*) FILTER (WHERE #{Conversation.awaiting_response_sql})")
+      Arel.sql('COUNT(*) FILTER (WHERE conversations.waiting_for_reply = TRUE)')
     )
     counts || [0, 0, 0, 0]
   end

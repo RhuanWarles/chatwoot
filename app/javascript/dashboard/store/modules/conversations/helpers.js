@@ -35,9 +35,18 @@ export const filterByUnattended = (
     : shouldFilter;
 };
 
-export const filterByUnanswered = (shouldFilter, unanswered, messageType) => {
+export const filterByUnanswered = (
+  shouldFilter,
+  unanswered,
+  waitingForReply,
+  messageType
+) => {
   if (!unanswered) return shouldFilter;
-  return messageType === 0 && shouldFilter;
+  const isWaiting =
+    waitingForReply === undefined
+      ? messageType === 0
+      : waitingForReply === true;
+  return isWaiting && shouldFilter;
 };
 
 export const applyPageFilters = (conversation, filters) => {
@@ -56,6 +65,7 @@ export const applyPageFilters = (conversation, filters) => {
     meta = {},
     first_reply_created_at: firstReplyOn,
     waiting_since: waitingSince,
+    waiting_for_reply: waitingForReply,
     last_relevant_message_type: lastRelevantMessageType,
   } = conversation;
   const team = meta.team || {};
@@ -74,6 +84,7 @@ export const applyPageFilters = (conversation, filters) => {
   shouldFilter = filterByUnanswered(
     shouldFilter,
     unanswered,
+    waitingForReply,
     lastRelevantMessageType
   );
 

@@ -9,13 +9,21 @@ class Api::V1::ProfilesController < Api::BaseController
   def show; end
 
   def update
+    permitted_profile = profile_params
+    preferences = permitted_profile[:ui_settings]&.[](:conversation_view_preferences)
+    validation = Conversations::ViewPreferences.validate(preferences)
+    unless validation[:valid]
+      render json: { error: 'invalid_ui_settings', field: validation[:field] }, status: :unprocessable_entity
+      return
+    end
+
     if password_params[:password].present?
       render_could_not_create_error('Invalid current password') and return unless @user.valid_password?(password_params[:current_password])
 
       @user.update!(password_params.except(:current_password))
     end
 
-    @user.assign_attributes(profile_params)
+    @user.assign_attributes(permitted_profile)
     @user.custom_attributes.merge!(custom_attributes_params)
     @user.save!
   end

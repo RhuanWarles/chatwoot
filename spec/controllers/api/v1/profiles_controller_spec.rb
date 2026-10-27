@@ -234,6 +234,46 @@ RSpec.describe 'Profile API', type: :request do
         json_response = response.parsed_body
         expect(json_response['ui_settings']['is_contact_sidebar_open']).to be(false)
       end
+
+      it 'updates conversation view preferences' do
+        preferences = {
+          tabs: { me: true, unassigned: false, all: true, unanswered: true },
+          filters: { assistant: true, inbox: false, tag: true, ai: true }
+        }
+
+        put '/api/v1/profile',
+            params: { profile: { ui_settings: { conversation_view_preferences: preferences } } },
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['ui_settings']['conversation_view_preferences']).to eq(
+          'tabs' => { 'me' => true, 'unassigned' => false, 'all' => true, 'unanswered' => true },
+          'filters' => { 'assistant' => true, 'inbox' => false, 'tag' => true, 'ai' => true }
+        )
+      end
+
+      it 'rejects invalid conversation view preferences' do
+        put '/api/v1/profile',
+            params: {
+              profile: {
+                ui_settings: {
+                  conversation_view_preferences: {
+                    tabs: { me: false, unassigned: false, all: false, unanswered: false },
+                    filters: { assistant: true, inbox: true, tag: true, ai: true }
+                  }
+                }
+              }
+            },
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body).to eq(
+          'error' => 'invalid_ui_settings',
+          'field' => 'tabs'
+        )
+      end
     end
 
     context 'when an authenticated user updates email' do

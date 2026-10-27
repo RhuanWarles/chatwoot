@@ -93,6 +93,36 @@ RSpec.describe Message do
     it_behaves_like 'liqudable'
   end
 
+  describe 'conversation reply state' do
+    let(:conversation) { create(:conversation) }
+
+    it 'marks a conversation as waiting after a public incoming message' do
+      create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox, message_type: :incoming)
+
+      expect(conversation.reload).to have_attributes(
+        waiting_for_reply: true,
+        last_relevant_message_type: described_class.message_types['incoming']
+      )
+    end
+
+    it 'clears waiting after a public outgoing message' do
+      create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox, message_type: :incoming)
+      create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox, message_type: :outgoing)
+
+      expect(conversation.reload).to have_attributes(
+        waiting_for_reply: false,
+        last_relevant_message_type: described_class.message_types['outgoing']
+      )
+    end
+
+    it 'ignores private messages' do
+      conversation.update!(waiting_for_reply: false)
+      create(:message, conversation: conversation, account: conversation.account, inbox: conversation.inbox, message_type: :incoming, private: true)
+
+      expect(conversation.reload.waiting_for_reply).to be(false)
+    end
+  end
+
   describe 'message_filter_helpers' do
     context 'when webhook_sendable?' do
       [

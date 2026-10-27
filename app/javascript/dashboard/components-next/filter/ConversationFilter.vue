@@ -21,10 +21,31 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  hiddenAttributeKeys: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['applyFilter', 'updateFolder', 'close']);
 const { attributeFilterTypes } = useConversationFilterContext();
+const visibleAttributeFilterTypes = computed(() => {
+  if (!props.hiddenAttributeKeys.length) return attributeFilterTypes.value;
+
+  return attributeFilterTypes.value.filter((filter, index, filters) => {
+    if (!filter.disabled) {
+      return !props.hiddenAttributeKeys.includes(filter.attributeKey);
+    }
+
+    return filters
+      .slice(index + 1)
+      .some(
+        item =>
+          !item.disabled &&
+          !props.hiddenAttributeKeys.includes(item.attributeKey)
+      );
+  });
+});
 
 const filters = defineModel({
   type: Array,
@@ -128,7 +149,7 @@ const outsideClickHandler = [
           v-model:attribute-key="filter.attributeKey"
           v-model:filter-operator="filter.filterOperator"
           v-model:values="filter.values"
-          :filter-types="attributeFilterTypes"
+          :filter-types="visibleAttributeFilterTypes"
           :show-query-operator="false"
           @remove="removeFilter(index)"
         />
@@ -141,7 +162,7 @@ const outsideClickHandler = [
           v-model:query-operator="filters[index - 1].queryOperator"
           v-model:values="filter.values"
           show-query-operator
-          :filter-types="attributeFilterTypes"
+          :filter-types="visibleAttributeFilterTypes"
           @remove="removeFilter(index)"
         />
       </template>

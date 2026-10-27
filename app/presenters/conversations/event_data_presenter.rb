@@ -15,10 +15,10 @@ class Conversations::EventDataPresenter < SimpleDelegator
       snoozed_until: snoozed_until,
       unread_count: unread_incoming_messages.count,
       first_reply_created_at: first_reply_created_at,
-      priority: priority,
-      waiting_since: waiting_since.to_i,
+      priority: priority, waiting_since: waiting_since.to_i,
+      last_relevant_message_type: self[:last_relevant_message_type], waiting_for_reply: waiting_for_reply,
       **push_timestamps
-    }.merge(last_relevant_message_type: last_relevant_message&.message_type_before_type_cast)
+    }
   end
 
   # Like #push_data but with message text normalized for external integrations (webhooks).
