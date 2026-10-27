@@ -5,6 +5,10 @@ class Crm::DealCustomFieldValue < ApplicationRecord
   belongs_to :custom_field, class_name: 'Crm::CustomField'
   validate :same_account
   validate :valid_value
+  after_commit :enqueue_field_automations, on: [:create, :update]
+
+  # Set by automations so the values they write enqueue their own follow-ups one level deeper.
+  attr_accessor :automation_depth
 
   def typed_value
     return nil if value.nil? || value == ''
@@ -25,6 +29,13 @@ class Crm::DealCustomFieldValue < ApplicationRecord
 
   private
 
+  def enqueue_field_automations
+    return unless saved_change_to_value?
+    return if deal.pipeline.field_automations.blank?
+
+    Crm::FieldAutomationJob.perform_later(deal_id, custom_field_id, automation_depth.to_i)
+  end
+
   def same_account
     errors.add(:deal, 'Conta invalida') if deal && deal.account_id != account_id
     errors.add(:custom_field, 'Conta invalida') if custom_field && custom_field.account_id != account_id
@@ -37,18 +48,7 @@ class Crm::DealCustomFieldValue < ApplicationRecord
       errors.add(:value, 'Preencha o campo obrigatorio') if custom_field.required
       return
     end
-    valid = case custom_field.field_type
-            when 'number', 'currency' then value.match?(/\A-?\d+(\.\d+)?\z/) && Float(value).finite?
-            when 'date' then value.match?(/\A\d{4}-\d{2}-\d{2}\z/) && Date.iso8601(value)
-            when 'datetime' then Time.iso8601(value)
-            when 'boolean' then %w[true false].include?(value)
-            when 'select' then custom_field.options.include?(value)
-            when 'multiselect'
-              items = JSON.parse(value)
-              items.is_a?(Array) && items.all? { |item| item.is_a?(String) && custom_field.options.include?(item) }
-            else true
-            end
-    errors.add(:value, 'Valor invalido para o tipo ou opcoes do campo') unless valid
+    errors.add(:value, 'Valor invalido para o tipo ou opcoes do campo') unless custom_field.valid_input?(value)
   rescue ArgumentError, JSON::ParserError
     errors.add(:value, 'Formato invalido')
   end

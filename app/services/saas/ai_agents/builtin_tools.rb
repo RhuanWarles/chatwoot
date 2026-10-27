@@ -1,7 +1,8 @@
 class Saas::AiAgents::BuiltinTools
   HANDOFF = 'handoff_to_human'.freeze
   MOVE_STAGE = 'move_lead_stage'.freeze
-  NAMES = [HANDOFF, MOVE_STAGE].freeze
+  UPDATE_FIELD = 'update_lead_field'.freeze
+  NAMES = [HANDOFF, MOVE_STAGE, UPDATE_FIELD].freeze
   HANDOFF_NOTE_LIMIT = 250
   HANDOFF_NOTE_PREFIX = 'Transferido pela IA. Resumo: '.freeze
   HANDOFF_NOTE_WITHOUT_SUMMARY = 'Transferido pela IA. Resumo não informado.'.freeze
@@ -20,7 +21,7 @@ class Saas::AiAgents::BuiltinTools
   end
 
   def definitions
-    [handoff_definition, move_stage_definition].compact
+    [handoff_definition, move_stage_definition, update_field_definition].compact
   end
 
   def instructions
@@ -43,17 +44,42 @@ class Saas::AiAgents::BuiltinTools
       para mover o lead para a etapa que melhor representa o momento atual. Só mova quando houver evidência clara na conversa, \
       não avise o cliente sobre a movimentação.
     TEXT
+    parts << lead_fields.instructions if lead_fields.any?
     parts.join("\n").presence
   end
 
   def call(name, arguments)
-    result = name == HANDOFF ? handoff(arguments['summary']) : move_stage(arguments['stage'].to_s, arguments['reason'].to_s.strip.first(500))
-    { 'success' => true, 'result' => result }
+    { 'success' => true, 'result' => run_tool(name, arguments) }
   rescue ActiveRecord::RecordInvalid => e
     { 'success' => false, 'error' => e.message }
   end
 
   private
+
+  def run_tool(name, arguments)
+    case name
+    when HANDOFF then handoff(arguments['summary'])
+    when UPDATE_FIELD then fill_field(arguments['field'].to_s, arguments['value'])
+    else move_stage(arguments['stage'].to_s, arguments['reason'].to_s.strip.first(500))
+    end
+  end
+
+  def fill_field(key, value)
+    return 'Campo inválido.' unless lead_fields.include?(key)
+
+    lead_fields.fill(open_deal || create_deal(stages.first), key, value)
+  end
+
+  def update_field_definition
+    return unless lead_fields.any?
+
+    function(UPDATE_FIELD, lead_fields.description, lead_fields.properties, %w[field value])
+  end
+
+  # Only the AI that controls the lead card can fill its fields.
+  def lead_fields
+    @lead_fields ||= Saas::AiAgents::LeadFields.new(@conversation.account, enabled: stages.present?)
+  end
 
   def handoff_conditions?
     @agent.handoff_enabled? && @agent.handoff_conditions.present?

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_27_090000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_100000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1183,6 +1183,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_090000) do
     t.datetime "updated_at", null: false
     t.jsonb "won_automations", default: [], null: false
     t.jsonb "lost_automations", default: [], null: false
+    t.jsonb "field_automations", default: [], null: false
     t.index ["account_id", "name"], name: "index_crm_pipelines_on_account_id_and_name", unique: true
     t.index ["account_id"], name: "index_crm_pipelines_on_account_id"
   end

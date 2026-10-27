@@ -10,7 +10,7 @@ module Crm
     has_many :ai_agents, class_name: 'Saas::AiAgent', foreign_key: :crm_pipeline_id, dependent: :nullify, inverse_of: :crm_pipeline
 
     validates :name, presence: true, uniqueness: { scope: :account_id }
-    validates_automations :won_automations, :lost_automations
+    validates_automations :won_automations, :lost_automations, :field_automations
     scope :active, -> { where(active: true) }
 
     def outcome_automations(status)

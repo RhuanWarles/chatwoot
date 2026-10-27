@@ -1,20 +1,24 @@
 class Crm::StageAutomationService
   # Stops automations that keep moving the card or flipping its status back and forth.
   MAX_DEPTH = 5
-  WEBHOOK_EVENTS = { 'stage' => 'crm_deal_stage_entered', 'won' => 'crm_deal_won', 'lost' => 'crm_deal_lost' }.freeze
+  WEBHOOK_EVENTS = {
+    'stage' => 'crm_deal_stage_entered', 'won' => 'crm_deal_won', 'lost' => 'crm_deal_lost', 'field' => 'crm_deal_field_changed'
+  }.freeze
 
-  def initialize(deal, depth: 0, trigger: 'stage')
+  def initialize(deal, depth: 0, trigger: 'stage', field_id: nil)
     @deal = deal
     @depth = depth
     @trigger = trigger
+    @field_id = field_id
     # Changes made by the actions enqueue their follow-up automations one level deeper.
     @deal.automation_depth = depth + 1
   end
 
   def perform
     results = actions.map do |action|
-      run(action)
-      { type: action['type'], ok: true }
+      skipped = !condition_met?(action['condition'])
+      run(action) unless skipped
+      { type: action['type'], ok: true }.tap { |result| result[:skipped] = true if skipped }
     rescue StandardError => e
       # A failed update! leaves its rejected attributes on the shared deal; drop them so later actions start clean.
       @deal.restore_attributes
@@ -30,7 +34,26 @@ class Crm::StageAutomationService
   private
 
   def actions
-    @trigger == 'stage' ? @deal.pipeline_stage.automations : @deal.pipeline.outcome_automations(@trigger)
+    case @trigger
+    when 'stage' then @deal.pipeline_stage.automations
+    when 'field' then field_actions
+    else @deal.pipeline.outcome_automations(@trigger)
+    end
+  end
+
+  # A field change only runs the actions that look at that field, so unrelated actions never repeat on every edit.
+  def field_actions
+    @deal.pipeline.field_automations.select { |action| watched_field_id(action) == @field_id }
+  end
+
+  def watched_field_id(action)
+    action['type'] == 'route_by_field' ? action['custom_field_id'] : action.dig('condition', 'custom_field_id')
+  end
+
+  def condition_met?(condition)
+    return true if condition.blank?
+
+    Crm::FieldCondition.met?(@deal, condition['custom_field_id'], condition['operator'], condition['value'])
   end
 
   def ensure_depth_left!
@@ -41,6 +64,9 @@ class Crm::StageAutomationService
     handler = {
       'set_status' => :update_status,
       'assign_owner' => :assign_owner,
+      'assign_random' => :assign_random,
+      'set_field' => :set_field,
+      'route_by_field' => :route_by_field,
       'create_activity' => :create_activity,
       'add_label' => :add_label,
       'set_ai_state' => :update_ai_state,
@@ -58,6 +84,32 @@ class Crm::StageAutomationService
 
   def assign_owner(action)
     @deal.update!(owner_id: action['user_id'])
+  end
+
+  # Spreads new leads evenly (in the long run) between the chosen sellers without having to build one automation per seller.
+  def assign_random(action)
+    @deal.update!(owner_id: action['user_ids'].sample)
+  end
+
+  def set_field(action)
+    # Writing a field can trigger the pipeline's field automations, which may write it back.
+    ensure_depth_left!
+    record = @deal.custom_field_values.find_or_initialize_by(custom_field_id: action['custom_field_id'])
+    record.account_id = @deal.account_id
+    record.automation_depth = @deal.automation_depth
+    record.typed_value = action['value']
+    record.save!
+  end
+
+  # The first route whose rule matches the field wins; the fallback (if any) catches everything else.
+  def route_by_field(action)
+    field_id = action['custom_field_id']
+    route = action['routes'].find { |item| Crm::FieldCondition.met?(@deal, field_id, item['operator'], item['value']) }
+    route ||= action['fallback']
+    return unless route
+
+    ensure_depth_left!
+    @deal.update!(pipeline_id: route['pipeline_id'], pipeline_stage_id: route['stage_id'])
   end
 
   def create_activity(action)

@@ -1,11 +1,28 @@
 module Crm::Automatable
   extend ActiveSupport::Concern
+  include Crm::AutomationFieldValidations
 
-  MAX_ACTIONS = 10
-  ACTION_KEYS = %w[type status user_id activity_type title due_in_hours label state content pipeline_id stage_id url].freeze
+  MAX_ACTIONS = 50
+  MAX_RANDOM_OWNERS = 100
+  MAX_ROUTES = 50
+  ACTION_KEYS = %w[type status user_id user_ids activity_type title due_in_hours label state content pipeline_id stage_id url
+                   custom_field_id value routes fallback condition].freeze
+  ROUTE_KEYS = %w[operator value pipeline_id stage_id].freeze
+  DESTINATION_KEYS = %w[pipeline_id stage_id].freeze
+  CONDITION_KEYS = %w[custom_field_id operator value].freeze
+  # Strong-parameters shape of ACTION_KEYS; value is a scalar, or a list for multiselect fields.
+  PERMITTED_ACTION_PARAMS = [
+    :type, :status, :user_id, :activity_type, :title, :due_in_hours, :label, :state, :content, :pipeline_id, :stage_id, :url,
+    :custom_field_id, :value,
+    { user_ids: [], value: [], routes: ROUTE_KEYS.map(&:to_sym), fallback: DESTINATION_KEYS.map(&:to_sym),
+      condition: CONDITION_KEYS.map(&:to_sym) }
+  ].freeze
   ACTION_VALIDATORS = {
     'set_status' => :valid_set_status?,
     'assign_owner' => :valid_assign_owner?,
+    'assign_random' => :valid_assign_random?,
+    'set_field' => :valid_set_field?,
+    'route_by_field' => :valid_route_by_field?,
     'create_activity' => :valid_create_activity?,
     'add_label' => :valid_add_label?,
     'set_ai_state' => :valid_set_ai_state?,
@@ -36,7 +53,7 @@ module Crm::Automatable
     return false unless action.is_a?(Hash) && (action.keys - ACTION_KEYS).empty?
 
     validator = ACTION_VALIDATORS[action['type']]
-    validator && send(validator, action)
+    validator && send(validator, action) && valid_condition?(action['condition'])
   end
 
   def valid_set_status?(action)
