@@ -159,6 +159,20 @@
   width: 24px !important;
 }
 
+.woot-widget-bubble img {
+  display: block;
+  height: 40px;
+  margin: 12px;
+  object-fit: contain;
+  width: 40px;
+}
+
+.woot-widget-bubble.woot-widget--expanded img {
+  height: 20px !important;
+  margin: 14px 8px 14px 16px !important;
+  width: 20px !important;
+}
+
 .woot-widget-bubble.woot-widget-bubble-color--lighter path {
   fill: var(--s-700);
 }

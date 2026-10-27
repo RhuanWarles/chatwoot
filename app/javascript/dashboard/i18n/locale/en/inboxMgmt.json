@@ -815,8 +815,8 @@
     "WIDGET_BRANDING": {
       "TITLE": "Widget footer",
       "LOGO": {
-        "LABEL": "Footer logo",
-        "HELP_TEXT": "PNG, JPG, GIF or WEBP, up to 1 MB. If empty, the default logo is used."
+        "LABEL": "Widget logo",
+        "HELP_TEXT": "PNG, JPG, GIF or WEBP, up to 1 MB. Used in the footer and launcher button. If empty, the default logo is used."
       },
       "TEXT": {
         "LABEL": "Footer text",

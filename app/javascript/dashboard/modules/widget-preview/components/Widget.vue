@@ -10,6 +10,7 @@ import Code from 'dashboard/components/Code.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import { useBranding } from 'shared/composables/useBranding';
 import { useMapGetter } from 'dashboard/composables/store';
+import defaultBubbleLogo from 'dashboard/assets/images/bubble-logo.svg';
 
 const props = defineProps({
   welcomeHeading: {
@@ -25,6 +26,10 @@ const props = defineProps({
     required: true,
   },
   logo: {
+    type: String,
+    default: '',
+  },
+  bubbleLogo: {
     type: String,
     default: '',
   },
@@ -117,6 +122,7 @@ const getWidgetConfig = computed(() => ({
   welcomeTagline: props.welcomeTagline,
   websiteName: props.websiteName,
   logo: props.logo,
+  bubbleLogo: props.bubbleLogo || props.logo || defaultBubbleLogo,
   isDefaultScreen: !isChatMode.value,
   isOnline: props.isOnline,
   replyTime: replyTimeText.value,
@@ -215,10 +221,10 @@ const handleToggleWidget = () => {
           >
             <img
               v-if="!isWidgetVisible"
-              src="~dashboard/assets/images/bubble-logo.svg"
+              :src="getWidgetConfig.bubbleLogo"
               alt=""
               draggable="false"
-              class="w-6 h-6 mx-auto"
+              class="w-10 h-10 mx-auto object-contain"
             />
             <div v-if="isBubbleExpanded" class="ltr:pl-2.5 rtl:pr-2.5">
               {{ getWidgetBubbleLauncherTitle }}

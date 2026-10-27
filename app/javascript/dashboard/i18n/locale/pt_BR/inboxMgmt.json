@@ -809,8 +809,8 @@
     "WIDGET_BRANDING": {
       "TITLE": "Rodapé do widget",
       "LOGO": {
-        "LABEL": "Logo do rodapé",
-        "HELP_TEXT": "PNG, JPG, GIF ou WEBP, até 1 MB. Se vazio, usa a logo padrão."
+        "LABEL": "Logo do widget",
+        "HELP_TEXT": "PNG, JPG, GIF ou WEBP, até 1 MB. Usada no rodapé e no botão de abertura. Se vazio, usa a logo padrão."
       },
       "TEXT": {
         "LABEL": "Texto do rodapé",

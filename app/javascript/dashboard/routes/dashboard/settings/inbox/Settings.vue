@@ -1489,6 +1489,7 @@ export default {
                 :welcome-tagline="channelWelcomeTagline"
                 :website-name="selectedInboxName"
                 :logo="avatarUrl"
+                :bubble-logo="brandingLogoUrl || avatarUrl"
                 is-online
                 :reply-time="replyTime"
                 :color="inbox.widget_color"
