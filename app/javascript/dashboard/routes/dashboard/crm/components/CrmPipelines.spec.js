@@ -4,7 +4,12 @@ import { createStore } from 'vuex';
 import CrmPipelines from '../pages/CrmPipelines.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
+import {
+  customFieldsAPI,
+  pipelinesAPI,
+  stagesAPI,
+  dealsAPI,
+} from 'dashboard/api/crm';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
 
 config.global.plugins = [
@@ -27,6 +32,7 @@ vi.mock('dashboard/api/crm', () => ({
   },
   stagesAPI: vi.fn(),
   dealsAPI: { get: vi.fn(), update: vi.fn() },
+  customFieldsAPI: { get: vi.fn() },
 }));
 const api = { create: vi.fn(), update: vi.fn(), delete: vi.fn() };
 const pipeline = {
@@ -87,6 +93,7 @@ beforeEach(() => {
   pipelinesAPI.update.mockResolvedValue({ data: {} });
   pipelinesAPI.reorderStages.mockResolvedValue({ data: [] });
   dealsAPI.get.mockResolvedValue({ data: [] });
+  customFieldsAPI.get.mockResolvedValue({ data: [] });
   stagesAPI.mockReturnValue(api);
   api.create.mockResolvedValue({ data: { id: 30 } });
   api.update.mockResolvedValue({ data: {} });
@@ -127,6 +134,7 @@ describe('Visual pipeline management', () => {
         active: true,
         won_automations: [],
         lost_automations: [],
+        field_automations: [],
       },
     });
     expect(api.create).toHaveBeenCalledTimes(5);
@@ -208,6 +216,7 @@ describe('Visual pipeline management', () => {
         active: true,
         won_automations: [],
         lost_automations: [],
+        field_automations: [],
       },
     });
     expect(api.update).toHaveBeenCalledWith(10, {

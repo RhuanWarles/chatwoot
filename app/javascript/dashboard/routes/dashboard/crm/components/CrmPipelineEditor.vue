@@ -8,7 +8,12 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
-import { pipelinesAPI, stagesAPI, dealsAPI } from 'dashboard/api/crm';
+import {
+  customFieldsAPI,
+  pipelinesAPI,
+  stagesAPI,
+  dealsAPI,
+} from 'dashboard/api/crm';
 import CrmAutomationsPanel from './CrmAutomationsPanel.vue';
 import {
   TRIGGERS,
@@ -34,8 +39,10 @@ const draft = ref({
   active: true,
   won_automations: [],
   lost_automations: [],
+  field_automations: [],
   stages: [],
 });
+const customFields = ref(null);
 const activeTab = ref('stages');
 const selectedTrigger = ref('');
 const pipelines = ref([]);
@@ -78,6 +85,7 @@ const destinationPipelines = computed(() =>
 );
 const validationContext = computed(() => ({
   destinations: destinationsReady.value ? destinationPipelines.value : null,
+  fields: customFields.value,
 }));
 const hasAutomationIssue = actions =>
   actions.some(action => !isAutomationValid(action, validationContext.value));
@@ -88,7 +96,8 @@ const automationTotal = computed(
       0
     ) +
     draft.value.won_automations.length +
-    draft.value.lost_automations.length
+    draft.value.lost_automations.length +
+    draft.value.field_automations.length
 );
 const tabItems = computed(() => [
   { key: 'stages', label: t('CRM.STAGES'), count: draft.value.stages.length },
@@ -178,6 +187,11 @@ const issues = computed(() => {
     'lost',
     t(TRIGGERS.lost.railKey)
   );
+  addAutomationIssues(
+    draft.value.field_automations,
+    'field',
+    t(TRIGGERS.field.railKey)
+  );
   return list;
 });
 const valid = computed(
@@ -192,6 +206,9 @@ const loadDestinations = async () => {
   try {
     pipelines.value = (await pipelinesAPI.get()).data;
     destinationsReady.value = true;
+    customFields.value = (await customFieldsAPI.get()).data.filter(
+      field => field.active
+    );
   } catch {
     error.value = t('CRM.LOAD_ERROR');
   }
@@ -206,6 +223,7 @@ const openEditor = async pipeline => {
         ...pipeline,
         won_automations: cloneAutomations(pipeline.won_automations),
         lost_automations: cloneAutomations(pipeline.lost_automations),
+        field_automations: cloneAutomations(pipeline.field_automations),
         stages: pipeline.stages.map(stage => ({
           ...stage,
           automations: cloneAutomations(stage.automations),
@@ -217,6 +235,7 @@ const openEditor = async pipeline => {
         active: true,
         won_automations: [],
         lost_automations: [],
+        field_automations: [],
         stages: DEFAULT_STAGE_KEYS.map(label => ({
           name: t(label),
           probability: null,
@@ -230,6 +249,7 @@ const openEditor = async pipeline => {
     ? `stage:${draft.value.stages[0].key}`
     : '';
   pipelines.value = [];
+  customFields.value = null;
   destinationsReady.value = false;
   stageCounts.value = {};
   stageCountsReady.value = !pipeline;
@@ -304,6 +324,7 @@ const save = async () => {
         active: draft.value.active,
         won_automations: serializeAutomations(draft.value.won_automations),
         lost_automations: serializeAutomations(draft.value.lost_automations),
+        field_automations: serializeAutomations(draft.value.field_automations),
       },
     };
     if (draft.value.id) {
@@ -579,8 +600,10 @@ defineExpose({ open: openEditor });
           v-model:stages="draft.stages"
           v-model:won="draft.won_automations"
           v-model:lost="draft.lost_automations"
+          v-model:field="draft.field_automations"
           v-model:selected="selectedTrigger"
           :destinations="destinationsReady ? destinationPipelines : null"
+          :custom-fields="customFields"
         />
       </div>
       <div

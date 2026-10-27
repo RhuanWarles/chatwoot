@@ -5,6 +5,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import CrmAutomationList from './CrmAutomationList.vue';
 import {
+  CUSTOM_FIELDS_KEY,
   DESTINATIONS_KEY,
   TRIGGERS,
   isAutomationValid,
@@ -12,10 +13,12 @@ import {
 
 const props = defineProps({
   destinations: { type: Array, default: null },
+  customFields: { type: Array, default: null },
 });
 const stages = defineModel('stages', { type: Array, required: true });
 const won = defineModel('won', { type: Array, required: true });
 const lost = defineModel('lost', { type: Array, required: true });
+const field = defineModel('field', { type: Array, default: () => [] });
 const selected = defineModel('selected', { type: String, default: '' });
 
 const { t } = useI18n();
@@ -23,6 +26,7 @@ const store = useStore();
 const agents = useMapGetter('agents/getAgents');
 
 provide(DESTINATIONS_KEY, toRef(props, 'destinations'));
+provide(CUSTOM_FIELDS_KEY, toRef(props, 'customFields'));
 
 onMounted(() => {
   if (!agents.value.length) store.dispatch('agents/get');
@@ -47,6 +51,12 @@ const triggers = computed(() => [
     name: t(TRIGGERS.lost.railKey),
     automations: lost.value,
   },
+  {
+    key: 'field',
+    kind: 'field',
+    name: t(TRIGGERS.field.railKey),
+    automations: field.value,
+  },
 ]);
 const railGroups = computed(() => [
   {
@@ -57,7 +67,12 @@ const railGroups = computed(() => [
   {
     id: 'closing',
     title: t('CRM.AUTOMATION_GROUP_CLOSING'),
-    items: triggers.value.filter(({ kind }) => kind !== 'stage'),
+    items: triggers.value.filter(({ kind }) => ['won', 'lost'].includes(kind)),
+  },
+  {
+    id: 'fields',
+    title: t('CRM.AUTOMATION_GROUP_FIELDS'),
+    items: triggers.value.filter(({ kind }) => kind === 'field'),
   },
 ]);
 const current = computed(
@@ -73,6 +88,7 @@ const currentAutomations = computed({
   set: value => {
     if (current.value.kind === 'won') won.value = value;
     else if (current.value.kind === 'lost') lost.value = value;
+    else if (current.value.kind === 'field') field.value = value;
     else currentStage.value.automations = value;
   },
 });
@@ -85,7 +101,11 @@ const currentAiInstructions = computed({
 
 const hasIssue = item =>
   item.automations.some(
-    action => !isAutomationValid(action, { destinations: props.destinations })
+    action =>
+      !isAutomationValid(action, {
+        destinations: props.destinations,
+        fields: props.customFields,
+      })
   );
 const preventImplicitSubmit = event => {
   if (event.target instanceof HTMLInputElement) event.preventDefault();
