@@ -49,6 +49,9 @@ if resource.web_widget?
   json.pre_chat_form_enabled resource.channel.try(:pre_chat_form_enabled)
   json.pre_chat_form_options resource.channel.try(:pre_chat_form_options)
   json.continuity_via_email resource.channel.try(:continuity_via_email)
+  json.branding_text resource.channel.try(:branding_text)
+  json.branding_url resource.channel.try(:branding_url)
+  json.branding_logo_url resource.channel.try(:branding_logo_url)
 end
 
 ## Facebook Attributes

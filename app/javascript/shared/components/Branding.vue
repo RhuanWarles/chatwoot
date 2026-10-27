@@ -7,11 +7,27 @@ const {
   WIDGET_BRAND_URL: widgetBrandURL,
 } = window.globalConfig || {};
 
+const toHttpURL = value => {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+  } catch (e) {
+    return '';
+  }
+};
+
 export default {
   props: {
     disableBranding: {
       type: Boolean,
       default: false,
+    },
+    // Per-inbox footer customization: { text, logoUrl, url }. When it is
+    // passed, the footer only links to its own url and never to the
+    // installation brand site.
+    branding: {
+      type: Object,
+      default: null,
     },
   },
   setup() {
@@ -30,6 +46,46 @@ export default {
     };
   },
   computed: {
+    showBranding() {
+      if (this.disableBranding) return false;
+      return Boolean(this.globalConfig.brandName || this.branding?.text);
+    },
+    brandText() {
+      return (
+        this.branding?.text ||
+        this.replaceInstallationName(this.$t('POWERED_BY'))
+      );
+    },
+    brandLogo() {
+      return this.branding?.logoUrl || this.globalConfig.logoThumbnail;
+    },
+    brandAlt() {
+      return this.branding?.text || this.globalConfig.brandName;
+    },
+    linkURL() {
+      if (this.branding) return toHttpURL(this.branding.url);
+      return this.brandRedirectURL;
+    },
+    linkAttrs() {
+      if (!this.linkURL) return {};
+      return {
+        href: this.linkURL,
+        rel: 'noreferrer noopener nofollow',
+        target: '_blank',
+      };
+    },
+    linkClasses() {
+      return {
+        'cursor-pointer hover:text-n-slate-12 hover:opacity-100': this.linkURL,
+        'grayscale-[1]': !this.branding?.logoUrl,
+        'hover:grayscale-0': this.linkURL && !this.branding?.logoUrl,
+      };
+    },
+    logoClasses() {
+      return this.branding?.logoUrl
+        ? 'max-w-16 max-h-4 object-contain'
+        : 'max-w-3 max-h-3';
+    },
     brandRedirectURL() {
       try {
         const referrerHost = this.$store.getters['appConfig/getReferrerHost'];
@@ -52,25 +108,24 @@ export default {
 </script>
 
 <template>
-  <div
-    v-if="globalConfig.brandName && !disableBranding"
-    class="px-0 py-3 flex justify-center"
-  >
-    <a
-      :href="brandRedirectURL"
-      rel="noreferrer noopener nofollow"
-      target="_blank"
-      class="branding--link text-n-slate-11 hover:text-n-slate-12 cursor-pointer text-xs inline-flex grayscale-[1] hover:grayscale-0 hover:opacity-100 opacity-90 no-underline justify-center items-center leading-3"
+  <div v-if="showBranding" class="px-0 py-3 flex justify-center">
+    <component
+      :is="linkURL ? 'a' : 'span'"
+      v-bind="linkAttrs"
+      class="branding--link text-n-slate-11 text-xs inline-flex opacity-90 no-underline justify-center items-center leading-3"
+      :class="linkClasses"
     >
       <img
-        class="ltr:mr-1 rtl:ml-1 max-w-3 max-h-3"
-        :alt="globalConfig.brandName"
-        :src="globalConfig.logoThumbnail"
+        v-if="brandLogo"
+        class="ltr:mr-1 rtl:ml-1"
+        :class="logoClasses"
+        :alt="brandAlt"
+        :src="brandLogo"
       />
       <span>
-        {{ replaceInstallationName($t('POWERED_BY')) }}
+        {{ brandText }}
       </span>
-    </a>
+    </component>
   </div>
   <div v-else class="p-3" />
 </template>

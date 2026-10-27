@@ -27,6 +27,16 @@ describe '/widget', type: :request do
       expect(response.body).to include(token)
     end
 
+    it 'exposes the footer branding of the web widget to the page' do
+      web_widget.update!(branding_text: 'Powered by </script>Acme', branding_url: 'https://acme.com')
+
+      get widget_url(website_token: web_widget.website_token)
+
+      expect(response.body).to include('brandingUrl: "https://acme.com"')
+      expect(response.body).to include('brandingText: "Powered by </script>Acme"')
+      expect(response.body).to include('brandingLogoUrl: ""')
+    end
+
     it 'creates a contact for a regular browser' do
       url = widget_url(website_token: web_widget.website_token)
       user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'

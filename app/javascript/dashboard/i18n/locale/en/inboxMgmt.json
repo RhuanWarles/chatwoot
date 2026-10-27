@@ -812,6 +812,24 @@
     },
     "CHANNEL_PREFERENCES": "Channel Preferences",
     "WIDGET_FEATURES": "Widget features",
+    "WIDGET_BRANDING": {
+      "TITLE": "Widget footer",
+      "LOGO": {
+        "LABEL": "Footer logo",
+        "HELP_TEXT": "PNG, JPG, GIF or WEBP, up to 1 MB. If empty, the default logo is used."
+      },
+      "TEXT": {
+        "LABEL": "Footer text",
+        "PLACEHOLDER": "Powered by Your Company",
+        "HELP_TEXT": "Shown at the bottom of the open chat. If empty, the default text is used."
+      },
+      "URL": {
+        "LABEL": "Footer link",
+        "PLACEHOLDER": "https://yourcompany.com",
+        "HELP_TEXT": "Where the footer leads when clicked. If empty, the footer is not clickable.",
+        "ERROR": "Enter a valid URL starting with http:// or https://"
+      }
+    },
     "TWILIO_HEALTH": {
       "TITLE": "Manage your Twilio number",
       "DESCRIPTION": "Review the Twilio account, sender and webhooks backing this inbox. Anything Chatwoot cannot receive is flagged here",

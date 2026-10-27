@@ -21,6 +21,11 @@ export default {
       scrollPosition: 0,
       ticking: true,
       disableBranding: window.chatwootWebChannel.disableBranding || false,
+      branding: {
+        text: window.chatwootWebChannel.brandingText || '',
+        logoUrl: window.chatwootWebChannel.brandingLogoUrl || '',
+        url: window.chatwootWebChannel.brandingUrl || '',
+      },
       requestID: null,
     };
   },
@@ -138,7 +143,11 @@ export default {
       <Banner />
       <router-view />
 
-      <Branding v-if="!isOnArticleViewer" :disable-branding="disableBranding" />
+      <Branding
+        v-if="!isOnArticleViewer"
+        :disable-branding="disableBranding"
+        :branding="branding"
+      />
     </div>
   </div>
 </template>

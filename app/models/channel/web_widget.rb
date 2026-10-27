@@ -4,6 +4,8 @@
 #
 #  id                    :integer          not null, primary key
 #  allowed_domains       :text             default("")
+#  branding_text         :string
+#  branding_url          :string
 #  continuity_via_email  :boolean          default(TRUE), not null
 #  feature_flags         :integer          default(7), not null
 #  hmac_mandatory        :boolean          default(FALSE)
@@ -29,10 +31,13 @@
 class Channel::WebWidget < ApplicationRecord
   include Channelable
   include FlagShihTzu
+  include Rails.application.routes.url_helpers
 
   self.table_name = 'channel_web_widgets'
+  BRANDING_LOGO_MAX_SIZE = 1.megabyte
   EDITABLE_ATTRS = [:website_url, :widget_color, :welcome_title, :welcome_tagline, :reply_time, :pre_chat_form_enabled,
                     :continuity_via_email, :hmac_mandatory, :allowed_domains,
+                    :branding_text, :branding_url, :branding_logo, :remove_branding_logo,
                     { pre_chat_form_options: [:pre_chat_message, :require_email,
                                               { pre_chat_fields:
                                                 [:field_type, :label, :placeholder, :name, :enabled, :type, :enabled, :required,
@@ -42,7 +47,15 @@ class Channel::WebWidget < ApplicationRecord
   before_validation :validate_pre_chat_options
   validates :website_url, presence: true
   validates :widget_color, presence: true
+  validates :branding_text, length: { maximum: 100 }
+  validates :branding_url, length: { maximum: 2048 }
+  validate :acceptable_branding_url
+  validate :acceptable_branding_logo, if: -> { branding_logo.changed? }
   has_many :portals, foreign_key: 'channel_web_widget_id', dependent: :nullify, inverse_of: :channel_web_widget
+
+  has_one_attached :branding_logo
+  normalizes :branding_text, :branding_url, with: ->(value) { value.strip.presence }
+  after_save_commit :purge_branding_logo, if: -> { @remove_branding_logo }
 
   has_secure_token :website_token
   has_secure_token :hmac_token
@@ -59,6 +72,16 @@ class Channel::WebWidget < ApplicationRecord
 
   def name
     'Website'
+  end
+
+  def branding_logo_url
+    return '' unless branding_logo.attached?
+
+    url_for(branding_logo)
+  end
+
+  def remove_branding_logo=(value)
+    @remove_branding_logo = ActiveModel::Type::Boolean.new.cast(value)
   end
 
   def web_widget_script
@@ -105,5 +128,35 @@ class Channel::WebWidget < ApplicationRecord
                                            inbox: inbox,
                                            contact_attributes: { additional_attributes: additional_attributes }
                                          }).perform
+  end
+
+  private
+
+  # Only http(s) links are accepted: the url is rendered as a link inside the widget.
+  def acceptable_branding_url
+    return if branding_url.blank?
+
+    uri = URI.parse(branding_url)
+    errors.add(:branding_url, :invalid) unless uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    errors.add(:branding_url, :invalid)
+  end
+
+  def acceptable_branding_logo
+    return unless branding_logo.attached?
+
+    errors.add(:branding_logo, 'is too big') if branding_logo.byte_size > BRANDING_LOGO_MAX_SIZE
+    errors.add(:branding_logo, 'filetype not supported') unless Avatarable::ALLOWED_AVATAR_CONTENT_TYPES.include?(branding_logo.content_type)
+  end
+
+  # detach clears the in-memory attachment so the same request already serves an empty logo;
+  # purge_later on the attachment alone leaves it cached on the record.
+  def purge_branding_logo
+    @remove_branding_logo = false
+    return unless branding_logo.attached?
+
+    blob = branding_logo.blob
+    branding_logo.detach
+    blob.purge_later
   end
 end
