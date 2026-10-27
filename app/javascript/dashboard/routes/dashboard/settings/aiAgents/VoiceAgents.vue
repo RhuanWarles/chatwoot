@@ -157,7 +157,7 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="flex flex-col gap-4 min-w-0">
+  <section class="flex min-w-0 flex-col gap-4">
     <p class="text-sm text-n-slate-11">{{ t('AI_HUB.VOICE_CONFIG_ONLY') }}</p>
     <Input
       v-if="agents.length"
@@ -183,7 +183,7 @@ onMounted(load);
       </p>
       <div
         v-if="!agents.length"
-        class="flex flex-col items-start gap-3 rounded-xl border border-dashed border-n-weak p-6"
+        class="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-n-container bg-n-surface-1 p-6"
       >
         <div>
           <p class="font-medium text-n-slate-12">
@@ -201,14 +201,14 @@ onMounted(load);
       </div>
       <div
         v-else-if="!filteredAgents.length"
-        class="rounded-xl border border-dashed border-n-weak p-6 text-sm text-n-slate-11"
+        class="rounded-2xl border border-dashed border-n-container bg-n-surface-1 p-6 text-sm text-n-slate-11"
       >
         {{ t('AI_AGENTS.NO_SEARCH_RESULTS') }}
       </div>
       <article
         v-for="agent in filteredAgents"
         :key="agent.id"
-        class="flex flex-col justify-between gap-5 rounded-xl border border-n-weak bg-n-solid-1 p-5 transition-colors hover:border-n-strong lg:flex-row lg:items-start"
+        class="flex flex-col justify-between gap-5 rounded-2xl border border-n-container bg-n-surface-1 p-5 shadow-sm transition-all hover:border-n-strong hover:shadow-md lg:flex-row lg:items-start"
       >
         <div class="min-w-0 space-y-2">
           <div class="flex flex-wrap items-center gap-2">

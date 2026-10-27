@@ -139,7 +139,7 @@ onMounted(load);
 <template>
   <main class="flex flex-col w-full min-w-0 h-full min-h-0 gap-4">
     <header
-      class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 py-3 border-b bg-n-solid-1 border-n-weak"
+      class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 py-3 px-4 -mx-4 border-b border-n-container rounded-b-2xl bg-n-surface-1/95 backdrop-blur"
     >
       <div class="flex items-start min-w-0 gap-3">
         <RouterLink
@@ -210,7 +210,7 @@ onMounted(load);
 
     <div
       ref="messagesRef"
-      class="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto rounded-xl bg-n-solid-2"
+      class="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
     >
       <p
         v-if="!loading && !messages.length"
@@ -302,7 +302,7 @@ onMounted(load);
     </div>
 
     <form
-      class="flex items-end gap-2 p-3 rounded-xl bg-n-solid-2"
+      class="flex items-end gap-2 p-3 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
       @submit.prevent="send"
     >
       <TextArea

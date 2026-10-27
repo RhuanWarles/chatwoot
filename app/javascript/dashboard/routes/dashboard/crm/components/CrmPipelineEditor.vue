@@ -409,7 +409,7 @@ defineExpose({ open: openEditor });
   >
     <fieldset
       :disabled="saving || !stageCountsReady"
-      class="flex flex-col min-w-0 gap-5"
+      class="flex min-w-0 flex-col gap-5"
     >
       <div class="grid items-end gap-4 md:grid-cols-[1fr_auto]">
         <Input v-model="draft.name" :label="t('CRM.PIPELINE_NAME')" />
@@ -442,7 +442,7 @@ defineExpose({ open: openEditor });
             >
               <template #item="{ element, index }">
                 <div
-                  class="flex flex-wrap items-end gap-3 p-3 border border-n-weak rounded-xl bg-n-solid-1 md:flex-nowrap"
+                  class="flex flex-wrap items-end gap-3 rounded-xl border border-n-container bg-n-surface-1 p-3 shadow-sm md:flex-nowrap"
                 >
                   <Button
                     type="button"
@@ -546,7 +546,7 @@ defineExpose({ open: openEditor });
               <div
                 v-for="outcome in outcomes"
                 :key="outcome.kind"
-                class="flex items-center gap-3 p-3 rounded-xl border border-n-weak bg-n-solid-1"
+                class="flex items-center gap-3 rounded-xl border border-n-container bg-n-surface-1 p-3 shadow-sm"
               >
                 <span
                   class="grid size-9 shrink-0 place-items-center rounded-lg"

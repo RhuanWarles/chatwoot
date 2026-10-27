@@ -234,7 +234,9 @@ watch(() => props.deal.id, load, { immediate: true });
 </script>
 
 <template>
-  <section class="flex flex-col gap-2 p-3 border border-n-weak rounded-xl">
+  <section
+    class="flex flex-col gap-2 p-4 border border-n-container rounded-2xl bg-n-surface-1 shadow-sm"
+  >
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="mb-0 text-base font-semibold text-n-slate-12">
         {{ t('CRM.UPCOMING_ACTIVITIES') }}
@@ -255,7 +257,7 @@ watch(() => props.deal.id, load, { immediate: true });
     <article
       v-for="activity in pending"
       :key="activity.id"
-      class="flex flex-wrap items-start justify-between gap-2 p-2 rounded-lg bg-n-alpha-2 cursor-pointer hover:bg-n-alpha-3"
+      class="flex flex-wrap items-start justify-between gap-2 p-3 rounded-xl bg-n-alpha-2 cursor-pointer transition-colors hover:bg-n-alpha-3"
       @click="openDetails(activity)"
     >
       <div class="min-w-0">

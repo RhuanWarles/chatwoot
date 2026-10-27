@@ -299,7 +299,7 @@ onMounted(load);
         <article
           v-for="card in cards"
           :key="card.label"
-          class="flex min-h-[7rem] flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4"
+          class="flex min-h-[7rem] flex-col rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm"
         >
           <div
             class="flex items-center justify-between gap-2 text-xs text-n-slate-11"
@@ -319,7 +319,7 @@ onMounted(load);
       <ResponderComparison />
       <div class="grid min-h-0 gap-4 lg:grid-cols-3">
         <section
-          class="flex min-w-0 flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4 lg:col-span-3"
+          class="flex min-w-0 flex-col rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm lg:col-span-3"
         >
           <h2 class="shrink-0 text-sm font-semibold">
             {{ key('TIMESERIES') }}
@@ -395,7 +395,7 @@ onMounted(load);
           </div>
         </section>
         <section
-          class="flex min-w-0 flex-col rounded-xl border border-n-weak bg-n-solid-1 p-4"
+          class="flex min-w-0 flex-col rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm"
         >
           <h2 class="text-sm font-semibold">{{ key('TOOLS') }}</h2>
           <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -486,7 +486,9 @@ onMounted(load);
             </p>
           </div>
         </section>
-        <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4">
+        <section
+          class="rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm"
+        >
           <h2 class="text-sm font-semibold">{{ key('KNOWLEDGE') }}</h2>
           <dl
             v-if="data.knowledge.queries"
@@ -510,7 +512,9 @@ onMounted(load);
             {{ key('EMPTY_KNOWLEDGE') }}
           </p>
         </section>
-        <section class="rounded-xl border border-n-weak bg-n-solid-1 p-4">
+        <section
+          class="rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm"
+        >
           <h2 class="text-sm font-semibold">{{ key('CONSUMPTION') }}</h2>
           <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div
@@ -566,7 +570,7 @@ onMounted(load);
           </div>
         </section>
         <section
-          class="min-w-0 rounded-xl border border-n-weak bg-n-solid-1 lg:col-span-3"
+          class="min-w-0 rounded-2xl border border-n-container bg-n-surface-1 shadow-sm lg:col-span-3"
         >
           <h2 class="px-4 py-4 text-sm font-semibold">
             {{ key('DETAILS') }}
