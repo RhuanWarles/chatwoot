@@ -4,6 +4,7 @@ import {
   getDayDifferenceFromNow,
   hasOneDayPassed,
   messageStamp,
+  messageDateTime,
   messageTimestamp,
   relativeDayTimestamp,
   shortTimestamp,
@@ -26,6 +27,18 @@ describe('#messageStamp', () => {
     expect(messageStamp(1612971343, 'LLL d, h:mm a')).toEqual(
       'Feb 10, 3:35 PM'
     );
+  });
+});
+
+describe('#messageDateTime', () => {
+  it('returns a localized date and time', () => {
+    expect(messageDateTime(1612971343, 'pt-BR')).toMatch(
+      /^10\/02\/2021, \d{2}:\d{2}$/
+    );
+  });
+
+  it('returns an empty string for an invalid timestamp', () => {
+    expect(messageDateTime('invalid', 'pt-BR')).toEqual('');
   });
 });
 

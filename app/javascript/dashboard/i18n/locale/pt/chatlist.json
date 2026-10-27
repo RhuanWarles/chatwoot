@@ -21,19 +21,6 @@
       "all": "Todas",
       "unanswered": "Sem resposta"
     },
-    "QUICK_FILTERS": {
-      "ASSISTANT": "Assistente",
-      "INBOX": "Caixa de entrada",
-      "TAG": "Etiqueta",
-      "AI_STATE": "Estado da IA",
-      "ALL": "Todos",
-      "AI_ACTIVE": "IA ativa",
-      "AI_INACTIVE": "IA inativa",
-      "SEARCH_ASSISTANT": "Pesquisar assistente...",
-      "SEARCH_INBOX": "Pesquisar caixa de entrada...",
-      "SEARCH_TAG": "Pesquisar etiqueta...",
-      "SEARCH_AI_STATE": "Pesquisar estado da IA..."
-    },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {
         "TEXT": "Abertas"

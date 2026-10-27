@@ -49,7 +49,6 @@ import { createFiltersMatcher } from '../store/modules/conversations/helpers/fil
 import { sortComparator } from '../store/modules/conversations/helpers';
 import { CONVERSATION_EVENTS } from '../helper/AnalyticsHelper/events';
 import { ASSIGNEE_TYPE_TAB_PERMISSIONS } from 'dashboard/constants/permissions.js';
-import aiAgentsAPI from 'dashboard/api/aiAgents';
 
 const props = defineProps({
   conversationInbox: { type: [String, Number], default: 0 },
@@ -75,13 +74,6 @@ const resolveAttributesModalRef = ref(null);
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ME);
 const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
-const aiAgentList = ref([]);
-const quickFilters = ref({
-  aiAgentId: null,
-  inboxId: props.conversationInbox || null,
-  label: props.label || null,
-  aiState: null,
-});
 const showAdvancedFilters = ref(false);
 // chatsOnView is to store the chats that are currently visible on the screen,
 // which mirrors the conversationList.
@@ -258,22 +250,17 @@ const conversationFilters = computed(() => {
   const isUnansweredTab =
     activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNANSWERED;
   return {
-    inboxId: props.conversationInbox || quickFilters.value.inboxId || undefined,
+    inboxId: props.conversationInbox || undefined,
     assigneeType: isUnansweredTab
       ? wootConstants.ASSIGNEE_TYPE.ALL
       : activeAssigneeTab.value,
     status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
-    labels:
-      props.label || quickFilters.value.label
-        ? [props.label || quickFilters.value.label]
-        : undefined,
+    labels: props.label ? [props.label] : undefined,
     teamId: props.teamId || undefined,
     conversationType: props.conversationType || undefined,
     unanswered: isUnansweredTab,
-    aiState: quickFilters.value.aiState || undefined,
-    aiAgentId: quickFilters.value.aiAgentId || undefined,
   };
 });
 
@@ -693,11 +680,6 @@ function onBasicFilterChange(value, type) {
   resetAndFetchData();
 }
 
-function onQuickFilterChange(filters) {
-  quickFilters.value = filters;
-  resetAndFetchData();
-}
-
 function openLastSavedItemInFolder() {
   const lastItemOfFolder = folders.value[folders.value.length - 1];
   const lastItemId = lastItemOfFolder.id;
@@ -859,14 +841,6 @@ useEmitter('fetch_conversation_stats', () => {
 });
 
 onMounted(() => {
-  aiAgentsAPI
-    .get()
-    .then(({ data }) => {
-      aiAgentList.value = data.agents || [];
-    })
-    .catch(() => {
-      aiAgentList.value = [];
-    });
   store.dispatch('setChatListFilters', conversationFilters.value);
   setFiltersFromUISettings();
   store.dispatch('setChatStatusFilter', activeStatus.value);
@@ -914,17 +888,11 @@ watch(activeTeam, () => resetAndFetchData());
 
 watch(
   computed(() => props.conversationInbox),
-  value => {
-    quickFilters.value.inboxId = value || null;
-    resetAndFetchData();
-  }
+  () => resetAndFetchData()
 );
 watch(
   computed(() => props.label),
-  value => {
-    quickFilters.value.label = value || null;
-    resetAndFetchData();
-  }
+  () => resetAndFetchData()
 );
 watch(
   computed(() => props.conversationType),
@@ -964,16 +932,11 @@ watch(appliedFilters, () => resetBulkActions());
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"
-      :agents="aiAgentList"
-      :inboxes="inboxesList"
-      :labels="labels"
-      :quick-filters="quickFilters"
       @add-folders="onClickOpenAddFoldersModal"
       @delete-folders="onClickOpenDeleteFoldersModal"
       @filters-modal="onToggleAdvanceFiltersModal"
       @reset-filters="resetFilters"
       @basic-filter-change="onBasicFilterChange"
-      @quick-filter-change="onQuickFilterChange"
     />
 
     <TeleportWithDirection

@@ -657,6 +657,43 @@ describe('#actions', () => {
     });
   });
 
+  describe('#fetchAllConversations', () => {
+    it('tracks the unanswered tab pagination when the API uses assignee_type=all', async () => {
+      axios.get.mockResolvedValue({
+        data: {
+          data: {
+            payload: [],
+            meta: { all_count: 4, unanswered_count: 0 },
+          },
+        },
+      });
+
+      await actions.fetchAllConversations({
+        commit,
+        dispatch,
+        state: {
+          conversationFilters: {
+            page: 1,
+            assigneeType: 'all',
+            unanswered: true,
+          },
+        },
+      });
+
+      expect(dispatch).toHaveBeenCalledWith(
+        'conversationPage/setCurrentPage',
+        { filter: 'unanswered', page: 1 },
+        { root: true }
+      );
+      expect(dispatch).toHaveBeenCalledWith(
+        'conversationPage/setEndReached',
+        { filter: 'unanswered' },
+        { root: true }
+      );
+      expect(commit).toHaveBeenCalledWith(types.CLEAR_LIST_LOADING_STATUS);
+    });
+  });
+
   describe('#fetchFilteredConversations', () => {
     it('ignores an older open-list response after applying an all-status filter', async () => {
       let resolveOpenResponse;

@@ -5,7 +5,7 @@ import ImageBubble from 'widget/components/ImageBubble.vue';
 import VideoBubble from 'widget/components/VideoBubble.vue';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
 import FileBubble from 'widget/components/FileBubble.vue';
-import { messageStamp } from 'shared/helpers/timeHelper';
+import { messageDateTime } from 'shared/helpers/timeHelper';
 import messageMixin from '../mixins/messageMixin';
 import ReplyToChip from 'widget/components/ReplyToChip.vue';
 import DragWrapper from 'widget/components/DragWrapper.vue';
@@ -57,7 +57,7 @@ export default {
     },
     readableTime() {
       const { created_at: createdAt = '' } = this.message;
-      return messageStamp(createdAt);
+      return messageDateTime(createdAt, this.$i18n?.locale?.replace('_', '-'));
     },
     isFailed() {
       const { status = '' } = this.message;
@@ -175,6 +175,12 @@ export default {
             <FluentIcon icon="arrow-clockwise" size="14" />
           </button>
         </div>
+        <p
+          v-if="message.created_at"
+          class="mt-1 text-end text-xs text-n-slate-10"
+        >
+          {{ readableTime }}
+        </p>
       </div>
     </div>
   </div>

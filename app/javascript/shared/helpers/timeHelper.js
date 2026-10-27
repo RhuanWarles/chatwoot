@@ -21,6 +21,22 @@ export const messageStamp = (time, dateFormat = 'h:mm a') => {
 };
 
 /**
+ * Formats a message timestamp with both the localized date and time.
+ * @param {number|string} time - Unix timestamp in seconds.
+ * @param {string} [locale] - IETF locale identifier, such as pt-BR.
+ * @returns {string} Localized date and time, or an empty string for invalid input.
+ */
+export const messageDateTime = (time, locale) => {
+  const numericTime = Number(time);
+  if (!Number.isFinite(numericTime)) return '';
+
+  return new Intl.DateTimeFormat(locale || undefined, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(fromUnixTime(numericTime));
+};
+
+/**
  * Provides a formatted timestamp, adjusting the format based on the current year.
  * @param {number} time - Unix timestamp.
  * @param {string} [dateFormat='MMM d, yyyy'] - Desired date format.

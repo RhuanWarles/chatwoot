@@ -21,19 +21,6 @@
       "all": "All",
       "unanswered": "Unanswered"
     },
-    "QUICK_FILTERS": {
-      "ASSISTANT": "Assistant",
-      "INBOX": "Inbox",
-      "TAG": "Tag",
-      "AI_STATE": "AI state",
-      "ALL": "All",
-      "AI_ACTIVE": "AI active",
-      "AI_INACTIVE": "AI inactive",
-      "SEARCH_ASSISTANT": "Search assistant...",
-      "SEARCH_INBOX": "Search inbox...",
-      "SEARCH_TAG": "Search tag...",
-      "SEARCH_AI_STATE": "Search AI state..."
-    },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {
         "TEXT": "Open"

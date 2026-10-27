@@ -106,13 +106,17 @@ const actions = {
 
         if (signal.aborted) return;
 
-        buildConversationList(
-          { commit, dispatch },
-          params,
-          data,
-          params.assigneeType,
-          { replaceExisting, countRequest }
-        );
+        // The unanswered tab queries the API with assignee_type=all and uses
+        // `unanswered` as an additional filter. Keep its pagination state
+        // separate from the regular "all" tab.
+        const filterType = params.unanswered
+          ? 'unanswered'
+          : params.assigneeType;
+
+        buildConversationList({ commit, dispatch }, params, data, filterType, {
+          replaceExisting,
+          countRequest,
+        });
       } catch (error) {
         if (!signal.aborted) {
           commit(types.CLEAR_LIST_LOADING_STATUS);

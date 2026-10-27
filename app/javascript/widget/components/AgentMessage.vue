@@ -2,7 +2,7 @@
 import UserMessage from 'widget/components/UserMessage.vue';
 import AgentMessageBubble from 'widget/components/AgentMessageBubble.vue';
 import MessageReplyButton from 'widget/components/MessageReplyButton.vue';
-import { messageStamp } from 'shared/helpers/timeHelper';
+import { messageDateTime } from 'shared/helpers/timeHelper';
 import ImageBubble from 'widget/components/ImageBubble.vue';
 import VideoBubble from 'widget/components/VideoBubble.vue';
 import FileBubble from 'widget/components/FileBubble.vue';
@@ -57,7 +57,7 @@ export default {
     },
     readableTime() {
       const { created_at: createdAt = '' } = this.message;
-      return messageStamp(createdAt, 'LLL d yyyy, h:mm a');
+      return messageDateTime(createdAt, this.$i18n?.locale?.replace('_', '-'));
     },
     messageType() {
       const { message_type: type = 1 } = this.message;
@@ -251,6 +251,9 @@ export default {
           class="agent-name text-n-slate-11"
         >
           {{ agentName }}
+        </p>
+        <p v-if="message.created_at" class="mt-1 text-xs text-n-slate-10">
+          {{ readableTime }}
         </p>
       </div>
     </div>
