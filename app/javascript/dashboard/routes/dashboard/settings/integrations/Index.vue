@@ -48,7 +48,9 @@ onMounted(() => {
       />
     </template>
     <template #body>
-      <div class="flex-grow flex-shrink overflow-auto">
+      <div
+        class="flex-grow flex-shrink overflow-auto rounded-2xl bg-n-surface-1 p-1"
+      >
         <span
           v-if="
             !filteredIntegrationList.length &&
@@ -61,7 +63,7 @@ onMounted(() => {
         </span>
         <div
           v-else
-          class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
         >
           <GoogleCalendarConnection
             v-if="

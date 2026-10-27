@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
 
     <div
       v-else-if="!hasCompany"
-      class="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center rounded-2xl border border-n-weak bg-n-solid-2"
+      class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-n-container bg-n-surface-1 px-6 py-24 text-center shadow-sm"
     >
       <span class="text-lg font-medium text-n-slate-12">
         {{ t('COMPANIES.DETAIL.EMPTY_STATE.TITLE') }}
