@@ -17,6 +17,8 @@ import ConversationParticipant from './ConversationParticipant.vue';
 import GroupParticipantsPanel from './GroupParticipantsPanel.vue';
 import ContactInfo from './contact/ContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
+import CsNotesPanel from 'dashboard/components-next/Contacts/CsNotes/CsNotesPanel.vue';
+import { useCsNotes } from 'dashboard/composables/useCsNotes';
 import ConversationInfo from './ConversationInfo.vue';
 import ConversationLead from './ConversationLead.vue';
 import ConversationToolExecutions from './ConversationToolExecutions.vue';
@@ -49,6 +51,8 @@ const {
   toggleSidebarUIState,
   isOnExpandedLayout,
 } = useUISettings();
+
+const { canAccess: canAccessCsNotes, load: loadCsNotes } = useCsNotes();
 
 const dragging = ref(false);
 const toolsOpen = ref(false);
@@ -111,8 +115,7 @@ const isGroupConversation = computed(() => {
   ];
 
   return identifiers.some(
-    identifier =>
-      typeof identifier === 'string' && identifier.endsWith('@g.us')
+    identifier => typeof identifier === 'string' && identifier.endsWith('@g.us')
   );
 });
 const contactAdditionalAttributes = computed(
@@ -156,6 +159,7 @@ const closeContactPanel = () => {
 onMounted(() => {
   conversationSidebarItems.value = conversationSidebarItemsOrder.value;
   getContactDetails();
+  loadCsNotes();
   store.dispatch('attributes/get', 0);
   // Load integrations to ensure linear integration state is available
   store.dispatch('integrations/get', 'linear');
@@ -252,16 +256,64 @@ onMounted(() => {
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'ai_logs'">
-            <AccordionItem :title="$t('CONVERSATION.AI_LOGS.TITLE')" :is-open="aiLogsOpen" compact @toggle="aiLogsOpen = !aiLogsOpen">
+            <AccordionItem
+              :title="$t('CONVERSATION.AI_LOGS.TITLE')"
+              :is-open="aiLogsOpen"
+              compact
+              @toggle="aiLogsOpen = !aiLogsOpen"
+            >
               <div class="flex flex-col gap-3 p-3 min-w-0">
-                <p class="text-xs text-n-slate-11">{{ $t('CONVERSATION.AI_LOGS.DESCRIPTION') }}</p>
-                <label class="flex items-start justify-between gap-3 text-sm text-n-slate-12"><span class="min-w-0">{{ $t('CONVERSATION.AI_LOGS.SHOW_TOOLS') }}</span><Switch :model-value="aiLogPreferences.showToolExecutions.value" :disabled="aiLogPreferences.saving.value" @update:model-value="aiLogPreferences.update('show_tool_executions', $event)" /></label>
-                <label class="flex items-start justify-between gap-3 text-sm text-n-slate-12"><span class="min-w-0">{{ $t('CONVERSATION.AI_LOGS.SHOW_KNOWLEDGE') }}</span><Switch :model-value="aiLogPreferences.showKnowledgeRetrievals.value" :disabled="aiLogPreferences.saving.value" @update:model-value="aiLogPreferences.update('show_knowledge_retrievals', $event)" /></label>
+                <p class="text-xs text-n-slate-11">
+                  {{ $t('CONVERSATION.AI_LOGS.DESCRIPTION') }}
+                </p>
+                <label
+                  class="flex items-start justify-between gap-3 text-sm text-n-slate-12"
+                >
+                  <span class="min-w-0">
+                    {{ $t('CONVERSATION.AI_LOGS.SHOW_TOOLS') }}
+                  </span>
+                  <Switch
+                    :model-value="aiLogPreferences.showToolExecutions.value"
+                    :disabled="aiLogPreferences.saving.value"
+                    @update:model-value="
+                      aiLogPreferences.update('show_tool_executions', $event)
+                    "
+                  />
+                </label>
+                <label
+                  class="flex items-start justify-between gap-3 text-sm text-n-slate-12"
+                >
+                  <span class="min-w-0">
+                    {{ $t('CONVERSATION.AI_LOGS.SHOW_KNOWLEDGE') }}
+                  </span>
+                  <Switch
+                    :model-value="
+                      aiLogPreferences.showKnowledgeRetrievals.value
+                    "
+                    :disabled="aiLogPreferences.saving.value"
+                    @update:model-value="
+                      aiLogPreferences.update(
+                        'show_knowledge_retrievals',
+                        $event
+                      )
+                    "
+                  />
+                </label>
               </div>
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'knowledge_retrievals'">
-            <AccordionItem :title="$t('CONVERSATION.KNOWLEDGE_RETRIEVAL.TITLE')" :is-open="isContactSidebarItemOpen('is_knowledge_retrievals_open')" compact @toggle="value => toggleSidebarUIState('is_knowledge_retrievals_open', value)">
+            <AccordionItem
+              :title="$t('CONVERSATION.KNOWLEDGE_RETRIEVAL.TITLE')"
+              :is-open="
+                isContactSidebarItemOpen('is_knowledge_retrievals_open')
+              "
+              compact
+              @toggle="
+                value =>
+                  toggleSidebarUIState('is_knowledge_retrievals_open', value)
+              "
+            >
               <ConversationKnowledgeRetrievals />
             </AccordionItem>
           </div>
@@ -365,6 +417,20 @@ onMounted(() => {
               "
             >
               <ContactNotes :contact-id="contactId" />
+            </AccordionItem>
+          </div>
+          <div
+            v-else-if="
+              element.name === 'cs_notes' && canAccessCsNotes && contactId
+            "
+          >
+            <AccordionItem
+              :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CS_NOTES')"
+              :is-open="isContactSidebarItemOpen('is_cs_notes_open')"
+              compact
+              @toggle="value => toggleSidebarUIState('is_cs_notes_open', value)"
+            >
+              <CsNotesPanel :contact-id="contactId" />
             </AccordionItem>
           </div>
           <div v-else-if="element.name === 'shared_files'">

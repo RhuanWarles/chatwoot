@@ -61,6 +61,7 @@ class Contact < ApplicationRecord
   has_many :inboxes, through: :contact_inboxes
   has_many :messages, as: :sender, dependent: :destroy_async
   has_many :notes, dependent: :destroy_async
+  has_one :cs_note, class_name: 'ContactCsNote', dependent: :destroy_async
   has_many :crm_deals, class_name: 'Crm::Deal', dependent: :destroy_async
   has_many :saas_ai_agent_memories, class_name: 'Saas::AiAgentMemory', dependent: :destroy
   before_validation :prepare_contact_attributes

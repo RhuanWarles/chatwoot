@@ -58,6 +58,22 @@ describe('useUISettings', () => {
     getUISettingsMock.value = previous;
   });
 
+  it('inserts the CS notes item after the contact notes for saved orders', () => {
+    const previous = getUISettingsMock.value;
+    getUISettingsMock.value = {
+      ...previous,
+      conversation_sidebar_items_order: [
+        { name: 'conversation_actions' },
+        { name: 'contact_notes' },
+        { name: 'shared_files' },
+      ],
+    };
+    const { conversationSidebarItemsOrder } = useUISettings();
+    const names = conversationSidebarItemsOrder.value.map(item => item.name);
+    expect(names.indexOf('cs_notes')).toBe(names.indexOf('contact_notes') + 1);
+    getUISettingsMock.value = previous;
+  });
+
   it('updates UI settings correctly', () => {
     const { updateUISettings } = useUISettings();
     updateUISettings({ enter_to_send_enabled: true });

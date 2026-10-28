@@ -292,6 +292,42 @@
       "ID": "(ID: {identifier})"
     }
   },
+  "CS_NOTES": {
+    "TITLE": "CS notes",
+    "NO_VALUE": "No value",
+    "YES": "Yes",
+    "NO_FIELDS": "No fields yet. Use “Manage fields” to create the first one.",
+    "MANAGE": "Manage fields",
+    "CLOSE_MANAGER": "Close management",
+    "LOAD_ERROR": "Could not load the CS notes.",
+    "SAVE_ERROR": "Could not save. Try again.",
+    "FIELDS_TITLE": "Fields",
+    "ADD_TITLE": "New field",
+    "NAME_PLACEHOLDER": "Field name",
+    "TYPE_LABEL": "Field type",
+    "OPTIONS_PLACEHOLDER": "One option per line",
+    "ADD": "Add field",
+    "ADD_ERROR": "Could not create the field. Check the name and try again.",
+    "RENAME_ERROR": "Could not rename the field.",
+    "DELETE": "Delete field",
+    "DELETE_CONFIRM": "Confirm deletion",
+    "DELETE_ERROR": "Could not delete the field.",
+    "TEAM_LABEL": "Team with access",
+    "TEAM_NONE": "Administrators only",
+    "TEAM_HELP": "Administrators and the members of this team see the CS notes. No one else.",
+    "TEAM_SAVED": "Team with access updated.",
+    "TEAM_ERROR": "Could not update the team.",
+    "TYPES": {
+      "TEXT": "Text",
+      "NUMBER": "Number",
+      "CURRENCY": "Currency",
+      "PERCENT": "Percentage",
+      "LINK": "Link",
+      "DATE": "Date",
+      "LIST": "List",
+      "CHECKBOX": "Checkbox"
+    }
+  },
   "CONTACTS_LAYOUT": {
     "HEADER": {
       "TITLE": "Contacts",
@@ -515,6 +551,7 @@
         "ATTRIBUTES": "Attributes",
         "HISTORY": "History",
         "NOTES": "Notes",
+        "CS_NOTES": "CS notes",
         "MEDIA": "Media",
         "MERGE": "Merge"
       },

@@ -12,6 +12,7 @@ export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'knowledge_retrievals' },
   { name: 'contact_attributes' },
   { name: 'contact_notes' },
+  { name: 'cs_notes' },
   { name: 'shared_files' },
   { name: 'previous_conversation' },
   { name: 'conversation_participants' },
@@ -62,10 +63,19 @@ const useConversationSidebarItemsOrder = uiSettings => {
           );
           itemsOrderCopy.splice(index + 1, 0, item);
         } else if (item.name === 'ai_logs') {
-          const index = itemsOrderCopy.findIndex(existing => existing.name === 'conversation_info');
+          const index = itemsOrderCopy.findIndex(
+            existing => existing.name === 'conversation_info'
+          );
+          itemsOrderCopy.splice(index + 1, 0, item);
+        } else if (item.name === 'cs_notes') {
+          const index = itemsOrderCopy.findIndex(
+            existing => existing.name === 'contact_notes'
+          );
           itemsOrderCopy.splice(index + 1, 0, item);
         } else if (item.name === 'knowledge_retrievals') {
-          const index = itemsOrderCopy.findIndex(existing => existing.name === 'tool_executions');
+          const index = itemsOrderCopy.findIndex(
+            existing => existing.name === 'tool_executions'
+          );
           itemsOrderCopy.splice(index + 1, 0, item);
         } else {
           itemsOrderCopy.push(item);
