@@ -6,6 +6,7 @@ import { differenceInDays } from 'date-fns';
 import EnterpriseAccountAPI from '../../api/enterprise/account';
 import WhatsappChannel from '../../api/channel/whatsappChannel';
 import { throwErrorMessage } from '../utils/api';
+import { CAPTAIN_FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { getLanguageDirection } from 'dashboard/components/widgets/conversation/advancedFilterItems/languages';
 
 const findRecordById = ($state, id) =>
@@ -50,6 +51,7 @@ export const getters = {
     return diffDays <= TRIAL_PERIOD_DAYS;
   },
   isFeatureEnabledonAccount: $state => (id, featureName) => {
+    if (CAPTAIN_FEATURE_FLAGS.includes(featureName)) return false;
     const { features = {} } = findRecordById($state, id);
     return features[featureName] || false;
   },
