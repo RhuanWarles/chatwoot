@@ -16,7 +16,7 @@ const error = ref('');
 const selectedId = computed(() => Number(route.params.toolId) || null);
 const filteredTools = computed(() => {
   const query = search.value.trim().toLowerCase();
-  return tools.value.filter(tool => !query || tool.name.toLowerCase().includes(query));
+  return tools.value.filter(tool => !query || String(tool.name || '').toLowerCase().includes(query));
 });
 const selectTool = tool => router.push({ name: 'ai_tool_edit', params: { toolId: tool.id } });
 const createTool = () => router.push({ name: 'ai_tool_new' });

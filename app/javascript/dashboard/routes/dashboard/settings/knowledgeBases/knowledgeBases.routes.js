@@ -1,5 +1,5 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
+import AiWorkspaceSettingsWrapper from '../AiWorkspaceSettingsWrapper.vue';
 import Index from './Index.vue';
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage.vue';
 
@@ -7,7 +7,7 @@ export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/knowledge-bases'),
-      component: SettingsWrapper,
+      component: AiWorkspaceSettingsWrapper,
       meta: { permissions: ['administrator'] },
       children: [
         {

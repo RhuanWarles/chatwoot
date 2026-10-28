@@ -16,7 +16,7 @@ const error = ref('');
 const selectedId = computed(() => Number(route.params.agentId) || null);
 const filteredAgents = computed(() => {
   const query = search.value.trim().toLowerCase();
-  return agents.value.filter(agent => !query || agent.name.toLowerCase().includes(query));
+  return agents.value.filter(agent => !query || String(agent.name || '').toLowerCase().includes(query));
 });
 const selectAgent = agent => router.push({ name: 'ai_agent_edit', params: { agentId: agent.id }, query: { type: 'text' } });
 const createAgent = () => router.push({ name: 'ai_agent_new', query: { type: 'text' } });

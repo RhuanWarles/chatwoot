@@ -1,5 +1,5 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
+import AiWorkspaceSettingsWrapper from '../AiWorkspaceSettingsWrapper.vue';
 import Playground from './Playground.vue';
 import AgentEditorPage from './AgentEditorPage.vue';
 import Workspace from './Workspace.vue';
@@ -8,7 +8,7 @@ export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/ai-agents'),
-      component: SettingsWrapper,
+      component: AiWorkspaceSettingsWrapper,
       meta: { permissions: ['administrator'] },
       children: [
         {

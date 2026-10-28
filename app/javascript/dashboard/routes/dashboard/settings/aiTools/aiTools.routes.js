@@ -1,5 +1,5 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
+import AiWorkspaceSettingsWrapper from '../AiWorkspaceSettingsWrapper.vue';
 import ToolEditorPage from './ToolEditorPage.vue';
 import Logs from './Logs.vue';
 import Workspace from './Workspace.vue';
@@ -8,7 +8,7 @@ export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/ai-tools'),
-      component: SettingsWrapper,
+      component: AiWorkspaceSettingsWrapper,
       meta: { permissions: ['administrator'] },
       children: [
         {
