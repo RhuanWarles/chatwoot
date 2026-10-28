@@ -29,6 +29,15 @@ const records = useMapGetter('captainCustomTools/getRecords');
 const customTools = computed(() =>
   records.value.filter(tool => tool.assistant_id === Number(assistantId.value))
 );
+const search = ref('');
+const selectedToolId = ref(null);
+const filteredTools = computed(() => {
+  const query = search.value.trim().toLowerCase();
+  return customTools.value.filter(tool =>
+    !query || [tool.title, tool.description].some(value => String(value || '').toLowerCase().includes(query))
+  );
+});
+const activeTool = computed(() => customTools.value.find(tool => tool.id === selectedToolId.value) || customTools.value[0]);
 const isFetching = computed(
   () => uiFlags.value.fetchingList || isFetchingTools.value
 );
@@ -181,7 +190,10 @@ const handleDialogClose = () => {
   selectedTool.value = null;
 };
 
-const handleToolCreated = () => fetchCustomTools();
+const handleToolCreated = tool => {
+  selectedToolId.value = tool?.id || null;
+  fetchCustomTools();
+};
 
 const onDeleteSuccess = () => {
   selectedTool.value = null;
@@ -206,6 +218,10 @@ watch(
   },
   { immediate: true }
 );
+
+watch(customTools, tools => {
+  if (!tools.some(tool => tool.id === selectedToolId.value)) selectedToolId.value = tools[0]?.id || null;
+}, { immediate: true });
 </script>
 
 <template>
@@ -236,25 +252,38 @@ watch(
     </template>
 
     <template #body>
-      <div class="flex flex-col gap-4">
-        <CustomToolCard
-          v-for="tool in customTools"
-          :id="tool.id"
-          :key="tool.id"
-          :title="tool.title"
-          :description="tool.description"
-          :endpoint-url="tool.endpoint_url"
-          :http-method="tool.http_method"
-          :auth-type="tool.auth_type"
-          :param-schema="tool.param_schema"
-          :enabled="tool.enabled"
-          :source-metadata="tool.source_metadata"
-          :is-updating="pendingToggleIds.has(tool.id)"
-          :created-at="tool.created_at"
-          :updated-at="tool.updated_at"
-          @action="handleAction"
-          @toggle="toggleCustomTool"
-        />
+      <div class="flex min-h-[32rem] overflow-hidden rounded-xl outline outline-1 outline-n-weak bg-n-solid-1">
+        <aside class="flex flex-col w-64 shrink-0 border-e border-n-weak bg-n-solid-2">
+          <div class="p-3 border-b border-n-weak">
+            <input v-model="search" class="w-full h-9 px-3 text-sm rounded-lg outline outline-1 outline-n-weak bg-n-solid-1 text-n-slate-12" :placeholder="t('CAPTAIN.CUSTOM_TOOLS.SEARCH')" />
+          </div>
+          <div class="flex-1 min-h-0 p-2 overflow-y-auto">
+            <button v-for="tool in filteredTools" :key="tool.id" type="button" class="flex flex-col w-full gap-1 px-3 py-2 text-start rounded-lg" :class="tool.id === activeTool?.id ? 'bg-n-alpha-2 outline outline-1 outline-n-weak' : 'hover:bg-n-alpha-2'" @click="selectedToolId = tool.id">
+              <span class="text-sm font-medium truncate text-n-slate-12">{{ tool.title }}</span>
+              <span class="text-xs text-n-slate-10">{{ tool.http_method }} · {{ tool.enabled ? t('CAPTAIN.CUSTOM_TOOLS.ENABLED') : t('CAPTAIN.CUSTOM_TOOLS.DISABLED') }}</span>
+            </button>
+          </div>
+        </aside>
+        <div class="flex-1 min-w-0 p-4 overflow-y-auto">
+          <CustomToolCard
+            v-if="activeTool"
+            :id="activeTool.id"
+            :title="activeTool.title"
+            :description="activeTool.description"
+            :endpoint-url="activeTool.endpoint_url"
+            :http-method="activeTool.http_method"
+            :auth-type="activeTool.auth_type"
+            :param-schema="activeTool.param_schema"
+            :enabled="activeTool.enabled"
+            :source-metadata="activeTool.source_metadata"
+            :is-updating="pendingToggleIds.has(activeTool.id)"
+            :created-at="activeTool.created_at"
+            :updated-at="activeTool.updated_at"
+            @action="handleAction"
+            @toggle="toggleCustomTool"
+          />
+          <CustomToolsPageEmptyState v-else @click="openCreateDialog" />
+        </div>
       </div>
     </template>
   </PageLayout>

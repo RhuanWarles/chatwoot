@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onActivated, onMounted, ref } from 'vue';
+import { computed, onActivated, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import api from 'dashboard/api/knowledgeBases';
@@ -17,6 +17,7 @@ const search = ref('');
 const status = ref('all');
 const deletion = ref(null);
 const target = ref(null);
+const selectedBaseId = ref(null);
 
 const filteredBases = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -96,14 +97,48 @@ const documentCount = count => t('KNOWLEDGE.DOCUMENTS_COUNT', { count }, count);
 const agentCount = count => t('KNOWLEDGE.AGENTS_COUNT', { count }, count);
 const description = base => base.description || t('KNOWLEDGE.NO_DESCRIPTION');
 
+const selectBase = base => {
+  selectedBaseId.value = base.id;
+  openEditor(base);
+};
+
 onMounted(load);
 onActivated(() => {
   if (!loading.value) load();
 });
+
+watch(
+  bases,
+  items => {
+    if (!items.some(base => base.id === selectedBaseId.value)) {
+      selectedBaseId.value = items[0]?.id || null;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
-  <main class="flex flex-col w-full min-w-0 gap-6 pb-8">
+  <main class="flex w-full min-w-0 h-full gap-0 overflow-hidden">
+    <aside class="hidden md:flex flex-col w-72 shrink-0 border-e border-n-weak bg-n-solid-2">
+      <div class="flex items-center justify-between gap-2 px-4 py-4 border-b border-n-weak">
+        <div class="flex items-center gap-2 min-w-0">
+          <h2 class="text-sm font-semibold truncate text-n-slate-12">{{ t('KNOWLEDGE.TITLE') }}</h2>
+          <span class="text-xs text-n-slate-10">{{ bases.length }}</span>
+        </div>
+        <Button icon="i-lucide-plus" size="xs" slate ghost :aria-label="t('KNOWLEDGE.CREATE')" @click="openEditor()" />
+      </div>
+      <div class="p-3 border-b border-n-weak">
+        <Input v-model="search" :label="t('KNOWLEDGE.SEARCH_BASES')" :placeholder="t('KNOWLEDGE.SEARCH_BASES_PLACEHOLDER')" />
+      </div>
+      <div class="flex-1 min-h-0 p-2 overflow-y-auto">
+        <button v-for="base in filteredBases" :key="base.id" type="button" class="flex flex-col w-full gap-1 px-3 py-2 text-start rounded-lg" :class="base.id === selectedBaseId ? 'bg-n-alpha-2 outline outline-1 outline-n-weak' : 'hover:bg-n-alpha-2'" @click="selectBase(base)">
+          <span class="text-sm font-medium truncate text-n-slate-12">{{ base.name }}</span>
+          <span class="text-xs text-n-slate-10">{{ documentCount(base.documents_count || 0) }}</span>
+        </button>
+      </div>
+    </aside>
+    <section class="flex flex-col flex-1 min-w-0 gap-6 px-4 md:px-6 pb-8 overflow-y-auto">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
         <p
@@ -269,6 +304,7 @@ onActivated(() => {
       </article>
     </div>
 
+    </section>
     <Dialog
       ref="deletion"
       type="alert"
