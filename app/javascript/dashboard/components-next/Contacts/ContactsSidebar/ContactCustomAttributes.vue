@@ -1,8 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Draggable from 'vuedraggable';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import {
+  mergeAttributeOrder,
+  reorderSubset,
+  sortByAttributeOrder,
+} from 'dashboard/helper/attributeOrder';
 
 import ContactCustomAttributeItem from 'dashboard/components-next/Contacts/ContactsSidebar/ContactCustomAttributeItem.vue';
 
@@ -15,7 +21,10 @@ const props = defineProps({
 
 const { t } = useI18n();
 
-const { uiSettings } = useUISettings();
+const { uiSettings, updateUISettings } = useUISettings();
+
+// The same key the conversation sidebar uses, so both screens show the attributes in one order.
+const ORDER_KEY = 'conversation_elements_order_conversation_contact_panel';
 
 const searchQuery = ref('');
 
@@ -49,28 +58,26 @@ const processContactAttributes = (
   }, []);
 };
 
-const sortAttributesOrder = computed(
-  () =>
-    uiSettings.value.conversation_elements_order_conversation_contact_panel ??
-    []
-);
+const savedOrder = computed(() => uiSettings.value[ORDER_KEY] ?? []);
 
-const sortByUISettings = attributes => {
-  // Get saved order from UI settings
-  // Same as conversation panel contact attribute order
-  const order = sortAttributesOrder.value;
+const sortByUISettings = attributes =>
+  sortByAttributeOrder(
+    attributes,
+    ({ attributeKey }) => attributeKey,
+    savedOrder.value
+  );
 
-  // If no order defined, return original array
-  if (!order?.length) return attributes;
-
-  const orderMap = new Map(order.map((key, index) => [key, index]));
-
-  // Sort attributes based on their position in saved order
-  return [...attributes].sort((a, b) => {
-    // Get positions, use Infinity if not found in order (pushes to end)
-    const aPos = orderMap.get(a.attributeKey) ?? Infinity;
-    const bPos = orderMap.get(b.attributeKey) ?? Infinity;
-    return aPos - bPos;
+// A list was reordered: its attributes keep their places among all the others, and elements this page does not show stay put.
+const saveListOrder = reordered => {
+  const allKeys = sortByUISettings(contactAttributes.value).map(
+    ({ attributeKey }) => attributeKey
+  );
+  const order = reorderSubset(
+    allKeys,
+    reordered.map(({ attributeKey }) => attributeKey)
+  );
+  updateUISettings({
+    [ORDER_KEY]: mergeAttributeOrder(savedOrder.value, order),
   });
 };
 
@@ -109,14 +116,32 @@ const hasNoUsedAttributes = computed(() => usedAttributes.value.length === 0);
 
 <template>
   <div v-if="hasContactAttributes" class="flex flex-col gap-6 px-6">
-    <div v-if="!hasNoUsedAttributes" class="flex flex-col gap-2">
-      <ContactCustomAttributeItem
-        v-for="attribute in usedAttributes"
-        :key="attribute.id"
-        is-editing-view
-        :attribute="attribute"
-      />
-    </div>
+    <Draggable
+      v-if="!hasNoUsedAttributes"
+      :model-value="usedAttributes"
+      item-key="id"
+      tag="div"
+      class="flex flex-col gap-2"
+      handle=".attribute-drag-handle"
+      animation="200"
+      @update:model-value="saveListOrder"
+    >
+      <template #item="{ element: attribute }">
+        <div class="flex items-center gap-1" data-test="used-attribute">
+          <span
+            class="attribute-drag-handle i-lucide-grip-vertical size-4 shrink-0 cursor-grab text-n-slate-10"
+            :title="t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.DRAG_TO_REORDER')"
+            aria-hidden="true"
+          />
+          <div class="min-w-0 flex-1">
+            <ContactCustomAttributeItem
+              is-editing-view
+              :attribute="attribute"
+            />
+          </div>
+        </div>
+      </template>
+    </Draggable>
     <div v-if="!hasNoUnusedAttributes" class="flex items-center gap-3">
       <div class="flex-1 h-[1px] bg-n-slate-5" />
       <span class="text-sm font-medium text-n-slate-10">{{
@@ -146,13 +171,31 @@ const hasNoUsedAttributes = computed(() => usedAttributes.value.length === 0);
           {{ t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.NO_ATTRIBUTES') }}
         </p>
       </div>
-      <div v-if="!hasNoUnusedAttributes" class="flex flex-col gap-2">
-        <ContactCustomAttributeItem
-          v-for="attribute in filteredUnusedAttributes"
-          :key="attribute.id"
-          :attribute="attribute"
-        />
-      </div>
+      <Draggable
+        v-if="!hasNoUnusedAttributes"
+        :model-value="filteredUnusedAttributes"
+        item-key="id"
+        tag="div"
+        class="flex flex-col gap-2"
+        handle=".attribute-drag-handle"
+        animation="200"
+        :disabled="Boolean(searchQuery)"
+        @update:model-value="saveListOrder"
+      >
+        <template #item="{ element: attribute }">
+          <div class="flex items-center gap-1" data-test="unused-attribute">
+            <span
+              v-if="!searchQuery"
+              class="attribute-drag-handle i-lucide-grip-vertical size-4 shrink-0 cursor-grab text-n-slate-10"
+              :title="t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.DRAG_TO_REORDER')"
+              aria-hidden="true"
+            />
+            <div class="min-w-0 flex-1">
+              <ContactCustomAttributeItem :attribute="attribute" />
+            </div>
+          </div>
+        </template>
+      </Draggable>
     </div>
   </div>
   <p v-else class="px-6 py-10 text-sm leading-6 text-center text-n-slate-11">
