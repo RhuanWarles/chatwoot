@@ -17,7 +17,7 @@ const assistantId = computed(() => Number(route.params.assistantId));
     class="h-full"
   >
     <template #body>
-      <div class="flex flex-col h-full">
+      <div class="flex flex-col h-full min-h-0">
         <AssistantPlayground
           :assistant-id="assistantId"
           class="bg-n-surface-1"

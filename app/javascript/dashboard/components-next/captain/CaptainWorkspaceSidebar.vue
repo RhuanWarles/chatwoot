@@ -26,8 +26,14 @@ const filteredAssistants = computed(() => {
 });
 
 const openAssistant = assistant => {
+  const currentName = [
+    'captain_assistants_index',
+    'captain_assistants_overview_index',
+  ].includes(route.name)
+    ? 'captain_assistants_settings_index'
+    : route.name;
   router.push({
-    name: route.name || 'captain_assistants_overview_index',
+    name: currentName || 'captain_assistants_settings_index',
     params: { ...route.params, assistantId: assistant.id },
   });
 };

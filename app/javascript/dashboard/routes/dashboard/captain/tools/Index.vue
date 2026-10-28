@@ -12,9 +12,8 @@ import PageLayout from 'dashboard/components-next/captain/PageLayout.vue';
 import CaptainPaywall from 'dashboard/components-next/captain/pageComponents/Paywall.vue';
 import CustomToolsPageEmptyState from 'dashboard/components-next/captain/pageComponents/emptyStates/CustomToolsPageEmptyState.vue';
 import CreateCustomToolDialog from 'dashboard/components-next/captain/pageComponents/customTool/CreateCustomToolDialog.vue';
-import CustomToolCard from 'dashboard/components-next/captain/pageComponents/customTool/CustomToolCard.vue';
+import CustomToolForm from 'dashboard/components-next/captain/pageComponents/customTool/CustomToolForm.vue';
 import DeleteDialog from 'dashboard/components-next/captain/pageComponents/DeleteDialog.vue';
-import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import AssistantToolsBanner from 'dashboard/components-next/captain/pageComponents/customTool/AssistantToolsBanner.vue';
 
 const store = useStore();
@@ -45,39 +44,9 @@ const customToolsMeta = useMapGetter('captainCustomTools/getMeta');
 
 const createDialogRef = ref(null);
 const deleteDialogRef = ref(null);
-const disableDialogRef = ref(null);
 const selectedTool = ref(null);
 const dialogType = ref('');
-const pendingToggleIds = ref(new Set());
-const pendingDisable = ref(null);
-const isDisableSaving = ref(false);
-
-const disableConfirmationTitle = computed(() =>
-  t('CAPTAIN.CUSTOM_TOOLS.DISABLE_CONFIRMATION.TITLE', {
-    title: pendingDisable.value?.title,
-  })
-);
-
-const disableConfirmationDescription = computed(() => {
-  const count = pendingDisable.value?.enabledScenariosCount || 0;
-  return count === 1
-    ? t('CAPTAIN.CUSTOM_TOOLS.DISABLE_CONFIRMATION.DESCRIPTION_ONE', {
-        count,
-      })
-    : t('CAPTAIN.CUSTOM_TOOLS.DISABLE_CONFIRMATION.DESCRIPTION_OTHER', {
-        count,
-      });
-});
-
-const setTogglePending = (id, isPending) => {
-  const pendingIds = new Set(pendingToggleIds.value);
-  if (isPending) {
-    pendingIds.add(id);
-  } else {
-    pendingIds.delete(id);
-  }
-  pendingToggleIds.value = pendingIds;
-};
+const isSavingInline = ref(false);
 
 const fetchCustomTools = (page = 1) =>
   run(signal =>
@@ -96,94 +65,11 @@ const openCreateDialog = () => {
   nextTick(() => createDialogRef.value.dialogRef.open());
 };
 
-const openToolPanel = (type, tool) => {
-  dialogType.value = type;
-  selectedTool.value = tool;
-  nextTick(() => createDialogRef.value.dialogRef.open());
-};
-
 const handleDelete = tool => {
   selectedTool.value = tool;
   nextTick(() => deleteDialogRef.value.dialogRef.open());
 };
 
-const handleAction = ({ action, id }) => {
-  const tool = customTools.value.find(item => item.id === id);
-  if (action === 'edit' || action === 'view') {
-    openToolPanel(action, tool);
-  } else if (action === 'delete') {
-    handleDelete(tool);
-  }
-};
-
-const updateCustomToolStatus = async ({ id, enabled }) => {
-  try {
-    await store.dispatch('captainCustomTools/update', {
-      id,
-      enabled,
-      assistantId: assistantId.value,
-    });
-    const successMessage = enabled
-      ? t('CAPTAIN.CUSTOM_TOOLS.TOGGLE.ENABLED')
-      : t('CAPTAIN.CUSTOM_TOOLS.TOGGLE.DISABLED');
-    useAlert(successMessage);
-    return true;
-  } catch {
-    useAlert(t('CAPTAIN.CUSTOM_TOOLS.TOGGLE.ERROR'));
-    return false;
-  }
-};
-
-const toggleCustomTool = async ({ id, enabled }) => {
-  if (pendingToggleIds.value.has(id)) return;
-
-  setTogglePending(id, true);
-
-  if (!enabled) {
-    try {
-      const tool = await store.dispatch('captainCustomTools/show', {
-        id,
-        assistantId: assistantId.value,
-      });
-      if (tool.enabled_scenarios_count > 0) {
-        pendingDisable.value = {
-          id,
-          enabled,
-          title: tool.title,
-          enabledScenariosCount: tool.enabled_scenarios_count,
-        };
-        await nextTick();
-        disableDialogRef.value?.open();
-        return;
-      }
-    } catch {
-      useAlert(t('CAPTAIN.CUSTOM_TOOLS.TOGGLE.ERROR'));
-      setTogglePending(id, false);
-      return;
-    }
-  }
-
-  await updateCustomToolStatus({ id, enabled });
-  setTogglePending(id, false);
-};
-
-const handleDisableConfirm = async () => {
-  if (!pendingDisable.value) return;
-
-  isDisableSaving.value = true;
-  const updated = await updateCustomToolStatus(pendingDisable.value);
-  isDisableSaving.value = false;
-
-  if (updated) disableDialogRef.value?.close();
-};
-
-const handleDisableDialogClose = () => {
-  if (pendingDisable.value) {
-    setTogglePending(pendingDisable.value.id, false);
-  }
-  pendingDisable.value = null;
-  isDisableSaving.value = false;
-};
 
 const handleDialogClose = () => {
   dialogType.value = '';
@@ -193,6 +79,24 @@ const handleDialogClose = () => {
 const handleToolCreated = tool => {
   selectedToolId.value = tool?.id || null;
   fetchCustomTools();
+};
+
+const saveActiveTool = async details => {
+  if (!activeTool.value || isSavingInline.value) return;
+  isSavingInline.value = true;
+  try {
+    await store.dispatch('captainCustomTools/update', {
+      id: activeTool.value.id,
+      assistantId: assistantId.value,
+      ...details,
+    });
+    await fetchCustomTools();
+    useAlert(t('CAPTAIN.CUSTOM_TOOLS.EDIT.SUCCESS_MESSAGE'));
+  } catch {
+    useAlert(t('CAPTAIN.CUSTOM_TOOLS.EDIT.ERROR_MESSAGE'));
+  } finally {
+    isSavingInline.value = false;
+  }
 };
 
 const onDeleteSuccess = () => {
@@ -265,24 +169,20 @@ watch(customTools, tools => {
           </div>
         </aside>
         <div class="flex-1 min-w-0 p-4 overflow-y-auto">
-          <CustomToolCard
-            v-if="activeTool"
-            :id="activeTool.id"
-            :title="activeTool.title"
-            :description="activeTool.description"
-            :endpoint-url="activeTool.endpoint_url"
-            :http-method="activeTool.http_method"
-            :auth-type="activeTool.auth_type"
-            :param-schema="activeTool.param_schema"
-            :enabled="activeTool.enabled"
-            :source-metadata="activeTool.source_metadata"
-            :is-updating="pendingToggleIds.has(activeTool.id)"
-            :created-at="activeTool.created_at"
-            :updated-at="activeTool.updated_at"
-            @action="handleAction"
-            @toggle="toggleCustomTool"
-          />
-          <CustomToolsPageEmptyState v-else @click="openCreateDialog" />
+          <div v-if="activeTool" class="flex flex-col gap-4">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-xl font-semibold text-n-slate-12">{{ activeTool.title }}</h2>
+                <p class="mt-1 text-sm text-n-slate-11">{{ activeTool.enabled ? t('CAPTAIN.CUSTOM_TOOLS.ENABLED') : t('CAPTAIN.CUSTOM_TOOLS.DISABLED') }}</p>
+              </div>
+              <div class="flex gap-2">
+                <Button :label="t('CAPTAIN.CUSTOM_TOOLS.DELETE')" color="ruby" variant="faded" @click="handleDelete(activeTool)" />
+                <Button :label="t('CAPTAIN.FORM.EDIT')" :is-loading="isSavingInline" type="submit" form="custom-tool-form" />
+              </div>
+            </div>
+            <CustomToolForm :tool="activeTool" mode="edit" @submit="saveActiveTool" />
+          </div>
+          <CustomToolsPageEmptyState v-if="!activeTool" @click="openCreateDialog" />
         </div>
       </div>
     </template>
@@ -307,16 +207,4 @@ watch(customTools, tools => {
     @delete-success="onDeleteSuccess"
   />
 
-  <Dialog
-    ref="disableDialogRef"
-    type="alert"
-    :title="disableConfirmationTitle"
-    :description="disableConfirmationDescription"
-    :confirm-button-label="
-      t('CAPTAIN.CUSTOM_TOOLS.DISABLE_CONFIRMATION.CONFIRM')
-    "
-    :is-loading="isDisableSaving"
-    @confirm="handleDisableConfirm"
-    @close="handleDisableDialogClose"
-  />
 </template>

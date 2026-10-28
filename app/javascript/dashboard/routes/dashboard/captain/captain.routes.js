@@ -182,7 +182,7 @@ export const routes = [
       return {
         name: 'captain_assistants_index',
         params: {
-          navigationPath: 'captain_assistants_overview_index',
+          navigationPath: 'captain_assistants_settings_index',
           ...to.params,
         },
       };

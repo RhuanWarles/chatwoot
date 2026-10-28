@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onActivated, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import api from 'dashboard/api/knowledgeBases';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
@@ -9,6 +9,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const bases = ref([]);
 const loading = ref(true);
 const error = ref('');
@@ -41,6 +42,16 @@ const load = async () => {
   error.value = '';
   try {
     bases.value = (await api.get()).data.bases || [];
+    if (route.name === 'knowledge_bases_settings' && bases.value[0]) {
+      selectedBaseId.value = bases.value[0].id;
+      await router.replace({
+        name: 'knowledge_base_edit',
+        params: {
+          accountId: route.params.accountId,
+          knowledgeBaseId: bases.value[0].id,
+        },
+      });
+    }
   } catch {
     error.value = t('KNOWLEDGE.ERROR');
   } finally {
@@ -96,6 +107,7 @@ const remove = async () => {
 const documentCount = count => t('KNOWLEDGE.DOCUMENTS_COUNT', { count }, count);
 const agentCount = count => t('KNOWLEDGE.AGENTS_COUNT', { count }, count);
 const description = base => base.description || t('KNOWLEDGE.NO_DESCRIPTION');
+const isDetailRoute = computed(() => route.name !== 'knowledge_bases_settings');
 
 const selectBase = base => {
   selectedBaseId.value = base.id;
@@ -113,6 +125,14 @@ watch(
     if (!items.some(base => base.id === selectedBaseId.value)) {
       selectedBaseId.value = items[0]?.id || null;
     }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => route.params.knowledgeBaseId,
+  value => {
+    if (value) selectedBaseId.value = Number(value);
   },
   { immediate: true }
 );
@@ -139,6 +159,8 @@ watch(
       </div>
     </aside>
     <section class="flex flex-col flex-1 min-w-0 gap-6 px-4 md:px-6 pb-8 overflow-y-auto">
+    <router-view v-if="isDetailRoute" />
+    <div v-else class="flex flex-col gap-6">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0">
         <p
@@ -304,6 +326,7 @@ watch(
       </article>
     </div>
 
+    </div>
     </section>
     <Dialog
       ref="deletion"
