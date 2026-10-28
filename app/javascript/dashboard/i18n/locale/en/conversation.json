@@ -420,6 +420,29 @@
         "SHOW_TOOLTIP": "Show trimmed content",
         "HIDE_TOOLTIP": "Hide trimmed content",
         "REMOVE": "Remove quoted text"
+      },
+      "AUDIO_RECORDER": {
+        "DISCARD": "Discard recording",
+        "PAUSE": "Pause",
+        "RESUME": "Resume",
+        "STOP": "Stop",
+        "PLAY": "Listen",
+        "PAUSE_PLAYBACK": "Pause",
+        "RERECORD": "Record again",
+        "STARTING": "Waiting for the microphone…",
+        "RECORDING": "Recording",
+        "PAUSED": "Paused",
+        "PROCESSING": "Preparing the audio…",
+        "HINT_STARTING": "Allow the use of the microphone in your browser to start.",
+        "HINT_RECORDING": "Click Stop to listen to it before sending.",
+        "HINT_PAUSED": "Recording paused. Resume it or click Stop.",
+        "HINT_PROCESSING": "Just a moment.",
+        "HINT_READY": "Listen to it if you want, then click Send.",
+        "ERRORS": {
+          "PERMISSION_DENIED": "The browser blocked the microphone. Allow it in the address bar and try again.",
+          "NO_MICROPHONE": "No microphone was found. Connect one and try again.",
+          "UNAVAILABLE": "This browser cannot record audio."
+        }
       }
     },
     "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",

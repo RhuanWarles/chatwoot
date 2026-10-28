@@ -20,6 +20,7 @@ import QuotedEmailPreview from './QuotedEmailPreview.vue';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import AudioRecorder from 'dashboard/components/widgets/WootWriter/AudioRecorder.vue';
+import { recorderErrorKey } from 'dashboard/components/widgets/WootWriter/utils/audioRecorderErrors';
 import { AUDIO_FORMATS } from 'shared/constants/messages';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { CMD_AI_ASSIST } from 'dashboard/helper/commandbar/events';
@@ -166,8 +167,6 @@ export default {
       showEmojiPicker: false,
       attachedFiles: [],
       isRecordingAudio: false,
-      recordingAudioState: '',
-      recordingAudioDurationText: '',
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
       draftReplyMode: null,
@@ -1145,14 +1144,12 @@ export default {
         this.resetAudioRecorderInput();
       }
     },
-    toggleAudioRecorderPlayPause() {
-      if (!this.$refs.audioRecorderInput) return;
-      if (this.recordingAudioState === 'processing') return;
-      if (!this.recordingAudioState) {
-        this.$refs.audioRecorderInput.stopRecording();
-      } else {
-        this.$refs.audioRecorderInput.playPause();
-      }
+    // Throws the recording away and opens a new one right away.
+    restartAudioRecorder() {
+      this.resetAudioRecorderInput();
+      this.$nextTick(() => {
+        this.isRecordingAudio = true;
+      });
     },
     hideEmojiPicker() {
       if (this.showEmojiPicker) {
@@ -1172,11 +1169,7 @@ export default {
     onFocus() {
       this.isFocused = true;
     },
-    onRecordProgressChanged(duration) {
-      this.recordingAudioDurationText = duration;
-    },
     onFinishRecorder(file) {
-      this.recordingAudioState = 'stopped';
       this.hasRecordedAudio = true;
       // Added a new key isVoiceMessage to the file to identify recorded audio
       // Because to filter and show only non recorded audio and other attachments
@@ -1188,9 +1181,9 @@ export default {
       };
       return file && this.onFileUpload(autoRecordedFile);
     },
-    onRecordError() {
+    onRecordError({ error } = {}) {
       this.toggleAudioRecorder();
-      useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
+      useAlert(this.$t(recorderErrorKey(error)));
     },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;
@@ -1424,9 +1417,7 @@ export default {
     },
     resetAudioRecorderInput() {
       this.audioRecordingSession += 1;
-      this.recordingAudioDurationText = '00:00';
       this.isRecordingAudio = false;
-      this.recordingAudioState = '';
       this.hasRecordedAudio = false;
       // Only clear the recorded audio when we click toggle button.
       this.attachedFiles = this.attachedFiles.filter(
@@ -1513,14 +1504,11 @@ export default {
         />
         <AudioRecorder
           v-if="showAudioRecorderEditor"
-          ref="audioRecorderInput"
           :audio-record-format="audioRecordFormat"
-          @recorder-progress-changed="onRecordProgressChanged"
           @finish-record="onFinishRecorder"
           @record-error="onRecordError"
-          @processing="recordingAudioState = 'processing'"
-          @play="recordingAudioState = 'playing'"
-          @pause="recordingAudioState = 'paused'"
+          @discard="toggleAudioRecorder"
+          @rerecord="restartAudioRecorder"
         />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
@@ -1632,13 +1620,10 @@ export default {
         :on-file-upload="onFileUpload"
         :on-send="onSendReply"
         :conversation-type="conversationType"
-        :recording-audio-duration-text="recordingAudioDurationText"
-        :recording-audio-state="recordingAudioState"
         :send-button-text="replyButtonLabel"
         :show-audio-recorder="showAudioRecorder"
         :show-emoji-picker="showEmojiPicker"
         :show-file-upload="showFileUpload"
-        :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
         :toggle-audio-recorder="toggleAudioRecorder"
         :toggle-emoji-picker="toggleEmojiPicker"
         :message="message"

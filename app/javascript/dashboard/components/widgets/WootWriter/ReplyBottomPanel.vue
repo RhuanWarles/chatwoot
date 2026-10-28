@@ -35,10 +35,6 @@ export default {
       type: String,
       default: '',
     },
-    recordingAudioDurationText: {
-      type: String,
-      default: '00:00',
-    },
     // inbox prop is used in /mixins/inboxMixin,
     // remove this props when refactoring to composable if not needed
     // eslint-disable-next-line vue/no-unused-properties
@@ -66,17 +62,9 @@ export default {
       type: Function,
       default: () => {},
     },
-    toggleAudioRecorderPlayPause: {
-      type: Function,
-      default: () => {},
-    },
     isRecordingAudio: {
       type: Boolean,
       default: false,
-    },
-    recordingAudioState: {
-      type: String,
-      default: '',
     },
     isSendDisabled: {
       type: Boolean,
@@ -196,9 +184,10 @@ export default {
         // !isSafari
       );
     },
-    showAudioPlayStopButton() {
-      if (this.isEditorDisabled) return false;
-      return this.showAudioRecorder && this.isRecordingAudio;
+    audioRecorderTooltip() {
+      return this.isRecordingAudio
+        ? this.$t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.DISCARD')
+        : this.$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON');
     },
     isInstagramDM() {
       return this.conversationType === 'instagram_direct_message';
@@ -220,19 +209,6 @@ export default {
     },
     enableDragAndDrop() {
       return !this.newConversationModalActive;
-    },
-    audioRecorderPlayStopIcon() {
-      switch (this.recordingAudioState) {
-        // playing paused recording stopped inactive destroyed
-        case 'playing':
-          return 'i-ph-pause';
-        case 'paused':
-          return 'i-ph-play';
-        case 'stopped':
-          return 'i-ph-play';
-        default:
-          return 'i-ph-stop';
-      }
     },
     showMessageSignatureButton() {
       if (this.isEditorDisabled) return false;
@@ -307,23 +283,12 @@ export default {
       </FileUpload>
       <NextButton
         v-if="showAudioRecorderButton"
-        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
+        v-tooltip.top-end="audioRecorderTooltip"
         :icon="!isRecordingAudio ? 'i-ph-microphone' : 'i-ph-microphone-slash'"
         slate
         faded
         sm
         @click="toggleAudioRecorder"
-      />
-      <NextButton
-        v-if="showAudioPlayStopButton"
-        :icon="audioRecorderPlayStopIcon"
-        slate
-        faded
-        sm
-        :label="recordingAudioDurationText"
-        :disabled="recordingAudioState === 'processing'"
-        :is-loading="recordingAudioState === 'processing'"
-        @click="toggleAudioRecorderPlayPause"
       />
       <NextButton
         v-if="showMessageSignatureButton"

@@ -392,6 +392,29 @@
         "REMOVE_PREVIEW": "Remover o encadeamento de e-mails citado",
         "COLLAPSE": "Recolher a prévia",
         "EXPAND": "Expandir a prévia"
+      },
+      "AUDIO_RECORDER": {
+        "DISCARD": "Descartar gravação",
+        "PAUSE": "Pausar",
+        "RESUME": "Continuar",
+        "STOP": "Parar",
+        "PLAY": "Ouvir",
+        "PAUSE_PLAYBACK": "Pausar",
+        "RERECORD": "Gravar de novo",
+        "STARTING": "Aguardando o microfone…",
+        "RECORDING": "Gravando",
+        "PAUSED": "Pausado",
+        "PROCESSING": "Preparando o áudio…",
+        "HINT_STARTING": "Permita o uso do microfone no navegador para começar.",
+        "HINT_RECORDING": "Clique em Parar para ouvir antes de enviar.",
+        "HINT_PAUSED": "Gravação pausada. Continue ou clique em Parar.",
+        "HINT_PROCESSING": "Só um instante.",
+        "HINT_READY": "Ouça se quiser e clique em Enviar.",
+        "ERRORS": {
+          "PERMISSION_DENIED": "O navegador bloqueou o microfone. Permita o acesso na barra de endereço e tente de novo.",
+          "NO_MICROPHONE": "Nenhum microfone foi encontrado. Conecte um e tente de novo.",
+          "UNAVAILABLE": "Este navegador não consegue gravar áudio."
+        }
       }
     },
     "VISIBLE_TO_AGENTS": "Mensagem Privada: Apenas visível para você e seu time",

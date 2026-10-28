@@ -1,10 +1,13 @@
 <script setup>
 import getUuid from 'widget/helpers/uuid';
-import { ref, shallowRef, onMounted, onUnmounted } from 'vue';
+import { computed, ref, shallowRef, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import WaveSurfer from 'wavesurfer.js';
 import RecordPlugin from 'wavesurfer.js/dist/plugins/record.js';
 import { format, intervalToDuration } from 'date-fns';
+import NextButton from 'dashboard/components-next/button/Button.vue';
 import { convertAudio } from './utils/audioConversionUtils';
+import { createUnavailableError } from './utils/audioRecorderErrors';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 
 const props = defineProps({
@@ -21,7 +24,11 @@ const emit = defineEmits([
   'play',
   'recordError',
   'processing',
+  'discard',
+  'rerecord',
 ]);
+
+const { t } = useI18n();
 
 const waveformContainer = ref(null);
 const wavesurfer = shallowRef(null);
@@ -29,8 +36,23 @@ const record = shallowRef(null);
 const { run: convertRecording } = useAbortableRequest();
 let disposed = false;
 const isRecording = ref(false);
+const isPaused = ref(false);
+const isProcessing = ref(false);
 const hasRecording = ref(false);
+const isPlaying = ref(false);
 const recordedAudioUrl = ref(null);
+const elapsedTime = ref(0);
+const playbackTime = ref(0);
+const totalTime = ref(0);
+
+// starting: waiting for the microphone, recording, paused, processing: converting the audio, ready: can be played and sent
+const phase = computed(() => {
+  if (isProcessing.value) return 'processing';
+  if (hasRecording.value) return 'ready';
+  if (isPaused.value) return 'paused';
+  if (isRecording.value) return 'recording';
+  return 'starting';
+});
 
 const formatTimeProgress = time => {
   const duration = intervalToDuration({ start: 0, end: time });
@@ -39,6 +61,34 @@ const formatTimeProgress = time => {
     'mm:ss'
   );
 };
+
+const timeText = computed(() =>
+  phase.value === 'ready'
+    ? `${formatTimeProgress(playbackTime.value)} / ${formatTimeProgress(totalTime.value)}`
+    : formatTimeProgress(elapsedTime.value)
+);
+
+const statusLabel = computed(
+  () =>
+    ({
+      starting: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.STARTING'),
+      recording: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.RECORDING'),
+      paused: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.PAUSED'),
+      processing: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.PROCESSING'),
+      ready: '',
+    })[phase.value]
+);
+
+const hint = computed(
+  () =>
+    ({
+      starting: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.HINT_STARTING'),
+      recording: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.HINT_RECORDING'),
+      paused: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.HINT_PAUSED'),
+      processing: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.HINT_PROCESSING'),
+      ready: t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.HINT_READY'),
+    })[phase.value]
+);
 
 const AUDIO_EXTENSION_MAP = {
   'audio/ogg': 'ogg',
@@ -67,7 +117,7 @@ const initWaveSurfer = () => {
     container: waveformContainer.value,
     waveColor: '#1F93FF',
     progressColor: '#6E6F73',
-    height: 100,
+    height: 48,
     barWidth: 2,
     barGap: 1,
     barRadius: 2,
@@ -76,14 +126,39 @@ const initWaveSurfer = () => {
     ],
   });
 
-  wavesurfer.value.on('pause', () => emit('pause'));
-  wavesurfer.value.on('play', () => emit('play'));
+  wavesurfer.value.on('pause', () => {
+    isPlaying.value = false;
+    emit('pause');
+  });
+  wavesurfer.value.on('play', () => {
+    isPlaying.value = true;
+    emit('play');
+  });
+  wavesurfer.value.on('finish', () => {
+    isPlaying.value = false;
+  });
+  wavesurfer.value.on('timeupdate', seconds => {
+    playbackTime.value = seconds * 1000;
+  });
+  wavesurfer.value.on('ready', seconds => {
+    totalTime.value = seconds * 1000;
+  });
 
   record.value = wavesurfer.value.plugins[0];
+
+  record.value.on('record-pause', () => {
+    isPaused.value = true;
+  });
+  record.value.on('record-resume', () => {
+    isPaused.value = false;
+  });
 
   record.value.on('record-end', async blob => {
     if (disposed) return;
     record.value.stopMic();
+    isRecording.value = false;
+    isPaused.value = false;
+    isProcessing.value = true;
     emit('processing');
     try {
       const audioBlob = await convertRecording(signal =>
@@ -112,24 +187,37 @@ const initWaveSurfer = () => {
         file,
       });
       hasRecording.value = true;
-      isRecording.value = false;
+      isProcessing.value = false;
     } catch (error) {
       if (disposed) return;
-      isRecording.value = false;
+      isProcessing.value = false;
       hasRecording.value = false;
       emit('recordError', { error });
     }
   });
 
   record.value.on('record-progress', time => {
+    elapsedTime.value = time;
     emit('recorderProgressChanged', formatTimeProgress(time));
   });
 };
 
 const stopRecording = () => {
-  if (isRecording.value) {
+  if (isRecording.value || isPaused.value) {
     record.value.stopRecording();
     isRecording.value = false;
+    isPaused.value = false;
+    isProcessing.value = true;
+  }
+};
+
+const togglePauseRecording = () => {
+  if (isPaused.value) {
+    record.value.resumeRecording();
+    isPaused.value = false;
+  } else if (isRecording.value) {
+    record.value.pauseRecording();
+    isPaused.value = true;
   }
 };
 
@@ -156,7 +244,7 @@ const playPause = () => {
 
 onMounted(() => {
   if (!window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) {
-    emit('recordError', { error: new Error('Audio recording is unavailable') });
+    emit('recordError', { error: createUnavailableError() });
     return;
   }
   initWaveSurfer();
@@ -178,5 +266,109 @@ defineExpose({ playPause, stopRecording, record });
 </script>
 
 <template>
-  <div ref="waveformContainer" class="w-full p-1" />
+  <div
+    class="flex flex-col w-full gap-1 px-3 py-2"
+    :data-phase="phase"
+    data-test="audio-recorder"
+  >
+    <div class="flex items-center w-full gap-3">
+      <NextButton
+        v-tooltip.top="t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.DISCARD')"
+        :aria-label="t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.DISCARD')"
+        icon="i-lucide-trash-2"
+        ruby
+        faded
+        sm
+        data-test="recorder-discard"
+        @click="emit('discard')"
+      />
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span
+          v-if="phase === 'recording'"
+          class="rounded-full size-2.5 bg-n-ruby-9 animate-pulse"
+          aria-hidden="true"
+          data-test="recorder-live-dot"
+        />
+        <span
+          v-else-if="phase === 'paused'"
+          class="i-lucide-pause size-3.5 text-n-amber-11"
+          aria-hidden="true"
+        />
+        <span class="sr-only" role="status">{{ statusLabel }}</span>
+        <span
+          class="text-sm font-medium tabular-nums text-n-slate-12"
+          data-test="recorder-time"
+        >
+          {{ timeText }}
+        </span>
+      </div>
+      <div
+        ref="waveformContainer"
+        class="flex-1 min-w-0"
+        :class="{
+          'opacity-40': phase === 'starting' || phase === 'processing',
+        }"
+      />
+      <div class="flex items-center gap-1 shrink-0">
+        <template v-if="phase === 'recording' || phase === 'paused'">
+          <NextButton
+            :icon="phase === 'paused' ? 'i-lucide-mic' : 'i-lucide-pause'"
+            :label="
+              phase === 'paused'
+                ? t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.RESUME')
+                : t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.PAUSE')
+            "
+            slate
+            faded
+            sm
+            data-test="recorder-pause"
+            @click="togglePauseRecording"
+          />
+          <NextButton
+            icon="i-lucide-square"
+            :label="t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.STOP')"
+            sm
+            data-test="recorder-stop"
+            @click="stopRecording"
+          />
+        </template>
+        <NextButton
+          v-else-if="phase === 'processing'"
+          slate
+          faded
+          sm
+          is-loading
+          disabled
+          data-test="recorder-processing"
+        />
+        <template v-else-if="phase === 'ready'">
+          <NextButton
+            :icon="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'"
+            :label="
+              isPlaying
+                ? t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.PAUSE_PLAYBACK')
+                : t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.PLAY')
+            "
+            slate
+            faded
+            sm
+            data-test="recorder-play"
+            @click="playPause"
+          />
+          <NextButton
+            icon="i-lucide-rotate-ccw"
+            :label="t('CONVERSATION.REPLYBOX.AUDIO_RECORDER.RERECORD')"
+            slate
+            ghost
+            sm
+            data-test="recorder-rerecord"
+            @click="emit('rerecord')"
+          />
+        </template>
+      </div>
+    </div>
+    <p class="m-0 text-xs text-n-slate-11" data-test="recorder-hint">
+      {{ hint }}
+    </p>
+  </div>
 </template>
