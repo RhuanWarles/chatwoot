@@ -418,14 +418,6 @@
     }
   },
   "CAPTAIN": {
-    "WORKSPACE": {
-      "ASSISTANTS": "Assistants",
-      "CREATE_ASSISTANT": "Create assistant",
-      "SEARCH_ASSISTANTS": "Search assistants",
-      "ACTIVE": "Active",
-      "INACTIVE": "Inactive",
-      "EMPTY_ASSISTANTS": "No assistants found"
-    },
     "NAME": "Captain",
     "HEADER_KNOW_MORE": "Know more",
     "OVERVIEW": {
@@ -1279,9 +1271,6 @@
       }
     },
     "CUSTOM_TOOLS": {
-      "SEARCH": "Search tools",
-      "ENABLED": "Enabled",
-      "DISABLED": "Disabled",
       "HEADER": "Tools",
       "ADD_NEW": "Create a new tool",
       "INSTALL_MANIFEST": {

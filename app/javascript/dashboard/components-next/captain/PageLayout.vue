@@ -210,8 +210,8 @@ const handleCreateAssistant = () => {
         <slot name="subHeader" />
       </div>
     </header>
-    <main class="flex-1 min-h-0 px-6 overflow-y-auto">
-      <div class="w-full h-full min-h-0 py-4 mx-auto" :class="containerClass">
+    <main class="flex-1 px-6 overflow-y-auto">
+      <div class="w-full h-full py-4 mx-auto" :class="containerClass">
         <slot v-if="!showPaywall" name="controls" />
         <div
           v-if="isFetching"

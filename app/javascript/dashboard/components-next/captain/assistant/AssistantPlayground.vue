@@ -220,9 +220,9 @@ const handleEnterKey = event => {
 
 <template>
   <div
-    class="flex h-full min-h-0 overflow-hidden rounded-xl border border-n-weak text-n-slate-11"
+    class="flex h-full overflow-hidden rounded-xl border border-n-weak text-n-slate-11"
   >
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col pt-6 pb-6">
+    <div class="flex min-w-0 flex-1 flex-col pt-6 pb-16 xl:pb-6">
       <div class="mb-8 px-6">
         <div class="mb-1 flex items-center justify-between gap-3">
           <h3 class="text-lg font-medium">
@@ -252,14 +252,10 @@ const handleEnterKey = event => {
         </p>
       </div>
 
-      <MessageList
-        :messages="messages"
-        :is-loading="isLoading"
-        class="min-h-0 shrink"
-      />
+      <MessageList :messages="messages" :is-loading="isLoading" />
 
       <div
-        class="mx-6 flex shrink-0 items-center rounded-xl bg-n-background p-3 outline outline-1 outline-n-weak"
+        class="mx-6 flex items-center rounded-xl bg-n-background p-3 outline outline-1 outline-n-weak"
       >
         <input
           v-model="newMessage"
@@ -277,7 +273,7 @@ const handleEnterKey = event => {
         />
       </div>
 
-      <p class="shrink-0 pt-2 text-center text-xs text-n-slate-11">
+      <p class="pt-2 text-center text-xs text-n-slate-11">
         {{ t('CAPTAIN.PLAYGROUND.CREDIT_NOTE') }}
       </p>
     </div>

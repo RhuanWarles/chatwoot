@@ -413,14 +413,6 @@
     }
   },
   "CAPTAIN": {
-    "WORKSPACE": {
-      "ASSISTANTS": "Assistentes",
-      "CREATE_ASSISTANT": "Criar assistente",
-      "SEARCH_ASSISTANTS": "Buscar assistentes",
-      "ACTIVE": "Ativo",
-      "INACTIVE": "Inativo",
-      "EMPTY_ASSISTANTS": "Nenhum assistente encontrado"
-    },
     "NAME": "Capitão",
     "HEADER_KNOW_MORE": "Saiba mais",
     "OVERVIEW": {
@@ -1166,9 +1158,6 @@
       }
     },
     "CUSTOM_TOOLS": {
-      "SEARCH": "Buscar ferramentas",
-      "ENABLED": "Ativa",
-      "DISABLED": "Inativa",
       "HEADER": "Ferramentas",
       "ADD_NEW": "Criar ferramenta",
       "SOFT_LIMIT_WARNING": "Ter mais de 10 ferramentas pode reduzir a confiabilidade do assistente na seleção da ferramenta certa. Considere remover ferramentas não utilizadas para melhores resultados.",
