@@ -30,6 +30,12 @@ const stageOptions = computed(() =>
     []
   ).map(stage => ({ value: stage.id, label: stage.name }))
 );
+// Inactive pipelines are not offered, except the one the deal already is in.
+const pipelineOptions = computed(() =>
+  pipelines.value
+    .filter(item => item.active || item.id === deal.value?.pipeline_id)
+    .map(item => ({ value: item.id, label: item.name }))
+);
 const dealOptions = computed(() =>
   deals.value.map(item => ({
     value: item.id,
@@ -62,6 +68,31 @@ const changeStage = async stageId => {
   saving.value = true;
   try {
     await dealsAPI.update(current.id, { deal: { pipeline_stage_id: stageId } });
+    await load();
+    dealId.value = current.id;
+  } catch {
+    useAlert(t('CRM.SAVE_ERROR'));
+  } finally {
+    saving.value = false;
+  }
+};
+
+// The stage has to belong to the pipeline, so a deal that changes pipeline goes to the first stage of the new one.
+const changePipeline = async pipelineId => {
+  const current = deal.value;
+  if (!current || !pipelineId || pipelineId === current.pipeline_id) return;
+  const [firstStage] = [
+    ...(pipelines.value.find(item => item.id === pipelineId)?.stages || []),
+  ].sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id - b.id);
+  if (!firstStage) {
+    useAlert(t('CRM.PIPELINE_NO_STAGES'));
+    return;
+  }
+  saving.value = true;
+  try {
+    await dealsAPI.update(current.id, {
+      deal: { pipeline_id: pipelineId, pipeline_stage_id: firstStage.id },
+    });
     await load();
     dealId.value = current.id;
   } catch {
@@ -118,6 +149,18 @@ watch(() => props.contact.id, load, { immediate: true });
         :options="dealOptions"
         @update:model-value="dealId = $event"
       />
+      <div v-if="pipelineOptions.length > 1" class="flex flex-col gap-1">
+        <span class="text-xs text-n-slate-11">{{
+          t('CRM.PIPELINES_TITLE')
+        }}</span>
+        <ComboBox
+          :model-value="deal.pipeline_id"
+          :options="pipelineOptions"
+          :disabled="saving"
+          :placeholder="t('CRM.SELECT_PIPELINE')"
+          @update:model-value="changePipeline"
+        />
+      </div>
       <div class="flex flex-col gap-1">
         <span class="text-xs text-n-slate-11">{{ t('CRM.STAGE') }}</span>
         <ComboBox

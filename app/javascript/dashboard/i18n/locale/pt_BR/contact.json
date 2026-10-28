@@ -543,7 +543,8 @@
           "DELETE_SUCCESS_MESSAGE": "Atributo excluído com sucesso",
           "UPDATE_ERROR": "Não foi possível atualizar o atributo. Por favor, tente mais tarde",
           "DELETE_ERROR": "Não foi possível excluir o atributo. Por favor, tente mais tarde"
-        }
+        },
+        "DRAG_TO_REORDER": "Arraste para mudar a ordem"
       },
       "MERGE": {
         "TITLE": "Mesclar contatos",

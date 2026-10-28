@@ -12,6 +12,7 @@ vi.mock('dashboard/api/crm', () => ({
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    reorderFields: vi.fn(),
   },
 }));
 
@@ -68,6 +69,14 @@ const Dialog = {
   `,
 };
 
+const Draggable = {
+  name: 'Draggable',
+  props: ['modelValue', 'disabled'],
+  emits: ['update:modelValue'],
+  template:
+    '<div><slot v-for="item in modelValue" name="item" :element="item" /></div>',
+};
+
 const fields = [
   {
     id: 1,
@@ -117,6 +126,7 @@ const createWrapper = async () => {
         Checkbox,
         ComboBox,
         Dialog,
+        Draggable,
         TeleportWithDirection: {
           props: ['to'],
           template: '<Teleport :to="to"><slot /></Teleport>',
@@ -310,4 +320,78 @@ it('keeps select options editable and supports activation and deletion actions',
   await deleteAction.click();
   await flushPromises();
   expect(customFieldsAPI.delete).toHaveBeenCalledWith(1);
+});
+
+describe('reordering the fields', () => {
+  const names = wrapper =>
+    wrapper.findAll('[role="row"] p.font-medium').map(item => item.text());
+
+  it('shows a drag handle on every row while nothing is filtered', async () => {
+    const wrapper = await createWrapper();
+
+    expect(wrapper.findAll('.custom-field-handle')).toHaveLength(3);
+    expect(wrapper.findComponent({ name: 'Draggable' }).props('disabled')).toBe(
+      false
+    );
+  });
+
+  it('saves the new order after a drag and lists the fields in the order the server answers', async () => {
+    const [first, second, third] = fields;
+    customFieldsAPI.reorderFields.mockResolvedValue({
+      data: [third, first, second],
+    });
+    const wrapper = await createWrapper();
+
+    wrapper
+      .findComponent({ name: 'Draggable' })
+      .vm.$emit('update:modelValue', [third, first, second]);
+    await flushPromises();
+
+    expect(customFieldsAPI.reorderFields).toHaveBeenCalledWith([3, 1, 2]);
+    expect(names(wrapper)).toEqual(['Canal', 'Origem do lead', 'Qualificação']);
+  });
+
+  it('shows the new order at once and restores the old one when the server refuses', async () => {
+    const [first, second, third] = fields;
+    let refuse;
+    customFieldsAPI.reorderFields.mockReturnValue(
+      new Promise((resolve, reject) => {
+        refuse = reject;
+      })
+    );
+    const wrapper = await createWrapper();
+
+    wrapper
+      .findComponent({ name: 'Draggable' })
+      .vm.$emit('update:modelValue', [third, second, first]);
+    await flushPromises();
+    expect(names(wrapper)).toEqual(['Canal', 'Qualificação', 'Origem do lead']);
+
+    refuse(new Error('500'));
+    await flushPromises();
+
+    expect(names(wrapper)).toEqual(['Origem do lead', 'Qualificação', 'Canal']);
+    expect(wrapper.text()).toContain(messages.CRM.CF_REORDER_ERROR);
+  });
+
+  it('does not allow dragging while the list is filtered', async () => {
+    const wrapper = await createWrapper();
+
+    await wrapper
+      .find(
+        `input[placeholder="${messages.CRM.CUSTOM_FIELD_SEARCH_PLACEHOLDER}"]`
+      )
+      .setValue('Canal');
+
+    expect(wrapper.findComponent({ name: 'Draggable' }).props('disabled')).toBe(
+      true
+    );
+    expect(wrapper.findAll('.custom-field-handle')).toHaveLength(0);
+
+    wrapper
+      .findComponent({ name: 'Draggable' })
+      .vm.$emit('update:modelValue', [fields[2]]);
+    await flushPromises();
+    expect(customFieldsAPI.reorderFields).not.toHaveBeenCalled();
+  });
 });

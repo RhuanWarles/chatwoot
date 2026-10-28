@@ -10,8 +10,21 @@ class Api::V1::Accounts::Crm::CustomFieldsController < Api::V1::Accounts::BaseCo
   end
 
   def create
-    field = Current.account.crm_custom_fields.create!(field_params.merge(key: field_params[:key].presence || field_params[:name].parameterize(separator: '_')))
+    key = field_params[:key].presence || field_params[:name].parameterize(separator: '_')
+    field = Current.account.crm_custom_fields.create!(field_params.merge(key: key, position: field_params.fetch(:position) { next_position }))
     render json: field, status: :created
+  end
+
+  def reorder
+    field_ids = params.require(:field_ids)
+    fields = Current.account.crm_custom_fields
+    unless field_ids.is_a?(Array) && field_ids.all?(Integer) && field_ids.sort == fields.ids.sort
+      render json: { error: 'Field IDs must include every field exactly once' }, status: :unprocessable_entity
+      return
+    end
+
+    fields.transaction { field_ids.each_with_index { |id, index| fields.find(id).update!(position: index) } }
+    render json: fields.order(:position, :id)
   end
 
   def update
@@ -30,6 +43,10 @@ class Api::V1::Accounts::Crm::CustomFieldsController < Api::V1::Accounts::BaseCo
   end
 
   private
+
+  def next_position
+    Current.account.crm_custom_fields.maximum(:position).to_i + 1
+  end
 
   def fetch_field
     @field = Current.account.crm_custom_fields.find(params[:id])

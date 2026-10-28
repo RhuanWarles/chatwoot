@@ -547,7 +547,12 @@
       "COL_MONTH": "Mês",
       "COL_SHARE": "% IA",
       "COL_AI_ONLY": "Só IA"
-    }
+    },
+    "NO_CONVERSATION": "Este cliente ainda não tem conversa. Abrindo o negócio.",
+    "CUSTOM_FIELD_DRAG": "Arraste para mudar a ordem",
+    "CUSTOM_FIELD_MOVE_UP": "Mover para cima",
+    "CUSTOM_FIELD_MOVE_DOWN": "Mover para baixo",
+    "CF_REORDER_ERROR": "Não foi possível salvar a nova ordem. A lista foi restaurada."
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

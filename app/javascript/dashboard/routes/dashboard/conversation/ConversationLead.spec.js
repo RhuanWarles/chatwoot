@@ -87,6 +87,65 @@ describe('ConversationLead', () => {
     });
   });
 
+  describe('with more than one pipeline', () => {
+    const SECOND = {
+      id: 2,
+      name: 'Post-sale',
+      active: true,
+      stages: [
+        { id: 22, name: 'Onboarding', position: 1 },
+        { id: 21, name: 'Welcome', position: 0 },
+      ],
+    };
+    const INACTIVE = {
+      id: 3,
+      name: 'Old',
+      active: false,
+      stages: [{ id: 31, name: 'X' }],
+    };
+
+    beforeEach(() => {
+      pipelinesAPI.get.mockResolvedValue({
+        data: [...PIPELINES, SECOND, INACTIVE],
+      });
+    });
+
+    it('offers the active pipelines to change the deal to', async () => {
+      const wrapper = mountLead();
+      await flushPromises();
+      const [pipelineSelect] = wrapper.findAllComponents({ name: 'ComboBox' });
+      expect(pipelineSelect.props('modelValue')).toBe(1);
+      expect(
+        pipelineSelect.props('options').map(option => option.label)
+      ).toEqual(['Sales', 'Post-sale']);
+    });
+
+    it('moves the deal to the first stage of the chosen pipeline', async () => {
+      const wrapper = mountLead();
+      await flushPromises();
+      wrapper
+        .findAllComponents({ name: 'ComboBox' })[0]
+        .vm.$emit('update:modelValue', 2);
+      await flushPromises();
+      expect(dealsAPI.update).toHaveBeenCalledWith(5, {
+        deal: { pipeline_id: 2, pipeline_stage_id: 21 },
+      });
+    });
+
+    it('does not call the API when the pipeline has no stages', async () => {
+      pipelinesAPI.get.mockResolvedValue({
+        data: [...PIPELINES, { ...SECOND, stages: [] }],
+      });
+      const wrapper = mountLead();
+      await flushPromises();
+      wrapper
+        .findAllComponents({ name: 'ComboBox' })[0]
+        .vm.$emit('update:modelValue', 2);
+      await flushPromises();
+      expect(dealsAPI.update).not.toHaveBeenCalled();
+    });
+  });
+
   it('creates a deal in the first stage of the first active pipeline when none exists', async () => {
     dealsAPI.get.mockResolvedValue({ data: [] });
     const wrapper = mountLead();

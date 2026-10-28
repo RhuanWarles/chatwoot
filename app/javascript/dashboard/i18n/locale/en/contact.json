@@ -292,7 +292,6 @@
       "ID": "(ID: {identifier})"
     }
   },
-
   "CONTACTS_LAYOUT": {
     "HEADER": {
       "TITLE": "Contacts",
@@ -545,7 +544,8 @@
           "DELETE_SUCCESS_MESSAGE": "Attribute deleted successfully",
           "UPDATE_ERROR": "Unable to update attribute. Please try again later",
           "DELETE_ERROR": "Unable to delete attribute. Please try again later"
-        }
+        },
+        "DRAG_TO_REORDER": "Drag to change the order"
       },
       "MERGE": {
         "TITLE": "Merge contact",
@@ -614,7 +614,6 @@
       "CONFIRM_SINGLE": "Delete contact"
     }
   },
-
   "COMPOSE_NEW_CONVERSATION": {
     "CONTACT_SEARCH": {
       "ERROR_MESSAGE": "We couldn’t complete the search. Please try again."

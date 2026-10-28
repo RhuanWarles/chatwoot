@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Draggable from 'vuedraggable';
 
 import { customFieldsAPI } from 'dashboard/api/crm';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -45,6 +46,7 @@ const search = ref('');
 const statusFilter = ref('all');
 const draft = ref(createDraft());
 const activeMenuId = ref(null);
+const reordering = ref(false);
 const menuToggles = new Map();
 
 provideDropdownTeleport();
@@ -111,6 +113,40 @@ const filteredFields = computed(() => {
     return matchesSearch && matchesStatus;
   });
 });
+
+// The order is only meaningful for the whole list, so it cannot change while the list is filtered.
+const canReorder = computed(
+  () => !hasFilters.value && !reordering.value && fields.value.length > 1
+);
+
+const saveOrder = async ordered => {
+  const previous = fields.value;
+  fields.value = ordered;
+  reordering.value = true;
+  error.value = '';
+  try {
+    const ids = ordered.map(({ id }) => id);
+    fields.value = (await customFieldsAPI.reorderFields(ids)).data;
+  } catch {
+    fields.value = previous;
+    error.value = t('CRM.CF_REORDER_ERROR');
+  } finally {
+    reordering.value = false;
+  }
+};
+
+const onDragged = ordered => {
+  if (canReorder.value) saveOrder(ordered);
+};
+
+const move = (field, offset) => {
+  const ordered = [...fields.value];
+  const from = ordered.findIndex(item => item.id === field.id);
+  const to = from + offset;
+  if (!canReorder.value || to < 0 || to >= ordered.length) return;
+  [ordered[from], ordered[to]] = [ordered[to], ordered[from]];
+  saveOrder(ordered);
+};
 
 const load = async () => {
   loading.value = true;
@@ -241,6 +277,8 @@ const handleMenuAction = (field, action) => {
   closeMenu(field.id);
   if (action === 'toggle') toggle(field);
   if (action === 'delete') remove(field);
+  if (action === 'up') move(field, -1);
+  if (action === 'down') move(field, 1);
 };
 
 onMounted(load);
@@ -328,100 +366,136 @@ onMounted(load);
           <span class="text-end">{{ t('CRM.CUSTOM_FIELD_ACTIONS') }}</span>
         </div>
 
-        <div
-          v-for="field in filteredFields"
-          :key="field.id"
-          role="row"
-          class="grid grid-cols-1 gap-3 border-b border-n-weak px-4 py-4 last:border-b-0 sm:grid-cols-[minmax(0,2fr)_minmax(8rem,1fr)_minmax(7rem,1fr)_minmax(7rem,1fr)_auto] sm:items-center sm:gap-4"
+        <Draggable
+          :model-value="filteredFields"
+          item-key="id"
+          tag="div"
+          role="rowgroup"
+          handle=".custom-field-handle"
+          :disabled="!canReorder"
+          @update:model-value="onDragged"
         >
-          <div role="cell" class="min-w-0">
-            <p class="truncate text-sm font-medium text-n-slate-12">
-              {{ field.name }}
-            </p>
-            <p class="mt-1 truncate text-xs text-n-slate-10">
-              {{ field.key || t('CRM.NOT_AVAILABLE') }}
-            </p>
-          </div>
-          <div
-            role="cell"
-            class="flex items-center gap-2 text-sm text-n-slate-12"
-          >
-            <span
-              class="i-lucide-brackets size-4 shrink-0 text-n-slate-10"
-              aria-hidden="true"
-            />
-            <span>{{ typeLabels[field.field_type] || field.field_type }}</span>
-          </div>
-          <div
-            role="cell"
-            class="flex items-center gap-2 text-sm text-n-slate-12"
-          >
-            <span class="text-xs text-n-slate-10 sm:hidden">{{
-              t('CRM.CUSTOM_FIELD_REQUIRED')
-            }}</span>
-            {{ field.required ? t('CRM.CF_YES') : t('CRM.CF_NO') }}
-          </div>
-          <div role="cell">
-            <span
-              class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
-              :class="
-                field.active !== false
-                  ? 'bg-n-teal-3 text-n-teal-11'
-                  : 'bg-n-alpha-2 text-n-slate-11'
-              "
+          <template #item="{ element: field }">
+            <div
+              role="row"
+              class="grid grid-cols-1 gap-3 border-b border-n-weak px-4 py-4 last:border-b-0 sm:grid-cols-[minmax(0,2fr)_minmax(8rem,1fr)_minmax(7rem,1fr)_minmax(7rem,1fr)_auto] sm:items-center sm:gap-4"
             >
-              {{ field.active !== false ? t('CRM.ACTIVE') : t('CRM.INACTIVE') }}
-            </span>
-          </div>
-          <div
-            role="cell"
-            class="flex items-center justify-start gap-1 sm:justify-end"
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              :label="t('CRM.EDIT')"
-              @click="edit(field)"
-            />
-            <DropdownContainer @close="closeMenu(field.id)">
-              <template #trigger="{ toggle: toggleDropdown }">
+              <div role="cell" class="flex min-w-0 items-center gap-2">
+                <span
+                  v-if="canReorder"
+                  class="custom-field-handle i-lucide-grip-vertical size-4 shrink-0 cursor-grab text-n-slate-10"
+                  :title="t('CRM.CUSTOM_FIELD_DRAG')"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-n-slate-12">
+                    {{ field.name }}
+                  </p>
+                  <p class="mt-1 truncate text-xs text-n-slate-10">
+                    {{ field.key || t('CRM.NOT_AVAILABLE') }}
+                  </p>
+                </div>
+              </div>
+              <div
+                role="cell"
+                class="flex items-center gap-2 text-sm text-n-slate-12"
+              >
+                <span
+                  class="i-lucide-brackets size-4 shrink-0 text-n-slate-10"
+                  aria-hidden="true"
+                />
+                <span>{{
+                  typeLabels[field.field_type] || field.field_type
+                }}</span>
+              </div>
+              <div
+                role="cell"
+                class="flex items-center gap-2 text-sm text-n-slate-12"
+              >
+                <span class="text-xs text-n-slate-10 sm:hidden">{{
+                  t('CRM.CUSTOM_FIELD_REQUIRED')
+                }}</span>
+                {{ field.required ? t('CRM.CF_YES') : t('CRM.CF_NO') }}
+              </div>
+              <div role="cell">
+                <span
+                  class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
+                  :class="
+                    field.active !== false
+                      ? 'bg-n-teal-3 text-n-teal-11'
+                      : 'bg-n-alpha-2 text-n-slate-11'
+                  "
+                >
+                  {{
+                    field.active !== false ? t('CRM.ACTIVE') : t('CRM.INACTIVE')
+                  }}
+                </span>
+              </div>
+              <div
+                role="cell"
+                class="flex items-center justify-start gap-1 sm:justify-end"
+              >
                 <Button
                   variant="ghost"
                   size="sm"
-                  icon="i-lucide-ellipsis-vertical"
-                  :aria-label="t('CRM.CUSTOM_FIELD_MORE_ACTIONS')"
-                  :aria-expanded="activeMenuId === field.id"
-                  @click="
-                    toggleMenu(
-                      field.id,
-                      activeMenuId === field.id,
-                      toggleDropdown
-                    )
-                  "
+                  :label="t('CRM.EDIT')"
+                  @click="edit(field)"
                 />
-              </template>
-              <DropdownBody class="min-w-44">
-                <DropdownItem
-                  :label="
-                    field.active !== false
-                      ? t('CRM.DEACTIVATE')
-                      : t('CRM.ACTIVATE')
-                  "
-                  :icon="
-                    field.active !== false ? 'i-lucide-eye-off' : 'i-lucide-eye'
-                  "
-                  :click="() => handleMenuAction(field, 'toggle')"
-                />
-                <DropdownItem
-                  :label="t('CRM.DELETE')"
-                  icon="i-lucide-trash-2"
-                  :click="() => handleMenuAction(field, 'delete')"
-                  class="text-n-ruby-11"
-                />
-              </DropdownBody>
-            </DropdownContainer>
-          </div>
-        </div>
+                <DropdownContainer @close="closeMenu(field.id)">
+                  <template #trigger="{ toggle: toggleDropdown }">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon="i-lucide-ellipsis-vertical"
+                      :aria-label="t('CRM.CUSTOM_FIELD_MORE_ACTIONS')"
+                      :aria-expanded="activeMenuId === field.id"
+                      @click="
+                        toggleMenu(
+                          field.id,
+                          activeMenuId === field.id,
+                          toggleDropdown
+                        )
+                      "
+                    />
+                  </template>
+                  <DropdownBody class="min-w-44">
+                    <DropdownItem
+                      v-if="canReorder"
+                      :label="t('CRM.CUSTOM_FIELD_MOVE_UP')"
+                      icon="i-lucide-arrow-up"
+                      :click="() => handleMenuAction(field, 'up')"
+                    />
+                    <DropdownItem
+                      v-if="canReorder"
+                      :label="t('CRM.CUSTOM_FIELD_MOVE_DOWN')"
+                      icon="i-lucide-arrow-down"
+                      :click="() => handleMenuAction(field, 'down')"
+                    />
+                    <DropdownItem
+                      :label="
+                        field.active !== false
+                          ? t('CRM.DEACTIVATE')
+                          : t('CRM.ACTIVATE')
+                      "
+                      :icon="
+                        field.active !== false
+                          ? 'i-lucide-eye-off'
+                          : 'i-lucide-eye'
+                      "
+                      :click="() => handleMenuAction(field, 'toggle')"
+                    />
+                    <DropdownItem
+                      :label="t('CRM.DELETE')"
+                      icon="i-lucide-trash-2"
+                      :click="() => handleMenuAction(field, 'delete')"
+                      class="text-n-ruby-11"
+                    />
+                  </DropdownBody>
+                </DropdownContainer>
+              </div>
+            </div>
+          </template>
+        </Draggable>
       </div>
 
       <div

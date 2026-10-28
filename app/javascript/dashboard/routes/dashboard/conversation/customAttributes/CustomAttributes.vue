@@ -10,6 +10,7 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import CustomAttribute from 'dashboard/components/CustomAttribute.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import { mergeAttributeOrder } from 'dashboard/helper/attributeOrder';
 
 const props = defineProps({
   attributeType: {
@@ -120,6 +121,11 @@ const combinedElements = computed(() => {
   });
 });
 
+// Up to 5 elements are always shown, so they can always be dragged; the "show more" toggle only exists above that.
+const canDrag = computed(
+  () => showAllAttributes.value || combinedElements.value.length <= 5
+);
+
 const displayedElements = computed(() => {
   if (showAllAttributes.value || combinedElements.value.length <= 5) {
     return combinedElements.value;
@@ -129,48 +135,13 @@ const displayedElements = computed(() => {
   return combinedElements.value.slice(0, 5);
 });
 
-// Reorder elements with static elements position preserved
-// There is case where all the static elements will not be available (API, Email channels, etc).
-// In that case, we need to preserve the order of the static elements and
-// insert them in the correct position.
-const reorderElementsWithStaticPreservation = (
-  savedOrder = [],
-  currentOrder = []
-) => {
-  const finalOrder = [...currentOrder];
-  const visibleKeys = new Set(currentOrder);
-
-  // Process hidden static elements from saved order
-  savedOrder
-    // Find static elements that aren't currently visible
-    .filter(key => key.startsWith('static-') && !visibleKeys.has(key))
-    .forEach(staticKey => {
-      // Find next visible element after this static element in saved order
-      const nextVisible = savedOrder
-        .slice(savedOrder.indexOf(staticKey))
-        .find(key => visibleKeys.has(key));
-
-      // If next visible element found, insert before it; otherwise add to end
-      if (nextVisible) {
-        finalOrder.splice(finalOrder.indexOf(nextVisible), 0, staticKey);
-      } else {
-        finalOrder.push(staticKey);
-      }
-    });
-
-  return finalOrder;
-};
-
 const onDragEnd = () => {
   dragging.value = false;
   // Get the saved and current saved order
   const savedOrder = uiSettings.value[orderKey.value] ?? [];
   const currentOrder = combinedElements.value.map(({ key }) => key);
 
-  const finalOrder = reorderElementsWithStaticPreservation(
-    savedOrder,
-    currentOrder
-  );
+  const finalOrder = mergeAttributeOrder(savedOrder, currentOrder);
 
   updateUISettings({
     [orderKey.value]: finalOrder,
@@ -260,7 +231,7 @@ const evenClass = [
   <div class="conversation--details">
     <Draggable
       :list="displayedElements"
-      :disabled="!showAllAttributes"
+      :disabled="!canDrag"
       animation="200"
       ghost-class="ghost"
       handle=".drag-handle"
@@ -274,7 +245,7 @@ const evenClass = [
         <div
           class="drag-handle relative border-b border-n-weak/50 dark:border-n-weak/90"
           :class="{
-            'cursor-grab': showAllAttributes,
+            'cursor-grab': canDrag,
             'last:border-transparent dark:last:border-transparent':
               combinedElements.length <= 5,
           }"

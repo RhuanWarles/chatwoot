@@ -7,6 +7,7 @@ import { useRoute, useRouter } from 'vue-router';
 import Draggable from 'vuedraggable';
 import { useAlert } from 'dashboard/composables';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
+import ContactAPI from 'dashboard/api/contacts';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -476,6 +477,32 @@ const openDealDetails = deal => {
     name: 'crm_deal_details',
     params: { accountId: route.params.accountId, dealId: deal.id },
   });
+};
+// Clicking a card goes to the latest conversation of the customer; without one, the deal page opens instead.
+let openingConversation = false;
+const openDealConversation = async deal => {
+  if (openingConversation) return;
+  openingConversation = true;
+  try {
+    const { data } = await ContactAPI.getConversations(deal.contact_id);
+    const latest = data?.payload?.[0];
+    if (latest) {
+      router.push({
+        name: 'inbox_conversation',
+        params: {
+          accountId: route.params.accountId,
+          conversation_id: latest.id,
+        },
+      });
+      return;
+    }
+    useAlert(t('CRM.NO_CONVERSATION'));
+  } catch {
+    useAlert(t('CRM.NO_CONVERSATION'));
+  } finally {
+    openingConversation = false;
+  }
+  openDealDetails(deal);
 };
 
 const openForm = () => {
@@ -986,7 +1013,8 @@ onUnmounted(() => {
               :fields="cardFields"
               :custom-field-ids="cardCustomFieldIds"
               :now="now"
-              @open="openDealDetails(element)"
+              @open="openDealConversation(element)"
+              @open-deal="openDealDetails(element)"
               @edit="selectedDeal = { ...element }"
               @set-status="status => setDealStatus(element, status)"
             />
