@@ -548,6 +548,10 @@
       "COL_SHARE": "% AI",
       "COL_AI_ONLY": "Only AI"
     },
-    "NO_CONVERSATION": "This customer has no conversation yet. Opening the deal instead."
+    "NO_CONVERSATION": "This customer has no conversation yet. Opening the deal instead.",
+    "CUSTOM_FIELD_DRAG": "Drag to change the order",
+    "CUSTOM_FIELD_MOVE_UP": "Move up",
+    "CUSTOM_FIELD_MOVE_DOWN": "Move down",
+    "CF_REORDER_ERROR": "Could not save the new order. The list was restored."
   }
 }

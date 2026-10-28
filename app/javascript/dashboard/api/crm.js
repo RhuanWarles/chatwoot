@@ -61,6 +61,10 @@ class CrmAPI extends ApiClient {
     return axios.delete(`${this.url}/${dealId}/events/${id}`);
   }
 
+  reorderFields(fieldIds) {
+    return axios.patch(`${this.url}/reorder`, { field_ids: fieldIds });
+  }
+
   reorderStages(pipelineId, stageIds) {
     return axios.patch(`${this.stages(pipelineId).url}/reorder`, {
       stage_ids: stageIds,
