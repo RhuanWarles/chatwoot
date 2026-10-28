@@ -32,6 +32,7 @@ class Messages::MessageBuilder
     # The frontend is equipped to handle this case
     process_email_content
     restore_evolution_group_access_if_rejoined
+    reopen_resolved_conversation_before_save
     @message.save!
     @message
   end
@@ -185,6 +186,13 @@ class Messages::MessageBuilder
     Evolution::GroupContext.new(@conversation).clear_left_state_if_rejoined!
   rescue CustomExceptions::Evolution => e
     Rails.logger.warn("[Evolution] could not verify group membership before reply: #{e.class}")
+  end
+
+  def reopen_resolved_conversation_before_save
+    return unless @message.incoming? && !@message.private? && @conversation.resolved?
+    return if @conversation.muted?
+
+    @conversation.inbox.active_bot? ? @conversation.pending! : @conversation.open!
   end
 
   def email_inbox?
