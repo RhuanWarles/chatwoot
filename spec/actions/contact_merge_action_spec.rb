@@ -80,6 +80,25 @@ describe ContactMergeAction do
       end
     end
 
+    context 'when the contacts have CS notes' do
+      it 'keeps the CS notes of the mergee that the base contact does not have' do
+        create(:contact_cs_note, account: account, contact: base_contact, field_values: { 'plano' => 'Pro' })
+        create(:contact_cs_note, account: account, contact: mergee_contact, field_values: { 'plano' => 'Free', 'risco' => 'Alto' })
+
+        contact_merge
+
+        expect(ContactCsNote.find_by(contact_id: base_contact.id).field_values).to eq('plano' => 'Pro', 'risco' => 'Alto')
+      end
+
+      it 'moves the CS notes to a base contact that had none' do
+        create(:contact_cs_note, account: account, contact: mergee_contact, field_values: { 'risco' => 'Alto' })
+
+        contact_merge
+
+        expect(ContactCsNote.find_by(contact_id: base_contact.id).field_values).to eq('risco' => 'Alto')
+      end
+    end
+
     context 'when contacts belong to a different account' do
       it 'throws an exception' do
         new_account = create(:account)

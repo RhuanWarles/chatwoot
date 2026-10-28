@@ -8,7 +8,6 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   before_action :inbox, :contact, :contact_inbox, only: [:create]
 
   ATTACHMENT_RESULTS_PER_PAGE = 100
-  PINNED_NOTE_LIMIT = 500
 
   def index
     result = conversation_finder.perform
@@ -81,11 +80,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
       return render_could_not_create_error(I18n.t('conversations.pinned_note.only_internal_notes'))
     end
 
-    pinned = {
-      'message_id' => message.id, 'content' => message.content.to_s.truncate(PINNED_NOTE_LIMIT),
-      'pinned_by' => { 'id' => Current.user.id, 'name' => Current.user.name }, 'pinned_at' => Time.current.iso8601
-    }
-    @conversation.update!(additional_attributes: @conversation.additional_attributes.merge('pinned_note' => pinned))
+    Conversations::PinnedNoteService.new(@conversation).pin(message, Current.user)
     render json: { additional_attributes: @conversation.reload.additional_attributes }
   end
 

@@ -315,10 +315,13 @@ Rails.application.routes.draw do
               resources :contact_inboxes, only: [:create]
               resources :labels, only: [:create, :index]
               resources :notes
+              resource :cs_note, only: [:show, :update]
               get :attachments, to: 'attachments#index'
               post :call, on: :member, to: 'calls#create' if ChatwootApp.enterprise?
             end
           end
+          resource :cs_note_settings, only: [:show, :update], controller: 'cs_note_settings'
+          resources :cs_note_fields, only: [:index, :create, :update, :destroy]
           resources :data_imports, only: [:index, :show, :create] do
             collection do
               post :validate_source

@@ -10,6 +10,8 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ContactDetails from 'dashboard/components-next/Contacts/Pages/ContactDetails.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import ContactNotes from 'dashboard/components-next/Contacts/ContactsSidebar/ContactNotes.vue';
+import CsNotesPanel from 'dashboard/components-next/Contacts/CsNotes/CsNotesPanel.vue';
+import { useCsNotes } from 'dashboard/composables/useCsNotes';
 import ContactHistory from 'dashboard/components-next/Contacts/ContactsSidebar/ContactHistory.vue';
 import ContactMedia from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMedia.vue';
 import ContactMerge from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMerge.vue';
@@ -41,19 +43,29 @@ const CONTACT_TABS_OPTIONS = [
   { key: 'ATTRIBUTES', value: 'attributes' },
   { key: 'HISTORY', value: 'history' },
   { key: 'NOTES', value: 'notes' },
+  { key: 'CS_NOTES', value: 'cs_notes' },
   { key: 'MEDIA', value: 'media' },
   { key: 'MERGE', value: 'merge' },
 ];
 
+const { canAccess: canAccessCsNotes, load: loadCsNotes } = useCsNotes();
+
+// The CS notes tab only exists for the administrators and the team in charge.
+const tabOptions = computed(() =>
+  CONTACT_TABS_OPTIONS.filter(
+    tab => tab.value !== 'cs_notes' || canAccessCsNotes.value
+  )
+);
+
 const tabs = computed(() => {
-  return CONTACT_TABS_OPTIONS.map(tab => ({
+  return tabOptions.value.map(tab => ({
     label: t(`CONTACTS_LAYOUT.SIDEBAR.TABS.${tab.key}`),
     value: tab.value,
   }));
 });
 
 const activeTabIndex = computed(() => {
-  return CONTACT_TABS_OPTIONS.findIndex(v => v.value === activeTab.value);
+  return tabOptions.value.findIndex(v => v.value === activeTab.value);
 });
 
 const goToContactsList = () => {
@@ -124,6 +136,7 @@ onMounted(() => {
   fetchContactNotes();
   fetchContactConversations();
   fetchAttributes();
+  loadCsNotes();
 });
 </script>
 
@@ -174,6 +187,10 @@ onMounted(() => {
             :selected-contact="selectedContact"
           />
           <ContactNotes v-if="activeTab === 'notes'" />
+          <CsNotesPanel
+            v-if="activeTab === 'cs_notes' && canAccessCsNotes"
+            :contact-id="route.params.contactId"
+          />
           <ContactHistory v-if="activeTab === 'history'" />
           <ContactMedia v-if="activeTab === 'media'" />
           <ContactMerge

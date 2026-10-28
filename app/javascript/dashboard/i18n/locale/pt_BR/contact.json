@@ -291,6 +291,42 @@
       "ID": "(ID: {identifier})"
     }
   },
+  "CS_NOTES": {
+    "TITLE": "Anotações CS",
+    "NO_VALUE": "Sem valor",
+    "YES": "Sim",
+    "NO_FIELDS": "Nenhum campo criado ainda. Use “Gerenciar campos” para criar o primeiro.",
+    "MANAGE": "Gerenciar campos",
+    "CLOSE_MANAGER": "Fechar gerenciamento",
+    "LOAD_ERROR": "Não foi possível carregar as Anotações CS.",
+    "SAVE_ERROR": "Não foi possível salvar. Tente novamente.",
+    "FIELDS_TITLE": "Campos",
+    "ADD_TITLE": "Novo campo",
+    "NAME_PLACEHOLDER": "Nome do campo",
+    "TYPE_LABEL": "Tipo do campo",
+    "OPTIONS_PLACEHOLDER": "Uma opção por linha",
+    "ADD": "Adicionar campo",
+    "ADD_ERROR": "Não foi possível criar o campo. Confira o nome e tente novamente.",
+    "RENAME_ERROR": "Não foi possível renomear o campo.",
+    "DELETE": "Excluir campo",
+    "DELETE_CONFIRM": "Confirmar exclusão",
+    "DELETE_ERROR": "Não foi possível excluir o campo.",
+    "TEAM_LABEL": "Equipe com acesso",
+    "TEAM_NONE": "Somente administradores",
+    "TEAM_HELP": "Os administradores e os membros desta equipe veem as Anotações CS. Ninguém mais.",
+    "TEAM_SAVED": "Equipe com acesso atualizada.",
+    "TEAM_ERROR": "Não foi possível atualizar a equipe.",
+    "TYPES": {
+      "TEXT": "Texto",
+      "NUMBER": "Número",
+      "CURRENCY": "Moeda",
+      "PERCENT": "Porcentagem",
+      "LINK": "Link",
+      "DATE": "Data",
+      "LIST": "Lista",
+      "CHECKBOX": "Caixa de seleção"
+    }
+  },
   "CONTACTS_LAYOUT": {
     "HEADER": {
       "TITLE": "Contatos",
@@ -514,6 +550,7 @@
         "ATTRIBUTES": "Atributos",
         "HISTORY": "Histórico",
         "NOTES": "Notas",
+        "CS_NOTES": "Anotações CS",
         "MEDIA": "Mídia",
         "MERGE": "Mesclar"
       },

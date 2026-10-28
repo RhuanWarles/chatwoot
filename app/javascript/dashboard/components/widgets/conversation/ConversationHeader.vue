@@ -13,6 +13,8 @@ import wootConstants from 'dashboard/constants/globals';
 import { conversationListPageURL } from 'dashboard/helper/URLHelper';
 import { snoozedReopenTime } from 'dashboard/helper/snoozeHelpers';
 import { useInbox } from 'dashboard/composables/useInbox';
+import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -36,6 +38,21 @@ const route = useRoute();
 const conversationHeader = ref(null);
 const { width } = useElementSize(conversationHeader);
 const { isAWebWidgetInbox, isAnEmailChannel } = useInbox();
+const { uiSettings, updateUISettings } = useUISettings();
+
+// The contact panel opens from the contact's name; there is no separate button for it.
+const isContactSidebarOpen = computed(
+  () => !!uiSettings.value.is_contact_sidebar_open
+);
+
+const toggleContactSidebar = () => {
+  updateUISettings({
+    is_contact_sidebar_open: !isContactSidebarOpen.value,
+    is_copilot_panel_open: false,
+  });
+};
+
+useKeyboardEvents({ 'Alt+KeyO': { action: toggleContactSidebar } });
 
 const currentChat = computed(() => store.getters.getSelectedChat);
 const accountId = computed(() => store.getters.getCurrentAccountId);
@@ -195,20 +212,35 @@ const copyConversationId = async () => {
         :back-url="backButtonUrl"
         class="me-2"
       />
-      <Avatar
-        :name="currentContact.name"
-        :src="currentContact.thumbnail"
-        :size="32"
-        :status="currentContact.availability_status"
-        hide-offline-status
-      />
+      <button
+        type="button"
+        class="flex-shrink-0 rounded-full"
+        :title="$t('CONVERSATION.SIDEBAR.CONTACT')"
+        :aria-label="$t('CONVERSATION.SIDEBAR.CONTACT')"
+        :aria-expanded="isContactSidebarOpen"
+        data-test="contact-avatar"
+        @click="toggleContactSidebar"
+      >
+        <Avatar
+          :name="currentContact.name"
+          :src="currentContact.thumbnail"
+          :size="32"
+          :status="currentContact.availability_status"
+          hide-offline-status
+        />
+      </button>
       <div class="flex flex-col items-start min-w-0 ms-2 overflow-hidden">
         <div class="flex flex-row items-center max-w-full gap-1 p-0 m-0">
-          <span
-            class="text-sm font-medium truncate leading-tight text-n-slate-12"
+          <button
+            type="button"
+            class="text-sm font-medium truncate leading-tight text-n-slate-12 text-start hover:underline"
+            :title="$t('CONVERSATION.SIDEBAR.CONTACT')"
+            :aria-expanded="isContactSidebarOpen"
+            data-test="contact-name"
+            @click="toggleContactSidebar"
           >
             {{ currentContact.name }}
-          </span>
+          </button>
           <fluent-icon
             v-if="!isHMACVerified"
             v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"

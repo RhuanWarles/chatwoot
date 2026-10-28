@@ -51,6 +51,43 @@ describe('PinnedNoteBanner', () => {
     expect(wrapper.text()).toContain('Fixada por Brenda');
   });
 
+  it('says who wrote the note when it is the latest one, pinned on its own', () => {
+    const wrapper = mountBanner({
+      note: note({
+        auto: true,
+        pinned_by: undefined,
+        author: { id: 7, name: 'Matheus' },
+      }),
+    });
+
+    expect(find(wrapper, 'by').text()).toBe('Última nota de Matheus');
+    expect(wrapper.text()).not.toContain('Fixada por');
+  });
+
+  it('still labels the latest note when the author is unknown', () => {
+    const wrapper = mountBanner({
+      note: note({ auto: true, pinned_by: undefined, author: null }),
+    });
+
+    expect(find(wrapper, 'by').text()).toBe('Última nota');
+  });
+
+  it('shows no label for a pinned note without a name', () => {
+    const wrapper = mountBanner({ note: note({ pinned_by: undefined }) });
+
+    expect(find(wrapper, 'by').exists()).toBe(false);
+  });
+
+  it('shows a mention as @Name instead of the markdown link', () => {
+    const wrapper = mountBanner({
+      note: note({
+        content: '[@Bruce](mention://user/30/Bruce) ligar às 18h',
+      }),
+    });
+
+    expect(find(wrapper, 'text').text()).toBe('@Bruce ligar às 18h');
+  });
+
   it('does not offer "show more" for a short note', () => {
     const wrapper = mountBanner();
 

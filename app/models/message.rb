@@ -412,6 +412,12 @@ class Message < ApplicationRecord
     send_reply
     execute_message_template_hooks
     update_contact_activity
+    pin_as_latest_note
+  end
+
+  # The newest internal note stays on top of the conversation (see Conversations::PinnedNoteService).
+  def pin_as_latest_note
+    Conversations::PinnedNoteService.new(conversation).pin_latest(self)
   end
 
   def update_contact_activity

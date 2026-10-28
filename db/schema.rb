@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_28_100000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -776,6 +776,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_100000) do
     t.index ["account_id"], name: "index_companies_on_account_id"
     t.index ["name", "account_id"], name: "index_companies_on_name_and_account_id"
     t.index ["name"], name: "index_companies_on_name_search", opclass: :gin_trgm_ops, using: :gin
+  end
+
+  create_table "contact_cs_notes", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "contact_id", null: false
+    t.jsonb "field_values", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_contact_cs_notes_on_account_id"
+    t.index ["contact_id"], name: "index_contact_cs_notes_on_contact_id", unique: true
   end
 
   create_table "contact_inboxes", force: :cascade do |t|

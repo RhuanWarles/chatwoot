@@ -4,6 +4,7 @@ import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
+import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
@@ -14,6 +15,7 @@ import { useWindowSize, useEventListener } from '@vueuse/core';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import SidebarGroup from './SidebarGroup.vue';
+import SidebarMenuOrderEditor from './SidebarMenuOrderEditor.vue';
 import SidebarProfileMenu from './SidebarProfileMenu.vue';
 import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import SidebarChangelogButton from './SidebarChangelogButton.vue';
@@ -29,6 +31,7 @@ import {
   resolveSidebarSort,
   sortSidebarItems,
 } from 'dashboard/helper/sidebarSort';
+import { sortByMenuOrder } from 'dashboard/helper/sidebarMenuOrder';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -236,15 +239,6 @@ const getLabelUnreadCount = useMapGetter(
 const getTeamUnreadCount = useMapGetter(
   'conversationUnreadCounts/getTeamUnreadCount'
 );
-const mentionsUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getMentionsUnreadCount'
-);
-const participatingUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getParticipatingUnreadCount'
-);
-const unattendedUnreadCount = useMapGetter(
-  'conversationUnreadCounts/getUnattendedUnreadCount'
-);
 const getFolderUnreadCount = useMapGetter(
   'conversationUnreadCounts/getFolderUnreadCount'
 );
@@ -343,6 +337,11 @@ const closeMobileSidebar = () => {
   emit('closeMobileSidebar');
 };
 
+const { uiSettings, updateUISettings } = useUISettings();
+const isOrganizingMenu = ref(false);
+
+const saveMenuOrder = order => updateUISettings({ sidebar_menu_order: order });
+
 const newReportRoutes = () => [
   {
     name: 'Reports Agent',
@@ -395,36 +394,6 @@ const menuItems = computed(() => {
           badgeCount: allUnreadCount.value,
           activeOn: ['inbox_conversation'],
           to: accountScopedRoute('home'),
-        },
-        {
-          name: 'Mentions',
-          label: t('SIDEBAR.MENTIONED_CONVERSATIONS'),
-          icon: 'i-lucide-at-sign',
-          badgeCount: hasFilteredUnreadCounts.value
-            ? mentionsUnreadCount.value
-            : 0,
-          activeOn: ['conversation_through_mentions'],
-          to: accountScopedRoute('conversation_mentions'),
-        },
-        {
-          name: 'Participating',
-          label: t('SIDEBAR.PARTICIPATING_CONVERSATIONS'),
-          icon: 'i-lucide-user-round-check',
-          badgeCount: hasFilteredUnreadCounts.value
-            ? participatingUnreadCount.value
-            : 0,
-          activeOn: ['conversation_through_participating'],
-          to: accountScopedRoute('conversation_participating'),
-        },
-        {
-          name: 'Unattended',
-          activeOn: ['conversation_through_unattended'],
-          label: t('SIDEBAR.UNATTENDED_CONVERSATIONS'),
-          icon: 'i-lucide-clock-alert',
-          badgeCount: hasFilteredUnreadCounts.value
-            ? unattendedUnreadCount.value
-            : 0,
-          to: accountScopedRoute('conversation_unattended'),
         },
         {
           name: 'Folders',
@@ -979,6 +948,10 @@ const menuItems = computed(() => {
     },
   ];
 });
+
+const orderedMenuItems = computed(() =>
+  sortByMenuOrder(menuItems.value, uiSettings.value.sidebar_menu_order)
+);
 </script>
 
 <template>
@@ -1102,18 +1075,39 @@ const menuItems = computed(() => {
             />
           </template>
         </ComposeConversation>
+        <Button
+          v-if="!isEffectivelyCollapsed"
+          icon="i-lucide-list-ordered"
+          color="slate"
+          size="sm"
+          class="dark:hover:!bg-n-slate-9/30 !h-7 !outline-n-weak !text-n-slate-11"
+          :class="{ '!bg-n-alpha-2 dark:!bg-n-slate-9/30': isOrganizingMenu }"
+          :title="t('SIDEBAR.ORGANIZE_MENU')"
+          :aria-label="t('SIDEBAR.ORGANIZE_MENU')"
+          :aria-pressed="isOrganizingMenu"
+          data-test="organize-menu"
+          @click="isOrganizingMenu = !isOrganizingMenu"
+        />
       </div>
     </section>
     <nav
       class="grid overflow-y-scroll flex-grow gap-2 pb-5 no-scrollbar min-w-0"
       :class="isEffectivelyCollapsed ? 'px-1' : 'px-2'"
     >
+      <SidebarMenuOrderEditor
+        v-if="isOrganizingMenu && !isEffectivelyCollapsed"
+        :items="orderedMenuItems"
+        @change="saveMenuOrder"
+        @reset="saveMenuOrder(null)"
+        @done="isOrganizingMenu = false"
+      />
       <ul
+        v-else
         class="flex flex-col gap-1 m-0 list-none min-w-0"
         :class="{ 'items-center': isEffectivelyCollapsed }"
       >
         <SidebarGroup
-          v-for="item in menuItems"
+          v-for="item in orderedMenuItems"
           :key="item.name"
           v-bind="item"
         />

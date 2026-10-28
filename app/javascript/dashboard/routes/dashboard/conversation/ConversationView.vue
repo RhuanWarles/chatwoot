@@ -16,7 +16,6 @@ import wootConstants from 'dashboard/constants/globals';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import CmdBarConversationSnooze from 'dashboard/routes/dashboard/commands/CmdBarConversationSnooze.vue';
 import { emitter } from 'shared/helpers/mitt';
-import SidepanelSwitch from 'dashboard/components-next/Conversation/SidepanelSwitch.vue';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
 import ToolExecutionDetailsDialog from 'dashboard/components-next/ai-tools/ToolExecutionDetailsDialog.vue';
 import KnowledgeRetrievalDetailsDialog from 'dashboard/components-next/ai-tools/KnowledgeRetrievalDetailsDialog.vue';
@@ -26,7 +25,6 @@ export default {
     ChatList,
     ConversationBox,
     CmdBarConversationSnooze,
-    SidepanelSwitch,
     ConversationSidebar,
     ToolExecutionDetailsDialog,
     KnowledgeRetrievalDetailsDialog,
@@ -225,9 +223,7 @@ export default {
       v-if="showMessageView"
       :inbox-id="inboxId"
       :is-on-expanded-layout="isOnExpandedLayout"
-    >
-      <SidepanelSwitch v-if="currentChat.id" />
-    </ConversationBox>
+    />
     <ConversationSidebar v-if="shouldShowSidebar" :current-chat="currentChat" />
     <CmdBarConversationSnooze />
     <ToolExecutionDetailsDialog

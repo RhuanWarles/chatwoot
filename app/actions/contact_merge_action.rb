@@ -13,6 +13,7 @@ class ContactMergeAction
       merge_messages
       merge_contact_inboxes
       merge_contact_notes
+      merge_cs_notes
       merge_calls
       merge_and_remove_mergee_contact
     end
@@ -37,6 +38,16 @@ class ContactMergeAction
 
   def merge_contact_notes
     Note.where(contact_id: @mergee_contact.id, account_id: @mergee_contact.account_id).update(contact_id: @base_contact.id)
+  end
+
+  # What the base contact already has is kept, like the other attributes; the rest of the mergee's CS notes comes along.
+  def merge_cs_notes
+    mergee_note = ContactCsNote.find_by(contact_id: @mergee_contact.id)
+    return if mergee_note.blank?
+
+    base_note = ContactCsNote.find_or_initialize_by(account_id: @account.id, contact_id: @base_contact.id)
+    base_note.field_values = mergee_note.field_values.merge(base_note.field_values)
+    base_note.save!
   end
 
   def merge_messages

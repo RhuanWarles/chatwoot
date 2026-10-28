@@ -16,9 +16,27 @@ const store = useStore();
 const expanded = ref(false);
 const removing = ref(false);
 
+// A mention is saved as a markdown link; the banner only needs the "@Name".
+const MENTION_PATTERN = /\[(@[^\]]+)\]\(mention:\/\/[^)]*\)/g;
+
+const text = computed(() => props.note.content.replace(MENTION_PATTERN, '$1'));
+
 const isLong = computed(
-  () => props.note.content.length > 140 || props.note.content.includes('\n')
+  () => text.value.length > 140 || text.value.includes('\n')
 );
+
+// A note an agent chose says who pinned it; the latest note, pinned on its own, says who wrote it.
+const byLine = computed(() => {
+  const { auto, author, pinned_by: pinnedBy } = props.note;
+  if (auto) {
+    return author?.name
+      ? t('CONVERSATION.PINNED_NOTE.LAST_NOTE_BY', { name: author.name })
+      : t('CONVERSATION.PINNED_NOTE.LAST_NOTE');
+  }
+  return pinnedBy?.name
+    ? t('CONVERSATION.PINNED_NOTE.PINNED_BY', { name: pinnedBy.name })
+    : '';
+});
 
 const goToNote = () => {
   emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE, {
@@ -52,18 +70,12 @@ const unpin = async () => {
         :class="{ 'line-clamp-2': isLong && !expanded }"
         data-test="pinned-note-text"
       >
-        {{ note.content }}
+        {{ text }}
       </p>
       <div
         class="flex flex-wrap items-center gap-3 mt-1 text-xs text-n-amber-11"
       >
-        <span v-if="note.pinned_by?.name">
-          {{
-            t('CONVERSATION.PINNED_NOTE.PINNED_BY', {
-              name: note.pinned_by.name,
-            })
-          }}
-        </span>
+        <span v-if="byLine" data-test="pinned-note-by">{{ byLine }}</span>
         <button
           v-if="isLong"
           type="button"

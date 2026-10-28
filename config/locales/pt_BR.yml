@@ -180,6 +180,7 @@ pt_BR:
     custom_attribute_definition:
       attribute_key_format: deve conter apenas letras, números, sublinhados, hífens, e pontos
       key_conflict: A chave fornecida não é permitida pois pode entrar em conflito com os atributos padrão.
+      cs_attribute_model: Os campos das Anotações CS são gerenciados nas Anotações CS do contato.
     mfa:
       already_enabled: MFA já está habilitado
       not_enabled: MFA não está habilitado
