@@ -27,8 +27,8 @@ defineExpose({ focus: () => toggle.value?.focus() });
 
 <template>
   <li
-    class="rounded-2xl border bg-n-surface-1 shadow-sm"
-    :class="valid ? 'border-n-container' : 'border-n-ruby-8'"
+    class="rounded-xl border bg-n-solid-2"
+    :class="valid ? 'border-n-weak' : 'border-n-ruby-8'"
   >
     <div class="flex flex-wrap items-center gap-1 p-2">
       <button

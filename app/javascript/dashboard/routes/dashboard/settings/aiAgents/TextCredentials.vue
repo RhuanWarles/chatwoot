@@ -61,9 +61,7 @@ onMounted(load);
 </script>
 
 <template>
-  <details
-    class="rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm"
-  >
+  <details class="rounded-xl border border-n-weak p-4">
     <summary class="cursor-pointer font-medium text-n-slate-12">
       {{ t('AI_HUB.TEXT_CONNECTION') }}
     </summary>
@@ -78,7 +76,7 @@ onMounted(load);
     <form v-else class="flex flex-col gap-4 mt-4" @submit.prevent="save()">
       <fieldset :disabled="saving" class="flex flex-col gap-4">
         <section
-          class="flex flex-col gap-4 rounded-2xl border border-n-container bg-n-surface-1 p-5"
+          class="flex flex-col gap-4 rounded-xl border border-n-weak p-5"
         >
           <h2 class="text-heading-3 text-n-slate-12">
             {{ t('SAAS_AI.TEXT_TITLE') }}

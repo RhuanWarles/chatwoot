@@ -82,7 +82,6 @@ const openNewAgent = () => listRef.value?.openNew();
       v-if="tabs.length"
       :tabs="tabs"
       :initial-active-tab="activeTab"
-      class="rounded-xl bg-n-surface-1 outline outline-1 outline-n-container p-1"
       @tab-changed="selectTab"
     />
     <TextAgents

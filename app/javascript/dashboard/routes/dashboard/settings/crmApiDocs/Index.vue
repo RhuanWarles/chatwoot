@@ -297,9 +297,7 @@ const copy = async value => {
     />
 
     <section class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.BASE_URL_TITLE') }}
         </h2>
@@ -323,9 +321,7 @@ const copy = async value => {
         </div>
       </div>
 
-      <nav
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <nav class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-3 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.ON_THIS_PAGE') }}
         </h2>
@@ -339,9 +335,7 @@ const copy = async value => {
       </nav>
     </section>
 
-    <section
-      class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-    >
+    <section class="p-5 rounded-xl bg-n-solid-2">
       <h2 class="mb-2 text-base font-semibold text-n-slate-12">
         {{ t('CRM_API_DOCS.AUTH_TITLE') }}
       </h2>
@@ -396,9 +390,7 @@ const copy = async value => {
     </section>
 
     <section class="grid gap-4 lg:grid-cols-2">
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.PIPELINE_BODY_TITLE') }}
         </h2>
@@ -409,9 +401,7 @@ const copy = async value => {
           {{ t('CRM_API_DOCS.PIPELINE_BODY_HELP') }}
         </p>
       </div>
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.STAGE_BODY_TITLE') }}
         </h2>
@@ -425,9 +415,7 @@ const copy = async value => {
     </section>
 
     <section class="grid gap-4 lg:grid-cols-2">
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.RESPONSE_TITLE') }}
         </h2>
@@ -438,9 +426,7 @@ const copy = async value => {
           {{ t('CRM_API_DOCS.RESPONSE_HELP') }}
         </p>
       </div>
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.FILTERS_TITLE') }}
         </h2>
@@ -455,9 +441,7 @@ const copy = async value => {
     </section>
 
     <section class="grid gap-4 lg:grid-cols-2">
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.DEAL_BODY_TITLE') }}
         </h2>
@@ -468,9 +452,7 @@ const copy = async value => {
           {{ t('CRM_API_DOCS.DEAL_BODY_HELP') }}
         </p>
       </div>
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.ACTIVITY_BODY_TITLE') }}
         </h2>
@@ -484,9 +466,7 @@ const copy = async value => {
     </section>
 
     <section class="grid gap-4 lg:grid-cols-2">
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.CUSTOM_FIELD_BODY_TITLE') }}
         </h2>
@@ -497,9 +477,7 @@ const copy = async value => {
           {{ t('CRM_API_DOCS.CUSTOM_FIELD_BODY_HELP') }}
         </p>
       </div>
-      <div
-        class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <div class="p-5 rounded-xl bg-n-solid-2">
         <h2 class="mb-2 text-base font-semibold text-n-slate-12">
           {{ t('CRM_API_DOCS.AUTOMATION_BODY_TITLE') }}
         </h2>
@@ -512,9 +490,7 @@ const copy = async value => {
       </div>
     </section>
 
-    <section
-      class="rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-    >
+    <section class="p-5 rounded-xl bg-n-solid-2">
       <h2 class="mb-2 text-base font-semibold text-n-slate-12">
         {{ t('CRM_API_DOCS.RULES_TITLE') }}
       </h2>

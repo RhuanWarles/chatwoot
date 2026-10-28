@@ -43,7 +43,7 @@ dl:not(.reset-base) {
 // Button base
 button {
   font-family: inherit;
-  @apply inline-block text-center align-middle cursor-pointer text-sm m-0 py-1 px-2.5 transition-all duration-200 ease-in-out border-0 border-none rounded-xl disabled:opacity-50;
+  @apply inline-block text-center align-middle cursor-pointer text-sm m-0 py-1 px-2.5 transition-all duration-200 ease-in-out border-0 border-none rounded-lg disabled:opacity-50;
 }
 
 // Form elements
@@ -66,7 +66,7 @@ textarea {
 // Field base styles (Input, TextArea, Select)
 @layer components {
   .field-base {
-    @apply block box-border w-full transition-colors duration-[0.25s] ease-[ease-in-out] focus:outline-n-brand dark:focus:outline-n-brand appearance-none mx-0 mt-0 mb-4 py-2 px-3 rounded-xl text-sm font-normal bg-n-alpha-1 placeholder:text-n-slate-10 dark:placeholder:text-n-slate-10 text-n-slate-12 border-none outline outline-1 outline-n-weak dark:outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6;
+    @apply block box-border w-full transition-colors duration-[0.25s] ease-[ease-in-out] focus:outline-n-brand dark:focus:outline-n-brand appearance-none mx-0 mt-0 mb-4 py-2 px-3 rounded-lg text-sm font-normal bg-n-alpha-black2 placeholder:text-n-slate-10 dark:placeholder:text-n-slate-10 text-n-slate-12 border-none outline outline-1 outline-n-weak dark:outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6;
   }
 
   .field-disabled {

@@ -591,7 +591,7 @@ onUnmounted(() => {
 
 <template>
   <main
-    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 gap-1 p-3 md:p-4 overflow-hidden bg-n-background"
+    class="flex flex-1 flex-col w-full h-full min-h-0 min-w-0 p-3 md:p-4 overflow-hidden bg-n-background"
   >
     <header class="flex flex-wrap items-center justify-between gap-3 mb-3">
       <div class="flex flex-wrap items-center gap-3 min-w-0">
@@ -951,7 +951,7 @@ onUnmounted(() => {
         v-for="stage in boardStages"
         :key="stage.id"
         data-crm-stage-column
-        class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-2xl outline outline-1 outline-n-container bg-n-surface-1 p-2.5 shadow-sm"
+        class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-xl bg-n-alpha-2 p-2.5"
       >
         <div class="sticky top-0 z-10 flex-shrink-0 mb-2 min-w-0">
           <h2

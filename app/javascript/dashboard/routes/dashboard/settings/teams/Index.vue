@@ -116,11 +116,11 @@ const confirmPlaceHolderText = computed(() =>
         {{ $t('TEAMS_SETTINGS.NO_RESULTS') }}
       </span>
 
-      <div v-else class="flex flex-col gap-3">
+      <div v-else class="divide-y divide-n-weak border-t border-n-weak">
         <div
           v-for="team in filteredTeamsList"
           :key="team.id"
-          class="flex flex-row items-start justify-between gap-4 rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm transition-shadow hover:shadow-md"
+          class="flex justify-between flex-row items-start gap-4 py-4"
         >
           <div class="flex items-start gap-4">
             <div

@@ -261,7 +261,7 @@ watch(
           :is="linkTo ? 'router-link' : 'button'"
           :to="linkTo"
           type="button"
-          class="flex items-center justify-center size-10 rounded-xl transition-colors duration-100 ease-out"
+          class="flex items-center justify-center size-10 rounded-lg"
           :class="{
             'text-n-slate-12 bg-n-alpha-2': isActive || hasActiveChild,
             'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,

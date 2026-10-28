@@ -78,7 +78,7 @@ onMounted(() => {
       <div
         class="relative max-h-full overflow-auto bg-n-alpha-3 shadow-md modal-container rtl:text-right skip-context-menu"
         :class="{
-          'rounded-2xl w-[37.5rem]': !fullWidth,
+          'rounded-xl w-[37.5rem]': !fullWidth,
           'items-center rounded-none flex h-full justify-center w-full':
             fullWidth,
           [size]: true,

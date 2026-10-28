@@ -488,7 +488,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
         class="flex flex-col lg:flex-row gap-5 min-w-0 lg:flex-1 lg:min-h-0 lg:overflow-hidden"
       >
         <aside
-          class="flex flex-col w-full min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain p-4 border border-n-container rounded-2xl lg:w-72 xl:w-80 lg:shrink-0 bg-n-surface-1 shadow-sm"
+          class="flex flex-col w-full min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain p-4 border border-n-weak rounded-xl lg:w-72 xl:w-80 lg:shrink-0 bg-n-alpha-2"
         >
           <button
             type="button"

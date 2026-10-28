@@ -154,7 +154,7 @@ onActivated(() => {
     </header>
 
     <nav
-      class="flex gap-1 p-1 rounded-xl bg-n-surface-1 outline outline-1 outline-n-container"
+      class="flex gap-1 p-1 rounded-lg bg-n-solid-2"
       :aria-label="t('AI_TOOLS.NAVIGATION')"
     >
       <Button variant="faded" :label="t('AI_TOOLS.TOOLS_TAB')" disabled />
@@ -167,7 +167,7 @@ onActivated(() => {
 
     <section
       v-if="!loading && !error && tools.length"
-      class="flex flex-wrap items-end gap-3 p-4 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+      class="flex flex-wrap items-end gap-3 p-4 rounded-xl bg-n-solid-2"
     >
       <Input
         v-model="search"
@@ -203,7 +203,7 @@ onActivated(() => {
     </div>
     <div
       v-else-if="!tools.length"
-      class="flex flex-col items-start gap-4 p-8 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+      class="flex flex-col items-start gap-4 p-8 rounded-xl bg-n-solid-2"
     >
       <div>
         <h2 class="text-base font-medium text-n-slate-12">
@@ -221,7 +221,7 @@ onActivated(() => {
     </div>
     <div
       v-else-if="!filteredTools.length"
-      class="p-8 text-center rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+      class="p-8 text-center rounded-xl bg-n-solid-2"
     >
       <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.EMPTY_FILTERED') }}</p>
     </div>
@@ -229,7 +229,7 @@ onActivated(() => {
       <article
         v-for="tool in filteredTools"
         :key="tool.id"
-        class="flex flex-col min-w-0 gap-4 p-5 rounded-2xl outline outline-1 outline-n-container bg-n-surface-1 shadow-sm transition-shadow hover:shadow-md"
+        class="flex flex-col min-w-0 gap-4 p-5 rounded-xl outline outline-1 outline-n-weak bg-n-solid-1"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">

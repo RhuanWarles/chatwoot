@@ -128,7 +128,7 @@ onActivated(() => {
 
     <section
       v-if="!loading && !error && bases.length"
-      class="flex flex-wrap items-end gap-3 p-4 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+      class="flex flex-wrap items-end gap-3 p-4 rounded-xl bg-n-solid-2"
     >
       <Input
         v-model="search"
@@ -170,7 +170,7 @@ onActivated(() => {
     </div>
     <div
       v-else-if="!bases.length"
-      class="flex flex-col items-start gap-4 p-8 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+      class="flex flex-col items-start gap-4 p-8 rounded-xl bg-n-solid-2"
     >
       <div>
         <h2 class="text-base font-medium text-n-slate-12">
@@ -188,7 +188,7 @@ onActivated(() => {
     </div>
     <div
       v-else-if="!filteredBases.length"
-      class="p-8 text-center rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+      class="p-8 text-center rounded-xl bg-n-solid-2"
     >
       <p class="text-sm text-n-slate-11">{{ t('KNOWLEDGE.EMPTY_FILTERED') }}</p>
     </div>
@@ -196,7 +196,7 @@ onActivated(() => {
       <article
         v-for="base in filteredBases"
         :key="base.id"
-        class="flex flex-col min-w-0 gap-4 p-5 rounded-2xl outline outline-1 outline-n-container bg-n-surface-1 shadow-sm transition-shadow hover:shadow-md"
+        class="flex flex-col min-w-0 gap-4 p-5 rounded-xl outline outline-1 outline-n-weak bg-n-solid-1"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">

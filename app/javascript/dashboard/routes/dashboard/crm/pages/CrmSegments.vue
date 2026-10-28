@@ -134,7 +134,7 @@ onMounted(load);
       </header>
 
       <form
-        class="flex flex-col gap-3 rounded-2xl border border-n-container bg-n-surface-1 p-3 shadow-sm sm:flex-row sm:items-end"
+        class="flex flex-col gap-3 rounded-xl border border-n-weak bg-n-solid-1 p-3 sm:flex-row sm:items-end"
         data-test="new-segment"
         @submit.prevent="create"
       >
@@ -178,7 +178,7 @@ onMounted(load);
 
       <ul
         v-else-if="segments.length"
-        class="m-0 flex list-none flex-col overflow-hidden rounded-2xl border border-n-container bg-n-surface-1 p-0 shadow-sm"
+        class="m-0 flex list-none flex-col overflow-hidden rounded-xl border border-n-weak bg-n-solid-1 p-0"
         :aria-label="t('CRM.SEGMENTS_TITLE')"
       >
         <li

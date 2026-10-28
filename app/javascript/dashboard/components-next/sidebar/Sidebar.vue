@@ -1075,7 +1075,7 @@ const menuItems = computed(() => {
         ],
       },
     ]"
-    class="bg-n-surface-1 flex flex-col text-sm pb-px fixed top-0 ltr:left-0 rtl:right-0 h-full z-40 w-[200px] md:w-auto md:relative md:flex-shrink-0 md:ltr:translate-x-0 md:rtl:translate-x-0 ltr:border-r rtl:border-l border-n-container"
+    class="bg-n-background flex flex-col text-sm pb-px fixed top-0 ltr:left-0 rtl:right-0 h-full z-40 w-[200px] md:w-auto md:relative md:flex-shrink-0 md:ltr:translate-x-0 md:rtl:translate-x-0 ltr:border-r rtl:border-l border-n-weak"
     :class="[
       {
         'shadow-lg md:shadow-none': isMobileSidebarOpen,
@@ -1088,13 +1088,13 @@ const menuItems = computed(() => {
   >
     <section
       class="grid"
-      :class="isEffectivelyCollapsed ? 'mt-3 mb-6 gap-4' : 'mt-3 mb-5 gap-3'"
+      :class="isEffectivelyCollapsed ? 'mt-3 mb-6 gap-4' : 'mt-1 mb-4 gap-2'"
     >
       <div
         class="flex gap-2 items-center min-w-0"
         :class="{
           'justify-between px-1': isEffectivelyCollapsed,
-          'px-3': !isEffectivelyCollapsed,
+          'px-2': !isEffectivelyCollapsed,
         }"
       >
         <template v-if="isEffectivelyCollapsed">
@@ -1143,12 +1143,12 @@ const menuItems = computed(() => {
       </div>
       <div
         class="flex gap-2"
-        :class="isEffectivelyCollapsed ? 'flex-col items-center' : 'px-3'"
+        :class="isEffectivelyCollapsed ? 'flex-col items-center' : 'px-2'"
       >
         <RouterLink
           v-if="!isEffectivelyCollapsed"
           :to="{ name: 'search' }"
-          class="flex gap-2 items-center px-3 py-1.5 w-full h-9 rounded-xl outline outline-1 outline-n-weak bg-n-alpha-1 transition-all duration-100 ease-out hover:bg-n-alpha-2 focus-visible:outline-n-brand"
+          class="flex gap-2 items-center px-2 py-1 w-full h-7 rounded-lg outline outline-1 outline-n-weak bg-n-button-color transition-all duration-100 ease-out"
         >
           <span class="flex-shrink-0 i-lucide-search size-4 text-n-slate-10" />
           <span class="flex-grow text-start text-n-slate-10">
@@ -1177,8 +1177,8 @@ const menuItems = computed(() => {
               class="dark:hover:!bg-n-slate-9/30"
               :class="[
                 isEffectivelyCollapsed
-                  ? '!size-9 !outline-n-weak !text-n-slate-11'
-                  : '!h-9 !outline-n-weak !text-n-slate-11',
+                  ? '!size-8 !outline-n-weak !text-n-slate-11'
+                  : '!h-7 !outline-n-weak !text-n-slate-11',
                 { '!bg-n-alpha-2 dark:!bg-n-slate-9/30': isOpen },
               ]"
             />
@@ -1188,7 +1188,7 @@ const menuItems = computed(() => {
     </section>
     <nav
       class="grid overflow-y-scroll flex-grow gap-2 pb-5 no-scrollbar min-w-0"
-      :class="isEffectivelyCollapsed ? 'px-1' : 'px-3'"
+      :class="isEffectivelyCollapsed ? 'px-1' : 'px-2'"
     >
       <ul
         class="flex flex-col gap-1 m-0 list-none min-w-0"
@@ -1222,7 +1222,7 @@ const menuItems = computed(() => {
         "
       />
       <div
-        class="px-2 py-2 flex-shrink-0 flex w-full z-50 gap-2 items-center border-t border-n-container bg-n-surface-1"
+        class="px-1 py-1.5 flex-shrink-0 flex w-full z-50 gap-2 items-center border-t border-n-weak shadow-[0px_-2px_4px_0px_rgba(27,28,29,0.02)]"
         :class="isEffectivelyCollapsed ? 'justify-center' : 'justify-between'"
       >
         <SidebarProfileMenu

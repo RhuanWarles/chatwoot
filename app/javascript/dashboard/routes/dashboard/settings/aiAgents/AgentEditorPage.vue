@@ -268,7 +268,7 @@ onMounted(load);
 <template>
   <main class="flex flex-col w-full max-w-5xl gap-5 mx-auto pb-8">
     <header
-      class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 py-4 px-4 -mx-4 border-b border-n-container rounded-b-2xl bg-n-surface-1/95 backdrop-blur"
+      class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 py-4 border-b bg-n-solid-1 border-n-weak"
     >
       <div class="min-w-0">
         <RouterLink
@@ -317,7 +317,7 @@ onMounted(load);
     </p>
     <template v-else>
       <nav
-        class="flex gap-1 p-1 overflow-x-auto rounded-xl bg-n-surface-1 outline outline-1 outline-n-container"
+        class="flex gap-1 p-1 overflow-x-auto rounded-lg bg-n-solid-2"
         :aria-label="t('AI_AGENTS.EDITOR_TABS')"
       >
         <button
@@ -338,7 +338,7 @@ onMounted(load);
 
       <section
         v-if="activeTab === 'general'"
-        class="flex flex-col gap-5 p-5 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
       >
         <div>
           <h2 class="font-medium text-n-slate-12">
@@ -452,7 +452,7 @@ onMounted(load);
 
       <section
         v-else-if="activeTab === 'instructions'"
-        class="flex flex-col gap-4 p-5 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+        class="flex flex-col gap-4 p-5 rounded-xl bg-n-solid-2"
       >
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -490,7 +490,7 @@ onMounted(load);
 
       <section
         v-else-if="activeTab === 'behavior'"
-        class="flex flex-col gap-5 p-5 rounded-2xl bg-n-surface-1 outline outline-1 outline-n-container shadow-sm"
+        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
       >
         <div>
           <h2 class="font-medium text-n-slate-12">
@@ -665,10 +665,7 @@ onMounted(load);
         </div>
       </section>
 
-      <section
-        v-else
-        class="flex flex-col gap-5 rounded-2xl bg-n-surface-1 p-5 shadow-sm outline outline-1 outline-n-container"
-      >
+      <section v-else class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2">
         <div>
           <h2 class="font-medium text-n-slate-12">
             {{ t('AI_AGENTS.CONNECTIONS_SECTION') }}

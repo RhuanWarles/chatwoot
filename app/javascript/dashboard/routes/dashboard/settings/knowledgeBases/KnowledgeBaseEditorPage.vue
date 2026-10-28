@@ -350,7 +350,7 @@ onUnmounted(() => clearInterval(timer));
 <template>
   <main class="flex flex-col w-full max-w-5xl gap-6 pb-8 mx-auto">
     <header
-      class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 py-3 -mx-4 border-b border-n-container rounded-b-2xl bg-n-surface-1/95 px-4 backdrop-blur"
+      class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 py-3 -mx-4 border-b bg-n-solid-1/95 border-n-weak px-4 backdrop-blur"
     >
       <div class="flex items-center min-w-0 gap-3">
         <Button
@@ -433,7 +433,7 @@ onUnmounted(() => clearInterval(timer));
       @click="retryFailed"
     />
     <nav
-      class="flex gap-1 p-1 overflow-x-auto rounded-xl bg-n-surface-1 outline outline-1 outline-n-container"
+      class="flex gap-1 p-1 overflow-x-auto rounded-xl bg-n-solid-2"
       :aria-label="t('KNOWLEDGE.TITLE')"
     >
       <button
@@ -542,7 +542,7 @@ onUnmounted(() => clearInterval(timer));
         <article
           v-for="item in documents"
           :key="item.id"
-          class="flex flex-wrap items-start justify-between gap-4 p-4 rounded-2xl outline outline-1 outline-n-container bg-n-surface-1 shadow-sm"
+          class="flex flex-wrap items-start justify-between gap-4 p-4 rounded-xl outline outline-1 outline-n-weak bg-n-solid-1"
         >
           <div class="min-w-0">
             <h3 class="font-medium break-words text-n-slate-12">
@@ -635,7 +635,7 @@ onUnmounted(() => clearInterval(timer));
         <article
           v-for="(candidate, index) in candidates"
           :key="candidate.id || index"
-          class="p-4 rounded-2xl outline outline-1 outline-n-container bg-n-surface-1 shadow-sm"
+          class="p-4 rounded-xl outline outline-1 outline-n-weak bg-n-solid-1"
         >
           <div
             class="flex flex-wrap justify-between gap-2 text-xs text-n-slate-11"

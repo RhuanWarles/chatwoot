@@ -13,7 +13,7 @@ defineProps({
 
 <template>
   <div
-    class="group relative flex w-full flex-col justify-between gap-4 rounded-2xl bg-n-surface-1 p-4 shadow-sm outline outline-1 outline-n-container transition-shadow hover:shadow-md sm:flex-row sm:p-6"
+    class="flex relative flex-col sm:flex-row p-4 gap-4 sm:p-6 justify-between group outline outline-n-container outline-1 bg-n-solid-2 rounded-2xl shadow w-full"
   >
     <slot name="leftSection">
       <div class="flex flex-col min-w-0 items-start gap-3 max-w-[480px] w-full">

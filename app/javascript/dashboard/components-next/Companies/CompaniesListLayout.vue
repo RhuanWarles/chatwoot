@@ -26,7 +26,7 @@ const updateCurrentPage = page => {
 
 <template>
   <section
-    class="flex h-full w-full justify-evenly gap-4 overflow-hidden bg-n-surface-1"
+    class="flex w-full h-full gap-4 overflow-hidden justify-evenly bg-n-surface-1"
   >
     <div class="flex flex-col w-full h-full transition-all duration-300">
       <CompanyHeader
@@ -38,8 +38,8 @@ const updateCurrentPage = page => {
         @update:sort="emit('update:sort', $event)"
         @create="emit('create')"
       />
-      <main class="flex-1 overflow-y-auto px-6">
-        <div class="mx-auto w-full max-w-5xl py-4">
+      <main class="flex-1 px-6 overflow-y-auto">
+        <div class="w-full mx-auto max-w-5xl py-4">
           <slot name="default" />
         </div>
       </main>

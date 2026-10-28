@@ -90,7 +90,7 @@ onMounted(load);
 
 <template>
   <section
-    class="flex min-w-0 flex-col gap-4 rounded-2xl border border-n-container bg-n-surface-1 p-4 shadow-sm"
+    class="flex min-w-0 flex-col gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
     data-test="responder-report"
   >
     <header>
@@ -155,7 +155,7 @@ onMounted(load);
 
     <template v-else-if="data">
       <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div class="rounded-xl bg-n-alpha-2 p-3">
+        <div class="rounded-lg bg-n-alpha-2 p-3">
           <dt class="text-xs text-n-slate-11">
             {{ t('CRM.RESPONDER_REPORT.SHARE_AI') }}
           </dt>
@@ -163,7 +163,7 @@ onMounted(load);
             {{ percent(totals.ai_share) }}
           </dd>
         </div>
-        <div class="rounded-xl bg-n-alpha-2 p-3">
+        <div class="rounded-lg bg-n-alpha-2 p-3">
           <dt class="text-xs text-n-slate-11">
             {{ t('CRM.RESPONDER_REPORT.SHARE_AI_ONLY') }}
           </dt>
@@ -171,7 +171,7 @@ onMounted(load);
             {{ percent(totals.ai_only_share) }}
           </dd>
         </div>
-        <div class="rounded-xl bg-n-alpha-2 p-3">
+        <div class="rounded-lg bg-n-alpha-2 p-3">
           <dt class="text-xs text-n-slate-11">
             {{ t('CRM.RESPONDER_REPORT.REPLIES') }}
           </dt>

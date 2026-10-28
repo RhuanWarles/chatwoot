@@ -650,13 +650,13 @@ export default {
 <template>
   <div
     ref="messagesViewRef"
-    class="relative flex flex-col justify-between flex-grow h-full min-w-0 m-0 bg-n-background"
+    class="relative flex flex-col justify-between flex-grow h-full min-w-0 m-0"
   >
     <div ref="topBannerRef">
       <Banner
         v-if="isInstagramRestrictionBannerVisible"
         color-scheme="warning"
-        class="mx-2 mt-2 min-h-12 !h-auto rounded-xl"
+        class="mx-2 mt-2 min-h-12 !h-auto rounded-lg"
         :banner-message="$t('CONVERSATION.INSTAGRAM_RESTRICTION_BANNER')"
         :href-link="instagramRestrictionStatusUrl"
         :href-link-text="$t('CONVERSATION.INSTAGRAM_RESTRICTION_STATUS_LINK')"
@@ -664,7 +664,7 @@ export default {
       <Banner
         v-if="!currentChat.can_reply"
         color-scheme="alert"
-        class="mx-2 mt-2 overflow-hidden rounded-xl"
+        class="mx-2 mt-2 overflow-hidden rounded-lg"
         :banner-message="replyWindowBannerMessage"
         :href-link="replyWindowLink"
         :href-link-text="replyWindowLinkText"
@@ -672,7 +672,7 @@ export default {
       <Banner
         v-if="hasDuplicateInstagramInbox"
         color-scheme="alert"
-        class="mx-2 mt-2 overflow-hidden rounded-xl"
+        class="mx-2 mt-2 overflow-hidden rounded-lg"
         :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
       />
     </div>
@@ -688,7 +688,7 @@ export default {
         aria-live="polite"
       >
         <span
-          class="px-3 py-1 text-xs rounded-xl shadow-sm bg-n-alpha-2 text-n-slate-11"
+          class="px-3 py-1 text-xs rounded-full shadow-sm bg-n-alpha-2 text-n-slate-11"
         >
           {{ floatingDateLabel }}
         </span>
@@ -696,7 +696,7 @@ export default {
     </Transition>
     <MessageList
       ref="conversationPanelRef"
-      class="conversation-panel flex-shrink flex-grow basis-px flex flex-col overflow-y-auto relative h-full m-0 bg-n-background"
+      class="conversation-panel flex-shrink flex-grow basis-px flex flex-col overflow-y-auto relative h-full m-0"
       :class="isReadingHistory ? 'pb-16' : 'pb-4'"
       :current-user-id="currentUserId"
       :first-unread-id="unReadMessages[0]?.id"
@@ -743,7 +743,7 @@ export default {
           class="list-none flex justify-center items-center"
         >
           <span
-            class="shadow-lg rounded-xl bg-n-brand text-white text-xs font-medium my-2.5 mx-auto px-2.5 py-1.5"
+            class="shadow-lg rounded-full bg-n-brand text-white text-xs font-medium my-2.5 mx-auto px-2.5 py-1.5"
           >
             {{ unreadMessageLabel }}
           </span>
@@ -769,14 +769,14 @@ export default {
         />
       </template>
     </MessageList>
-    <div class="flex relative flex-col bg-n-background border-t border-n-weak">
+    <div class="flex relative flex-col bg-n-surface-1">
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0"
         :class="isReadingHistory ? '-top-[5.5rem]' : '-top-7'"
       >
         <div
-          class="flex py-2 pr-4 pl-5 shadow-sm rounded-xl bg-n-surface-1 outline outline-1 outline-n-weak text-n-slate-11 text-xs font-semibold my-2.5 mx-auto"
+          class="flex py-2 pr-4 pl-5 shadow-md rounded-full bg-white dark:bg-n-solid-3 text-n-slate-11 text-xs font-semibold my-2.5 mx-auto"
         >
           {{ typingUserNames }}
           <img
