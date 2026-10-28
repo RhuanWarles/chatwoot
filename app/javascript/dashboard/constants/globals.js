@@ -5,6 +5,7 @@ export default {
     UNASSIGNED: 'unassigned',
     ALL: 'all',
     UNANSWERED: 'unanswered',
+    HANDOFF_REQUESTED: 'handoff_requested',
   },
   STATUS_TYPE: {
     OPEN: 'open',

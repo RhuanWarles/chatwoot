@@ -23,7 +23,7 @@ class ConversationFinder
   def perform
     set_up
 
-    mine_count, unassigned_count, all_count, unanswered_count = set_count_for_all_conversations
+    mine_count, unassigned_count, all_count, unanswered_count, handoff_count = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
     filter_by_assignee_type
@@ -35,7 +35,8 @@ class ConversationFinder
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
         all_count: all_count,
-        unanswered_count: unanswered_count
+        unanswered_count: unanswered_count,
+        handoff_count: handoff_count
       }
     }
   end
@@ -43,7 +44,7 @@ class ConversationFinder
   def perform_meta_only
     set_up
 
-    mine_count, unassigned_count, all_count, unanswered_count = set_count_for_all_conversations
+    mine_count, unassigned_count, all_count, unanswered_count, handoff_count = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
     {
@@ -52,7 +53,8 @@ class ConversationFinder
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
         all_count: all_count,
-        unanswered_count: unanswered_count
+        unanswered_count: unanswered_count,
+        handoff_count: handoff_count
       }
     }
   end
@@ -69,6 +71,7 @@ class ConversationFinder
     filter_by_team
     filter_by_labels
     filter_by_unanswered
+    filter_by_handoff_requested
     filter_by_ai_state
     filter_by_ai_agent
     filter_by_query
@@ -169,6 +172,12 @@ class ConversationFinder
     @conversations = @conversations.awaiting_response if ActiveModel::Type::Boolean.new.cast(params[:unanswered])
   end
 
+  def filter_by_handoff_requested
+    return unless ActiveModel::Type::Boolean.new.cast(params[:handoff_requested])
+
+    @conversations = @conversations.where("additional_attributes->>'ai_handoff' = 'true'")
+  end
+
   def filter_by_ai_state
     return if params[:ai_state].blank?
 
@@ -210,9 +219,10 @@ class ConversationFinder
       Arel.sql("COUNT(*) FILTER (WHERE assignee_id = #{current_user.id})"),
       Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NULL AND assignee_agent_bot_id IS NULL)'),
       Arel.sql('COUNT(*)'),
-      Arel.sql('COUNT(*) FILTER (WHERE conversations.waiting_for_reply = TRUE)')
+      Arel.sql('COUNT(*) FILTER (WHERE conversations.waiting_for_reply = TRUE)'),
+      Arel.sql("COUNT(*) FILTER (WHERE conversations.additional_attributes->>'ai_handoff' = 'true')")
     )
-    counts || [0, 0, 0, 0]
+    counts || [0, 0, 0, 0, 0]
   end
 
   def legacy_count_for_all_conversations
@@ -220,7 +230,8 @@ class ConversationFinder
       @conversations.assigned_to(current_user).count,
       @conversations.unassigned.count,
       @conversations.count,
-      @conversations.awaiting_response.count
+      @conversations.awaiting_response.count,
+      @conversations.where("additional_attributes->>'ai_handoff' = 'true'").count
     ]
   end
 

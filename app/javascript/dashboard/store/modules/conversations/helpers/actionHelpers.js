@@ -6,6 +6,7 @@ const countForFilter = (metaData, filterType) => {
   if (filterType === 'me') return metaData.mine_count;
   if (filterType === 'unassigned') return metaData.unassigned_count;
   if (filterType === 'unanswered') return metaData.unanswered_count;
+  if (filterType === 'handoff_requested') return metaData.handoff_count;
   return metaData.all_count;
 };
 

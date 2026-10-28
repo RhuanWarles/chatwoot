@@ -270,18 +270,21 @@ const conversationListPagination = computed(() => {
 const conversationFilters = computed(() => {
   const isUnansweredTab =
     activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNANSWERED;
+  const isHandoffTab =
+    activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.HANDOFF_REQUESTED;
   return {
     inboxId: props.conversationInbox || undefined,
-    assigneeType: isUnansweredTab
+    assigneeType: isUnansweredTab || isHandoffTab
       ? wootConstants.ASSIGNEE_TYPE.ALL
       : activeAssigneeTab.value,
-    status: activeStatus.value,
+    status: isHandoffTab ? wootConstants.STATUS_TYPE.ALL : activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
     labels: props.label ? [props.label] : undefined,
     teamId: props.teamId || undefined,
     conversationType: props.conversationType || undefined,
     unanswered: isUnansweredTab,
+    handoffRequested: isHandoffTab,
   };
 });
 
@@ -666,7 +669,9 @@ function updateAssigneeTab(selectedTab) {
     if (
       !currentPage.value ||
       selectedTab === wootConstants.ASSIGNEE_TYPE.UNANSWERED ||
-      activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNANSWERED
+      activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.UNANSWERED ||
+      selectedTab === wootConstants.ASSIGNEE_TYPE.HANDOFF_REQUESTED ||
+      activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.HANDOFF_REQUESTED
     ) {
       store.dispatch('conversationPage/reset');
       store.dispatch('emptyAllConversations');

@@ -24,7 +24,8 @@
       "me": "Mine",
       "unassigned": "Unassigned",
       "all": "All",
-      "unanswered": "Unanswered"
+      "unanswered": "Unanswered",
+      "handoff_requested": "Handoff requested"
     },
     "VIEW_PREFERENCES": {
       "TOOLTIP": "Customize conversation list",

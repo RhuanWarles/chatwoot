@@ -37,7 +37,7 @@ const save = () => {
 
 defineExpose({ open, close });
 
-const tabItems = ['me', 'unassigned', 'all', 'unanswered'];
+const tabItems = ['me', 'unassigned', 'all', 'unanswered', 'handoff_requested'];
 const filterItems = ['assistant', 'inbox', 'tag', 'ai'];
 
 const isOnlyVisibleTab = key =>

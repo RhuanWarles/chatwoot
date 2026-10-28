@@ -109,9 +109,11 @@ const actions = {
         // The unanswered tab queries the API with assignee_type=all and uses
         // `unanswered` as an additional filter. Keep its pagination state
         // separate from the regular "all" tab.
-        const filterType = params.unanswered
-          ? 'unanswered'
-          : params.assigneeType;
+        const filterType = params.handoffRequested
+          ? 'handoff_requested'
+          : params.unanswered
+            ? 'unanswered'
+            : params.assigneeType;
 
         buildConversationList({ commit, dispatch }, params, data, filterType, {
           replaceExisting,

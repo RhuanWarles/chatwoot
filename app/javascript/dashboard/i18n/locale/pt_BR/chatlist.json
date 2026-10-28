@@ -24,7 +24,8 @@
       "me": "Minhas",
       "unassigned": "Não atribuídas",
       "all": "Todos",
-      "unanswered": "Sem resposta"
+      "unanswered": "Sem resposta",
+      "handoff_requested": "Handoff solicitado"
     },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {

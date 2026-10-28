@@ -7,6 +7,7 @@ const state = {
   unAssignedCount: 0,
   allCount: 0,
   unansweredCount: 0,
+  handoffCount: 0,
 };
 
 export const getters = {
@@ -21,6 +22,7 @@ const getViewKey = ({
   teamId,
   conversationType,
   unanswered,
+  handoffRequested,
   aiState,
   aiAgentId,
   queryData,
@@ -34,6 +36,7 @@ const getViewKey = ({
       teamId,
       conversationType,
       unanswered,
+      handoffRequested,
       aiState,
       aiAgentId,
     },
@@ -122,12 +125,14 @@ export const mutations = {
       unassigned_count: unAssignedCount,
       all_count: allCount,
       unanswered_count: unansweredCount,
+      handoff_count: handoffCount,
     } = {}
   ) {
     $state.mineCount = mineCount;
     $state.allCount = allCount;
     $state.unAssignedCount = unAssignedCount;
     if (unansweredCount !== undefined) $state.unansweredCount = unansweredCount;
+    if (handoffCount !== undefined) $state.handoffCount = handoffCount;
     $state.updatedOn = new Date();
   },
 };

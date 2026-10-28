@@ -49,6 +49,15 @@ export const filterByUnanswered = (
   return isWaiting && shouldFilter;
 };
 
+export const filterByHandoffRequested = (
+  shouldFilter,
+  handoffRequested,
+  additionalAttributes
+) => {
+  if (!handoffRequested) return shouldFilter;
+  return additionalAttributes?.ai_handoff === true && shouldFilter;
+};
+
 export const applyPageFilters = (conversation, filters) => {
   const {
     inboxId,
@@ -57,6 +66,7 @@ export const applyPageFilters = (conversation, filters) => {
     teamId,
     conversationType,
     unanswered,
+    handoffRequested,
   } = filters;
   const {
     status: chatStatus,
@@ -67,6 +77,7 @@ export const applyPageFilters = (conversation, filters) => {
     waiting_since: waitingSince,
     waiting_for_reply: waitingForReply,
     last_relevant_message_type: lastRelevantMessageType,
+    additional_attributes: additionalAttributes,
   } = conversation;
   const team = meta.team || {};
   const { id: chatTeamId } = team;
@@ -86,6 +97,11 @@ export const applyPageFilters = (conversation, filters) => {
     unanswered,
     waitingForReply,
     lastRelevantMessageType
+  );
+  shouldFilter = filterByHandoffRequested(
+    shouldFilter,
+    handoffRequested,
+    additionalAttributes
   );
 
   return shouldFilter;

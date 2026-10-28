@@ -54,4 +54,8 @@ export const ASSIGNEE_TYPE_TAB_PERMISSIONS = {
     count: 'unansweredCount',
     permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
   },
+  handoff_requested: {
+    count: 'handoffCount',
+    permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
+  },
 };

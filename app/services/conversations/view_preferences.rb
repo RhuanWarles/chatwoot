@@ -1,5 +1,6 @@
 class Conversations::ViewPreferences
-  TAB_KEYS = %w[me unassigned all unanswered].freeze
+  TAB_KEYS = %w[me unassigned all unanswered handoff_requested].freeze
+  LEGACY_TAB_KEYS = %w[me unassigned all unanswered].freeze
   FILTER_KEYS = %w[assistant inbox tag ai].freeze
 
   def self.validate(value)
@@ -14,7 +15,7 @@ class Conversations::ViewPreferences
   def self.validate_sections(value)
     tabs = value['tabs'] || value[:tabs]
     filters = value['filters'] || value[:filters]
-    return invalid('tabs') unless valid_boolean_hash?(tabs, TAB_KEYS)
+    return invalid('tabs') unless valid_boolean_hash?(tabs, TAB_KEYS) || valid_boolean_hash?(tabs, LEGACY_TAB_KEYS)
 
     return invalid('filters') unless valid_boolean_hash?(filters, FILTER_KEYS)
 

@@ -4,6 +4,7 @@ export const CONVERSATION_VIEW_PREFERENCE_DEFAULTS = Object.freeze({
     unassigned: true,
     all: true,
     unanswered: true,
+    handoff_requested: true,
   }),
   filters: Object.freeze({
     assistant: true,
