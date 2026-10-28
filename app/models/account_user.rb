@@ -11,6 +11,7 @@
 #  updated_at               :datetime         not null
 #  account_id               :bigint
 #  agent_capacity_policy_id :bigint
+#  allowed_screens          :string           is an Array
 #  custom_role_id           :bigint
 #  inviter_id               :bigint
 #  user_id                  :bigint
@@ -31,10 +32,15 @@ class AccountUser < ApplicationRecord
   belongs_to :user
   belongs_to :inviter, class_name: 'User', optional: true
 
+  # Sections of the dashboard that can be switched off for a person; administrators always see everything.
+  SCREENS = %w[inbox conversations calls contacts companies crm help_center].freeze
+
   enum role: { agent: 0, administrator: 1 }
   enum availability: { online: 0, offline: 1, busy: 2 }
 
   accepts_nested_attributes_for :account
+
+  validate :allowed_screens_are_known
 
   after_create_commit :notify_creation, :create_notification_setting
   after_destroy :notify_deletion, :remove_user_from_account
@@ -59,6 +65,11 @@ class AccountUser < ApplicationRecord
     administrator? ? ['administrator'] : ['agent']
   end
 
+  # nil = every screen. An empty list is stored as nil, because it would leave the person with nothing to open.
+  def allowed_screens=(screens)
+    super(screens.nil? ? nil : Array(screens).map(&:to_s).compact_blank.uniq.presence)
+  end
+
   def push_event_data
     {
       id: id,
@@ -69,6 +80,13 @@ class AccountUser < ApplicationRecord
   end
 
   private
+
+  def allowed_screens_are_known
+    return if allowed_screens.blank?
+
+    unknown = allowed_screens - SCREENS
+    errors.add(:allowed_screens, "unknown screens: #{unknown.join(', ')}") if unknown.any?
+  end
 
   def notify_creation
     Rails.configuration.dispatcher.dispatch(AGENT_ADDED, Time.zone.now, account: account)
