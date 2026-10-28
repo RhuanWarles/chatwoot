@@ -12,7 +12,12 @@
     "MENTION_HEADING": "Mentions",
     "UNATTENDED_HEADING": "Unattended",
     "SEARCH": {
-      "INPUT": "Search for People, Chats, Saved Replies .."
+      "INPUT": "Search for People, Chats, Saved Replies ..",
+      "PLACEHOLDER": "Search a contact by name or phone",
+      "CLEAR": "Clear search",
+      "SEARCHING": "Searching...",
+      "EMPTY": "No conversation found.",
+      "ERROR": "Could not search. Try again."
     },
     "FILTER_ALL": "All",
     "ASSIGNEE_TYPE_TABS": {

@@ -8,6 +8,7 @@ import {
 } from 'dashboard/composables/store.js';
 
 import ChatListHeader from './ChatListHeader.vue';
+import ChatListSearch from './ChatListSearch.vue';
 import ConversationList from './ConversationList.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import ConversationFilter from 'next/filter/ConversationFilter.vue';
@@ -1003,6 +1004,8 @@ watch(appliedFilters, () => resetBulkActions());
       @basic-filter-change="onBasicFilterChange"
       @view-preferences="openViewPreferences"
     />
+
+    <ChatListSearch />
 
     <TeleportWithDirection
       v-if="showAddFoldersModal"
