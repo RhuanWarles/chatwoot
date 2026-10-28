@@ -8,7 +8,7 @@ diff --git a/src/api/integrations/chatbot/chatwoot/services/chatwoot.service.ts 
 +  private async forwardGroupParticipantEvent(instance: InstanceDto, body: any) {
 +    const groupJid = body.id || body.groupJid || body.key?.remoteJid;
 +    const participant = body.participants?.[0];
-+    if (!groupJid?.endsWith('@g.us') || !participant || body.action !== 'remove') return;
++    if (!groupJid?.endsWith('@g.us') || !participant || !['add', 'remove'].includes(body.action)) return;
 +
 +    const provider = await this.getProvider(instance);
 +    await axios.post(

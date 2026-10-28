@@ -179,7 +179,7 @@ class Messages::MessageBuilder
   end
 
   def restore_evolution_group_access_if_rejoined
-    return if @private || message_type != 'outgoing'
+    return if @private
     return unless @conversation.inbox.api? && Evolution::GroupJidResolver.call(@conversation)
 
     Evolution::GroupContext.new(@conversation).clear_left_state_if_rejoined!

@@ -12,6 +12,8 @@ class Evolution::GroupParticipantEventService
     conversation = find_conversation
     return if conversation.blank? || duplicate_event?(conversation)
 
+    return clear_group_left_if_instance_participant(conversation) if @action == 'add'
+
     mark_group_left_if_instance_participant(conversation)
 
     message = conversation.messages.create!(
@@ -62,5 +64,18 @@ class Evolution::GroupParticipantEventService
     ))
   rescue CustomExceptions::Evolution => e
     Rails.logger.warn("[Evolution] could not mark externally left group: #{e.class}")
+  end
+
+  def clear_group_left_if_instance_participant(conversation)
+    instance = Evolution::GroupClient.new(conversation.inbox).instance
+    owner = instance['ownerJid'].to_s.split(':').first.delete_suffix('@s.whatsapp.net')
+    participant = @participant.to_s.split(':').first.delete_suffix('@s.whatsapp.net')
+    return if owner.blank? || participant.blank? || owner != participant
+
+    conversation.update!(additional_attributes: conversation.additional_attributes.except(
+      'evolution_group_left_at', 'evolution_group_left_by_id'
+    ))
+  rescue CustomExceptions::Evolution => e
+    Rails.logger.warn("[Evolution] could not clear rejoined group state: #{e.class}")
   end
 end
