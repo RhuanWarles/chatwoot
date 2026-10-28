@@ -313,6 +313,8 @@
     "MODEL_EMPTY": "No suggested models",
     "MODEL_CUSTOM_PLACEHOLDER": "Or enter a custom model identifier",
     "MODEL_HELP": "Choose a suggestion or enter any compatible model identifier.",
+    "TEXT_CONFIGURATION": "Text provider connection",
+    "TEXT_CONFIGURATION_HELP": "The provider and model are managed in the account's Text provider connection settings.",
     "PLATFORM_MODE": "Platform credits",
     "PLATFORM_CREDITS": "Available for live service: {amount} credits. Playground tests do not consume account credits.",
     "PLATFORM_COST": "Cost: {count} credit(s) per response",

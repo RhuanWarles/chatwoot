@@ -110,6 +110,8 @@
     "MODEL_PLACEHOLDER": "Selecione um modelo sugerido",
     "MODEL_CUSTOM_PLACEHOLDER": "Ou informe um identificador de modelo personalizado",
     "MODEL_HELP": "Escolha uma sugestão ou informe qualquer identificador de modelo compatível.",
+    "TEXT_CONFIGURATION": "Conexão do provedor de texto",
+    "TEXT_CONFIGURATION_HELP": "O provedor e o modelo são gerenciados nas configurações da conexão do provedor de texto da conta.",
     "PLATFORM_CREDITS": "Disponível para o serviço ao vivo: {amount} créditos. Testes no Playground não consomem créditos da conta.",
     "PLATFORM_COST": "Custo: {count} crédito(s) por resposta",
     "PLATFORM_MODEL_HELP": "O modo plataforma usa {provider} com o modelo {model}. Os campos de provedor e modelo do assistente são apenas informativos e não podem ser alterados aqui.",
@@ -345,6 +347,26 @@
     ,"SLUG": "Nome técnico"
     ,"SLUG_HELP": "O assistente chama a ferramenta por este nome. Use-o ao citar a ferramenta nas instruções do assistente. Ele não muda quando você renomeia a ferramenta."
   },
+  "SAAS_AI": {
+    "LOADING": "Carregando configurações de IA...",
+    "LOAD_ERROR": "Não foi possível carregar as configurações de IA.",
+    "RETRY": "Tentar novamente",
+    "SAVE": "Salvar configurações",
+    "SAVED": "Configurações salvas",
+    "TEXT_TITLE": "IA de texto",
+    "MODE": "Como pagar pela IA de texto",
+    "PLATFORM": "Usar créditos da plataforma",
+    "BYOK": "Usar minha própria chave de API",
+    "PROVIDER": "Provedor",
+    "MODEL": "Identificador do modelo",
+    "API_KEY": "Chave de API",
+    "KEY_SAVED": "Uma chave está salva. Deixe em branco para mantê-la.",
+    "KEY_HELP": "Sua chave permanece no servidor; os créditos da plataforma não são consumidos.",
+    "REMOVE_KEY": "Remover a chave salva e usar créditos da plataforma",
+    "ENCRYPTION_MISSING": "O armazenamento seguro da chave ainda não está configurado.",
+    "TEXT_NOT_READY": "A IA de texto da plataforma ainda não está configurada.",
+    "TEXT_COST": "Cada resposta concluída usa {count} crédito(s) da plataforma."
+  },
   "AI_HUB": {
     "ANALYTICS": "Analytics",
     "SUBTITLE": "Gerencie seus assistentes de texto e voz em um só lugar.",
@@ -364,7 +386,9 @@
     "DURATION_HELP": "Opcional. Informe entre {min} e {max} segundos.",
     "YES": "Sim",
     "NO": "Não",
-    "ASSISTANT_ID": "ID do assistente"
+    "ASSISTANT_ID": "ID do assistente",
+    "TEXT_CONNECTION": "Conexão do provedor de texto",
+    "TEXT_CONNECTION_HELP": "Escolha aqui o modo de pagamento da conta. O modo plataforma usa o provedor e o modelo do administrador; BYOK armazena a chave da conta com segurança. As instruções permanecem por assistente."
   },
   "AI_ANALYTICS": {
     "TITLE": "Analytics de IA",
