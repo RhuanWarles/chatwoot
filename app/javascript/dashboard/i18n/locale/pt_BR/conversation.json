@@ -557,6 +557,8 @@
     },
     "PINNED_NOTE": {
       "PINNED_BY": "Fixada por {name}",
+      "LAST_NOTE_BY": "Última nota de {name}",
+      "LAST_NOTE": "Última nota",
       "SHOW_MORE": "Ver mais",
       "SHOW_LESS": "Ver menos",
       "GO_TO_NOTE": "Ir para a nota",

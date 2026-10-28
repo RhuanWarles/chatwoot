@@ -12,7 +12,11 @@ RSpec.describe 'Pinned internal note', type: :request do
                      content: 'Cliente só atende depois das 18h', sender: agent)
   end
 
-  before { create(:inbox_member, inbox: inbox, user: agent) }
+  before do
+    create(:inbox_member, inbox: inbox, user: agent)
+    # a new internal note is pinned on its own; these examples start from a conversation with nothing pinned
+    conversation.update!(additional_attributes: {})
+  end
 
   def pin(message_id, user: agent)
     post "#{base_url}/pin_note", headers: user.create_new_auth_token, params: { message_id: message_id }, as: :json
