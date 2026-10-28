@@ -2,6 +2,8 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   before_action :ensure_api_inbox, only: [:update, :evolution_edit]
   rescue_from CustomExceptions::Evolution, with: :render_evolution_error
 
+  TRANSCRIBE_ERROR_STATUS = { 'text_ai_disabled' => :forbidden, 'insufficient_balance' => :payment_required }.freeze
+
   def index
     @messages = message_finder.perform
   end
@@ -53,6 +55,18 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     ::SendReplyJob.perform_later(message.id) if claim_message_retry
   rescue StandardError => e
     render_could_not_create_error(e.message)
+  end
+
+  # "Transcrever" button of a received audio. The text reaches the bubble through the message update event.
+  def transcribe
+    attachment = message.attachments.audio.find(params.require(:attachment_id))
+    return head :ok if attachment.meta&.[]('transcribed_text').present?
+
+    error = Saas::Audio::TranscriptionService.new(attachment: attachment, account: Current.account).blocking_error
+    return render json: { error: error }, status: TRANSCRIBE_ERROR_STATUS.fetch(error, :unprocessable_entity) if error
+
+    Saas::TranscribeAudioJob.perform_later(attachment.id)
+    head :accepted
   end
 
   def translate

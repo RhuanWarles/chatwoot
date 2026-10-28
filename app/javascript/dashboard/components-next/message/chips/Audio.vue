@@ -1,21 +1,31 @@
 <script setup>
 import {
   computed,
+  onBeforeUnmount,
   onMounted,
   useTemplateRef,
   ref,
+  watch,
   getCurrentInstance,
 } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Icon from 'next/icon/Icon.vue';
+import MessageApi from 'dashboard/api/inbox/message';
+import { useAlert } from 'dashboard/composables';
 import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { emitter } from 'shared/helpers/mitt';
 
-const { attachment } = defineProps({
+const { attachment, conversationId } = defineProps({
   attachment: {
     type: Object,
     required: true,
+  },
+  // Only audios the agent may transcribe by hand get the button, so the callers decide by passing the conversation.
+  conversationId: {
+    type: Number,
+    default: null,
   },
   showTranscribedText: {
     type: Boolean,
@@ -41,6 +51,55 @@ const displayedTranscript = computed(() => {
   if (!isTranscriptLong.value || isTranscriptExpanded.value) return text;
   return `${text.slice(0, TRANSCRIPT_PREVIEW_LENGTH).trimEnd()}…`;
 });
+
+const { t, te } = useI18n();
+const TRANSCRIPTION_WAIT_MS = 90000;
+const isTranscribing = ref(false);
+let transcriptionTimer = null;
+
+const canTranscribe = computed(
+  () =>
+    !!conversationId && !!attachment.messageId && !attachment.transcribedText
+);
+
+const stopTranscribing = () => {
+  isTranscribing.value = false;
+  clearTimeout(transcriptionTimer);
+};
+
+// The text arrives through the message update event, so the button only waits for it.
+const transcribeAudio = async () => {
+  if (isTranscribing.value) return;
+  isTranscribing.value = true;
+  try {
+    const { status } = await MessageApi.transcribeAudio({
+      conversationId,
+      messageId: attachment.messageId,
+      attachmentId: attachment.id,
+    });
+    if (status !== 202) {
+      stopTranscribing();
+      return;
+    }
+    transcriptionTimer = setTimeout(() => {
+      stopTranscribing();
+      useAlert(t('CONVERSATION.TRANSCRIBE.TIMEOUT'));
+    }, TRANSCRIPTION_WAIT_MS);
+  } catch (error) {
+    stopTranscribing();
+    const key = `CONVERSATION.TRANSCRIBE.ERRORS.${error?.response?.data?.error}`;
+    useAlert(te(key) ? t(key) : t('CONVERSATION.TRANSCRIBE.ERRORS.GENERIC'));
+  }
+};
+
+watch(
+  () => attachment.transcribedText,
+  text => {
+    if (text) stopTranscribing();
+  }
+);
+
+onBeforeUnmount(() => clearTimeout(transcriptionTimer));
 
 const audioPlayer = useTemplateRef('audioPlayer');
 
@@ -219,6 +278,29 @@ const downloadAudio = async () => {
         @click="downloadAudio"
       >
         <Icon class="size-4" icon="i-lucide-download" />
+      </button>
+    </div>
+
+    <div v-if="canTranscribe && showTranscribedText" class="flex w-full px-1">
+      <button
+        type="button"
+        class="flex items-center gap-1 px-2 py-1 text-xs font-medium border-0 rounded-lg bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12 disabled:opacity-60"
+        :disabled="isTranscribing"
+        data-test="transcribe-audio"
+        @click="transcribeAudio"
+      >
+        <Icon
+          :icon="
+            isTranscribing ? 'i-lucide-loader-circle' : 'i-lucide-captions'
+          "
+          class="size-3.5"
+          :class="{ 'animate-spin': isTranscribing }"
+        />
+        {{
+          isTranscribing
+            ? $t('CONVERSATION.TRANSCRIBE.LOADING')
+            : $t('CONVERSATION.TRANSCRIBE.BUTTON')
+        }}
       </button>
     </div>
 

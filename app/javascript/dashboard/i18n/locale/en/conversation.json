@@ -569,6 +569,19 @@
       "GO_TO_NOTE": "Go to the note",
       "UNPIN": "Unpin note",
       "UNPIN_ERROR": "Could not unpin the note. Try again."
+    },
+    "TRANSCRIBE": {
+      "BUTTON": "Transcribe",
+      "LOADING": "Transcribing…",
+      "TIMEOUT": "The transcription is taking longer than expected. Try again in a moment.",
+      "ERRORS": {
+        "GENERIC": "Could not transcribe this audio. Try again in a moment.",
+        "text_ai_disabled": "The AI features are not enabled for this account.",
+        "insufficient_balance": "There are not enough credits to transcribe this audio. Add credits in the AI settings.",
+        "audio_not_configured": "Audio transcription is not configured on this platform.",
+        "audio_too_large": "This audio is too long to be transcribed.",
+        "audio_not_attached": "The audio file is not available yet. Try again in a moment."
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {

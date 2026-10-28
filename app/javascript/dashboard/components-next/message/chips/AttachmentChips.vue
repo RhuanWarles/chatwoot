@@ -7,7 +7,7 @@ import AudioChip from 'next/message/chips/Audio.vue';
 import FileChip from 'next/message/chips/File.vue';
 import { useMessageContext } from '../provider.js';
 
-import { ATTACHMENT_TYPES } from '../constants';
+import { ATTACHMENT_TYPES, MESSAGE_TYPES } from '../constants';
 
 /**
  * @typedef {Object} Attachment
@@ -34,7 +34,12 @@ defineOptions({
 });
 
 const attrs = useAttrs();
-const { orientation } = useMessageContext();
+const { orientation, conversationId, messageType } = useMessageContext();
+
+// Only audios received from the customer can be transcribed by hand.
+const transcribeIn = computed(() =>
+  messageType.value === MESSAGE_TYPES.INCOMING ? conversationId.value : null
+);
 
 const classToApply = computed(() => {
   const baseClasses = [attrs.class, 'flex', 'flex-wrap'];
@@ -93,6 +98,7 @@ const files = computed(() => {
       <AudioChip
         class="bg-n-alpha-3 dark:bg-n-alpha-2 text-n-slate-12"
         :attachment="attachment"
+        :conversation-id="transcribeIn"
       />
     </div>
   </div>

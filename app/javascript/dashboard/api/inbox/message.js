@@ -129,6 +129,13 @@ class MessageApi extends ApiClient {
     );
   }
 
+  transcribeAudio({ conversationId, messageId, attachmentId }) {
+    return axios.post(
+      `${this.url}/${conversationId}/messages/${messageId}/transcribe`,
+      { attachment_id: attachmentId }
+    );
+  }
+
   updateContent(conversationId, messageId, content) {
     return axios.patch(`${this.url}/${conversationId}/messages/${messageId}`, {
       content,

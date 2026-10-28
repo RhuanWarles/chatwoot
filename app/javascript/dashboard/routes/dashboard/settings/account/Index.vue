@@ -62,10 +62,11 @@ export default {
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       isOnChatwootCloud: 'globalConfig/isOnChatwootCloud',
     }),
+    // Received audios are transcribed with the text credits of the account, so Captain is not needed.
     showAudioTranscriptionConfig() {
-      return this.isFeatureEnabledonAccount(
-        this.accountId,
-        FEATURE_FLAGS.CAPTAIN
+      return (
+        this.isFeatureEnabledonAccount(this.accountId, 'text_ai') ||
+        this.isFeatureEnabledonAccount(this.accountId, FEATURE_FLAGS.CAPTAIN)
       );
     },
     languagesSortedByCode() {

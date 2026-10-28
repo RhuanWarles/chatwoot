@@ -2,7 +2,7 @@ class Saas::Audio::TranscriptionService
   BYTE_LIMIT = 25_000_000
   RESERVATION_TTL = 15.minutes
 
-  def initialize(attachment:, account:, agent:)
+  def initialize(attachment:, account:, agent: nil)
     @attachment = attachment
     @account = account
     @agent = agent
@@ -33,6 +33,11 @@ class Saas::Audio::TranscriptionService
     provider == 'openai' && model.present? && api_key.present?
   end
 
+  # Transcribing without an AI agent (automatically or from the "Transcrever" button) is paid with the text credits.
+  def self.available_for?(account)
+    configured? && account.feature_enabled?(:text_ai)
+  end
+
   def self.provider
     ENV.fetch('SAAS_AUDIO_PROVIDER', 'openai')
   end
@@ -45,7 +50,18 @@ class Saas::Audio::TranscriptionService
     ENV.fetch('SAAS_AUDIO_API_KEY', nil).presence
   end
 
+  # Why the audio cannot be transcribed right now, so a request can be refused before it is queued.
+  def blocking_error
+    return 'text_ai_disabled' unless @account.feature_enabled?(:text_ai)
+
+    audio_validation_error || ('insufficient_balance' unless balance_available?)
+  end
+
   private
+
+  def balance_available?
+    Saas::Wallet.for_account(@account, 'text_credits').available_units.positive?
+  end
 
   def audio_validation_error
     return 'audio_not_configured' unless self.class.configured?
@@ -62,7 +78,7 @@ class Saas::Audio::TranscriptionService
     end
 
     metadata = {
-      'source' => 'audio_transcription', 'ai_agent_id' => @agent.id, 'account_id' => @account.id,
+      'source' => 'audio_transcription', 'ai_agent_id' => @agent&.id, 'account_id' => @account.id,
       'attachment_id' => @attachment.id, 'provider' => self.class.provider, 'model' => self.class.model,
       'duration_seconds' => duration_seconds, 'audio_minutes' => duration_seconds / 60.0,
       'audio_credits_used' => usage.reserved_units, 'duration_ms' => elapsed_ms(started)
@@ -86,14 +102,14 @@ class Saas::Audio::TranscriptionService
   end
 
   def log_provider_error(error)
-    Rails.logger.warn({ event: 'saas_audio_transcription', account_id: @account.id, ai_agent_id: @agent.id,
+    Rails.logger.warn({ event: 'saas_audio_transcription', account_id: @account.id, ai_agent_id: @agent&.id,
                         attachment_id: @attachment.id, provider: self.class.provider, model: self.class.model,
                         status: 'provider_error', error: error.class.name.demodulize.underscore,
                         request: provider_request_metadata, provider_error: provider_error_details(error) }.to_json)
   end
 
   def log_transcription_error(error)
-    Rails.logger.warn({ event: 'saas_audio_transcription', account_id: @account.id, ai_agent_id: @agent.id,
+    Rails.logger.warn({ event: 'saas_audio_transcription', account_id: @account.id, ai_agent_id: @agent&.id,
                         attachment_id: @attachment.id, provider: self.class.provider, model: self.class.model,
                         status: 'error', error: error.class.name.demodulize.underscore }.to_json)
   end
@@ -139,7 +155,7 @@ class Saas::Audio::TranscriptionService
     units = [(duration_seconds / 60.0 * credits_per_minute).ceil, 1].max
     wallet = Saas::Wallet.for_account(@account, 'text_credits')
     wallet.reserve!(units: units, reference: usage_reference, expires_at: Time.current + RESERVATION_TTL,
-                    metadata: { 'source' => 'audio_transcription', 'ai_agent_id' => @agent.id,
+                    metadata: { 'source' => 'audio_transcription', 'ai_agent_id' => @agent&.id,
                                 'provider' => self.class.provider, 'model' => self.class.model,
                                 'duration_seconds' => duration_seconds, 'audio_minutes' => duration_seconds / 60.0,
                                 'audio_credits_used' => units })
@@ -162,10 +178,19 @@ class Saas::Audio::TranscriptionService
     meta.merge!('transcribed_text' => text, 'transcription_provider' => self.class.provider,
                 'transcription_model' => self.class.model, 'transcription_duration_seconds' => duration_seconds)
     @attachment.update!(meta: meta)
+    broadcast_message_update
+  end
+
+  # The bubble shows the text as soon as it is saved. The credits are already settled, so a broadcast problem must not fail the run.
+  def broadcast_message_update
+    @attachment.message&.reload&.send_update_event
+  rescue StandardError => e
+    Rails.logger.warn({ event: 'saas_audio_transcription', attachment_id: @attachment.id, status: 'broadcast_failed',
+                        error: e.class.name.demodulize.underscore }.to_json)
   end
 
   def usage_reference
-    "ai_audio:#{@account.id}:#{@attachment.id}:#{@agent.id}"
+    "ai_audio:#{@account.id}:#{@attachment.id}:#{@agent&.id || 'account'}"
   end
 
   def fail_usage(usage, error_code)

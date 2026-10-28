@@ -117,4 +117,83 @@ RSpec.describe Saas::Audio::TranscriptionService, type: :service do
 
     expect(result).to eq(success: false, error: 'audio_not_configured')
   end
+
+  context 'without an AI agent' do
+    before do
+      Saas::Wallet.for_account(account, 'text_credits').credit!(units: 5, reference: 'audio-spec-credit')
+      attachment.update!(meta: { 'duration' => 30 })
+      allow(provider).to receive(:transcribe).and_return('Texto do áudio')
+    end
+
+    def transcribe(**)
+      with_modified_env SAAS_AUDIO_PROVIDER: 'openai', SAAS_AUDIO_MODEL: 'whisper-1', SAAS_AUDIO_API_KEY: 'test-key' do
+        described_class.new(attachment: attachment, account: account, **).perform
+      end
+    end
+
+    it 'transcribes and charges the text credits of the account' do
+      expect(transcribe).to include(success: true, text: 'Texto do áudio', reused: false)
+
+      expect(attachment.reload.meta).to include('transcribed_text' => 'Texto do áudio')
+      expect(Saas::Wallet.for_account(account, 'text_credits').reload.available_units).to eq(0)
+      expect(Saas::UsageRecord.where(source: 'audio_transcription').first.reference).to eq("ai_audio:#{account.id}:#{attachment.id}:account")
+    end
+
+    it 'tells the conversation that the message changed so the text appears without a refresh' do
+      allow(Rails.configuration.dispatcher).to receive(:dispatch)
+
+      transcribe
+
+      expect(Rails.configuration.dispatcher).to have_received(:dispatch)
+        .with(Events::Types::MESSAGE_UPDATED, anything, hash_including(message: message))
+    end
+
+    it 'still keeps the transcription when the broadcast fails' do
+      allow_any_instance_of(Message).to receive(:send_update_event).and_raise(StandardError, 'cable down')
+
+      expect(transcribe).to include(success: true)
+      expect(attachment.reload.meta).to include('transcribed_text' => 'Texto do áudio')
+    end
+  end
+
+  describe '.available_for?' do
+    it 'needs the platform configuration and the text AI feature' do
+      with_modified_env SAAS_AUDIO_PROVIDER: 'openai', SAAS_AUDIO_MODEL: 'whisper-1', SAAS_AUDIO_API_KEY: 'test-key' do
+        expect(described_class.available_for?(account)).to be(true)
+
+        account.disable_features!('text_ai')
+        expect(described_class.available_for?(account)).to be(false)
+      end
+    end
+
+    it 'is false when the platform has no transcription key' do
+      with_modified_env SAAS_AUDIO_PROVIDER: 'openai', SAAS_AUDIO_MODEL: 'whisper-1', SAAS_AUDIO_API_KEY: '' do
+        expect(described_class.available_for?(account)).to be(false)
+      end
+    end
+  end
+
+  describe '#blocking_error' do
+    subject(:error) do
+      with_modified_env(SAAS_AUDIO_PROVIDER: 'openai', SAAS_AUDIO_MODEL: 'whisper-1', SAAS_AUDIO_API_KEY: 'test-key') do
+        described_class.new(attachment: attachment, account: account).blocking_error
+      end
+    end
+
+    it 'is nil when there are credits to transcribe' do
+      Saas::Wallet.for_account(account, 'text_credits').credit!(units: 5, reference: 'audio-spec-credit')
+
+      expect(error).to be_nil
+    end
+
+    it 'asks for credits when the balance is empty' do
+      expect(error).to eq('insufficient_balance')
+    end
+
+    it 'is refused when the account has no text AI' do
+      account.disable_features!('text_ai')
+
+      expect(error).to eq('text_ai_disabled')
+    end
+  end
 end

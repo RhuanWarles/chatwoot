@@ -539,6 +539,19 @@
       "GO_TO_NOTE": "Ir para a nota",
       "UNPIN": "Desafixar nota",
       "UNPIN_ERROR": "Não foi possível desafixar a nota. Tente novamente."
+    },
+    "TRANSCRIBE": {
+      "BUTTON": "Transcrever",
+      "LOADING": "Transcrevendo…",
+      "TIMEOUT": "A transcrição está demorando mais que o esperado. Tente novamente em instantes.",
+      "ERRORS": {
+        "GENERIC": "Não foi possível transcrever este áudio. Tente novamente em instantes.",
+        "text_ai_disabled": "Os recursos de IA não estão ativados nesta conta.",
+        "insufficient_balance": "Não há créditos suficientes para transcrever este áudio. Adicione créditos nas configurações de IA.",
+        "audio_not_configured": "A transcrição de áudio não está configurada nesta plataforma.",
+        "audio_too_large": "Este áudio é muito longo para ser transcrito.",
+        "audio_not_attached": "O arquivo de áudio ainda não está disponível. Tente novamente em instantes."
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {

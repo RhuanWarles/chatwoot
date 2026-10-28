@@ -20,11 +20,20 @@ module Enterprise::Concerns::Attachment
     agent = Saas::AiAgents::Runtime.agent_for(message.conversation)
     return if agent && Saas::AiAgents::GroupResponseBlacklist.blocked?(agent, message)
     return if ai_agent_audio_enabled?
+    return Saas::TranscribeAudioJob.perform_later(id) if saas_audio_transcription?
 
     # No file.attached? guard: the social-media ingest path saves the
     # Attachment before attaching the blob. AudioTranscriptionJob retries
     # on ActiveStorage::FileNotFoundError to ride out that race.
     Messages::AudioTranscriptionJob.perform_later(id)
+  end
+
+  # Received audios are transcribed with the account's text credits. Call recordings and audios sent by agents keep the
+  # previous flow.
+  def saas_audio_transcription?
+    return false unless message&.incoming? && !message.voice_call?
+
+    account.audio_transcriptions.present? && Saas::Audio::TranscriptionService.available_for?(account)
   end
 
   def ai_agent_audio_enabled?
