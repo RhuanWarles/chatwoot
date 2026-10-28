@@ -8,6 +8,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   before_action :inbox, :contact, :contact_inbox, only: [:create]
 
   ATTACHMENT_RESULTS_PER_PAGE = 100
+  PINNED_NOTE_LIMIT = 500
 
   def index
     result = conversation_finder.perform
@@ -70,6 +71,29 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     Saas::AiAgents::ConversationState.update!(conversation: @conversation, state: state, user: Current.user)
     agent = Saas::AiAgents::Runtime.agent_for(@conversation)
     render json: ai_state_data(agent).merge(additional_attributes: @conversation.reload.additional_attributes)
+  end
+
+  # Keeps one internal note on top of the conversation for every agent. A copy of the text is saved because the note may
+  # be far above the messages that are loaded.
+  def pin_note
+    message = @conversation.messages.find(params.require(:message_id))
+    unless message.private? && !message.content_attributes['deleted']
+      return render_could_not_create_error(I18n.t('conversations.pinned_note.only_internal_notes'))
+    end
+
+    pinned = {
+      'message_id' => message.id, 'content' => message.content.to_s.truncate(PINNED_NOTE_LIMIT),
+      'pinned_by' => { 'id' => Current.user.id, 'name' => Current.user.name }, 'pinned_at' => Time.current.iso8601
+    }
+    @conversation.update!(additional_attributes: @conversation.additional_attributes.merge('pinned_note' => pinned))
+    render json: { additional_attributes: @conversation.reload.additional_attributes }
+  end
+
+  def unpin_note
+    attributes = @conversation.additional_attributes
+    @conversation.update!(additional_attributes: attributes.except('pinned_note')) if attributes.key?('pinned_note')
+
+    render json: { additional_attributes: @conversation.reload.additional_attributes }
   end
 
   def mark_handoff_seen

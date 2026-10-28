@@ -41,6 +41,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
                       content_attributes: message.content_attributes.slice('forwarded_message_id').merge(deleted: true))
       message.attachments.destroy_all
     end
+    unpin_deleted_note(message)
   end
 
   def retry
@@ -76,6 +77,14 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   private
+
+  # A deleted note cannot stay pinned on top of the conversation.
+  def unpin_deleted_note(message)
+    attributes = @conversation.additional_attributes
+    return unless attributes.dig('pinned_note', 'message_id') == message.id
+
+    @conversation.update!(additional_attributes: attributes.except('pinned_note'))
+  end
 
   def message
     @message ||= @conversation.messages.find(permitted_params[:id])

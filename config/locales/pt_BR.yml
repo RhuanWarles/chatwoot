@@ -279,6 +279,8 @@ pt_BR:
     attachment: 'Anexo'
     no_content: 'Sem conteúdo'
   conversations:
+    pinned_note:
+      only_internal_notes: 'Só é possível fixar notas internas.'
     captain:
       handoff: 'Transferindo para que outro agente dê assistência.'
     messages:

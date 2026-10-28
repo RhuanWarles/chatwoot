@@ -248,6 +248,8 @@ Rails.application.routes.draw do
               get :ai_state
               patch :ai_state, action: :update_ai_state
               post :mark_handoff_seen
+              post :pin_note
+              delete :pin_note, action: :unpin_note
               post :mute
               post :unmute
               post :transcript
