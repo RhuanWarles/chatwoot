@@ -47,6 +47,14 @@ RSpec.describe Saas::AiAgents::GroupResponseBlacklist do
     expect(described_class.blocked?(agent, message)).to be(true)
   end
 
+  it 'does not treat LID digits as a phone and resolves participantAlt from nested message metadata' do
+    message.update!(content_attributes: { data: { key: {
+                      remoteJid: '120363123456789@g.us', participant: '247613823709228@lid',
+                      participantAlt: '5562999991111@s.whatsapp.net'
+                    } } })
+    expect(described_class.blocked?(agent, message)).to be(true)
+  end
+
   it 'supports snake case participant_alt and device-qualified phone JIDs' do
     message.update!(content_attributes: { whatsapp_message_key: {
                       participant: '247613823709228@lid', participant_alt: '5562999991111:2@s.whatsapp.net'

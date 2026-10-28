@@ -15,6 +15,18 @@ describe('group response blacklist field', () => {
       ['5562999991111'],
     ]);
     expect(wrapper.find('input').element.value).toBe('');
+    expect(wrapper.text()).toContain('AI_AGENTS.GROUP_BLACKLIST_EMPTY');
+  });
+
+  it('adds a number when pressing Enter', async () => {
+    const wrapper = mount(GroupResponseBlacklistField, {
+      props: { modelValue: [], enabled: true },
+    });
+    await wrapper.find('input').setValue('5562999991111');
+    await wrapper.find('input').trigger('keyup.enter');
+    expect(wrapper.emitted('update:modelValue')[0]).toEqual([
+      ['5562999991111'],
+    ]);
   });
 
   it('removes only the selected number', async () => {

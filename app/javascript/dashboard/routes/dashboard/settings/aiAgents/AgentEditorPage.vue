@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -12,7 +12,6 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import GroupResponseBlacklistField from './GroupResponseBlacklistField.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import { suggestedModelsForProvider } from './models';
 import {
   agentPayload,
   HANDOFF_CONDITIONS_MAX_LENGTH,
@@ -33,14 +32,12 @@ const activeTab = ref('general');
 const promptExpanded = ref(false);
 const connectionSearch = ref({ inboxes: '', tools: '', knowledge: '' });
 const agents = ref([]);
-const providers = ref([]);
 const textSettings = ref(null);
 const tools = ref([]);
 const knowledgeBases = ref([]);
 const pipelines = ref([]);
 const draft = ref(newAgent());
 const initialDraft = ref('');
-const previousProvider = ref(draft.value.provider);
 
 const filterConnections = (items, query) => {
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -62,8 +59,12 @@ const platformTextReady = computed(
 const effectivePlatformProvider = computed(
   () => textSettings.value?.platform_provider || ''
 );
-const effectivePlatformModel = computed(
-  () => textSettings.value?.platform_model || ''
+const configuredTextProvider = computed(
+  () =>
+    textSettings.value?.provider || textSettings.value?.platform_provider || ''
+);
+const configuredTextModel = computed(
+  () => textSettings.value?.model || textSettings.value?.platform_model || ''
 );
 const toolsUnsupported = computed(() =>
   Boolean(
@@ -84,22 +85,6 @@ const tabs = computed(() => [
   { value: 'behavior', label: t('AI_AGENTS.TABS.BEHAVIOR') },
   { value: 'connections', label: t('AI_AGENTS.TABS.CONNECTIONS') },
 ]);
-const providerLabels = computed(() => ({
-  openai: t('AI_AGENTS.PROVIDERS.openai'),
-  anthropic: t('AI_AGENTS.PROVIDERS.anthropic'),
-  gemini: t('AI_AGENTS.PROVIDERS.gemini'),
-  openrouter: t('AI_AGENTS.PROVIDERS.openrouter'),
-  groq: t('AI_AGENTS.PROVIDERS.groq'),
-}));
-const providerOptions = computed(() =>
-  providers.value.map(value => ({ value, label: providerLabels.value[value] }))
-);
-const modelOptions = computed(() =>
-  suggestedModelsForProvider(draft.value.provider).map(value => ({
-    value,
-    label: value,
-  }))
-);
 const filteredInboxes = computed(() =>
   filterConnections(inboxes.value, connectionSearch.value.inboxes)
 );
@@ -147,17 +132,6 @@ const unavailableInbox = inbox =>
       agent.active &&
       (agent.inboxes || []).some(item => item.id === inbox.id)
   );
-
-watch(
-  () => draft.value.provider,
-  provider => {
-    if (provider === previousProvider.value) return;
-    previousProvider.value = provider;
-    const suggestions = suggestedModelsForProvider(provider);
-    if (draft.value.model && !suggestions.includes(draft.value.model))
-      draft.value.model = '';
-  }
-);
 
 // Inactive pipelines cannot be newly chosen, but the one already selected stays visible.
 const pipelineOptions = computed(() =>
@@ -207,7 +181,6 @@ const load = async () => {
     ]);
     if (!inboxesLoaded) throw new Error('inboxes');
     agents.value = (response.data.agents || []).map(normalizeAgent);
-    providers.value = response.data.providers || [];
     textSettings.value = response.data.text;
     tools.value = toolsResponse.data.tools || [];
     knowledgeBases.value = knowledgeResponse.data.bases || [];
@@ -220,12 +193,8 @@ const load = async () => {
         inbox_ids: agent.inboxes.map(inbox => inbox.id),
       });
     }
-    if (platformMode.value) {
-      draft.value.provider =
-        effectivePlatformProvider.value || draft.value.provider;
-      draft.value.model = effectivePlatformModel.value || draft.value.model;
-    }
-    previousProvider.value = draft.value.provider;
+    draft.value.provider = configuredTextProvider.value || draft.value.provider;
+    draft.value.model = configuredTextModel.value || draft.value.model;
     initialDraft.value = JSON.stringify(agentPayload(draft.value));
   } catch {
     error.value = t('AI_AGENTS.LOAD_ERROR');
@@ -361,16 +330,20 @@ onMounted(load);
         <Input
           v-model="draft.timezone"
           :label="t('AI_AGENTS.TIMEZONE')"
-          :message="timezoneError"
-          message-type="error"
           :disabled="busy"
           @input="timezoneError = ''"
         />
-        <p class="text-xs text-n-slate-11">
-          {{ t('AI_AGENTS.TIMEZONE_HELP') }}
+        <p
+          class="text-xs"
+          :class="timezoneError ? 'text-n-ruby-11' : 'text-n-slate-11'"
+        >
+          {{ timezoneError || t('AI_AGENTS.TIMEZONE_HELP') }}
         </p>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div class="flex flex-col gap-2">
+        <div class="grid grid-cols-1 gap-4">
+          <p class="text-xs text-n-slate-11">
+            {{ t('AI_AGENTS.TEXT_CONFIGURATION_HELP') }}
+          </p>
+          <div v-if="false" class="hidden flex-col gap-2">
             <label class="text-sm font-medium text-n-slate-12">{{
               t('AI_AGENTS.MODEL')
             }}</label>

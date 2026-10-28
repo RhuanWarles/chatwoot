@@ -27,6 +27,17 @@ RSpec.describe AiAgentListener do
       expect(Saas::AiAgents::Context.build(conversation, agent, blocked).last[:content]).to include(blocked.content)
     end
 
+    it 'does not enqueue a response for a blocked LID with a real participantAlt phone' do
+      blocked = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                 content_attributes: { whatsapp_message_key: {
+                                   remoteJid: '120363123456789@g.us', participant: '247613823709228@lid',
+                                   participantAlt: '5562999991111@s.whatsapp.net'
+                                 } })
+      described_class.instance.message_created(Events::Base.new('message.created', Time.current, message: blocked))
+      expect(Saas::AiAgents::RespondJob).not_to have_received(:perform_later)
+      expect(blocked.reload).to be_persisted
+    end
+
     [
       [:audio, 'sample.mp3', 'audio/mpeg'],
       [:image, 'avatar.png', 'image/png'],

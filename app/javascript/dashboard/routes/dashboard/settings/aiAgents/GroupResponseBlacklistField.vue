@@ -39,8 +39,8 @@ const removeNumber = value => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <p class="text-sm text-n-slate-12">
+  <div class="flex flex-col gap-3" :class="{ 'opacity-60': !enabled }">
+    <p class="text-sm font-medium text-n-slate-12">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_LABEL') }}
     </p>
     <p class="text-xs text-n-slate-11">
@@ -49,13 +49,16 @@ const removeNumber = value => {
     <p v-if="!enabled" class="text-xs text-n-slate-11">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_DISABLED') }}
     </p>
-    <ul v-if="modelValue.length" class="flex flex-col gap-2">
+    <p v-else-if="!modelValue.length" class="text-xs text-n-slate-11">
+      {{ t('AI_AGENTS.GROUP_BLACKLIST_EMPTY') }}
+    </p>
+    <ul v-if="modelValue.length" class="flex flex-wrap gap-2">
       <li
         v-for="phone in modelValue"
         :key="phone"
-        class="flex items-center justify-between gap-2 text-sm text-n-slate-12"
+        class="inline-flex max-w-full items-center gap-1 rounded-full border border-n-weak bg-n-alpha-1 py-1 ps-3 pe-1 text-sm text-n-slate-12"
       >
-        <span dir="ltr">{{ `+${phone}` }}</span>
+        <span dir="ltr" class="truncate">{{ `+${phone}` }}</span>
         <Button
           type="button"
           variant="ghost"
@@ -67,7 +70,7 @@ const removeNumber = value => {
         />
       </li>
     </ul>
-    <div class="flex items-start gap-2">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
       <Input
         v-model="number"
         type="tel"

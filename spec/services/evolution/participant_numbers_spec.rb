@@ -14,4 +14,10 @@ RSpec.describe Evolution::ParticipantNumbers do
   it 'allows shorter international numbers when the caller explicitly requests them' do
     expect(described_class.normalize_phone('+290 1234', minimum_digits: 7)).to eq('2901234')
   end
+
+  it 'canonicalizes Brazilian mobile numbers with or without the ninth digit' do
+    expect(described_class.normalize_phone('55 62 91212-010')).to eq('5562991212010')
+    expect(described_class.normalize_phone('55 62 9 91212-010')).to eq('5562991212010')
+    expect(described_class.normalize_phone('55 62 3212-0101')).to eq('556232120101')
+  end
 end

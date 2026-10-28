@@ -10,6 +10,7 @@ import PendingEmailVerificationBanner from './components/app/PendingEmailVerific
 import LowBackupCodesBanner from './components/app/LowBackupCodesBanner.vue';
 import SaasAiCreditBanner from './components/app/SaasAiCreditBanner.vue';
 import vueActionCable from './helper/actionCable';
+import { initializeAudioAlerts } from './helper/scriptHelpers';
 import { useRouter } from 'vue-router';
 import { useStore } from 'dashboard/composables/store';
 import WootSnackbarBox from './components/SnackbarContainer.vue';
@@ -123,6 +124,9 @@ export default {
       // If user locale is set, use it; otherwise use account locale
       this.setLocale(this.uiSettings?.locale || locale);
       this.latestChatwootVersion = latestChatwootVersion;
+      // Keep alert configuration in sync even when the user event was emitted
+      // before the global event listeners were registered.
+      initializeAudioAlerts(this.currentUser);
       vueActionCable.init(this.store, pubsubToken);
       this.reconnectService = new ReconnectService(this.store, this.router);
       window.reconnectService = this.reconnectService;
