@@ -206,6 +206,7 @@ Rails.application.routes.draw do
             resource :twilio_channel, only: [:create]
           end
           resources :whatsapp_groups, only: [:index, :create]
+          resources :whatsapp_group_events, only: [:create]
           resources :whatsapp_connections, only: [:index, :show, :create, :update, :destroy] do
             post :connect, on: :member
             post :disconnect, on: :member

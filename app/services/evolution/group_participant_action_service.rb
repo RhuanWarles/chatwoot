@@ -24,7 +24,23 @@ class Evolution::GroupParticipantActionService
       ensure
         @context.invalidate!
       end
+      create_removal_activity(target[:display_name] || target[:phone]) if @action == 'remove'
       @context.participants
     end
+  end
+
+  private
+
+  def create_removal_activity(participant_name)
+    actor_name = Current.user&.name || I18n.t('conversations.activity.whatsapp_group.system_actor')
+    Conversations::ActivityMessageJob.perform_later(
+      @context.conversation,
+      account_id: @context.conversation.account_id,
+      inbox_id: @context.conversation.inbox_id,
+      message_type: :activity,
+      content: I18n.t('conversations.activity.whatsapp_group.participant_removed',
+                      actor_name: actor_name, participant_name: participant_name),
+      content_attributes: { activity: { type: 'whatsapp_group_participant_removed', participant_name: participant_name } }
+    )
   end
 end

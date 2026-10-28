@@ -24,6 +24,25 @@ class Evolution::GroupContext
     Evolution::GroupParticipantsService.new(conversation).perform(refresh: refresh, strict: true)
   end
 
+  def participants_after_rejoin
+    Evolution::GroupParticipantsService.new(conversation).perform(refresh: true, strict: true, allow_left: true)
+  end
+
+  def clear_left_state_if_rejoined!
+    return false unless left?
+
+    members = participants_after_rejoin
+    return false unless own_participant(members)
+
+    conversation.update!(additional_attributes: conversation.additional_attributes.except(
+      'evolution_group_left_at', 'evolution_group_left_by_id'
+    ))
+    true
+  rescue CustomExceptions::Evolution => e
+    Rails.logger.warn("[Evolution] could not verify group membership after leave: #{e.class}")
+    false
+  end
+
   def invalidate!
     Evolution::GroupParticipantsService.new(conversation).invalidate!
   end

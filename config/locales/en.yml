@@ -405,6 +405,10 @@ en:
       muted: '%{user_name} has muted the conversation'
       unmuted: '%{user_name} has unmuted the conversation'
       auto_resolution_message: 'Resolving the conversation as it has been inactive for a while. Please start a new conversation if you need further assistance.'
+      whatsapp_group:
+        participant_left: '%{participant_name} left the WhatsApp group'
+        participant_removed: '%{actor_name} removed %{participant_name} from the WhatsApp group'
+        system_actor: 'The system'
     templates:
       greeting_message_body: '%{account_name} typically replies in a few hours.'
       ways_to_reach_you_message_body: 'Give the team a way to reach you.'

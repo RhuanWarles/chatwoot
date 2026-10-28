@@ -31,6 +31,7 @@ class Messages::MessageBuilder
     # When the message has no quoted content, it will just be rendered as a regular message
     # The frontend is equipped to handle this case
     process_email_content
+    restore_evolution_group_access_if_rejoined
     @message.save!
     @message
   end
@@ -175,6 +176,15 @@ class Messages::MessageBuilder
       echo_id: @params[:echo_id],
       source_id: @params[:source_id]
     }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params)
+  end
+
+  def restore_evolution_group_access_if_rejoined
+    return if @private || message_type != 'outgoing'
+    return unless @conversation.inbox.api? && Evolution::GroupJidResolver.call(@conversation)
+
+    Evolution::GroupContext.new(@conversation).clear_left_state_if_rejoined!
+  rescue CustomExceptions::Evolution => e
+    Rails.logger.warn("[Evolution] could not verify group membership before reply: #{e.class}")
   end
 
   def email_inbox?

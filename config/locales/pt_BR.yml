@@ -352,6 +352,10 @@ pt_BR:
       muted: '%{user_name} silenciou a conversa'
       unmuted: '%{user_name} reativou a conversa'
       auto_resolution_message: 'Resolvendo a conversa dado que está inativa por um tempo. Por favor, inicie uma nova conversa se precisar de mais ajuda.'
+      whatsapp_group:
+        participant_left: '%{participant_name} saiu do grupo do WhatsApp'
+        participant_removed: '%{actor_name} removeu %{participant_name} do grupo do WhatsApp'
+        system_actor: 'O sistema'
     templates:
       greeting_message_body: '%{account_name} normalmente responde em algumas horas.'
       ways_to_reach_you_message_body: 'Informe à equipe uma forma de contatá-lo.'

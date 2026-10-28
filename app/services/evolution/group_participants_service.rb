@@ -9,8 +9,8 @@ module Evolution
       @account = conversation.account
     end
 
-    def perform(refresh: false, strict: false)
-      return [] if conversation.additional_attributes['evolution_group_left_at'].present?
+    def perform(refresh: false, strict: false, allow_left: false)
+      return [] if conversation.additional_attributes['evolution_group_left_at'].present? && !allow_left
 
       return [] unless group_jid.present? && instance_name.present?
 

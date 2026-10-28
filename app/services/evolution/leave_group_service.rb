@@ -17,6 +17,20 @@ class Evolution::LeaveGroupService
       @context.conversation.update!(additional_attributes: @context.conversation.additional_attributes.merge(
         'evolution_group_left_at' => Time.current.iso8601, 'evolution_group_left_by_id' => @user.id
       ))
+      create_activity(@user.name)
     end
+  end
+
+  private
+
+  def create_activity(user_name)
+    Conversations::ActivityMessageJob.perform_later(
+      @context.conversation,
+      account_id: @context.conversation.account_id,
+      inbox_id: @context.conversation.inbox_id,
+      message_type: :activity,
+      content: I18n.t('conversations.activity.whatsapp_group.participant_left', participant_name: user_name),
+      content_attributes: { activity: { type: 'whatsapp_group_participant_left', participant_name: user_name } }
+    )
   end
 end

@@ -6,6 +6,8 @@ class Evolution::GroupInfoService
   def perform
     conversation = @context.conversation
     if @context.left?
+      return perform if @context.clear_left_state_if_rejoined!
+
       return {
         left: true, name: conversation.contact.name, picture_url: conversation.contact.avatar_url,
         participants: [], instance_admin: false, instance_member: false
