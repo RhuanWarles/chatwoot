@@ -2,7 +2,6 @@
 import { watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useUISettings } from 'dashboard/composables/useUISettings';
-import CaptainWorkspaceSidebar from 'dashboard/components-next/captain/CaptainWorkspaceSidebar.vue';
 
 const route = useRoute();
 const { uiSettings, updateUISettings } = useUISettings();
@@ -24,7 +23,6 @@ watch(
 
 <template>
   <div class="flex w-full h-full min-h-0">
-    <CaptainWorkspaceSidebar />
     <section class="flex flex-1 h-full px-0 overflow-hidden bg-n-surface-1">
       <router-view />
     </section>
