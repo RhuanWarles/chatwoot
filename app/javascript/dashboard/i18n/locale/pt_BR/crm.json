@@ -547,7 +547,8 @@
       "COL_MONTH": "Mês",
       "COL_SHARE": "% IA",
       "COL_AI_ONLY": "Só IA"
-    }
+    },
+    "NO_CONVERSATION": "Este cliente ainda não tem conversa. Abrindo o negócio."
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

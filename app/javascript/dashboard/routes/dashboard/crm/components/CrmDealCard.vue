@@ -23,7 +23,8 @@ const props = defineProps({
   customFieldIds: { type: Array, default: () => [] },
   now: { type: Number, default: () => Date.now() },
 });
-const emit = defineEmits(['open', 'edit', 'setStatus']);
+// `open` opens the conversation of the customer; `openDeal` opens the deal page.
+const emit = defineEmits(['open', 'openDeal', 'edit', 'setStatus']);
 const MAX_LABELS = 3;
 const ACTIVITY_NEAR_WINDOW_MS = 2 * 60 * 60 * 1000;
 const STATUS_ACTIONS = {
@@ -163,6 +164,15 @@ const activityTooltip = activity =>
           :aria-label="t('CRM.QUICK_EDIT')"
           @click.stop="emit('edit')"
         />
+        <Button
+          type="button"
+          variant="ghost"
+          color="slate"
+          size="xs"
+          icon="i-lucide-external-link"
+          :aria-label="t('CRM.LEAD_OPEN_DEAL')"
+          @click.stop="emit('openDeal')"
+        />
         <DropdownContainer>
           <template #trigger="{ toggle, isOpen }">
             <Button
@@ -294,7 +304,7 @@ const activityTooltip = activity =>
       class="flex items-center w-full min-w-0 gap-1.5 pt-2 border-t border-n-weak text-start"
       :title="activityTooltip(deal.next_activity)"
       :aria-label="activityTooltip(deal.next_activity)"
-      @click.stop="emit('open')"
+      @click.stop="emit('openDeal')"
     >
       <span
         class="flex-shrink-0"

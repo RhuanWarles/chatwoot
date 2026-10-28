@@ -547,6 +547,7 @@
       "COL_MONTH": "Month",
       "COL_SHARE": "% AI",
       "COL_AI_ONLY": "Only AI"
-    }
+    },
+    "NO_CONVERSATION": "This customer has no conversation yet. Opening the deal instead."
   }
 }
