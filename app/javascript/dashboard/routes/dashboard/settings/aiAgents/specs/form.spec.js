@@ -1,6 +1,48 @@
-import { agentPayload, newAgent, validAgent } from '../form';
+import {
+  agentPayload,
+  newAgent,
+  validAgent,
+  normalizeGroupPhone,
+  validGroupBlacklist,
+} from '../form';
 
 describe('AI agent configuration', () => {
+  it('defaults the group blacklist for new and older agents and copies it in payloads', () => {
+    expect(newAgent().group_response_blacklist).toEqual([]);
+    const oldAgent = { ...newAgent() };
+    delete oldAgent.group_response_blacklist;
+    expect(agentPayload(oldAgent).group_response_blacklist).toEqual([]);
+    const agent = {
+      ...newAgent(),
+      group_response_blacklist: ['+55 (62) 99999-1111', '5562999991111'],
+    };
+    const payload = agentPayload(agent);
+    expect(payload.group_response_blacklist).toEqual(['5562999991111']);
+    payload.group_response_blacklist.push('5562988882222');
+    expect(agent.group_response_blacklist).toHaveLength(2);
+    expect(
+      agentPayload({ ...agent, respond_to_groups: false })
+        .group_response_blacklist
+    ).toEqual(['5562999991111']);
+  });
+
+  it('normalizes international phones and rejects malformed lists', () => {
+    expect(normalizeGroupPhone('55 62 99999-1111')).toBe('5562999991111');
+    expect(normalizeGroupPhone('+290 1234')).toBe('2901234');
+    expect(validGroupBlacklist([])).toBe(true);
+    [null, {}, [''], [null], [123456789], [{}], ['abc1234567']].forEach(value =>
+      expect(validGroupBlacklist(value)).toBe(false)
+    );
+    expect(
+      validAgent({
+        ...newAgent(),
+        name: 'AI',
+        model: 'model',
+        system_prompt: 'Help',
+        group_response_blacklist: ['invalid'],
+      })
+    ).toBe(false);
+  });
   it('starts inactive and requires a prompt and model', () => {
     expect(newAgent().active).toBe(false);
     expect(newAgent().respond_to_groups).toBe(false);

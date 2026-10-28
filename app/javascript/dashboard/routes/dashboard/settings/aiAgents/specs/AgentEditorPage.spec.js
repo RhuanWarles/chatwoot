@@ -107,4 +107,39 @@ it('loads the persisted timezone when editing an agent', async () => {
   });
 
   expect(wrapper.vm.draft.timezone).toBe('Europe/Lisbon');
+  expect(wrapper.vm.draft.group_response_blacklist).toEqual([]);
+});
+
+it('loads and saves the blacklist and keeps it when group replies are disabled', async () => {
+  const saved = {
+    id: 3,
+    name: 'Support assistant',
+    description: '',
+    provider: 'openai',
+    model: 'model',
+    system_prompt: 'Help customers',
+    inboxes: [],
+    respond_to_groups: true,
+    temperature: 0.7,
+    group_response_blacklist: ['5562999991111'],
+  };
+  const wrapper = await mountEditor('3', saved);
+  expect(wrapper.vm.draft.group_response_blacklist).toEqual(['5562999991111']);
+  wrapper.vm.draft.respond_to_groups = false;
+  aiAgentsAPI.update.mockResolvedValue({ data: saved });
+  await wrapper.vm.save();
+  expect(aiAgentsAPI.update).toHaveBeenCalledWith(
+    '3',
+    expect.objectContaining({
+      ai_agent: expect.objectContaining({
+        respond_to_groups: false,
+        group_response_blacklist: ['5562999991111'],
+      }),
+    })
+  );
+  const reopened = await mountEditor('3', {
+    ...saved,
+    respond_to_groups: false,
+  });
+  expect(reopened.vm.draft.group_response_blacklist).toEqual(['5562999991111']);
 });

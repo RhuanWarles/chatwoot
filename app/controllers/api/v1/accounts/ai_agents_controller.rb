@@ -31,6 +31,7 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
     'handoff_enabled' => ->(value) { [true, false].include?(value) },
     'crm_stage_automation_enabled' => ->(value) { [true, false].include?(value) },
     'respond_to_groups' => ->(value) { [true, false].include?(value) },
+    'group_response_blacklist' => ->(value) { Saas::AiAgents::GroupResponseBlacklist.valid?(value) },
     'customer_memory_enabled' => ->(value) { [true, false].include?(value) },
 
     'crm_pipeline_id' => ->(value) { value.nil? || (value.is_a?(Integer) && value.positive?) },
@@ -111,7 +112,9 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
       raise CustomExceptions::SaasError, 'invalid_settings'
     end
 
-    attributes = input.permit(*VALIDATORS.keys.excluding('inbox_ids', 'tool_ids', 'knowledge_base_ids'), inbox_ids: [], tool_ids: [], knowledge_base_ids: []).to_h.symbolize_keys
+    validate_original_group_response_blacklist!(input)
+    attributes = input.permit(*VALIDATORS.keys.excluding('inbox_ids', 'tool_ids', 'knowledge_base_ids', 'group_response_blacklist'),
+                              inbox_ids: [], tool_ids: [], knowledge_base_ids: [], group_response_blacklist: []).to_h.symbolize_keys
     base_ids = attributes.delete(:knowledge_base_ids)
     selected_bases = Current.account.saas_knowledge_bases.where(id: base_ids).to_a unless base_ids.nil?
     raise CustomExceptions::SaasError, 'invalid_settings' if selected_bases && selected_bases.length != base_ids.length
@@ -128,6 +131,17 @@ class Api::V1::Accounts::AiAgentsController < Api::V1::Accounts::BaseController
       raise ActiveRecord::RecordInvalid, @agent
     end
     @agent.configure!(attributes, selected_inboxes: selected_inboxes, selected_tools: selected_tools, selected_knowledge_bases: selected_bases)
+  end
+
+  def validate_original_group_response_blacklist!(input)
+    return unless input.key?('group_response_blacklist') && request.content_mime_type == Mime[:json]
+
+    # Rails removes null array entries before building params; validate the original JSON list as well.
+    original = ActionDispatch::Request.parameter_parsers.fetch(:json).call(request.raw_post)
+    numbers = original.dig('ai_agent', 'group_response_blacklist')
+    return if VALIDATORS.fetch('group_response_blacklist').call(numbers)
+
+    raise CustomExceptions::SaasError, 'invalid_settings'
   end
 
   def memory_data(memory)

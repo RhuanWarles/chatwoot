@@ -9,7 +9,7 @@ class Saas::AiAgent < ApplicationRecord
     id account_id name description system_prompt provider model timezone temperature context_messages_limit
     response_delay_seconds split_response_messages active handoff_enabled crm_stage_automation_enabled
     respond_to_groups customer_memory_enabled audio_enabled attachment_interpretation_enabled crm_pipeline_id
-    handoff_conditions created_at updated_at
+    handoff_conditions group_response_blacklist created_at updated_at
   ].freeze
 
   belongs_to :account
@@ -40,6 +40,7 @@ class Saas::AiAgent < ApplicationRecord
   validate :validate_inboxes
   validate :validate_crm_pipeline
   validate :validate_runtime_provider
+  validate :validate_group_response_blacklist
 
   # Serialize assignment and activation together, including concurrent requests.
   def configure!(attributes, selected_inboxes: nil, selected_tools: nil, selected_knowledge_bases: nil)
@@ -76,6 +77,15 @@ class Saas::AiAgent < ApplicationRecord
   end
 
   private
+
+  def validate_group_response_blacklist
+    unless Saas::AiAgents::GroupResponseBlacklist.valid?(group_response_blacklist)
+      errors.add(:group_response_blacklist, :invalid)
+      return
+    end
+
+    self.group_response_blacklist = group_response_blacklist.map { |number| Saas::AiAgents::GroupResponseBlacklist.phone(number) }.uniq
+  end
 
   def validate_inboxes
     errors.add(:inboxes, :invalid) if inboxes.any? { |inbox| inbox.account_id != account_id }

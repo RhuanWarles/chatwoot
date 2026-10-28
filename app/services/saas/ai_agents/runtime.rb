@@ -16,7 +16,7 @@ class Saas::AiAgents::Runtime
       return
     end
     agent = agents.first
-    return if agent && !agent.respond_to_groups? && conversation.contact_inbox.source_id.to_s.end_with?('@g.us')
+    return if agent && !agent.respond_to_groups? && Evolution::GroupJidResolver.call(conversation)
 
     agent
   end

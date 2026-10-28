@@ -10,6 +10,65 @@ RSpec.describe AiAgentListener do
 
   before { allow(Saas::AiAgents::RespondJob).to receive(:perform_later) }
 
+  context 'with a group response blacklist' do
+    before do
+      conversation.contact_inbox.update!(source_id: '120363123456789@g.us')
+      agent.configure!({ name: 'AI', system_prompt: 'Help', provider: 'openai', model: 'test-model', active: true,
+                         respond_to_groups: true, response_delay_seconds: 0, audio_enabled: true,
+                         group_response_blacklist: ['5562999991111'] }, selected_inboxes: [inbox])
+    end
+
+    it 'persists blocked text in the conversation history without scheduling a response' do
+      expect(Saas::AiAgents::RespondJob).not_to receive(:perform_later)
+      blocked = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                 content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      described_class.instance.message_created(Events::Base.new('message.created', Time.current, message: blocked))
+      expect(conversation.messages).to include(blocked)
+      expect(Saas::AiAgents::Context.build(conversation, agent, blocked).last[:content]).to include(blocked.content)
+    end
+
+    [
+      [:audio, 'sample.mp3', 'audio/mpeg'],
+      [:image, 'avatar.png', 'image/png'],
+      [:file, 'attachment.pdf', 'application/pdf'],
+      [:video, 'sample.mp4', 'video/mp4']
+    ].each do |type, filename, content_type|
+      it "keeps blocked #{type} attachments without scheduling AI or consuming credits" do
+        expect(Saas::AiAgents::RespondJob).not_to receive(:perform_later)
+        expect(Saas::Audio::TranscriptionService).not_to receive(:new)
+        blocked = create(:message, account: account, inbox: inbox, conversation: conversation, content: nil,
+                                   content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+        attachment = blocked.attachments.create!(account: account, file_type: type,
+                                                 file: fixture_file_upload("spec/assets/#{filename}", content_type))
+        expect do
+          described_class.instance.message_created(Events::Base.new('message.created', Time.current, message: blocked))
+        end.not_to change(Saas::UsageRecord, :count)
+        expect(blocked.reload.attachments).to include(attachment)
+        expect(conversation.messages).to include(blocked)
+      end
+    end
+
+    it 'schedules a response for another participant' do
+      other = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               content_attributes: { participant: '5562988882222@s.whatsapp.net' })
+      expect(Saas::AiAgents::RespondJob).to have_received(:perform_later).with(account.id, conversation.id, other.id)
+    end
+
+    it 'allows the same blocked number in a private conversation' do
+      conversation.contact_inbox.update!(source_id: '5562999991111@s.whatsapp.net')
+      private_message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                         content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      expect(Saas::AiAgents::RespondJob).to have_received(:perform_later).with(account.id, conversation.id, private_message.id)
+    end
+
+    it 'preserves group replies being disabled and retains the saved blacklist' do
+      agent.update!(respond_to_groups: false)
+      described_class.instance.message_created(event)
+      expect(Saas::AiAgents::RespondJob).not_to have_received(:perform_later)
+      expect(agent.reload.group_response_blacklist).to eq(['5562999991111'])
+    end
+  end
+
   it 'enqueues only an active linked agent' do
     described_class.instance.message_created(event)
     expect(Saas::AiAgents::RespondJob).not_to have_received(:perform_later)
@@ -44,7 +103,7 @@ RSpec.describe AiAgentListener do
   it 'does not use an agent from another account or inbox' do
     other = create(:account)
     other.saas_ai_agents.build.configure!({ name: 'AI', system_prompt: 'Help', provider: 'openai', model: 'test-model', active: true },
-                                         selected_inboxes: [create(:inbox, account: other)])
+                                          selected_inboxes: [create(:inbox, account: other)])
     described_class.instance.message_created(event)
     expect(Saas::AiAgents::RespondJob).not_to have_received(:perform_later)
   end

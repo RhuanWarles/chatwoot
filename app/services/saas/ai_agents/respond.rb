@@ -37,6 +37,8 @@ class Saas::AiAgents::Respond
       @conversation, include_attachments: @agent.attachment_interpretation_enabled?
     )
     return unless @incoming && @incoming.id > @conversation.additional_attributes.fetch(CURSOR_KEY, 0).to_i
+    # A different participant may have sent the latest message since the job's debounce check.
+    return if Saas::AiAgents::GroupResponseBlacklist.blocked?(@agent, @incoming)
 
     return if @incoming.attachments.any? { |attachment| !attachment.audio? } && !@agent.attachment_interpretation_enabled?
 

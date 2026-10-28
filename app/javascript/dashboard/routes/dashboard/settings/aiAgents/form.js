@@ -1,5 +1,20 @@
 export const HANDOFF_CONDITIONS_MAX_LENGTH = 1000;
 export const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
+const GROUP_PHONE_FORMAT = /^\+?[\d\s().-]+$/;
+const GROUP_PHONE_DIGITS = /^[1-9]\d{6,14}$/;
+
+export const normalizeGroupPhone = value => {
+  if (typeof value !== 'string' || !GROUP_PHONE_FORMAT.test(value)) return null;
+  const digits = value.replace(/\D/g, '');
+  return GROUP_PHONE_DIGITS.test(digits) ? digits : null;
+};
+
+export const validGroupBlacklist = value =>
+  Array.isArray(value) && value.every(number => normalizeGroupPhone(number));
+
+export const normalizeGroupBlacklist = numbers => [
+  ...new Set(numbers.map(normalizeGroupPhone)),
+];
 
 export const newAgent = () => ({
   name: '',
@@ -18,6 +33,7 @@ export const newAgent = () => ({
   crm_stage_automation_enabled: false,
   crm_pipeline_id: null,
   respond_to_groups: false,
+  group_response_blacklist: [],
   customer_memory_enabled: false,
   audio_enabled: false,
   attachment_interpretation_enabled: false,
@@ -43,6 +59,9 @@ export const agentPayload = agent => ({
   crm_stage_automation_enabled: agent.crm_stage_automation_enabled ?? false,
   crm_pipeline_id: agent.crm_pipeline_id || null,
   respond_to_groups: agent.respond_to_groups,
+  group_response_blacklist: normalizeGroupBlacklist(
+    agent.group_response_blacklist ?? []
+  ),
   customer_memory_enabled: agent.customer_memory_enabled,
   audio_enabled: agent.audio_enabled === true,
   attachment_interpretation_enabled:
@@ -76,5 +95,6 @@ export const validAgent = agent =>
       agent.response_delay_seconds >= 0 &&
       agent.response_delay_seconds <= 10 &&
       typeof agent.split_response_messages === 'boolean' &&
+      validGroupBlacklist(agent.group_response_blacklist ?? []) &&
       (agent.handoff_conditions || '').length <= HANDOFF_CONDITIONS_MAX_LENGTH
   );

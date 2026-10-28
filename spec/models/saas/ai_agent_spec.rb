@@ -6,6 +6,28 @@ RSpec.describe Saas::AiAgent do
   let(:attributes) { { name: 'Sales', system_prompt: "Help customers.\nAsk before acting.", provider: 'openai', model: 'test-model' } }
   let(:agent) { account.saas_ai_agents.build }
 
+  it 'defaults the group blacklist to empty and exposes it in public data' do
+    agent.configure!(attributes)
+    expect(agent.reload.group_response_blacklist).to eq([])
+    expect(agent.public_data['group_response_blacklist']).to eq([])
+  end
+
+  it 'normalizes and deduplicates the blacklist and preserves it across unrelated updates' do
+    agent.configure!(attributes.merge(group_response_blacklist: ['+55 (62) 99999-1111', '5562999991111']))
+    agent.configure!({ name: 'Updated', respond_to_groups: false })
+    expect(agent.reload.group_response_blacklist).to eq(['5562999991111'])
+    expect(agent.public_data['group_response_blacklist']).to eq(['5562999991111'])
+  end
+
+  it 'rejects invalid blacklist values in direct model writes' do
+    agent.assign_attributes(attributes)
+    [nil, {}, [''], [nil], [123_456_789], ['hello']].each do |value|
+      agent.group_response_blacklist = value
+      expect(agent).not_to be_valid
+      expect(agent.errors.attribute_names).to include(:group_response_blacklist)
+    end
+  end
+
   it 'creates and edits configuration without truncating the prompt or losing inboxes' do
     agent.configure!(attributes, selected_inboxes: [inbox])
     agent.configure!({ description: 'Updated', system_prompt: 'Long prompt ' * 3000 })

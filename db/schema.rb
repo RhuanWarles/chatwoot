@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_27_110000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1775,6 +1775,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_110000) do
     t.bigint "crm_pipeline_id"
     t.text "handoff_conditions"
     t.boolean "attachment_interpretation_enabled", default: false, null: false
+    t.jsonb "group_response_blacklist", default: [], null: false
     t.index ["account_id"], name: "index_saas_ai_agents_on_account_id"
     t.index ["crm_pipeline_id"], name: "index_saas_ai_agents_on_crm_pipeline_id"
   end

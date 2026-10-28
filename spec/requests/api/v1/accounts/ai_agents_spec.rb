@@ -10,6 +10,31 @@ RSpec.describe 'AI Agents API', type: :request do
   let(:attributes) { { name: 'Sales', system_prompt: "Line one\nLine two", provider: 'openai', model: 'test-model' } }
   let(:agent) { account.saas_ai_agents.build.configure!(attributes, selected_inboxes: [inbox]) }
 
+  it 'creates, returns, edits and retains the normalized group blacklist' do
+    post url, params: { ai_agent: attributes.merge(group_response_blacklist: ['+55 (62) 99999-1111', '5562999991111']) },
+              headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+    id = response.parsed_body.fetch('id')
+    expect(response.parsed_body['group_response_blacklist']).to eq(['5562999991111'])
+    patch "#{url}/#{id}", params: { ai_agent: { name: 'Updated', respond_to_groups: false } }, headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+    get "#{url}/#{id}", headers: headers
+    expect(response.parsed_body['group_response_blacklist']).to eq(['5562999991111'])
+    patch "#{url}/#{id}", params: { ai_agent: { group_response_blacklist: [] } }, headers: headers, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['group_response_blacklist']).to eq([])
+  end
+
+  it 'rejects malformed blacklist input at the request boundary without changing the saved list' do
+    agent.configure!({ group_response_blacklist: ['5562999991111'] })
+    [nil, {}, '5562999991111', [nil], ['5562999991111', nil], [''], [123_456_789], [{ phone: '5562999991111' }], ['invalid']].each do |value|
+      patch "#{url}/#{agent.id}", params: { ai_agent: { group_response_blacklist: value } }, headers: headers, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('invalid_settings')
+      expect(agent.reload.group_response_blacklist).to eq(['5562999991111'])
+    end
+  end
+
   it 'creates, reads, edits, activates and deletes an agent and its links' do
     post url, params: { ai_agent: attributes.merge(inbox_ids: [inbox.id]) }, headers: headers, as: :json
     expect(response).to have_http_status(:created)

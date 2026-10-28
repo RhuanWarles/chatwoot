@@ -16,6 +16,9 @@ module Enterprise::Concerns::Attachment
 
   def enqueue_audio_transcription
     return unless file_type.to_sym == :audio
+
+    agent = Saas::AiAgents::Runtime.agent_for(message.conversation)
+    return if agent && Saas::AiAgents::GroupResponseBlacklist.blocked?(agent, message)
     return if ai_agent_audio_enabled?
 
     # No file.attached? guard: the social-media ingest path saves the

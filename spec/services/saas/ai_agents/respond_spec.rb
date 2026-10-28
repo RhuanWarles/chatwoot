@@ -31,6 +31,59 @@ RSpec.describe Saas::AiAgents::Respond do
     expect(conversation.reload.additional_attributes['ai_agent_state']).to eq('active')
   end
 
+  context 'with a group response blacklist' do
+    before do
+      conversation.contact_inbox.update!(source_id: '120363123456789@g.us')
+      agent.update!(respond_to_groups: true, group_response_blacklist: ['5562999991111'], audio_enabled: true)
+    end
+
+    it 'does not transcribe blocked audio, call a provider or reserve text/audio credits' do
+      account.saas_ai_setting.update!(text_mode: 'platform')
+      incoming.update!(content: nil, content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      incoming.attachments.create!(account: account, file_type: :audio,
+                                   file: fixture_file_upload('spec/assets/sample.mp3', 'audio/mpeg'))
+      expect(Saas::Audio::TranscriptionService).not_to receive(:new)
+      expect do
+        described_class.new(conversation, incoming).perform
+      end.not_to change(Saas::UsageRecord, :count)
+      expect(Saas::AiAgents::Provider).not_to have_received(:for)
+      expect(provider).not_to have_received(:generate)
+      expect(conversation.messages.outgoing).to be_empty
+      expect(conversation.messages).to include(incoming)
+    end
+
+    it 'keeps blocked text as context when another participant triggers the next reply' do
+      incoming.update!(content: 'Important context from A', content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      described_class.new(conversation, incoming).perform
+      expect(provider).not_to have_received(:generate)
+      other = create(:message, account: account, inbox: inbox, conversation: conversation,
+                               content: 'Question from B', content_attributes: { participant: '5562988882222@s.whatsapp.net' })
+      described_class.new(conversation, other).perform
+      expect(provider).to have_received(:generate).with(hash_including(
+                                                          messages: include(hash_including(content: include('Important context from A')))
+                                                        ))
+      expect(conversation.messages.outgoing.count).to eq(1)
+      expect(incoming.reload.content).to eq('Important context from A')
+    end
+
+    it 'still replies to the blacklisted number in private' do
+      conversation.contact_inbox.update!(source_id: '5562999991111@s.whatsapp.net')
+      incoming.update!(content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      described_class.new(conversation, incoming).perform
+      expect(provider).to have_received(:generate).once
+    end
+
+    it 'does not reply when a blocked participant becomes the latest sender after the job debounce check' do
+      incoming.update!(content_attributes: { participant: '5562988882222@s.whatsapp.net' })
+      blocked = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                 content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      described_class.new(conversation, incoming).perform
+      expect(provider).not_to have_received(:generate)
+      expect(conversation.messages.outgoing).to be_empty
+      expect(conversation.messages).to include(blocked)
+    end
+  end
+
   it 'does not persist internal author context in the public reply' do
     allow(provider).to receive(:generate).and_return(content: "[Participante: Larissa; identificador: Saas::AiAgent:3]\nOlá!", usage: {})
 

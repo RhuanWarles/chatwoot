@@ -10,6 +10,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
+import GroupResponseBlacklistField from './GroupResponseBlacklistField.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import { suggestedModelsForProvider } from './models';
 import {
@@ -177,6 +178,7 @@ const normalizeAgent = agent => ({
   handoff_conditions: agent?.handoff_conditions ?? '',
   timezone: agent?.timezone || DEFAULT_TIMEZONE,
   customer_memory_enabled: agent?.customer_memory_enabled === true,
+  group_response_blacklist: agent?.group_response_blacklist ?? [],
   audio_enabled: agent?.audio_enabled === true,
   attachment_interpretation_enabled:
     agent?.attachment_interpretation_enabled === true,
@@ -549,6 +551,11 @@ onMounted(load);
             </span>
             <Switch v-model="draft.respond_to_groups" :disabled="busy" />
           </label>
+          <GroupResponseBlacklistField
+            v-model="draft.group_response_blacklist"
+            :enabled="draft.respond_to_groups"
+            :disabled="busy"
+          />
           <label class="flex items-center justify-between gap-3"
             ><span class="text-sm text-n-slate-12"
               >{{ t('AI_AGENTS.AUDIO_ENABLED')
