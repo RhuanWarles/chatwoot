@@ -257,7 +257,7 @@
     "GROUP_BLACKLIST_DISABLED": "Enable replies in groups to use this setting.",
     "GROUP_BLACKLIST_EMPTY": "No blocked numbers.",
     "GROUP_BLACKLIST_NUMBER": "Phone number",
-    "GROUP_BLACKLIST_PLACEHOLDER": "+55 (62) 99999-1111",
+    "GROUP_BLACKLIST_PLACEHOLDER": "+55 (62) 9 9999-9999",
     "GROUP_BLACKLIST_ADD": "Add",
     "GROUP_BLACKLIST_REMOVE": "Remove number",
     "GROUP_BLACKLIST_INVALID": "Invalid number. Enter country code, area code, and number.",

@@ -28,6 +28,7 @@ describe('AI agent configuration', () => {
 
   it('normalizes international phones and rejects malformed lists', () => {
     expect(normalizeGroupPhone('55 62 99999-1111')).toBe('5562999991111');
+    expect(normalizeGroupPhone('55 62 9999-1111')).toBe('5562999991111');
     expect(normalizeGroupPhone('+290 1234')).toBe('2901234');
     expect(validGroupBlacklist([])).toBe(true);
     [null, {}, [''], [null], [123456789], [{}], ['abc1234567']].forEach(value =>

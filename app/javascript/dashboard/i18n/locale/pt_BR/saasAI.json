@@ -86,7 +86,7 @@
     "GROUP_BLACKLIST_DISABLED": "Ative as respostas em grupos para usar esta configuração.",
     "GROUP_BLACKLIST_EMPTY": "Nenhum número bloqueado.",
     "GROUP_BLACKLIST_NUMBER": "Número de telefone",
-    "GROUP_BLACKLIST_PLACEHOLDER": "+55 62 99999-1111",
+    "GROUP_BLACKLIST_PLACEHOLDER": "+55 62 9 9999-9999",
     "GROUP_BLACKLIST_ADD": "Adicionar",
     "GROUP_BLACKLIST_REMOVE": "Remover número",
     "GROUP_BLACKLIST_INVALID": "Número inválido. Informe DDI, DDD e número.",

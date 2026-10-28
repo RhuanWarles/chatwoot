@@ -49,7 +49,7 @@ const removeNumber = value => {
     <p v-if="!enabled" class="text-xs text-n-slate-11">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_DISABLED') }}
     </p>
-    <p v-else class="text-xs text-n-slate-11">
+    <p v-else-if="!modelValue.length" class="text-xs text-n-slate-11">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_EMPTY') }}
     </p>
     <ul v-if="modelValue.length" class="flex flex-wrap gap-2">

@@ -6,7 +6,16 @@ const GROUP_PHONE_DIGITS = /^[1-9]\d{6,14}$/;
 export const normalizeGroupPhone = value => {
   if (typeof value !== 'string' || !GROUP_PHONE_FORMAT.test(value)) return null;
   const digits = value.replace(/\D/g, '');
-  return GROUP_PHONE_DIGITS.test(digits) ? digits : null;
+  if (!GROUP_PHONE_DIGITS.test(digits)) return null;
+
+  if (digits.startsWith('55')) {
+    const national = digits.slice(2);
+    if (national.length === 10 && /^[1-9]\d{7}$/.test(national)) {
+      return `55${national.slice(0, 2)}9${national.slice(2)}`;
+    }
+  }
+
+  return digits;
 };
 
 export const validGroupBlacklist = value =>
