@@ -20,7 +20,10 @@
       "ACTIONS": "Ações",
       "VERIFIED": "Verificado",
       "VERIFICATION_PENDING": "Verificação Pendente",
-      "AVAILABLE_CUSTOM_ROLE": "Permissões de função personalizada disponíveis"
+      "AVAILABLE_CUSTOM_ROLE": "Permissões de função personalizada disponíveis",
+      "CONFIRM_MANUALLY": "Confirmar manualmente",
+      "CONFIRM_SUCCESS": "Agente confirmado.",
+      "CONFIRM_ERROR": "Não foi possível confirmar o agente."
     },
     "ADD": {
       "TITLE": "Adicionar agente a seu time",
@@ -121,6 +124,27 @@
           "TEAM": "Pesquisar times",
           "INPUT": "Pesquisar por agentes"
         }
+      }
+    },
+    "ACCESS": {
+      "INBOXES": {
+        "LABEL": "Caixas de entrada",
+        "PLACEHOLDER": "Selecione as caixas de entrada",
+        "HELP": "O agente só pode receber atribuição de conversas das caixas selecionadas aqui."
+      },
+      "SCREENS": {
+        "LABEL": "Telas de acesso",
+        "ALL": "Todas as telas",
+        "CHOOSE": "Escolher as telas",
+        "HELP": "O agente só vê as telas marcadas no menu e não consegue abrir as outras.",
+        "AT_LEAST_ONE": "Marque pelo menos uma tela.",
+        "CONVERSATIONS": "Conversas",
+        "INBOX": "Caixa de entrada (Inbox)",
+        "CALLS": "Chamadas",
+        "CONTACTS": "Contatos",
+        "COMPANIES": "Empresas",
+        "CRM": "CRM",
+        "HELP_CENTER": "Central de ajuda"
       }
     }
   }

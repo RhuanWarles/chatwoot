@@ -2,7 +2,9 @@ import {
   hasPermissions,
   getUserPermissions,
   getCurrentAccount,
+  getAllowedScreens,
 } from './permissionsHelper';
+import { canOpenPath, firstAllowedPath } from './screenAccess';
 
 import {
   ROLES,
@@ -50,7 +52,15 @@ const validateActiveAccountRoutes = (to, user) => {
 
   const isAccessible = routeIsAccessibleFor(to, userPermissions);
   // If the route is not accessible for the user, return to dashboard screen
-  return isAccessible ? null : defaultRedirectPage(to, userPermissions);
+  if (!isAccessible) return defaultRedirectPage(to, userPermissions);
+
+  // An administrator can close screens for an agent; those lead to the first screen that is still open
+  const allowedScreens = getAllowedScreens(user, to.params.accountId);
+  const isAdministrator = userPermissions.includes('administrator');
+  if (!canOpenPath(to.path, { allowedScreens, isAdministrator })) {
+    return firstAllowedPath(to.params.accountId, allowedScreens);
+  }
+  return null;
 };
 
 export const validateLoggedInRoutes = (to, user) => {

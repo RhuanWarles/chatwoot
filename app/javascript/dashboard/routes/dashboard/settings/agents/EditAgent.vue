@@ -6,6 +6,7 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
+import AgentAccessFields from './AgentAccessFields.vue';
 import Auth from '../../../../api/auth';
 import wootConstants from 'dashboard/constants/globals';
 
@@ -38,6 +39,14 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  inboxIds: {
+    type: Array,
+    default: () => [],
+  },
+  allowedScreens: {
+    type: Array,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['close']);
@@ -51,6 +60,10 @@ const agentName = ref(props.name);
 const agentAvailability = ref(props.availability);
 const selectedRoleId = ref(props.customRoleId || props.type);
 const agentCredentials = ref({ email: props.email });
+const inboxIds = ref([...props.inboxIds]);
+const allowedScreens = ref(
+  Array.isArray(props.allowedScreens) ? [...props.allowedScreens] : null
+);
 
 const rules = {
   agentName: { required, minLength: minLength(1) },
@@ -117,6 +130,17 @@ const availabilityStatuses = computed(() =>
   }))
 );
 
+// Administrators see every inbox and screen, so only the other roles choose them.
+const isRestrictable = computed(
+  () => selectedRole.value?.name !== 'administrator'
+);
+const screensInvalid = computed(
+  () =>
+    isRestrictable.value &&
+    Array.isArray(allowedScreens.value) &&
+    allowedScreens.value.length === 0
+);
+
 const editAgent = async () => {
   v$.value.$touch();
   if (v$.value.$invalid) return;
@@ -133,6 +157,11 @@ const editAgent = async () => {
     } else {
       payload.role = selectedRole.value.name;
       payload.custom_role_id = null;
+    }
+
+    if (isRestrictable.value) {
+      payload.inbox_ids = inboxIds.value;
+      payload.allowed_screens = allowedScreens.value;
     }
 
     await store.dispatch('agents/update', payload);
@@ -204,6 +233,12 @@ const resetPassword = async () => {
         </label>
       </div>
 
+      <AgentAccessFields
+        v-if="isRestrictable"
+        v-model:inbox-ids="inboxIds"
+        v-model:allowed-screens="allowedScreens"
+      />
+
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">
         <div class="w-[50%] ltr:text-left rtl:text-right">
           <Button
@@ -227,7 +262,7 @@ const resetPassword = async () => {
           <Button
             type="submit"
             :label="$t('AGENT_MGMT.EDIT.FORM.SUBMIT')"
-            :disabled="v$.$invalid || uiFlags.isUpdating"
+            :disabled="v$.$invalid || screensInvalid || uiFlags.isUpdating"
             :is-loading="uiFlags.isUpdating"
           />
         </div>

@@ -89,7 +89,7 @@ export function useSidebarContext() {
   }
 
   const router = useRouter();
-  const { shouldShow } = usePolicy();
+  const { shouldShow, hasScreenAccess } = usePolicy();
 
   const resolvePath = to => {
     if (to) return router.resolve(to)?.path || '/';
@@ -139,6 +139,8 @@ export function useSidebarContext() {
   };
 
   const isAllowed = to => {
+    if (to && !hasScreenAccess(resolvePath(to))) return false;
+
     const permissions = resolvePermissions(to);
     const featureFlag = resolveFeatureFlag(to);
     const installationType = resolveInstallationType(to);

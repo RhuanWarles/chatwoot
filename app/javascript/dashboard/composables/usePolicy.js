@@ -3,9 +3,11 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useConfig } from 'dashboard/composables/useConfig';
 import {
+  getAllowedScreens,
   getUserPermissions,
   hasPermissions,
 } from 'dashboard/helper/permissionsHelper';
+import { canOpenPath } from 'dashboard/helper/screenAccess';
 import { PREMIUM_FEATURES } from 'dashboard/featureFlags';
 
 import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
@@ -34,6 +36,14 @@ export function usePolicy() {
     if (!requiredPermissions || !requiredPermissions.length) return true;
     const userPermissions = getUserPermissionsForAccount();
     return hasPermissions(requiredPermissions, userPermissions);
+  };
+
+  // False when an administrator closed the screen this path belongs to for the current person.
+  const hasScreenAccess = path => {
+    const isAdministrator =
+      getUserPermissionsForAccount().includes('administrator');
+    const allowedScreens = getAllowedScreens(user.value, accountId.value);
+    return canOpenPath(path, { allowedScreens, isAdministrator });
   };
 
   const checkInstallationType = config => {
@@ -129,6 +139,7 @@ export function usePolicy() {
   return {
     checkPermissions,
     checkInstallationType,
+    hasScreenAccess,
     shouldShowPaywall,
     isFeatureFlagEnabled,
     shouldShow,

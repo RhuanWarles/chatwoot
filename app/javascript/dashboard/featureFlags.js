@@ -58,6 +58,17 @@ export const FEATURE_FLAGS = {
   UNREAD_COUNT_FOR_FILTERS: 'unread_count_for_filters',
 };
 
+// Captain is switched off in this installation (the AI hub replaces it): the dashboard treats these flags as disabled,
+// whatever the account has stored, so nothing of Captain shows up.
+export const CAPTAIN_FEATURE_FLAGS = [
+  FEATURE_FLAGS.CAPTAIN,
+  FEATURE_FLAGS.CAPTAIN_CUSTOM_TOOLS,
+  FEATURE_FLAGS.CAPTAIN_TASKS,
+  FEATURE_FLAGS.CAPTAIN_CLASSIFIER,
+  FEATURE_FLAGS.CAPTAIN_DOCUMENT_AUTO_SYNC,
+  'captain_integration_v2',
+];
+
 export const PREMIUM_FEATURES = [
   FEATURE_FLAGS.CAMPAIGN_ANALYTICS,
   FEATURE_FLAGS.SLA,

@@ -239,3 +239,69 @@ describe('isAInboxViewRoute', () => {
     expect(isAInboxViewRoute('inbox_view')).toBe(false);
   });
 });
+
+describe('#validateLoggedInRoutes with closed screens', () => {
+  const account = overrides => ({
+    id: 1,
+    role: 'agent',
+    permissions: ['agent'],
+    status: 'active',
+    ...overrides,
+  });
+  const visit = (path, userAccount) =>
+    validateLoggedInRoutes(
+      {
+        name: 'any',
+        path,
+        params: { accountId: 1 },
+        meta: { permissions: ['administrator', 'agent'] },
+      },
+      { accounts: [userAccount] }
+    );
+
+  it('lets an agent without restrictions open every screen', () => {
+    expect(visit('/app/accounts/1/crm/deals', account())).toBeNull();
+  });
+
+  it('lets an agent open the screens they were given', () => {
+    const restricted = account({ allowed_screens: ['crm', 'contacts'] });
+
+    expect(visit('/app/accounts/1/crm/deals', restricted)).toBeNull();
+    expect(visit('/app/accounts/1/contacts', restricted)).toBeNull();
+  });
+
+  it('sends an agent away from a screen that was closed to them', () => {
+    const restricted = account({ allowed_screens: ['contacts'] });
+
+    expect(visit('/app/accounts/1/crm/deals', restricted)).toBe(
+      'accounts/1/contacts'
+    );
+    expect(visit('/app/accounts/1/dashboard', restricted)).toBe(
+      'accounts/1/contacts'
+    );
+  });
+
+  it('sends an agent without any open screen to their profile', () => {
+    const restricted = account({ allowed_screens: [] });
+
+    expect(visit('/app/accounts/1/dashboard', restricted)).toBe(
+      'accounts/1/profile/settings'
+    );
+  });
+
+  it('keeps the profile page reachable for restricted agents', () => {
+    const restricted = account({ allowed_screens: ['contacts'] });
+
+    expect(visit('/app/accounts/1/profile/settings', restricted)).toBeNull();
+  });
+
+  it('never closes a screen for an administrator', () => {
+    const administrator = account({
+      role: 'administrator',
+      permissions: ['administrator'],
+      allowed_screens: ['contacts'],
+    });
+
+    expect(visit('/app/accounts/1/crm/deals', administrator)).toBeNull();
+  });
+});

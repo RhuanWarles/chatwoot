@@ -6,6 +6,7 @@ import { useAlert } from 'dashboard/composables';
 import { useVuelidate } from '@vuelidate/core';
 import { required, email } from '@vuelidate/validators';
 import Button from 'dashboard/components-next/button/Button.vue';
+import AgentAccessFields from './AgentAccessFields.vue';
 
 const emit = defineEmits(['close']);
 
@@ -15,6 +16,8 @@ const { t } = useI18n();
 const agentName = ref('');
 const agentEmail = ref('');
 const selectedRoleId = ref('agent');
+const inboxIds = ref([]);
+const allowedScreens = ref(null);
 
 const rules = {
   agentName: { required },
@@ -61,6 +64,17 @@ const selectedRole = computed(() =>
   )
 );
 
+// Administrators see every inbox and screen, so only the other roles choose them.
+const isRestrictable = computed(
+  () => selectedRole.value?.name !== 'administrator'
+);
+const screensInvalid = computed(
+  () =>
+    isRestrictable.value &&
+    Array.isArray(allowedScreens.value) &&
+    allowedScreens.value.length === 0
+);
+
 const addAgent = async () => {
   v$.value.$touch();
   if (v$.value.$invalid) return;
@@ -75,6 +89,13 @@ const addAgent = async () => {
       payload.custom_role_id = selectedRole.value.id;
     } else {
       payload.role = selectedRole.value.name;
+    }
+
+    if (isRestrictable.value) {
+      payload.inbox_ids = inboxIds.value;
+      if (Array.isArray(allowedScreens.value)) {
+        payload.allowed_screens = allowedScreens.value;
+      }
     }
 
     await store.dispatch('agents/create', payload);
@@ -147,6 +168,12 @@ const addAgent = async () => {
         </label>
       </div>
 
+      <AgentAccessFields
+        v-if="isRestrictable"
+        v-model:inbox-ids="inboxIds"
+        v-model:allowed-screens="allowedScreens"
+      />
+
       <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
         <Button
           faded
@@ -158,7 +185,7 @@ const addAgent = async () => {
         <Button
           type="submit"
           :label="$t('AGENT_MGMT.ADD.FORM.SUBMIT')"
-          :disabled="v$.$invalid || uiFlags.isCreating"
+          :disabled="v$.$invalid || screensInvalid || uiFlags.isCreating"
           :is-loading="uiFlags.isCreating"
         />
       </div>

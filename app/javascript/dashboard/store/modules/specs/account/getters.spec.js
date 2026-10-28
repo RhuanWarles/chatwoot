@@ -48,6 +48,48 @@ describe('#getters', () => {
     ).toEqual(true);
   });
 
+  describe('Captain flags', () => {
+    const state = {
+      records: [
+        {
+          id: 1,
+          features: {
+            captain_integration: true,
+            captain_tasks: true,
+            custom_tools: true,
+            captain_classifier: true,
+            captain_document_auto_sync: true,
+            captain_integration_v2: true,
+            auto_resolve_conversations: true,
+          },
+        },
+      ],
+    };
+
+    it.each([
+      'captain_integration',
+      'captain_tasks',
+      'custom_tools',
+      'captain_classifier',
+      'captain_document_auto_sync',
+      'captain_integration_v2',
+    ])('reads %s as disabled even when the account has it on', flag => {
+      expect(
+        getters.isFeatureEnabledonAccount(state, null, null)(1, flag)
+      ).toBe(false);
+    });
+
+    it('keeps the other flags as they are', () => {
+      expect(
+        getters.isFeatureEnabledonAccount(
+          state,
+          null,
+          null
+        )(1, 'auto_resolve_conversations')
+      ).toBe(true);
+    });
+  });
+
   describe('isRTL', () => {
     afterEach(() => {
       vi.restoreAllMocks();
