@@ -17,6 +17,7 @@ import { setColorTheme } from './helper/themeHelper';
 import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useFontSize } from 'dashboard/composables/useFontSize';
+import { useChatListContrast } from 'dashboard/composables/useChatListContrast';
 import {
   registerSubscription,
   verifyServiceWorkerExistence,
@@ -45,6 +46,7 @@ export default {
     const { accountId } = useAccount();
     // Use the font size composable (it automatically sets up the watcher)
     const { currentFontSize } = useFontSize();
+    useChatListContrast();
     const { uiSettings } = useUISettings();
 
     return {
@@ -177,5 +179,18 @@ export default {
 
 .v-popper--theme-tooltip .v-popper__arrow-container {
   display: none;
+}
+
+// Optional theme (profile > interface): the conversation list gets its own surface, so it stands out from the chat.
+// The variables are re-declared only inside the list; `--background-color` is what the open conversation card uses,
+// so it is kept lighter than the list for the card to remain visible.
+body.list-contrast .conversations-list-wrap {
+  --surface-1: 235 237 240;
+  --background-color: 255 255 255;
+}
+
+body.list-contrast.dark .conversations-list-wrap {
+  --surface-1: 12 13 15;
+  --background-color: 38 40 46;
 }
 </style>

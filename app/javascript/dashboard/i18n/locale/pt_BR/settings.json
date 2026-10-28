@@ -58,6 +58,12 @@
           "UPDATE_SUCCESS": "Suas configurações de idioma foram atualizadas com sucesso",
           "UPDATE_ERROR": "Ocorreu um erro ao atualizar as configurações de idioma, por favor, tente novamente",
           "USE_ACCOUNT_DEFAULT": "Usar padrão da conta"
+        },
+        "LIST_CONTRAST": {
+          "TITLE": "Contraste na lista de conversas",
+          "NOTE": "Dá à lista de conversas um fundo diferente do chat, para ficar mais fácil distinguir um do outro.",
+          "UPDATE_SUCCESS": "Seu tema foi atualizado.",
+          "UPDATE_ERROR": "Não foi possível atualizar o tema. Tente novamente."
         }
       },
       "MESSAGE_SIGNATURE_SECTION": {

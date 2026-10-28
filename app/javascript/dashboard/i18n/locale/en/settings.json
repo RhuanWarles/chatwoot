@@ -58,6 +58,12 @@
           "UPDATE_SUCCESS": "Your Language settings have been updated successfully",
           "UPDATE_ERROR": "There is an error while updating the language settings, please try again",
           "USE_ACCOUNT_DEFAULT": "Use account default"
+        },
+        "LIST_CONTRAST": {
+          "TITLE": "Contrast on the conversation list",
+          "NOTE": "Gives the conversation list a different background from the chat, so it is easier to tell them apart.",
+          "UPDATE_SUCCESS": "Your theme was updated.",
+          "UPDATE_ERROR": "Could not update the theme. Try again."
         }
       },
       "MESSAGE_SIGNATURE_SECTION": {

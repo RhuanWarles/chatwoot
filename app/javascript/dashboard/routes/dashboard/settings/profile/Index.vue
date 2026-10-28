@@ -3,6 +3,7 @@ import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useFontSize } from 'dashboard/composables/useFontSize';
+import { useChatListContrast } from 'dashboard/composables/useChatListContrast';
 import { useBranding } from 'shared/composables/useBranding';
 import { clearCookiesOnLogout } from 'dashboard/store/utils/api.js';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -12,6 +13,7 @@ import UserProfilePicture from './UserProfilePicture.vue';
 import UserBasicDetails from './UserBasicDetails.vue';
 import MessageSignature from './MessageSignature.vue';
 import FontSize from './FontSize.vue';
+import ListContrast from './ListContrast.vue';
 import UserLanguageSelect from './UserLanguageSelect.vue';
 import ChangePassword from './ChangePassword.vue';
 import NotificationPreferences from './NotificationPreferences.vue';
@@ -33,6 +35,7 @@ export default {
     MessageSignature,
     SectionLayout,
     FontSize,
+    ListContrast,
     UserLanguageSelect,
     UserProfilePicture,
     Policy,
@@ -49,11 +52,15 @@ export default {
   setup() {
     const { isEditorHotKeyEnabled, updateUISettings } = useUISettings();
     const { currentFontSize, updateFontSize } = useFontSize();
+    const { enabled: listContrast, setEnabled: setListContrast } =
+      useChatListContrast();
     const { replaceInstallationName } = useBranding();
 
     return {
       currentFontSize,
       updateFontSize,
+      listContrast,
+      setListContrast,
       isEditorHotKeyEnabled,
       updateUISettings,
       replaceInstallationName,
@@ -264,6 +271,16 @@ export default {
             $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.FONT_SIZE.NOTE')
           "
           @change="updateFontSize"
+        />
+        <ListContrast
+          :value="listContrast"
+          :label="
+            $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.LIST_CONTRAST.TITLE')
+          "
+          :description="
+            $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.LIST_CONTRAST.NOTE')
+          "
+          @change="setListContrast"
         />
         <UserLanguageSelect
           :label="$t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.LANGUAGE.TITLE')"
