@@ -16,6 +16,12 @@ export const getUserPermissions = (user, accountId) => {
   return currentAccount.permissions || [];
 };
 
+// Screens an administrator limited this person to; null means everything their role allows.
+export const getAllowedScreens = (user, accountId) => {
+  const currentAccount = getCurrentAccount(user, accountId) || {};
+  return currentAccount.allowed_screens ?? null;
+};
+
 export const getUserRole = (user, accountId) => {
   const currentAccount = getCurrentAccount(user, accountId) || {};
   if (currentAccount.custom_role_id) {
