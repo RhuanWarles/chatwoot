@@ -483,7 +483,9 @@
           "outdated_information": "Outdated information",
           "other": "Other"
         }
-      }
+      },
+      "PIN_NOTE": "Pin note",
+      "UNPIN_NOTE": "Unpin note"
     },
     "MESSAGE_EDITED": "Edited",
     "MESSAGE_EDIT_ERROR": "Unable to edit this message. Please try again.",
@@ -553,13 +555,20 @@
       "DURATION": "Duration",
       "DATE": "Date and time",
       "AGENT": "Assistant",
-      "USED_CHUNKS": "Chunks used"
-      ,"TITLE": "Knowledge base lookups"
-      ,"EMPTY": "No knowledge base lookups in this conversation."
-      ,"ERROR": "Unable to load knowledge base lookups."
-      ,"RETRY": "Try again"
-      ,"LESS": "Show less"
-      ,"ALL": "View all ({count})"
+      "USED_CHUNKS": "Chunks used",
+      "TITLE": "Knowledge base lookups",
+      "EMPTY": "No knowledge base lookups in this conversation.",
+      "ERROR": "Unable to load knowledge base lookups.",
+      "LESS": "Show less",
+      "ALL": "View all ({count})"
+    },
+    "PINNED_NOTE": {
+      "PINNED_BY": "Pinned by {name}",
+      "SHOW_MORE": "Show more",
+      "SHOW_LESS": "Show less",
+      "GO_TO_NOTE": "Go to the note",
+      "UNPIN": "Unpin note",
+      "UNPIN_ERROR": "Could not unpin the note. Try again."
     }
   },
   "EMAIL_TRANSCRIPT": {

@@ -448,6 +448,11 @@ const contextMenuEnabledOptions = computed(() => {
       !isMessageDeleted.value,
     cannedResponse: isOutgoing && hasText && !isMessageDeleted.value,
     copyLink: !isFailedOrProcessing,
+    pinNote:
+      props.private &&
+      hasText &&
+      !isFailedOrProcessing &&
+      !isMessageDeleted.value,
     translate: !isFailedOrProcessing && !isMessageDeleted.value && hasText,
     replyTo:
       !props.private &&

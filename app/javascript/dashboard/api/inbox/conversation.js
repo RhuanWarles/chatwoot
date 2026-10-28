@@ -98,6 +98,16 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${conversationId}/mark_handoff_seen`);
   }
 
+  pinNote({ conversationId, messageId }) {
+    return axios.post(`${this.url}/${conversationId}/pin_note`, {
+      message_id: messageId,
+    });
+  }
+
+  unpinNote({ conversationId }) {
+    return axios.delete(`${this.url}/${conversationId}/pin_note`);
+  }
+
   toggleTyping({ conversationId, status, isPrivate }) {
     return axios.post(`${this.url}/${conversationId}/toggle_typing_status`, {
       typing_status: status,

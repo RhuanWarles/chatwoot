@@ -28,6 +28,7 @@ import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
 
 // utils
 import { emitter } from 'shared/helpers/mitt';
+import PinnedNoteBanner from './PinnedNoteBanner.vue';
 import { getTypingUsersText } from '../../../helper/commons';
 import {
   captureTimelineAnchor,
@@ -64,6 +65,7 @@ export default {
     OlderConversationBar,
     ResizableEditorWrapper,
     ReferralBubble,
+    PinnedNoteBanner,
   },
   mixins: [inboxMixin],
   setup() {
@@ -237,6 +239,11 @@ export default {
         additionalAttributes.type === 'instagram_direct_message' &&
         instagramInbox
       );
+    },
+    // The internal note kept on top of the conversation; it needs its text to be shown.
+    pinnedNote() {
+      const note = this.currentChat?.additional_attributes?.pinned_note;
+      return note?.content ? note : null;
     },
     isInstagramRestrictionBannerVisible() {
       return this.isMetaMessageSendingDisabled && this.isAnInstagramChannel;
@@ -674,6 +681,11 @@ export default {
         color-scheme="alert"
         class="mx-2 mt-2 overflow-hidden rounded-lg"
         :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
+      />
+      <PinnedNoteBanner
+        v-if="pinnedNote"
+        :conversation-id="currentChat.id"
+        :note="pinnedNote"
       />
     </div>
     <Transition

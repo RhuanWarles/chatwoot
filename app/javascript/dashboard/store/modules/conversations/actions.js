@@ -295,6 +295,26 @@ const actions = {
     });
   },
 
+  // One internal note can stay pinned on top of a conversation for every agent.
+  pinNote: async ({ commit }, { conversationId, messageId }) => {
+    const { data } = await ConversationApi.pinNote({
+      conversationId,
+      messageId,
+    });
+    commit(types.UPDATE_CONVERSATION, {
+      id: conversationId,
+      additional_attributes: data.additional_attributes,
+    });
+  },
+
+  unpinNote: async ({ commit }, { conversationId }) => {
+    const { data } = await ConversationApi.unpinNote({ conversationId });
+    commit(types.UPDATE_CONVERSATION, {
+      id: conversationId,
+      additional_attributes: data.additional_attributes,
+    });
+  },
+
   async setActiveChat({ commit, dispatch }, { data, after }) {
     commit(types.SET_CURRENT_CHAT_WINDOW, data);
     if (data.additional_attributes?.ai_handoff === true) {

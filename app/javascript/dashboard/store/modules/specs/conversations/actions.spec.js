@@ -1188,3 +1188,56 @@ describe('#addMentions', () => {
     });
   });
 });
+
+describe('#pinNote and #unpinNote', () => {
+  const additionalAttributes = {
+    pinned_note: {
+      message_id: 55,
+      content: 'Cliente só atende depois das 18h',
+    },
+  };
+
+  beforeEach(() => {
+    commit.mockClear();
+  });
+
+  it('pins the note and updates the conversation with what the server answers', async () => {
+    axios.post.mockResolvedValue({
+      data: { additional_attributes: additionalAttributes },
+    });
+
+    await actions.pinNote({ commit }, { conversationId: 12, messageId: 55 });
+
+    expect(axios.post).toHaveBeenCalledWith(
+      expect.stringMatching(/\/conversations\/12\/pin_note$/),
+      { message_id: 55 }
+    );
+    expect(commit).toHaveBeenCalledWith(types.UPDATE_CONVERSATION, {
+      id: 12,
+      additional_attributes: additionalAttributes,
+    });
+  });
+
+  it('unpins the note and drops it from the conversation', async () => {
+    axios.delete.mockResolvedValue({ data: { additional_attributes: {} } });
+
+    await actions.unpinNote({ commit }, { conversationId: 12 });
+
+    expect(axios.delete).toHaveBeenCalledWith(
+      expect.stringMatching(/\/conversations\/12\/pin_note$/)
+    );
+    expect(commit).toHaveBeenCalledWith(types.UPDATE_CONVERSATION, {
+      id: 12,
+      additional_attributes: {},
+    });
+  });
+
+  it('lets the error go up and changes nothing when pinning fails', async () => {
+    axios.post.mockRejectedValue(new Error('422'));
+
+    await expect(
+      actions.pinNote({ commit }, { conversationId: 12, messageId: 55 })
+    ).rejects.toThrow('422');
+    expect(commit).not.toHaveBeenCalled();
+  });
+});

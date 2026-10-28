@@ -66,7 +66,14 @@ export default {
       getAccount: 'accounts/getAccount',
       currentAccountId: 'getCurrentAccountId',
       getUISettings: 'getUISettings',
+      getSelectedChat: 'getSelectedChat',
     }),
+    isPinned() {
+      return (
+        this.getSelectedChat?.additional_attributes?.pinned_note?.message_id ===
+        this.messageId
+      );
+    },
     plainTextContent() {
       return this.getPlainText(this.messageContent);
     },
@@ -131,6 +138,23 @@ export default {
           targetLanguage,
         });
         useTrack(CONVERSATION_EVENTS.TRANSLATE_A_MESSAGE);
+      } catch (error) {
+        useAlert(parseAPIErrorResponse(error));
+      }
+      this.handleClose();
+    },
+    async handlePinToggle() {
+      try {
+        if (this.isPinned) {
+          await this.$store.dispatch('unpinNote', {
+            conversationId: this.conversationId,
+          });
+        } else {
+          await this.$store.dispatch('pinNote', {
+            conversationId: this.conversationId,
+            messageId: this.messageId,
+          });
+        }
       } catch (error) {
         useAlert(parseAPIErrorResponse(error));
       }
@@ -260,6 +284,17 @@ export default {
           }"
           variant="icon"
           @click.stop="handleTranslate"
+        />
+        <MenuItem
+          v-if="enabledOptions['pinNote']"
+          :option="{
+            icon: isPinned ? 'i-lucide-pin-off' : 'i-lucide-pin',
+            label: isPinned
+              ? $t('CONVERSATION.CONTEXT_MENU.UNPIN_NOTE')
+              : $t('CONVERSATION.CONTEXT_MENU.PIN_NOTE'),
+          }"
+          variant="icon"
+          @click.stop="handlePinToggle"
         />
         <MenuItem
           v-if="enabledOptions.react"

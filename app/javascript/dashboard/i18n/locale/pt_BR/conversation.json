@@ -454,7 +454,9 @@
           "outdated_information": "Informação desatualizada",
           "other": "Outro"
         }
-      }
+      },
+      "PIN_NOTE": "Fixar nota",
+      "UNPIN_NOTE": "Desafixar nota"
     },
     "MESSAGE_EDITED": "Editada",
     "MESSAGE_EDIT_ERROR": "Não foi possível editar esta mensagem. Tente novamente.",
@@ -523,13 +525,20 @@
       "DURATION": "Duração",
       "DATE": "Data e hora",
       "AGENT": "Assistente",
-      "USED_CHUNKS": "Trechos utilizados"
-      ,"TITLE": "Consultas à base de conhecimento"
-      ,"EMPTY": "Nenhuma consulta à base de conhecimento nesta conversa."
-      ,"ERROR": "Não foi possível carregar as consultas à base de conhecimento."
-      ,"RETRY": "Tentar novamente"
-      ,"LESS": "Ver menos"
-      ,"ALL": "Ver todas ({count})"
+      "USED_CHUNKS": "Trechos utilizados",
+      "TITLE": "Consultas à base de conhecimento",
+      "EMPTY": "Nenhuma consulta à base de conhecimento nesta conversa.",
+      "ERROR": "Não foi possível carregar as consultas à base de conhecimento.",
+      "LESS": "Ver menos",
+      "ALL": "Ver todas ({count})"
+    },
+    "PINNED_NOTE": {
+      "PINNED_BY": "Fixada por {name}",
+      "SHOW_MORE": "Ver mais",
+      "SHOW_LESS": "Ver menos",
+      "GO_TO_NOTE": "Ir para a nota",
+      "UNPIN": "Desafixar nota",
+      "UNPIN_ERROR": "Não foi possível desafixar a nota. Tente novamente."
     }
   },
   "EMAIL_TRANSCRIPT": {

@@ -16,12 +16,14 @@ defineProps({
 
 <template>
   <div class="menu group text-n-slate-12 min-h-7 min-w-0" role="button">
-    <fluent-icon
-      v-if="variant === 'icon' && option.icon"
-      :icon="option.icon"
-      size="14"
-      class="flex-shrink-0"
-    />
+    <template v-if="variant === 'icon' && option.icon">
+      <Icon
+        v-if="option.icon.startsWith('i-')"
+        :icon="option.icon"
+        class="flex-shrink-0 size-3.5"
+      />
+      <fluent-icon v-else :icon="option.icon" size="14" class="flex-shrink-0" />
+    </template>
     <span
       v-if="
         (variant === 'label' || variant === 'label-assigned') && option.color
