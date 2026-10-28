@@ -1,8 +1,8 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 import SettingsWrapper from '../SettingsWrapper.vue';
-import Index from './Index.vue';
 import ToolEditorPage from './ToolEditorPage.vue';
 import Logs from './Logs.vue';
+import Workspace from './Workspace.vue';
 
 export default {
   routes: [
@@ -20,20 +20,12 @@ export default {
         {
           path: '',
           name: 'ai_tools_settings',
-          component: Index,
+          component: Workspace,
           meta: { permissions: ['administrator'] },
-        },
-        {
-          path: 'new',
-          name: 'ai_tool_new',
-          component: ToolEditorPage,
-          meta: { permissions: ['administrator'] },
-        },
-        {
-          path: ':toolId/edit',
-          name: 'ai_tool_edit',
-          component: ToolEditorPage,
-          meta: { permissions: ['administrator'] },
+          children: [
+            { path: 'new', name: 'ai_tool_new', component: ToolEditorPage, meta: { permissions: ['administrator'] } },
+            { path: ':toolId/edit', name: 'ai_tool_edit', component: ToolEditorPage, meta: { permissions: ['administrator'] } },
+          ],
         },
       ],
     },
