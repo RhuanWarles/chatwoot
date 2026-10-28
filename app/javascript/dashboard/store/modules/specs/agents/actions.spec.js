@@ -73,6 +73,28 @@ describe('#actions', () => {
     });
   });
 
+  describe('#confirm', () => {
+    beforeEach(() => commit.mockClear());
+
+    it('confirms the agent in the server and updates it in the list', async () => {
+      const confirmed = { ...agentList[0], confirmed: true };
+      axios.post.mockResolvedValue({ data: confirmed });
+      await actions.confirm({ commit }, agentList[0].id);
+      expect(axios.post).toHaveBeenCalledWith(
+        expect.stringMatching(new RegExp(`/agents/${agentList[0].id}/confirm$`))
+      );
+      expect(commit.mock.calls).toEqual([
+        [types.default.EDIT_AGENT, confirmed],
+      ]);
+    });
+
+    it('lets the error go up so the screen can warn the administrator', async () => {
+      axios.post.mockRejectedValue(new Error('403'));
+      await expect(actions.confirm({ commit }, 1)).rejects.toThrow('403');
+      expect(commit).not.toHaveBeenCalled();
+    });
+  });
+
   describe('#delete', () => {
     it('sends correct actions if API is success', async () => {
       axios.delete.mockResolvedValue({ data: agentList[0] });

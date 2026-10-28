@@ -20,7 +20,10 @@
       "ACTIONS": "Actions",
       "VERIFIED": "Verified",
       "VERIFICATION_PENDING": "Verification Pending",
-      "AVAILABLE_CUSTOM_ROLE": "Available custom role permissions"
+      "AVAILABLE_CUSTOM_ROLE": "Available custom role permissions",
+      "CONFIRM_MANUALLY": "Confirm manually",
+      "CONFIRM_SUCCESS": "Agent confirmed.",
+      "CONFIRM_ERROR": "Could not confirm the agent."
     },
     "ADD": {
       "TITLE": "Add agent to your team",
@@ -121,6 +124,27 @@
           "TEAM": "Search teams",
           "INPUT": "Search for agents"
         }
+      }
+    },
+    "ACCESS": {
+      "INBOXES": {
+        "LABEL": "Inboxes",
+        "PLACEHOLDER": "Select the inboxes",
+        "HELP": "The agent can only be assigned conversations of the inboxes selected here."
+      },
+      "SCREENS": {
+        "LABEL": "Screens",
+        "ALL": "All screens",
+        "CHOOSE": "Choose the screens",
+        "HELP": "The agent only sees the chosen screens in the menu and cannot open the others.",
+        "AT_LEAST_ONE": "Choose at least one screen.",
+        "CONVERSATIONS": "Conversations",
+        "INBOX": "Inbox",
+        "CALLS": "Calls",
+        "CONTACTS": "Contacts",
+        "COMPANIES": "Companies",
+        "CRM": "CRM",
+        "HELP_CENTER": "Help center"
       }
     }
   }

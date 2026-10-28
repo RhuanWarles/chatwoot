@@ -73,6 +73,10 @@ export const actions = {
       throw new Error(error);
     }
   },
+  confirm: async ({ commit }, id) => {
+    const response = await AgentAPI.confirm(id);
+    commit(types.default.EDIT_AGENT, response.data);
+  },
   updateSingleAgentPresence: ({ commit }, { id, availabilityStatus }) => {
     commit(types.default.UPDATE_SINGLE_AGENT_PRESENCE, {
       id,

@@ -21,6 +21,7 @@ const store = useStore();
 const { t } = useI18n();
 
 const loading = ref({});
+const confirming = ref({});
 const showAddPopup = ref(false);
 const showDeletePopup = ref(false);
 const showEditPopup = ref(false);
@@ -111,6 +112,19 @@ const openAddPopup = () => {
 };
 const hideAddPopup = () => {
   showAddPopup.value = false;
+};
+
+// For installations where the invitation e-mail never arrives: the administrator confirms the agent by hand.
+const confirmAgent = async agent => {
+  confirming.value[agent.id] = true;
+  try {
+    await store.dispatch('agents/confirm', agent.id);
+    useAlert(t('AGENT_MGMT.LIST.CONFIRM_SUCCESS'));
+  } catch {
+    useAlert(t('AGENT_MGMT.LIST.CONFIRM_ERROR'));
+  } finally {
+    confirming.value[agent.id] = false;
+  }
 };
 
 const openEditPopup = agent => {
@@ -250,6 +264,14 @@ const confirmDeletion = () => {
                 >
                   {{ $t('AGENT_MGMT.LIST.VERIFICATION_PENDING') }}
                 </span>
+                <Button
+                  v-if="!agent.confirmed"
+                  link
+                  xs
+                  :label="$t('AGENT_MGMT.LIST.CONFIRM_MANUALLY')"
+                  :is-loading="confirming[agent.id]"
+                  @click="confirmAgent(agent)"
+                />
               </div>
             </div>
           </div>
@@ -291,6 +313,8 @@ const confirmDeletion = () => {
         :email="currentAgent.email"
         :availability="currentAgent.availability_status"
         :custom-role-id="currentAgent.custom_role_id"
+        :inbox-ids="currentAgent.inbox_ids"
+        :allowed-screens="currentAgent.allowed_screens"
         @close="hideEditPopup"
       />
     </woot-modal>
