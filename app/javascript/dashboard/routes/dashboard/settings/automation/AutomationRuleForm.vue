@@ -19,6 +19,7 @@ import {
   AUTOMATION_RULE_EVENTS,
   AUTOMATION_ACTION_TYPES,
   CAPTAIN_CONDITION,
+  CRM_CONDITIONS,
   DEFAULT_DELAY_MINUTES,
 } from './constants';
 import AutomationRunTypeSelector from './components/AutomationRunTypeSelector.vue';
@@ -238,7 +239,7 @@ const filterTypes = computed(() => {
   const attributes = getTranslatedAttributes(
     props.automationTypes,
     event
-  ).filter(attr => !isUnavailable(attr) || usesCaptainCondition.value);
+  ).concat(CRM_CONDITIONS).filter(attr => !isUnavailable(attr) || usesCaptainCondition.value);
 
   return attributes.map(attr => {
     if (attr.disabled) {

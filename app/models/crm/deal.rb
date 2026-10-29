@@ -24,6 +24,7 @@ module Crm
     after_update :record_changes
     after_commit :enqueue_stage_automations, on: [:create, :update]
     after_commit :enqueue_outcome_automations, on: [:create, :update]
+    after_commit :dispatch_automation_events, on: [:create, :update]
 
     validates :name, presence: true
     validates :status, inclusion: { in: STATUSES }
@@ -71,6 +72,33 @@ module Crm
       errors.add(:contact, 'must belong to the same account') if contact && contact.account_id != account_id
       errors.add(:owner, 'must belong to the same account') if owner && !account.users.exists?(id: owner_id)
       errors.add(:segment, 'must belong to the same account') if segment && segment.account_id != account_id
+    end
+
+    def dispatch_automation_events
+      dispatcher = Rails.configuration.dispatcher
+      conversation = contact.conversations.reorder(last_activity_at: :desc).first
+      changed = previous_changes
+      dispatcher.dispatch(Events::Types::CRM_DEAL_CREATED, Time.zone.now, deal: self, conversation: conversation,
+                          changed_attributes: changed, performed_by: Current.executed_by) if previously_new_record?
+      return if previously_new_record?
+
+      dispatcher.dispatch(Events::Types::CRM_DEAL_UPDATED, Time.zone.now, deal: self, conversation: conversation,
+                          changed_attributes: changed, performed_by: Current.executed_by)
+      dispatch_deal_change(dispatcher, changed, conversation)
+    end
+
+    def dispatch_deal_change(dispatcher, changed, conversation)
+      event_by_attribute = {
+        'pipeline_id' => Events::Types::CRM_DEAL_PIPELINE_CHANGED,
+        'pipeline_stage_id' => Events::Types::CRM_DEAL_STAGE_CHANGED,
+        'status' => Events::Types::CRM_DEAL_STATUS_CHANGED
+      }
+      event_by_attribute.each do |attribute, event_name|
+        next unless changed.key?(attribute)
+
+        dispatcher.dispatch(event_name, Time.zone.now, deal: self, conversation: conversation,
+                            changed_attributes: changed, performed_by: Current.executed_by)
+      end
     end
   end
 end

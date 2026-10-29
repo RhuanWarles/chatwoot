@@ -149,6 +149,8 @@ class Conversation < ApplicationRecord
   has_many :attachments, through: :messages
   has_many :reporting_events, dependent: :destroy_async
   has_many :automation_rule_pending_executions, dependent: :delete_all
+  has_many :automation_executions, dependent: :delete_all
+  has_many :crm_deals, through: :contact
   has_many :saas_ai_tool_executions, class_name: 'Saas::AiToolExecution', dependent: :delete_all
 
   before_save :ensure_snooze_until_reset

@@ -432,5 +432,28 @@ RSpec.describe AutomationRules::ConditionsFilterService do
         expect(described_class.new(rule, conversation, { changed_attributes: {} }).perform).to be(false)
       end
     end
+
+    context 'when conditions target CRM deals' do
+      let(:pipeline) { account.crm_pipelines.create!(name: 'Sales') }
+      let!(:stage) { account.crm_pipeline_stages.create!(pipeline: pipeline, name: 'Qualified', position: 0) }
+      let!(:deal) { account.crm_deals.create!(pipeline: pipeline, pipeline_stage: stage, contact: conversation.contact, name: 'Lead', value: 100) }
+
+      it 'matches deal existence, numeric value and AND/OR groups' do
+        rule.update!(conditions: [{ 'attribute_key' => 'crm_deal_exists', 'filter_operator' => 'is_present', 'values' => [], 'query_operator' => nil },
+                                  { 'attribute_key' => 'crm_deal_value', 'filter_operator' => 'is_greater_than', 'values' => ['50'], 'query_operator' => nil }],
+                    condition_groups: [{ 'operator' => 'AND', 'conditions' => rule.conditions }])
+
+        expect(described_class.new(rule, conversation, changed_attributes: {}).perform).to be(true)
+      end
+
+      it 'matches contact custom fields without requiring a deal' do
+        deal.destroy!
+        conversation.contact.update!(custom_attributes: { 'segment' => 'vip' })
+        rule.update!(conditions: [{ 'attribute_key' => 'crm_contact_custom_field', 'filter_operator' => 'equal_to',
+                                    'values' => ['segment', 'vip'], 'query_operator' => nil }])
+
+        expect(described_class.new(rule, conversation, changed_attributes: {}).perform).to be(true)
+      end
+    end
   end
 end

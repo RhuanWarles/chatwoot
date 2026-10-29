@@ -218,4 +218,42 @@ RSpec.describe AutomationRules::ActionService do
       end
     end
   end
+
+  describe 'CRM actions' do
+    let(:pipeline) { account.crm_pipelines.create!(name: 'Sales') }
+    let!(:stage) { account.crm_pipeline_stages.create!(pipeline: pipeline, name: 'New', position: 0) }
+    let(:contact) { create(:contact, account: account, name: 'Alice') }
+    let(:crm_conversation) { create(:conversation, account: account, contact: contact) }
+
+    def crm_rule(action_name, params)
+      create(:automation_rule, account: account, event_name: 'conversation_created',
+             conditions: [{ 'attribute_key' => 'status', 'filter_operator' => 'equal_to', 'values' => ['open'], 'query_operator' => nil }],
+             actions: [{ 'action_name' => action_name, 'action_params' => [params] }])
+    end
+
+    it 'creates a deal and resolves contact variables' do
+      rule = crm_rule('create_deal', pipeline_id: pipeline.id, pipeline_stage_id: stage.id, name: 'Lead {{contact.name}}')
+
+      expect { described_class.new(rule, account, crm_conversation).perform }.to change { account.crm_deals.count }.by(1)
+      expect(account.crm_deals.last.name).to eq('Lead Alice')
+      expect(rule.executions.where(action_name: 'create_deal').last.status).to eq('success')
+    end
+
+    it 'updates only configured fields' do
+      deal = account.crm_deals.create!(pipeline: pipeline, pipeline_stage: stage, contact: contact, name: 'Original', value: 10)
+      rule = crm_rule('update_deal', deal_id: deal.id, status: 'won')
+
+      described_class.new(rule, account, crm_conversation).perform
+
+      expect(deal.reload).to have_attributes(name: 'Original', status: 'won', value: 10)
+    end
+
+    it 'does not duplicate a retried upsert' do
+      rule = crm_rule('upsert_deal', pipeline_id: pipeline.id, pipeline_stage_id: stage.id, name: 'Lead')
+      service = described_class.new(rule, account, crm_conversation)
+
+      expect { service.perform; service.perform }.to change { account.crm_deals.count }.by(1)
+      expect(rule.executions.where(action_name: 'upsert_deal', status: 'skipped').count).to eq(1)
+    end
+  end
 end

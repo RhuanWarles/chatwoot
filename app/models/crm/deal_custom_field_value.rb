@@ -6,6 +6,7 @@ class Crm::DealCustomFieldValue < ApplicationRecord
   validate :same_account
   validate :valid_value
   after_commit :enqueue_field_automations, on: [:create, :update]
+  after_commit :dispatch_automation_event, on: [:create, :update]
 
   # Set by automations so the values they write enqueue their own follow-ups one level deeper.
   attr_accessor :automation_depth
@@ -51,5 +52,15 @@ class Crm::DealCustomFieldValue < ApplicationRecord
     errors.add(:value, 'Valor invalido para o tipo ou opcoes do campo') unless custom_field.valid_input?(value)
   rescue ArgumentError, JSON::ParserError
     errors.add(:value, 'Formato invalido')
+  end
+
+  def dispatch_automation_event
+    return unless saved_change_to_value?
+
+    conversation = deal.contact.conversations.reorder(last_activity_at: :desc).first
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::CRM_DEAL_FIELD_CHANGED, Time.zone.now, deal: deal, conversation: conversation,
+      custom_field_id: custom_field_id, changed_attributes: previous_changes, performed_by: Current.executed_by
+    )
   end
 end

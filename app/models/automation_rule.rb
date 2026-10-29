@@ -29,6 +29,7 @@ class AutomationRule < ApplicationRecord
 
   belongs_to :account
   has_many :pending_executions, class_name: 'AutomationRulePendingExecution', dependent: :delete_all
+  has_many :executions, class_name: 'AutomationExecution', dependent: :delete_all
   has_many_attached :files
 
   validate :json_conditions_format
@@ -51,14 +52,17 @@ class AutomationRule < ApplicationRecord
 
   def conditions_attributes
     %w[content email country_code status message_type browser_language assignee_id team_id referer city company_name inbox_id
-       mail_subject phone_number priority conversation_language labels private_note captain_condition]
+       mail_subject phone_number priority conversation_language labels private_note captain_condition
+       crm_deal_exists crm_deal_pipeline_id crm_deal_pipeline_stage_id crm_deal_status crm_deal_owner_id
+       crm_deal_value crm_deal_segment_id crm_deal_custom_field crm_contact_custom_field]
   end
 
   def actions_attributes
     %w[send_message add_label remove_label send_email_to_team assign_team assign_agent remove_assigned_agent
        remove_assigned_team send_webhook_event mute_conversation send_attachment change_status resolve_conversation
        open_conversation pending_conversation snooze_conversation change_priority send_email_transcript
-       add_private_note].freeze
+       add_private_note create_deal update_deal upsert_deal set_deal_fields clear_deal_fields set_contact_fields
+       clear_contact_fields].freeze
   end
 
   def file_base_data
@@ -78,9 +82,10 @@ class AutomationRule < ApplicationRecord
   private
 
   def json_conditions_format
-    return if conditions.blank?
+    all_conditions = conditions + condition_groups.to_a.flat_map { |group| group['conditions'] || group[:conditions] || [] }
+    return if all_conditions.blank?
 
-    attributes = conditions.map { |obj, _| obj['attribute_key'] }
+    attributes = all_conditions.map { |obj, _| obj['attribute_key'] }
     conditions = attributes - conditions_attributes
     conditions -= account.custom_attribute_definitions.pluck(:attribute_key)
     errors.add(:conditions, "Automation conditions #{conditions.join(',')} not supported.") if conditions.any?
@@ -137,16 +142,18 @@ class AutomationRule < ApplicationRecord
   end
 
   def query_operator_presence
-    return if conditions.blank?
+    all_conditions = conditions + condition_groups.to_a.flat_map { |group| group['conditions'] || group[:conditions] || [] }
+    return if all_conditions.blank?
 
-    operators = conditions.select { |obj, _| obj['query_operator'].nil? }
+    operators = all_conditions.select { |obj, _| obj['query_operator'].nil? }
     errors.add(:conditions, 'Automation conditions should have query operator.') if operators.length > 1
   end
 
   # This validation ensures logical operators are being used correctly in automation conditions.
   # And we don't push any unsanitized query operators to the database.
   def query_operator_value
-    conditions.each do |obj|
+    all_conditions = conditions + condition_groups.to_a.flat_map { |group| group['conditions'] || group[:conditions] || [] }
+    all_conditions.each do |obj|
       validate_single_condition(obj)
     end
   end

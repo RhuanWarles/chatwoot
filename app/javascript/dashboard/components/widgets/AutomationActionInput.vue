@@ -6,6 +6,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import SingleSelect from 'dashboard/components-next/filter/inputs/SingleSelect.vue';
 import MultiSelect from 'dashboard/components-next/filter/inputs/MultiSelect.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
+import AutomationCrmActionInput from './AutomationCrmActionInput.vue';
 
 const CONTACT_EMAIL_TOKEN = '{{contact.email}}';
 
@@ -18,6 +19,7 @@ export default {
     SingleSelect,
     MultiSelect,
     NextInput,
+    AutomationCrmActionInput,
   },
   props: {
     modelValue: {
@@ -214,6 +216,11 @@ export default {
         v-model="action_params"
         :teams="dropdownValues"
         :dropdown-max-height="dropdownMaxHeight"
+      />
+      <AutomationCrmActionInput
+        v-else-if="inputType === 'crm_deal'"
+        v-model="action_params"
+        :action-name="action_name"
       />
       <WootMessageEditor
         v-else-if="inputType === 'textarea'"

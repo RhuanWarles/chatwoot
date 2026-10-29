@@ -2,6 +2,7 @@ import {
   OPERATOR_TYPES_1,
   OPERATOR_TYPES_2,
   OPERATOR_TYPES_3,
+  OPERATOR_TYPES_4,
   OPERATOR_TYPES_6,
   CAPTAIN_OPERATOR_TYPES,
 } from './operators';
@@ -15,6 +16,18 @@ export const CAPTAIN_CONDITION = {
   maxLength: 500,
   filterOperators: CAPTAIN_OPERATOR_TYPES,
 };
+
+export const CRM_CONDITIONS = [
+  { key: 'crm_deal_exists', name: 'CRM_DEAL_EXISTS', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_3 },
+  { key: 'crm_deal_pipeline_id', name: 'CRM_DEAL_PIPELINE', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_1 },
+  { key: 'crm_deal_pipeline_stage_id', name: 'CRM_DEAL_STAGE', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_1 },
+  { key: 'crm_deal_status', name: 'CRM_DEAL_STATUS', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_1 },
+  { key: 'crm_deal_owner_id', name: 'CRM_DEAL_OWNER', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_1 },
+  { key: 'crm_deal_segment_id', name: 'CRM_DEAL_SEGMENT', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_1 },
+  { key: 'crm_deal_value', name: 'CRM_DEAL_VALUE', inputType: 'plain_text', filterOperators: [...OPERATOR_TYPES_4, { value: 'is_greater_than_or_equal_to', label: 'Is greater than or equal to' }, { value: 'is_less_than_or_equal_to', label: 'Is less than or equal to' }] },
+  { key: 'crm_deal_custom_field', name: 'CRM_DEAL_CUSTOM_FIELD', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_3 },
+  { key: 'crm_contact_custom_field', name: 'CRM_CONTACT_CUSTOM_FIELD', inputType: 'plain_text', filterOperators: OPERATOR_TYPES_3 },
+];
 
 export const AUTOMATIONS = {
   message_created: {
@@ -700,6 +713,14 @@ export const AUTOMATIONS = {
       },
     ],
   },
+  crm_deal_created: { conditions: CRM_CONDITIONS, actions: [] },
+  crm_deal_updated: { conditions: CRM_CONDITIONS, actions: [] },
+  crm_deal_stage_changed: { conditions: CRM_CONDITIONS, actions: [] },
+  crm_deal_status_changed: { conditions: CRM_CONDITIONS, actions: [] },
+  crm_deal_pipeline_changed: { conditions: CRM_CONDITIONS, actions: [] },
+  crm_deal_field_changed: { conditions: CRM_CONDITIONS, actions: [] },
+  contact_created: { conditions: CRM_CONDITIONS, actions: [] },
+  contact_updated: { conditions: CRM_CONDITIONS, actions: [] },
 };
 
 export const AUTOMATION_RULE_EVENTS = [
@@ -723,6 +744,14 @@ export const AUTOMATION_RULE_EVENTS = [
     key: 'conversation_opened',
     value: 'CONVERSATION_OPENED',
   },
+  { key: 'crm_deal_created', value: 'CRM_DEAL_CREATED' },
+  { key: 'crm_deal_updated', value: 'CRM_DEAL_UPDATED' },
+  { key: 'crm_deal_stage_changed', value: 'CRM_DEAL_STAGE_CHANGED' },
+  { key: 'crm_deal_status_changed', value: 'CRM_DEAL_STATUS_CHANGED' },
+  { key: 'crm_deal_pipeline_changed', value: 'CRM_DEAL_PIPELINE_CHANGED' },
+  { key: 'crm_deal_field_changed', value: 'CRM_DEAL_FIELD_CHANGED' },
+  { key: 'contact_created', value: 'CONTACT_CREATED' },
+  { key: 'contact_updated', value: 'CONTACT_UPDATED' },
 ];
 
 export const AUTOMATION_ACTION_TYPES = [
@@ -820,6 +849,41 @@ export const AUTOMATION_ACTION_TYPES = [
     key: 'add_sla',
     label: 'ADD_SLA',
     inputType: 'search_select',
+  },
+  {
+    key: 'create_deal',
+    label: 'CREATE_DEAL',
+    inputType: 'crm_deal',
+  },
+  {
+    key: 'update_deal',
+    label: 'UPDATE_DEAL',
+    inputType: 'crm_deal',
+  },
+  {
+    key: 'upsert_deal',
+    label: 'UPSERT_DEAL',
+    inputType: 'crm_deal',
+  },
+  {
+    key: 'set_deal_fields',
+    label: 'SET_DEAL_FIELDS',
+    inputType: 'crm_deal',
+  },
+  {
+    key: 'clear_deal_fields',
+    label: 'CLEAR_DEAL_FIELDS',
+    inputType: 'crm_deal',
+  },
+  {
+    key: 'set_contact_fields',
+    label: 'SET_CONTACT_FIELDS',
+    inputType: 'crm_deal',
+  },
+  {
+    key: 'clear_contact_fields',
+    label: 'CLEAR_CONTACT_FIELDS',
+    inputType: 'crm_deal',
   },
 ];
 

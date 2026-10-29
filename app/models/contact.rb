@@ -228,11 +228,12 @@ class Contact < ApplicationRecord
   end
 
   def dispatch_create_event
-    Rails.configuration.dispatcher.dispatch(CONTACT_CREATED, Time.zone.now, contact: self)
+    Rails.configuration.dispatcher.dispatch(CONTACT_CREATED, Time.zone.now, contact: self, performed_by: Current.executed_by)
   end
 
   def dispatch_update_event
-    Rails.configuration.dispatcher.dispatch(CONTACT_UPDATED, Time.zone.now, contact: self, changed_attributes: previous_changes)
+    Rails.configuration.dispatcher.dispatch(CONTACT_UPDATED, Time.zone.now, contact: self, changed_attributes: previous_changes,
+                                                                       performed_by: Current.executed_by)
   end
 
   def dispatch_destroy_event

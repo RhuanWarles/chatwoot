@@ -149,6 +149,29 @@
       "URL_INPUT_PLACEHOLDER": "Enter URL",
       "INSERT_CONTACT_EMAIL": "Use contact's email"
     },
+    "CRM_ACTION": {
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "Deal name or {{contact.name}}",
+      "PIPELINE": "Pipeline",
+      "SELECT_PIPELINE": "Select pipeline",
+      "STAGE": "Stage",
+      "SELECT_STAGE": "Select stage",
+      "STATUS": "Status",
+      "VALUE": "Value",
+      "OWNER": "Owner",
+      "SELECT_OWNER": "Select owner",
+      "SEGMENT": "Segment",
+      "SELECT_SEGMENT": "Select segment",
+      "DESCRIPTION": "Description",
+      "SELECTION": "Deal selection",
+      "CURRENT_DEAL": "Current deal",
+      "FIRST_OPEN": "First open deal",
+      "RECENT": "Most recent deal",
+      "DEAL_ID": "Deal ID",
+      "DEAL_ID_PLACEHOLDER": "Optional explicit deal ID",
+      "DEAL_FIELDS": "Deal custom fields (JSON)",
+      "CONTACT_FIELDS": "Contact custom fields (JSON)"
+    },
     "TOGGLE": {
       "ACTIVATION_TITLE": "Activate Automation Rule",
       "DEACTIVATION_TITLE": "Deactivate Automation Rule",
@@ -184,7 +207,15 @@
       "CONVERSATION_UPDATED": "Conversation Updated",
       "MESSAGE_CREATED": "Message Created",
       "CONVERSATION_RESOLVED": "Conversation Resolved",
-      "CONVERSATION_OPENED": "Conversation Opened"
+      "CONVERSATION_OPENED": "Conversation Opened",
+      "CRM_DEAL_CREATED": "CRM deal created",
+      "CRM_DEAL_UPDATED": "CRM deal updated",
+      "CRM_DEAL_STAGE_CHANGED": "CRM deal stage changed",
+      "CRM_DEAL_STATUS_CHANGED": "CRM deal status changed",
+      "CRM_DEAL_PIPELINE_CHANGED": "CRM deal pipeline changed",
+      "CRM_DEAL_FIELD_CHANGED": "CRM deal field changed"
+      ,"CONTACT_CREATED": "Contact created"
+      ,"CONTACT_UPDATED": "Contact updated"
     },
     "ACTIONS": {
       "ASSIGN_AGENT": "Assign to Agent",
@@ -202,6 +233,13 @@
       "SEND_ATTACHMENT": "Send Attachment",
       "SEND_MESSAGE": "Send a Message",
       "ADD_PRIVATE_NOTE": "Add a Private Note",
+      "CREATE_DEAL": "Create CRM deal",
+      "UPDATE_DEAL": "Update CRM deal",
+      "UPSERT_DEAL": "Create or update CRM deal",
+      "SET_DEAL_FIELDS": "Set CRM deal fields",
+      "CLEAR_DEAL_FIELDS": "Clear CRM deal fields",
+      "SET_CONTACT_FIELDS": "Set contact custom fields",
+      "CLEAR_CONTACT_FIELDS": "Clear contact custom fields",
       "CHANGE_PRIORITY": "Change Priority",
       "ADD_SLA": "Add SLA",
       "OPEN_CONVERSATION": "Open conversation",
@@ -236,7 +274,16 @@
       "TEAM_NAME": "Team",
       "PRIORITY": "Priority",
       "LABELS": "Labels",
-      "CAPTAIN": "Captain"
+      "CAPTAIN": "Captain",
+      "CRM_DEAL_EXISTS": "CRM deal exists",
+      "CRM_DEAL_PIPELINE": "CRM deal pipeline",
+      "CRM_DEAL_STAGE": "CRM deal stage",
+      "CRM_DEAL_STATUS": "CRM deal status",
+      "CRM_DEAL_OWNER": "CRM deal owner",
+      "CRM_DEAL_SEGMENT": "CRM deal segment",
+      "CRM_DEAL_VALUE": "CRM deal value",
+      "CRM_DEAL_CUSTOM_FIELD": "CRM deal custom field",
+      "CRM_CONTACT_CUSTOM_FIELD": "CRM contact custom field"
     }
   }
 }

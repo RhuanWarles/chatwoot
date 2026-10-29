@@ -4,6 +4,7 @@ json.name automation_rule.name
 json.description automation_rule.description
 json.event_name automation_rule.event_name
 json.conditions automation_rule.conditions
+json.condition_groups automation_rule.condition_groups
 json.actions automation_rule.actions
 json.created_on automation_rule.created_at.to_i
 json.active automation_rule.active?

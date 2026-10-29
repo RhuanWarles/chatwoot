@@ -183,6 +183,7 @@ Rails.application.routes.draw do
           resources :canned_responses, only: [:index, :create, :update, :destroy]
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do
             post :clone
+            get :executions
           end
           resources :macros, only: [:index, :create, :show, :update, :destroy] do
             post :execute, on: :member

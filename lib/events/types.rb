@@ -49,6 +49,14 @@ module Events::Types
   CONTACT_MERGED = 'contact.merged'
   CONTACT_DELETED = 'contact.deleted'
 
+  # CRM deal events
+  CRM_DEAL_CREATED = 'crm.deal.created'
+  CRM_DEAL_UPDATED = 'crm.deal.updated'
+  CRM_DEAL_STAGE_CHANGED = 'crm.deal.stage_changed'
+  CRM_DEAL_STATUS_CHANGED = 'crm.deal.status_changed'
+  CRM_DEAL_PIPELINE_CHANGED = 'crm.deal.pipeline_changed'
+  CRM_DEAL_FIELD_CHANGED = 'crm.deal.field_changed'
+
   # contact events
   INBOX_CREATED = 'inbox.created'
   INBOX_UPDATED = 'inbox.updated'
