@@ -108,7 +108,7 @@ const unpin = async () => {
       data-test="pinned-note-unpin"
       @click="unpin"
     >
-      <span class="i-lucide-x size-4" aria-hidden="true" />
+      <span class="text-lg leading-none" aria-hidden="true">×</span>
     </button>
   </div>
 </template>

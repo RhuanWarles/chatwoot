@@ -1086,31 +1086,26 @@ describe('#addMentions', () => {
   });
 
   describe('#setActiveChat', () => {
-    it('marks an AI handoff as seen when entering the conversation', async () => {
+    it('keeps an AI handoff marker when entering the conversation', async () => {
       const localCommit = vi.fn();
       const localDispatch = vi.fn();
+      axios.post.mockClear();
       const data = {
         id: 42,
         messages: [],
         dataFetched: true,
         additional_attributes: { ai_handoff: true, ai_handoff_at: 'now' },
       };
-      axios.post.mockResolvedValueOnce({
-        data: { additional_attributes: { ai_handoff_at: 'now' } },
-      });
-
       await actions.setActiveChat(
         { commit: localCommit, dispatch: localDispatch },
         { data }
       );
 
-      expect(axios.post).toHaveBeenCalledWith(
-        '/api/v1/conversations/42/mark_handoff_seen'
+      expect(axios.post).not.toHaveBeenCalled();
+      expect(localCommit).toHaveBeenCalledWith(
+        types.SET_CURRENT_CHAT_WINDOW,
+        data
       );
-      expect(localCommit).toHaveBeenCalledWith(types.UPDATE_CONVERSATION, {
-        id: 42,
-        additional_attributes: { ai_handoff_at: 'now' },
-      });
     });
 
     it('should commit SET_CHAT_DATA_FETCHED with conversation ID after fetch', async () => {
