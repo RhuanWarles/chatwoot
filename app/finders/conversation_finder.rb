@@ -26,6 +26,8 @@ class ConversationFinder
     mine_count, unassigned_count, all_count, unanswered_count, handoff_count = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
+    filter_by_unanswered
+    filter_by_handoff_requested
     filter_by_assignee_type
 
     {
@@ -70,8 +72,6 @@ class ConversationFinder
     filter_by_status unless params[:q]
     filter_by_team
     filter_by_labels
-    filter_by_unanswered
-    filter_by_handoff_requested
     filter_by_ai_state
     filter_by_ai_agent
     filter_by_query

@@ -6,6 +6,7 @@ const state = {
     unassigned: 0,
     all: 0,
     unanswered: 0,
+    handoff_requested: 0,
     appliedFilters: 0,
   },
   hasEndReached: {
@@ -13,6 +14,7 @@ const state = {
     unassigned: false,
     all: false,
     unanswered: false,
+    handoff_requested: false,
   },
 };
 
@@ -66,6 +68,7 @@ export const mutations = {
       unassigned: 0,
       all: 0,
       unanswered: 0,
+      handoff_requested: 0,
       appliedFilters: 0,
     };
 
@@ -74,6 +77,7 @@ export const mutations = {
       unassigned: false,
       all: false,
       unanswered: false,
+      handoff_requested: false,
       appliedFilters: false,
     };
   },
