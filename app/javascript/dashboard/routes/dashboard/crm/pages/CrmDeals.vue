@@ -16,12 +16,14 @@ import Popover from 'dashboard/components-next/popover/Popover.vue';
 import CrmDealSearchResults from '../components/CrmDealSearchResults.vue';
 import { pipelinesAPI, dealsAPI, segmentsAPI } from 'dashboard/api/crm';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useLostReasons } from 'dashboard/composables/useLostReasons';
 import { useCrmCardConfig } from '../components/cardConfig';
 import { brlFormatter } from '../components/currencyHelpers';
 import CrmCardCustomizer from '../components/CrmCardCustomizer.vue';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
 import CrmDealCard from '../components/CrmDealCard.vue';
+import CrmLostReasonDialog from '../components/CrmLostReasonDialog.vue';
 import CrmPipelineEditor from '../components/CrmPipelineEditor.vue';
 
 const { t } = useI18n();
@@ -29,6 +31,14 @@ const { isAdmin } = useAdmin();
 const store = useStore();
 const agents = useMapGetter('agents/getAgents');
 const segments = ref([]);
+const {
+  activeReasons: lostReasons,
+  isLostDialogOpen,
+  askLostReason,
+  confirmLostReason,
+  cancelLostReason,
+  findLostReason,
+} = useLostReasons();
 const pipelineEditor = ref(null);
 const route = useRoute();
 const router = useRouter();
@@ -539,14 +549,24 @@ const createDeal = async () => {
 
 const saveDeal = async () => {
   if (editValueInput.value?.isInvalid) return;
-  await dealsAPI.update(selectedDeal.value.id, {
+  const { id, status } = selectedDeal.value;
+  let lostReason = {};
+  if (
+    status === 'lost' &&
+    deals.value.find(deal => deal.id === id)?.status !== 'lost'
+  ) {
+    lostReason = await askLostReason();
+    if (!lostReason) return;
+  }
+  await dealsAPI.update(id, {
     deal: {
       name: selectedDeal.value.name,
-      status: selectedDeal.value.status,
+      status,
       description: selectedDeal.value.description,
       contact_id: selectedDeal.value.contact_id,
       pipeline_stage_id: selectedDeal.value.pipeline_stage_id,
       value: selectedDeal.value.value === '' ? null : selectedDeal.value.value,
+      ...lostReason,
     },
   });
   selectedDeal.value = null;
@@ -574,7 +594,21 @@ const hasOutcomeAutomations = status =>
 let automationRefreshTimer;
 let unmounted = false;
 const setDealStatus = async (deal, status) => {
-  if (deal.status === status || !(await updateDeal(deal, { status }))) return;
+  if (deal.status === status) return;
+  const changes = { status };
+  if (status === 'lost') {
+    const lostReason = await askLostReason();
+    // Cancelling the popup leaves the card exactly where it was.
+    if (!lostReason) return;
+    Object.assign(changes, lostReason);
+  }
+  if (!(await updateDeal(deal, changes))) return;
+  // The server clears the reason when a deal leaves "lost"; the card mirrors it until the next load.
+  Object.assign(deal, {
+    lost_reason: findLostReason(changes.lost_reason_id),
+    lost_reason_id: changes.lost_reason_id ?? null,
+    lost_note: changes.lost_note ?? null,
+  });
   const automations = hasOutcomeAutomations(status);
   useAlert(
     t(
@@ -1191,6 +1225,12 @@ onUnmounted(() => {
       ref="pipelineEditor"
       @saved="pipelineSaved"
       @closed="pipelineSaved(selectedPipeline)"
+    />
+    <CrmLostReasonDialog
+      v-if="isLostDialogOpen"
+      :reasons="lostReasons"
+      @confirm="confirmLostReason"
+      @cancel="cancelLostReason"
     />
   </main>
 </template>

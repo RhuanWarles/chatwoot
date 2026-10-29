@@ -581,6 +581,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('crm_segments'),
           activeOn: ['crm_segments'],
         },
+        {
+          name: 'Lost Reasons',
+          label: t('CRM.LOST_REASONS_TITLE'),
+          to: accountScopedRoute('crm_lost_reasons'),
+          activeOn: ['crm_lost_reasons'],
+        },
       ],
     },
     ...(currentAccount.value?.features?.text_ai ||

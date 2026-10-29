@@ -9,7 +9,8 @@ module Crm
       'value' => 'value_changed', 'owner_id' => 'owner_changed'
     }.freeze
 
-    attr_accessor :automation_depth
+    # Set by the API controller so a person marking a deal as lost has to say why; automations may omit the reason.
+    attr_accessor :automation_depth, :require_lost_reason
 
     belongs_to :account
     belongs_to :pipeline, class_name: 'Crm::Pipeline'
@@ -17,9 +18,11 @@ module Crm
     belongs_to :contact
     belongs_to :owner, class_name: 'User', optional: true
     belongs_to :segment, class_name: 'Crm::Segment', optional: true
+    belongs_to :lost_reason, class_name: 'Crm::LostReason', optional: true
     has_many :activities, class_name: 'Crm::Activity', dependent: :destroy
     has_many :custom_field_values, class_name: 'Crm::DealCustomFieldValue', dependent: :destroy
     has_many :events, class_name: 'Crm::DealEvent', dependent: :destroy
+    before_save :clear_lost_reason_unless_lost
     after_create :record_creation
     after_update :record_changes
     after_commit :enqueue_stage_automations, on: [:create, :update]
@@ -30,6 +33,7 @@ module Crm
     validates :status, inclusion: { in: STATUSES }
     validates :value, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
     validate :associations_belong_to_account
+    validate :lost_reason_given, if: :require_lost_reason
 
     private
 
@@ -54,16 +58,38 @@ module Crm
         next unless saved_change_to_attribute?(attribute)
 
         before, after = saved_change_to_attribute(attribute)
-        metadata = { 'from' => before, 'to' => after }
-        if attribute == 'pipeline_id'
-          metadata.merge!('from_name' => Crm::Pipeline.find_by(id: before)&.name, 'to_name' => pipeline.name)
-        elsif attribute == 'pipeline_stage_id'
-          metadata.merge!('from_name' => Crm::PipelineStage.find_by(id: before)&.name, 'to_name' => pipeline_stage.name)
-        elsif attribute == 'owner_id'
-          metadata.merge!('from_name' => User.find_by(id: before)&.name, 'to_name' => owner&.name)
-        end
+        metadata = { 'from' => before, 'to' => after }.merge(change_details(attribute, before))
         events.create!(account_id: account_id, actor: Current.user, event_type: event_type, metadata: metadata)
       end
+    end
+
+    def change_details(attribute, before)
+      case attribute
+      when 'pipeline_id' then { 'from_name' => Crm::Pipeline.find_by(id: before)&.name, 'to_name' => pipeline.name }
+      when 'pipeline_stage_id' then { 'from_name' => Crm::PipelineStage.find_by(id: before)&.name, 'to_name' => pipeline_stage.name }
+      when 'owner_id' then { 'from_name' => User.find_by(id: before)&.name, 'to_name' => owner&.name }
+      when 'status' then lost_details
+      else {}
+      end
+    end
+
+    def lost_details
+      return {} unless status == 'lost'
+
+      { 'lost_reason_id' => lost_reason_id, 'lost_reason' => lost_reason&.name, 'lost_note' => lost_note }
+    end
+
+    def clear_lost_reason_unless_lost
+      return if status == 'lost'
+
+      self.lost_reason_id = nil
+      self.lost_note = nil
+    end
+
+    def lost_reason_given
+      return unless status == 'lost' && (new_record? || status_changed?) && lost_reason_id.blank?
+
+      errors.add(:lost_reason, :blank) if account.crm_lost_reasons.active.exists?
     end
 
     def associations_belong_to_account
@@ -72,6 +98,7 @@ module Crm
       errors.add(:contact, 'must belong to the same account') if contact && contact.account_id != account_id
       errors.add(:owner, 'must belong to the same account') if owner && !account.users.exists?(id: owner_id)
       errors.add(:segment, 'must belong to the same account') if segment && segment.account_id != account_id
+      errors.add(:lost_reason, 'must belong to the same account') if lost_reason && lost_reason.account_id != account_id
     end
 
     def dispatch_automation_events

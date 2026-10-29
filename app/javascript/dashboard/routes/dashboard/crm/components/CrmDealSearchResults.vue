@@ -126,6 +126,13 @@ defineExpose({ focusFirst });
             deal.status === 'won' ? t('CRM.STATUS_WON') : t('CRM.STATUS_LOST')
           }}</span
         >
+        <span
+          v-if="deal.status === 'lost' && deal.lost_reason?.name"
+          class="text-xs text-n-ruby-11 [overflow-wrap:anywhere]"
+          >{{
+            t('CRM.LOST_REASON_LINE', { reason: deal.lost_reason.name })
+          }}</span
+        >
       </RouterLink>
       <Button
         v-if="deals.length > DEAL_LIMIT"
@@ -186,8 +193,9 @@ defineExpose({ focusFirst });
         }"
         class="p-2 text-sm rounded-lg [overflow-wrap:anywhere] hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-n-brand"
         @click="emit('close')"
-        >{{ company.name }}</RouterLink
       >
+        {{ company.name }}
+      </RouterLink>
     </template>
   </div>
 </template>

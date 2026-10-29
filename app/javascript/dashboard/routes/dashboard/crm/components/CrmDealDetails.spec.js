@@ -6,7 +6,8 @@ import CrmDeals from '../pages/CrmDeals.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import AgentsAPI from 'dashboard/api/agents';
-import { dealsAPI, pipelinesAPI } from 'dashboard/api/crm';
+import { dealsAPI, lostReasonsAPI, pipelinesAPI } from 'dashboard/api/crm';
+import CrmLostReasonDialog from './CrmLostReasonDialog.vue';
 import pt from 'dashboard/i18n/locale/pt_BR/crm.json';
 
 config.global.plugins = [
@@ -38,6 +39,7 @@ vi.mock('../components/CrmDealConversations.vue', () => ({
 vi.mock('dashboard/api/agents', () => ({ default: { get: vi.fn() } }));
 vi.mock('dashboard/api/crm', () => ({
   segmentsAPI: { get: vi.fn() },
+  lostReasonsAPI: { get: vi.fn() },
   dealsAPI: {
     customFields: vi.fn(),
     updateCustomFields: vi.fn(),
@@ -121,8 +123,13 @@ const click = async (wrapper, label) => {
     .trigger('click');
   await flushPromises();
 };
+const LOST_REASONS = [
+  { id: 1, name: 'Sem orçamento', active: true },
+  { id: 2, name: 'Fechou com concorrente', active: true },
+];
 beforeEach(() => {
   vi.clearAllMocks();
+  lostReasonsAPI.get.mockResolvedValue({ data: [] });
   dealsAPI.customFields.mockResolvedValue({ data: [] });
   dealsAPI.show.mockResolvedValue({ data: structuredClone(DEAL) });
   dealsAPI.get.mockResolvedValue({ data: [structuredClone(DEAL)] });
@@ -183,7 +190,7 @@ describe('Deal details', () => {
     });
     expect(dealsAPI.events).toHaveBeenCalledTimes(2);
   });
-  it('marks lost without moving stages', async () => {
+  it('marks lost without moving stages when no lost reason is configured', async () => {
     const wrapper = await mountPage();
     await click(wrapper, pt.CRM.STATUS_LOST);
     expect(dealsAPI.update).toHaveBeenCalledWith(12, {
@@ -423,4 +430,142 @@ it('keeps Details in the sidebar and independently collapses Summary', async () 
   );
   expect(wrapper.find('main').classes()).toContain('lg:overflow-hidden');
   expect(wrapper.find('aside').classes()).toContain('lg:overflow-y-auto');
+});
+
+describe('Lost reason', () => {
+  const chooseReason = async (wrapper, index, note) => {
+    await wrapper.findAll('input[type="radio"]')[index].setValue();
+    if (note) await wrapper.find('textarea').setValue(note);
+    await wrapper.findAll('.confirm').at(-1).trigger('click');
+    await flushPromises();
+  };
+
+  beforeEach(() => {
+    lostReasonsAPI.get.mockResolvedValue({ data: LOST_REASONS });
+  });
+
+  it('asks for the reason and sends it with the Lost button', async () => {
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.STATUS_LOST);
+
+    expect(dealsAPI.update).not.toHaveBeenCalled();
+    expect(
+      wrapper.findAll('[data-test="lost-reason"]').map(reason => reason.text())
+    ).toEqual(['Sem orçamento', 'Fechou com concorrente']);
+
+    await chooseReason(wrapper, 1, 'Preço menor');
+
+    expect(dealsAPI.update).toHaveBeenCalledWith(12, {
+      deal: { status: 'lost', lost_reason_id: 2, lost_note: 'Preço menor' },
+    });
+  });
+
+  it('keeps the deal as it was when the popup is cancelled', async () => {
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.STATUS_LOST);
+
+    wrapper.findComponent(CrmLostReasonDialog).vm.$emit('cancel');
+    await flushPromises();
+
+    expect(dealsAPI.update).not.toHaveBeenCalled();
+    expect(wrapper.findComponent(CrmLostReasonDialog).exists()).toBe(false);
+  });
+
+  it('does not ask for a reason to mark the deal as won', async () => {
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.STATUS_WON);
+
+    expect(dealsAPI.update).toHaveBeenCalledWith(12, {
+      deal: { status: 'won' },
+    });
+  });
+
+  it('asks for the reason when the edit dialog sets the status to lost', async () => {
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.EDIT_DEAL);
+    wrapper
+      .findAllComponents(ComboBox)
+      .find(picker =>
+        picker.props('options').some(item => item.value === 'lost')
+      )
+      .vm.$emit('update:modelValue', 'lost');
+    await wrapper.find('.confirm').trigger('click');
+    await flushPromises();
+
+    expect(dealsAPI.update).not.toHaveBeenCalled();
+    await chooseReason(wrapper, 0);
+
+    expect(dealsAPI.update).toHaveBeenCalledWith(12, {
+      deal: expect.objectContaining({
+        status: 'lost',
+        lost_reason_id: 1,
+        lost_note: null,
+      }),
+    });
+  });
+
+  it('asks for the reason when the summary status is edited to lost', async () => {
+    const wrapper = await mountPage();
+    await click(wrapper, pt.CRM.FILTER_OPEN);
+    wrapper
+      .find('#deal-summary')
+      .findAllComponents(ComboBox)
+      .find(picker =>
+        picker.props('options').some(item => item.value === 'lost')
+      )
+      .vm.$emit('update:modelValue', 'lost');
+    await wrapper.find('#deal-summary form').trigger('submit');
+    await flushPromises();
+
+    expect(dealsAPI.update).not.toHaveBeenCalled();
+    await chooseReason(wrapper, 1);
+
+    expect(dealsAPI.update).toHaveBeenCalledWith(12, {
+      deal: { status: 'lost', lost_reason_id: 2, lost_note: null },
+    });
+  });
+
+  it('shows the reason and the note of a lost deal', async () => {
+    dealsAPI.show.mockResolvedValue({
+      data: {
+        ...structuredClone(DEAL),
+        status: 'lost',
+        lost_reason_id: 1,
+        lost_reason: { id: 1, name: 'Sem orçamento' },
+        lost_note: 'Cliente sem verba até 2027',
+      },
+    });
+    const wrapper = await mountPage();
+
+    expect(wrapper.find('header').text()).toContain('Motivo: Sem orçamento');
+    expect(wrapper.find('header').text()).toContain(
+      'Observação: Cliente sem verba até 2027'
+    );
+  });
+
+  it('shows the reason in the status change of the timeline', async () => {
+    dealsAPI.events.mockResolvedValue({
+      data: {
+        payload: [
+          {
+            id: 5,
+            event_type: 'status_changed',
+            metadata: {
+              from: 'open',
+              to: 'lost',
+              lost_reason: 'Sem orçamento',
+              lost_note: 'Cliente sem verba',
+            },
+            created_at: DEAL.created_at,
+          },
+        ],
+        meta: { has_more: false },
+      },
+    });
+    const wrapper = await mountPage();
+
+    expect(wrapper.text()).toContain('Em andamento → Perdido');
+    expect(wrapper.text()).toContain('Motivo: Sem orçamento');
+    expect(wrapper.text()).toContain('Observação: Cliente sem verba');
+  });
 });

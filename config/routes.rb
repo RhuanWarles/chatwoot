@@ -413,6 +413,7 @@ Rails.application.routes.draw do
               collection { patch :reorder }
             end
             resources :segments, only: [:index, :create, :update, :destroy]
+            resources :lost_reasons, only: [:index, :create, :update, :destroy]
             resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
               resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
                 collection { patch :reorder }
