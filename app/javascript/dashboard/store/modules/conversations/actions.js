@@ -443,9 +443,15 @@ const actions = {
       const conversation = state.allConversations.find(
         item => item.id === conversationId
       );
-      const isOutgoingMessage =
-        response.data.message_type === MESSAGE_TYPE.OUTGOING;
-      if (isOutgoingMessage && conversation?.additional_attributes?.ai_handoff) {
+      const isHumanAgentResponse =
+        response.data.message_type === MESSAGE_TYPE.OUTGOING &&
+        response.data.sender_type === 'User' &&
+        response.data.private !== true &&
+        response.data.content_attributes?.generated_by_ai !== true;
+      if (
+        isHumanAgentResponse &&
+        conversation?.additional_attributes?.ai_handoff
+      ) {
         try {
           const handoffResponse = await ConversationApi.markHandoffSeen({
             conversationId,
