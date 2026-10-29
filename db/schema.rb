@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_29_100100) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -288,6 +288,31 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
     t.index ["user_id", "user_type"], name: "user_index"
   end
 
+  create_table "automation_executions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "automation_rule_id", null: false
+    t.bigint "conversation_id"
+    t.bigint "contact_id"
+    t.bigint "crm_deal_id"
+    t.string "action_name", null: false
+    t.string "trigger", null: false
+    t.string "status", default: "started", null: false
+    t.string "idempotency_key"
+    t.text "error_message"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "started_at", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_automation_executions_on_account_id"
+    t.index ["automation_rule_id", "conversation_id", "created_at"], name: "idx_automation_executions_rule_conversation"
+    t.index ["automation_rule_id"], name: "index_automation_executions_on_automation_rule_id"
+    t.index ["contact_id"], name: "index_automation_executions_on_contact_id"
+    t.index ["conversation_id"], name: "index_automation_executions_on_conversation_id"
+    t.index ["crm_deal_id"], name: "index_automation_executions_on_crm_deal_id"
+    t.index ["idempotency_key"], name: "index_automation_executions_on_idempotency_key", unique: true
+  end
+
   create_table "automation_rule_pending_executions", force: :cascade do |t|
     t.bigint "automation_rule_id", null: false
     t.bigint "conversation_id", null: false
@@ -318,7 +343,42 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
     t.datetime "updated_at", null: false
     t.boolean "active", default: true, null: false
     t.integer "execution_delay"
+    t.jsonb "condition_groups", default: [], null: false
     t.index ["account_id"], name: "index_automation_rules_on_account_id"
+  end
+
+  create_table "automation_workflow_runs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "automation_workflow_id", null: false
+    t.string "status", default: "running", null: false
+    t.string "trigger_event", null: false
+    t.jsonb "context", default: {}, null: false
+    t.jsonb "pending", default: [], null: false
+    t.jsonb "trace", default: [], null: false
+    t.text "error"
+    t.datetime "resume_at"
+    t.datetime "started_at", null: false
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_automation_workflow_runs_on_account_id"
+    t.index ["automation_workflow_id", "created_at"], name: "idx_automation_workflow_runs_on_workflow"
+    t.index ["status", "resume_at"], name: "idx_automation_workflow_runs_on_due"
+  end
+
+  create_table "automation_workflows", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.boolean "active", default: false, null: false
+    t.jsonb "graph", default: {"nodes"=>[], "edges"=>[]}, null: false
+    t.string "trigger_events", default: [], null: false, array: true
+    t.string "webhook_token", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_automation_workflows_on_account_id"
+    t.index ["trigger_events"], name: "index_automation_workflows_on_trigger_events", using: :gin
+    t.index ["webhook_token"], name: "index_automation_workflows_on_webhook_token", unique: true
   end
 
   create_table "calls", force: :cascade do |t|
@@ -1143,11 +1203,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "segment_id"
+    t.bigint "lost_reason_id"
+    t.text "lost_note"
     t.index ["account_id", "contact_id"], name: "index_crm_deals_on_account_id_and_contact_id"
     t.index ["account_id", "pipeline_id"], name: "index_crm_deals_on_account_id_and_pipeline_id"
     t.index ["account_id", "pipeline_stage_id"], name: "index_crm_deals_on_account_id_and_pipeline_stage_id"
     t.index ["account_id"], name: "index_crm_deals_on_account_id"
     t.index ["contact_id"], name: "index_crm_deals_on_contact_id"
+    t.index ["lost_reason_id"], name: "index_crm_deals_on_lost_reason_id"
     t.index ["name"], name: "index_crm_deals_on_name_search", opclass: :gin_trgm_ops, using: :gin
     t.index ["owner_id"], name: "index_crm_deals_on_owner_id"
     t.index ["pipeline_id"], name: "index_crm_deals_on_pipeline_id"
@@ -1169,6 +1232,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
     t.index ["account_id", "user_id"], name: "index_crm_google_connections_on_account_user", unique: true
     t.index ["account_id"], name: "index_crm_google_calendar_connections_on_account_id"
     t.index ["user_id"], name: "index_crm_google_calendar_connections_on_user_id"
+  end
+
+  create_table "crm_lost_reasons", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_crm_lost_reasons_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_crm_lost_reasons_on_account_id"
   end
 
   create_table "crm_pipeline_stages", force: :cascade do |t|
@@ -2200,6 +2274,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "automation_executions", "accounts"
+  add_foreign_key "automation_executions", "automation_rules"
+  add_foreign_key "automation_executions", "contacts"
+  add_foreign_key "automation_executions", "conversations"
+  add_foreign_key "automation_executions", "crm_deals"
   add_foreign_key "campaign_recipients", "accounts", on_delete: :cascade
   add_foreign_key "campaign_recipients", "campaigns", on_delete: :cascade
   add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
@@ -2217,8 +2296,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_110000) do
   add_foreign_key "crm_deal_custom_field_values", "accounts"
   add_foreign_key "crm_deal_custom_field_values", "crm_custom_fields", column: "custom_field_id"
   add_foreign_key "crm_deal_custom_field_values", "crm_deals", column: "deal_id"
+  add_foreign_key "crm_deals", "crm_lost_reasons", column: "lost_reason_id", on_delete: :nullify
   add_foreign_key "crm_deals", "crm_segments", column: "segment_id", on_delete: :nullify
   add_foreign_key "crm_deals", "users", column: "owner_id"
+  add_foreign_key "crm_lost_reasons", "accounts"
   add_foreign_key "crm_segments", "accounts"
   add_foreign_key "inboxes", "portals"
   add_foreign_key "saas_ai_agent_memories", "accounts"

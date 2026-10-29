@@ -4,6 +4,7 @@ import CrmDeals from './pages/CrmDeals.vue';
 import CrmPipelines from './pages/CrmPipelines.vue';
 import CrmCustomFields from './pages/CrmCustomFields.vue';
 import CrmSegments from './pages/CrmSegments.vue';
+import CrmLostReasons from './pages/CrmLostReasons.vue';
 
 const commonMeta = { permissions: ['administrator', 'agent'] };
 
@@ -30,6 +31,12 @@ export const routes = [
     path: frontendURL('accounts/:accountId/crm/segments'),
     name: 'crm_segments',
     component: CrmSegments,
+    meta: { permissions: ['administrator'] },
+  },
+  {
+    path: frontendURL('accounts/:accountId/crm/lost-reasons'),
+    name: 'crm_lost_reasons',
+    component: CrmLostReasons,
     meta: { permissions: ['administrator'] },
   },
   {

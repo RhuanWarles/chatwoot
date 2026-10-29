@@ -47,6 +47,16 @@ const accountLabels = useMapGetter('labels/getLabels');
 provideDropdownTeleport();
 
 const shows = key => props.fields.includes(key);
+// The reason of a lost deal, with the note of whoever marked it as the tooltip.
+const lostReason = computed(() => {
+  const name = props.deal.status === 'lost' && props.deal.lost_reason?.name;
+  if (!name) return null;
+  const text = t('CRM.LOST_REASON_LINE', { reason: name });
+  const note = props.deal.lost_note
+    ? t('CRM.LOST_REASON_NOTE_LINE', { note: props.deal.lost_note })
+    : '';
+  return { text, title: [text, note].filter(Boolean).join('\n') };
+});
 const availableStatuses = computed(() =>
   Object.keys(STATUS_ACTIONS).filter(status => status !== props.deal.status)
 );
@@ -248,6 +258,17 @@ const activityTooltip = activity =>
         {{ t('CRM.STATUS_LOST') }}
       </span>
     </div>
+    <p
+      v-if="lostReason"
+      :title="lostReason.title"
+      class="flex items-center min-w-0 gap-1.5 mb-0 text-xs text-n-ruby-11"
+    >
+      <span
+        class="flex-shrink-0 size-3.5 i-lucide-circle-x"
+        aria-hidden="true"
+      />
+      <span class="min-w-0 truncate">{{ lostReason.text }}</span>
+    </p>
     <p
       v-for="row in customRows"
       :key="row.id"

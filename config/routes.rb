@@ -185,6 +185,10 @@ Rails.application.routes.draw do
             post :clone
             get :executions
           end
+          resources :automation_workflows, only: [:index, :create, :show, :update, :destroy] do
+            post :run, on: :member
+            get :runs, on: :member
+          end
           resources :macros, only: [:index, :create, :show, :update, :destroy] do
             post :execute, on: :member
           end
@@ -413,6 +417,7 @@ Rails.application.routes.draw do
               collection { patch :reorder }
             end
             resources :segments, only: [:index, :create, :update, :destroy]
+            resources :lost_reasons, only: [:index, :create, :update, :destroy]
             resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
               resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
                 collection { patch :reorder }
@@ -773,6 +778,7 @@ Rails.application.routes.draw do
   post 'webhooks/twitter', to: 'api/v1/webhooks#twitter_events'
   post 'webhooks/line/:line_channel_id', to: 'webhooks/line#process_payload'
   post 'webhooks/vapi', to: 'webhooks/vapi#create'
+  post 'webhooks/automation_workflows/:token', to: 'webhooks/automation_workflows#create'
   post 'webhooks/telegram/:bot_token', to: 'webhooks/telegram#process_payload'
   post 'webhooks/sms/:phone_number', to: 'webhooks/sms#process_payload'
   get 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#verify'

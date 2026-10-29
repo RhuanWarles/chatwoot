@@ -233,6 +233,437 @@
       "TEAM_NAME": "Time",
       "PRIORITY": "Prioridade",
       "LABELS": "Etiquetas"
+    },
+    "WORKFLOWS": {
+      "SECTIONS": {
+        "RULES": "Regras",
+        "WORKFLOWS": "Workflows"
+      },
+      "HEADER": "Workflows",
+      "DESCRIPTION": "Monte automações como um fluxo: escolha o que dispara, ligue condições, esperas e ações, e deixe rodar em conversas, contatos e negócios do CRM.",
+      "NODE_TYPES": {
+        "TRIGGER": "Gatilho",
+        "CONDITION": "Condição",
+        "SWITCH": "Escolher por valor",
+        "WAIT": "Esperar",
+        "ACTION": "Ação"
+      },
+      "TRIGGER_GROUPS": {
+        "CONVERSATION": "Conversas",
+        "CONTACT": "Contatos",
+        "CRM": "Negócios do CRM",
+        "OTHER": "Outros"
+      },
+      "TRIGGERS": {
+        "CONVERSATION_CREATED": "Conversa criada",
+        "CONVERSATION_OPENED": "Conversa aberta",
+        "CONVERSATION_RESOLVED": "Conversa resolvida",
+        "MESSAGE_CREATED": "Mensagem recebida ou enviada",
+        "ASSIGNEE_CHANGED": "Responsável da conversa alterado",
+        "TEAM_CHANGED": "Time da conversa alterado",
+        "CONTACT_CREATED": "Contato criado",
+        "CONTACT_UPDATED": "Contato atualizado",
+        "CRM_DEAL_CREATED": "Negócio criado",
+        "CRM_DEAL_UPDATED": "Negócio atualizado",
+        "CRM_DEAL_STAGE_CHANGED": "Negócio mudou de etapa",
+        "CRM_DEAL_STATUS_CHANGED": "Status do negócio alterado",
+        "CRM_DEAL_PIPELINE_CHANGED": "Negócio mudou de funil",
+        "CRM_DEAL_FIELD_CHANGED": "Campo do negócio alterado",
+        "CRM_DEAL_WON": "Negócio ganho",
+        "CRM_DEAL_LOST": "Negócio perdido",
+        "WEBHOOK": "Webhook recebido",
+        "MANUAL": "Execução manual"
+      },
+      "TRIGGER_HINTS": {
+        "CONVERSATION_CREATED": "Começa quando uma nova conversa é criada.",
+        "CONVERSATION_OPENED": "Começa quando uma conversa é aberta ou reaberta.",
+        "CONVERSATION_RESOLVED": "Começa quando uma conversa é resolvida.",
+        "MESSAGE_CREATED": "Começa a cada mensagem. Adicione uma condição no tipo da mensagem para reagir só a recebidas ou enviadas.",
+        "ASSIGNEE_CHANGED": "Começa quando o agente responsável pela conversa muda.",
+        "TEAM_CHANGED": "Começa quando o time responsável pela conversa muda.",
+        "CONTACT_CREATED": "Começa quando um contato é criado.",
+        "CONTACT_UPDATED": "Começa quando um contato é editado.",
+        "CRM_DEAL_CREATED": "Começa quando um negócio é criado.",
+        "CRM_DEAL_UPDATED": "Começa a cada alteração de um negócio. Prefira um gatilho mais específico quando puder.",
+        "CRM_DEAL_STAGE_CHANGED": "Começa quando um negócio muda de etapa. Use os campos de mudança de etapa para reagir a uma etapa específica.",
+        "CRM_DEAL_STATUS_CHANGED": "Começa quando um negócio fica em andamento, ganho ou perdido.",
+        "CRM_DEAL_PIPELINE_CHANGED": "Começa quando um negócio vai para outro funil.",
+        "CRM_DEAL_FIELD_CHANGED": "Começa quando um campo personalizado do negócio muda.",
+        "CRM_DEAL_WON": "Começa quando um negócio é marcado como ganho.",
+        "CRM_DEAL_LOST": "Começa quando um negócio é marcado como perdido. O motivo da perda fica disponível como \"Motivo da perda\".",
+        "WEBHOOK": "Começa quando algo chama a URL de webhook do workflow. O corpo da requisição fica disponível como dados do gatilho.",
+        "MANUAL": "Começa apenas quando você executa pelo botão de teste."
+      },
+      "ACTION_GROUPS": {
+        "CONVERSATION": "Conversa",
+        "DEAL": "Negócio do CRM",
+        "CONTACT": "Contato",
+        "INTEGRATION": "Integrações e dados"
+      },
+      "ACTIONS": {
+        "SEND_MESSAGE": "Enviar mensagem",
+        "ADD_PRIVATE_NOTE": "Adicionar nota privada",
+        "ASSIGN_AGENT": "Atribuir agente",
+        "ASSIGN_TEAM": "Atribuir time",
+        "ADD_LABEL": "Adicionar etiquetas à conversa",
+        "REMOVE_LABEL": "Remover etiquetas da conversa",
+        "CHANGE_STATUS": "Alterar status da conversa",
+        "CHANGE_PRIORITY": "Alterar prioridade da conversa",
+        "MOVE_DEAL": "Mover negócio",
+        "SET_DEAL_STATUS": "Definir status do negócio",
+        "ASSIGN_DEAL_OWNER": "Definir responsável do negócio",
+        "UPDATE_DEAL": "Atualizar negócio",
+        "SET_DEAL_FIELD": "Preencher campos do negócio",
+        "CREATE_DEAL": "Criar negócio",
+        "CREATE_DEAL_ACTIVITY": "Criar atividade no negócio",
+        "SET_CONTACT_FIELD": "Preencher campos do contato",
+        "ADD_CONTACT_LABEL": "Adicionar etiquetas ao contato",
+        "HTTP_REQUEST": "Enviar requisição HTTP",
+        "SET_VARIABLE": "Definir variável"
+      },
+      "OPERATORS": {
+        "EQUALS": "é igual a",
+        "NOT_EQUALS": "é diferente de",
+        "CONTAINS": "contém",
+        "NOT_CONTAINS": "não contém",
+        "STARTS_WITH": "começa com",
+        "ENDS_WITH": "termina com",
+        "GT": "é maior que",
+        "GTE": "é maior ou igual a",
+        "LT": "é menor que",
+        "LTE": "é menor ou igual a",
+        "IS_PRESENT": "está preenchido",
+        "IS_BLANK": "está vazio",
+        "IN": "é um destes",
+        "NOT_IN": "não é nenhum destes"
+      },
+      "OPTIONS": {
+        "CONVERSATION_STATUS": {
+          "OPEN": "Aberta",
+          "RESOLVED": "Resolvida",
+          "PENDING": "Pendente",
+          "SNOOZED": "Adiada"
+        },
+        "PRIORITY": {
+          "URGENT": "Urgente",
+          "HIGH": "Alta",
+          "MEDIUM": "Média",
+          "LOW": "Baixa",
+          "NIL": "Nenhuma"
+        },
+        "DEAL_STATUS": {
+          "OPEN": "Em andamento",
+          "WON": "Ganho",
+          "LOST": "Perdido"
+        },
+        "ACTIVITY_TYPE": {
+          "TASK": "Tarefa",
+          "CALL": "Ligação",
+          "MEETING": "Reunião",
+          "FOLLOW_UP": "Retorno"
+        },
+        "HTTP_METHOD": {
+          "GET": "GET",
+          "POST": "POST",
+          "PUT": "PUT",
+          "PATCH": "PATCH",
+          "DELETE": "DELETE"
+        },
+        "OWNER_MODE": {
+          "USER": "Um agente específico",
+          "RANDOM": "Agente sorteado de uma lista",
+          "CONVERSATION_ASSIGNEE": "O agente atribuído à conversa"
+        },
+        "MESSAGE_TYPE": {
+          "INCOMING": "Recebida",
+          "OUTGOING": "Enviada"
+        },
+        "WAIT_UNIT": {
+          "MINUTES": "minutos",
+          "HOURS": "horas",
+          "DAYS": "dias"
+        },
+        "MATCH": {
+          "ALL": "Todas as condições devem ser verdadeiras",
+          "ANY": "Qualquer condição pode ser verdadeira"
+        }
+      },
+      "FIELD_GROUPS": {
+        "DEAL": "Negócio",
+        "CONTACT": "Contato",
+        "CONVERSATION": "Conversa",
+        "MESSAGE": "Mensagem",
+        "TRIGGER": "Gatilho",
+        "VARS": "Variáveis"
+      },
+      "FIELDS": {
+        "DEAL_NAME": "Nome",
+        "DEAL_STATUS": "Status",
+        "DEAL_VALUE": "Valor",
+        "DEAL_DESCRIPTION": "Descrição",
+        "DEAL_PIPELINE_ID": "Funil",
+        "DEAL_PIPELINE_STAGE_ID": "Etapa",
+        "DEAL_OWNER_ID": "Responsável",
+        "DEAL_SEGMENT_ID": "Segmento",
+        "DEAL_PIPELINE": "Nome do funil",
+        "DEAL_STAGE": "Nome da etapa",
+        "DEAL_OWNER": "Nome do responsável",
+        "DEAL_LOST_REASON_ID": "Motivo da perda",
+        "DEAL_LOST_REASON": "Nome do motivo da perda",
+        "DEAL_LOST_NOTE": "Observação da perda",
+        "CONTACT_NAME": "Nome",
+        "CONTACT_EMAIL": "E-mail",
+        "CONTACT_PHONE_NUMBER": "Telefone",
+        "CONTACT_LABELS": "Etiquetas",
+        "CONVERSATION_STATUS": "Status",
+        "CONVERSATION_INBOX_ID": "Caixa de entrada",
+        "CONVERSATION_ASSIGNEE_ID": "Responsável",
+        "CONVERSATION_TEAM_ID": "Time",
+        "CONVERSATION_PRIORITY": "Prioridade",
+        "CONVERSATION_LABELS": "Etiquetas",
+        "MESSAGE_CONTENT": "Conteúdo",
+        "MESSAGE_MESSAGE_TYPE": "Direção",
+        "TRIGGER_EVENT": "Evento do gatilho",
+        "TRIGGER_PAYLOAD": "Dados do webhook...",
+        "CHANGE_PIPELINE_STAGE_ID_FROM": "Etapa antes da mudança",
+        "CHANGE_PIPELINE_STAGE_ID_TO": "Etapa depois da mudança",
+        "CHANGE_PIPELINE_ID_FROM": "Funil antes da mudança",
+        "CHANGE_PIPELINE_ID_TO": "Funil depois da mudança",
+        "CHANGE_STATUS_FROM": "Status antes da mudança",
+        "CHANGE_STATUS_TO": "Status depois da mudança",
+        "VARS": "Variável..."
+      },
+      "PARAMS": {
+        "CONTENT": "Conteúdo",
+        "AGENT_ID": "Agente",
+        "TEAM_ID": "Time",
+        "LABELS": "Etiquetas",
+        "STATUS": "Status",
+        "PRIORITY": "Prioridade",
+        "PIPELINE_ID": "Funil",
+        "PIPELINE_STAGE_ID": "Etapa",
+        "REOPEN": "Reabrir o negócio",
+        "LOST_REASON_ID": "Motivo da perda",
+        "LOST_NOTE": "Observação da perda",
+        "MODE": "Quem vira o responsável",
+        "USER_ID": "Agente",
+        "USER_IDS": "Agentes para o sorteio",
+        "NAME": "Nome",
+        "VALUE": "Valor",
+        "DESCRIPTION": "Descrição",
+        "SEGMENT_ID": "Segmento",
+        "FIELDS": "Campos",
+        "OWNER_ID": "Responsável",
+        "ACTIVITY_TYPE": "Tipo",
+        "TITLE": "Título",
+        "DUE_IN_HOURS": "Prazo (horas)",
+        "METHOD": "Método",
+        "URL": "URL",
+        "HEADERS": "Cabeçalhos",
+        "INCLUDE_PAYLOAD": "Enviar o payload padrão",
+        "BODY": "Corpo",
+        "SET_VARIABLE_NAME": "Nome da variável",
+        "SET_VARIABLE_VALUE": "Valor"
+      },
+      "PARAM_HINTS": {
+        "REOPEN": "Volta o negócio para em andamento depois de movê-lo",
+        "INCLUDE_PAYLOAD": "Envia o evento, workflow, negócio, contato e conversa em JSON"
+      },
+      "SPECIAL": {
+        "NIL": "Ninguém (remover atribuição)",
+        "LAST_RESPONDING_AGENT": "Último agente que respondeu"
+      },
+      "HANDLES": {
+        "TRUE": "Sim",
+        "FALSE": "Não",
+        "DEFAULT": "Qualquer outro",
+        "OUT": "Próximo"
+      },
+      "SWITCH": {
+        "EMPTY_CASE": "(caso vazio)"
+      },
+      "SUMMARY": {
+        "NO_FIELD": "Escolha um campo",
+        "NO_CONDITIONS": "Nenhuma condição ainda",
+        "AND_MORE": "{text} (+{n})",
+        "SWITCH": "Por {field} · {n} casos",
+        "WAIT": "Esperar {amount} {unit}",
+        "RANDOM_OF": "Sorteio entre {n} agentes",
+        "UPDATE_DEAL": "{n} campo(s) a atualizar",
+        "NOT_CONFIGURED": "Ainda não configurado"
+      },
+      "PALETTE": {
+        "TITLE": "Blocos",
+        "HINT": "Clique ou arraste um bloco para o canvas.",
+        "TRIGGERS": "Gatilhos",
+        "LOGIC": "Lógica"
+      },
+      "INSPECTOR": {
+        "EMPTY": "Selecione um bloco para editá-lo ou adicione um pela esquerda.",
+        "DELETE_NODE": "Excluir bloco",
+        "REMOVE": "Remover",
+        "SEARCH": "Buscar...",
+        "SELECT": "Selecione...",
+        "TRIGGER_EVENT": "Quando isto acontecer",
+        "MATCH": "Combinar",
+        "ADD_CONDITION": "Adicionar condição",
+        "CONDITION_HINT": "A linha Sim roda quando as condições batem, a linha Não quando não batem.",
+        "FIELD_PLACEHOLDER": "Escolha um campo",
+        "FREE_FIELD_PLACEHOLDER": "Nome ou caminho (ex.: cliente.email)",
+        "VALUE_PLACEHOLDER": "Valor",
+        "VALUES_PLACEHOLDER": "Adicione valores",
+        "SWITCH_FIELD": "Escolher por",
+        "ADD_CASE": "Adicionar caso",
+        "ADD_CASE_PER_REASON": "Adicionar um caso por motivo de perda",
+        "ADD_CASE_PER_OPTION": "Adicionar um caso por opção",
+        "CASE_LABEL": "Rótulo (opcional)",
+        "SWITCH_HINT": "Cada caso tem a sua própria linha. \"Qualquer outro\" roda quando nenhum caso bate.",
+        "WAIT_AMOUNT": "Esperar por",
+        "WAIT_UNIT": "Unidade",
+        "WAIT_HINT": "A execução pausa aqui e continua depois do tempo (verificado a cada cerca de um minuto).",
+        "ACTION": "O que fazer",
+        "REQUIRES_CONVERSATION": "Precisa de uma conversa na execução. Gatilhos de negócio usam a última conversa do contato.",
+        "REQUIRES_DEAL": "Precisa de um negócio do CRM na execução.",
+        "REQUIRES_CONTACT": "Precisa de um contato na execução.",
+        "AT_LEAST_ONE": "Preencha pelo menos um campo.",
+        "CONTINUE_ON_ERROR": "Continuar se falhar",
+        "CONTINUE_ON_ERROR_HINT": "Sem isso, uma falha interrompe toda a execução.",
+        "INSERT_VARIABLE": "Variáveis",
+        "HEADER_NAME": "Nome do cabeçalho",
+        "HEADER_VALUE": "Valor do cabeçalho",
+        "ADD_HEADER": "Adicionar cabeçalho",
+        "ADD_FIELD": "Adicionar campo"
+      },
+      "VALIDATION": {
+        "NO_TRIGGER": "Adicione pelo menos um gatilho.",
+        "TOO_MANY_NODES": "Um workflow pode ter no máximo 100 blocos.",
+        "CYCLE": "O fluxo volta para ele mesmo.",
+        "UNREACHABLE": "Este bloco não está ligado a um gatilho.",
+        "EVENT_REQUIRED": "Escolha o evento que inicia o fluxo.",
+        "CONDITIONS_REQUIRED": "Adicione pelo menos uma condição.",
+        "CONDITION_INCOMPLETE": "Complete todas as condições (campo, operador e valor).",
+        "SWITCH_FIELD_REQUIRED": "Escolha o campo usado para decidir.",
+        "SWITCH_CASES_REQUIRED": "Adicione pelo menos um caso.",
+        "SWITCH_CASE_VALUE": "Todo caso precisa de um valor.",
+        "WAIT_AMOUNT": "Informe quanto tempo esperar.",
+        "ACTION_REQUIRED": "Escolha uma ação.",
+        "PARAM_REQUIRED": "Este campo é obrigatório.",
+        "AT_LEAST_ONE": "Preencha pelo menos um campo.",
+        "NODE_HAS_ISSUES": "Este bloco precisa de atenção"
+      },
+      "TEMPLATES": {
+        "TITLE": "Começar de um modelo",
+        "DESCRIPTION": "Escolha um fluxo pronto. Ele é criado desligado para você ajustar antes de ativar.",
+        "LOST_REASON_ROUTING": {
+          "NAME": "Rotear negócios perdidos por motivo",
+          "DESCRIPTION": "Quando um negócio é perdido, envia para um funil e etapa que dependem do motivo da perda (um ramo por motivo)."
+        },
+        "WELCOME_MESSAGE": {
+          "NAME": "Mensagem de boas-vindas",
+          "DESCRIPTION": "Responde automaticamente quando uma conversa começa.",
+          "CONTENT": "Olá {'{{'}contact.name{'}}'}! Recebemos sua mensagem e já vamos te atender."
+        },
+        "RANDOM_OWNER": {
+          "NAME": "Responsável sorteado para novos negócios",
+          "DESCRIPTION": "Distribui os novos negócios entre os vendedores que você escolher."
+        },
+        "WON_WEBHOOK": {
+          "NAME": "Avisar um sistema quando um negócio for ganho",
+          "DESCRIPTION": "Envia os dados do negócio para uma URL externa assim que ele é ganho."
+        },
+        "FOLLOW_UP_TASK": {
+          "NAME": "Tarefa de retorno após mudar de etapa",
+          "DESCRIPTION": "Espera dois dias depois que o negócio muda de etapa e, se ele ainda estiver em andamento, cria uma tarefa de retorno.",
+          "TITLE": "Retomar contato com {'{{'}contact.name{'}}'}"
+        }
+      },
+      "LIST": {
+        "LOADING": "Buscando workflows",
+        "EMPTY": "Nenhum workflow ainda. Crie um ou comece de um modelo.",
+        "LOAD_ERROR": "Não foi possível carregar os workflows.",
+        "NEW": "Novo workflow",
+        "FROM_TEMPLATE": "Começar de um modelo",
+        "EDIT": "Editar",
+        "DUPLICATE": "Duplicar",
+        "DELETE": "Excluir",
+        "TABLE_HEADER": {
+          "NAME": "Nome",
+          "TRIGGERS": "Gatilhos",
+          "LAST_RUN": "Última execução",
+          "ACTIVE": "Ativo",
+          "ACTIONS": "Ações"
+        },
+        "ACTIVATED": "Workflow ligado",
+        "DEACTIVATED": "Workflow desligado",
+        "TOGGLE_ERROR": "Não foi possível alterar o workflow.",
+        "COPY_NAME": "{name} (cópia)",
+        "DUPLICATED": "Workflow duplicado",
+        "CREATE_ERROR": "Não foi possível criar o workflow.",
+        "DELETE_TITLE": "Excluir workflow",
+        "DELETE_DESCRIPTION": "Excluir \"{name}\"? O histórico de execuções também será excluído.",
+        "DELETED": "Workflow excluído",
+        "DELETE_ERROR": "Não foi possível excluir o workflow."
+      },
+      "EDITOR": {
+        "BACK": "Voltar para os workflows",
+        "NAME_PLACEHOLDER": "Nome do workflow",
+        "DESCRIPTION_PLACEHOLDER": "Descrição (opcional)",
+        "ACTIVE": "Ativo",
+        "SAVE": "Salvar",
+        "SAVED": "Workflow salvo",
+        "SAVE_ERROR": "Não foi possível salvar o workflow.",
+        "LOAD_ERROR": "Não foi possível carregar o workflow.",
+        "LOADING": "Carregando workflow",
+        "NAME_REQUIRED": "Dê um nome ao workflow antes de salvar.",
+        "FIX_BEFORE_ACTIVATE": "Corrija os blocos destacados antes de ligar o workflow.",
+        "UNSAVED": "Alterações não salvas",
+        "ISSUES": "{n} pendência para corrigir | {n} pendências para corrigir",
+        "HISTORY": "Histórico",
+        "TEST": "Executar teste",
+        "COPY_WEBHOOK": "Copiar URL do webhook",
+        "WEBHOOK_COPIED": "URL do webhook copiada",
+        "LEAVE_TITLE": "Alterações não salvas",
+        "LEAVE_CONFIRM": "Há alterações não salvas. Sair sem salvar?",
+        "LEAVE_ACTION": "Sair sem salvar",
+        "LEAVE_STAY": "Continuar editando"
+      },
+      "TEST": {
+        "TITLE": "Executar um teste",
+        "DESCRIPTION": "Roda este workflow salvo uma vez para o registro escolhido, usando o gatilho manual.",
+        "KIND": "Executar para",
+        "KINDS": {
+          "DEAL": "Negócio",
+          "CONTACT": "Contato",
+          "CONVERSATION": "Conversa"
+        },
+        "TARGET": "Registro",
+        "DEAL_PLACEHOLDER": "Buscar um negócio",
+        "ID_PLACEHOLDER": "ID do registro",
+        "RUN": "Executar",
+        "STARTED": "Execução de teste iniciada",
+        "ERROR": "Não foi possível iniciar a execução de teste.",
+        "SAVE_FIRST": "Salve as alterações antes de executar um teste."
+      },
+      "HISTORY": {
+        "TITLE": "Histórico de execuções",
+        "DESCRIPTION": "As últimas execuções deste workflow e o que cada bloco fez.",
+        "REFRESH": "Atualizar",
+        "EMPTY": "Este workflow ainda não foi executado.",
+        "LOAD_ERROR": "Não foi possível carregar o histórico.",
+        "NO_TRACE": "Nenhum passo foi registrado.",
+        "RUN_STATUS": {
+          "RUNNING": "Executando",
+          "WAITING": "Aguardando",
+          "COMPLETED": "Concluída",
+          "FAILED": "Falhou"
+        },
+        "STEP_STATUS": {
+          "OK": "Feito",
+          "ERROR": "Erro",
+          "SKIPPED": "Ignorado",
+          "WAITING": "Aguardando"
+        }
+      }
     }
   }
 }

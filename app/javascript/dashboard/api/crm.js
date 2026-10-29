@@ -76,6 +76,7 @@ export const pipelinesAPI = new CrmAPI('pipelines');
 export const dealsAPI = new CrmAPI('deals');
 export const customFieldsAPI = new CrmAPI('custom_fields');
 export const segmentsAPI = new CrmAPI('segments');
+export const lostReasonsAPI = new CrmAPI('lost_reasons');
 
 export const stagesAPI = pipelineId =>
   new CrmAPI(`pipelines/${pipelineId}/stages`);

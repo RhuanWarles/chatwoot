@@ -8,6 +8,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
+import { useLostReasons } from 'dashboard/composables/useLostReasons';
 import AgentsAPI from 'dashboard/api/agents';
 import { dealsAPI, pipelinesAPI, segmentsAPI } from 'dashboard/api/crm';
 import CrmActivities from '../components/CrmActivities.vue';
@@ -15,12 +16,20 @@ import CrmDealCustomFields from '../components/CrmDealCustomFields.vue';
 import CrmDealConversations from '../components/CrmDealConversations.vue';
 import CrmContactPicker from '../components/CrmContactPicker.vue';
 import CrmCurrencyInput from '../components/CrmCurrencyInput.vue';
+import CrmLostReasonDialog from '../components/CrmLostReasonDialog.vue';
 import { brlFormatter } from '../components/currencyHelpers';
 import { formatContactPhone } from '../components/contactHelpers';
 
 const NOTE_MAX_LENGTH = 10000;
 const { t, locale } = useI18n();
 const route = useRoute();
+const {
+  activeReasons: lostReasons,
+  isLostDialogOpen,
+  askLostReason,
+  confirmLostReason,
+  cancelLostReason,
+} = useLostReasons();
 const deal = ref(null);
 const summaryExpanded = ref(true);
 const pipelines = ref([]);
@@ -161,8 +170,16 @@ const eventChange = event => {
     event.event_type === 'owner_changed'
   )
     return `${metadata.from_name || t('CRM.NOT_SET')} → ${metadata.to_name || t('CRM.NOT_SET')}`;
-  if (event.event_type === 'status_changed')
-    return `${statusLabel(metadata.from)} → ${statusLabel(metadata.to)}`;
+  if (event.event_type === 'status_changed') {
+    const lines = [
+      `${statusLabel(metadata.from)} → ${statusLabel(metadata.to)}`,
+    ];
+    if (metadata.to === 'lost' && metadata.lost_reason)
+      lines.push(t('CRM.LOST_REASON_LINE', { reason: metadata.lost_reason }));
+    if (metadata.to === 'lost' && metadata.lost_note)
+      lines.push(t('CRM.LOST_REASON_NOTE_LINE', { note: metadata.lost_note }));
+    return lines.join('\n');
+  }
   if (event.event_type === 'value_changed')
     return `${money(metadata.from)} → ${money(metadata.to)}`;
   if (event.event_type === 'automation_run') {
@@ -201,7 +218,13 @@ const summaryValue = key => {
   if (key === 'owner_id') return deal.value.owner?.name || t('CRM.UNASSIGNED');
   if (key === 'segment_id')
     return deal.value.segment?.name || t('CRM.NO_SEGMENT');
-  if (key === 'status') return statusLabel(deal.value.status);
+  if (key === 'status')
+    return [
+      statusLabel(deal.value.status),
+      deal.value.status === 'lost' && deal.value.lost_reason?.name,
+    ]
+      .filter(Boolean)
+      .join(' · ');
   return deal.value.description || t('CRM.NOT_SET');
 };
 const editSummary = async key => {
@@ -245,6 +268,11 @@ const saveSummary = async () => {
   if (['value', 'owner_id', 'segment_id'].includes(key) && value === '')
     value = null;
   const payload = { [key]: value };
+  if (key === 'status' && value === 'lost' && deal.value.status !== 'lost') {
+    const lostReason = await askLostReason();
+    if (!lostReason) return;
+    Object.assign(payload, lostReason);
+  }
   if (key === 'pipeline_id' && value !== deal.value.pipeline_id) {
     const firstStage = [...summaryStages.value].sort(
       (a, b) => a.position - b.position || a.id - b.id
@@ -342,14 +370,24 @@ const update = async payload => {
     saving.value = false;
   }
 };
-const save = () => {
+const save = async () => {
   if (!draft.value.name.trim() || currency.value?.isInvalid) return;
-  update({
+  const payload = {
     ...draft.value,
     value: draft.value.value === '' ? null : draft.value.value,
     owner_id: draft.value.owner_id === '' ? null : draft.value.owner_id,
     segment_id: draft.value.segment_id === '' ? null : draft.value.segment_id,
-  });
+  };
+  if (draft.value.status === 'lost' && deal.value.status !== 'lost') {
+    const lostReason = await askLostReason();
+    if (!lostReason) return;
+    Object.assign(payload, lostReason);
+  }
+  update(payload);
+};
+const markLost = async () => {
+  const lostReason = await askLostReason();
+  if (lostReason) update({ status: 'lost', ...lostReason });
 };
 const addNote = async () => {
   if (!note.value.trim() || noteSaving.value) return;
@@ -460,6 +498,15 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
             "
             >{{ statusLabel(deal.status) }}</span
           >
+          <p
+            v-if="deal.status === 'lost' && deal.lost_reason"
+            class="mt-2 mb-0 text-sm text-n-slate-11 [overflow-wrap:anywhere]"
+          >
+            {{ t('CRM.LOST_REASON_LINE', { reason: deal.lost_reason.name }) }}
+            <span v-if="deal.lost_note" class="block whitespace-pre-wrap">
+              {{ t('CRM.LOST_REASON_NOTE_LINE', { note: deal.lost_note }) }}
+            </span>
+          </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <Button
@@ -474,7 +521,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
             color="ruby"
             variant="faded"
             :disabled="saving || deal.status === 'lost'"
-            @click="update({ status: 'lost' })"
+            @click="markLost"
           />
           <Button
             :label="t('CRM.EDIT_DEAL')"
@@ -957,5 +1004,11 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
         </p>
       </fieldset>
     </Dialog>
+    <CrmLostReasonDialog
+      v-if="isLostDialogOpen"
+      :reasons="lostReasons"
+      @confirm="confirmLostReason"
+      @cancel="cancelLostReason"
+    />
   </main>
 </template>

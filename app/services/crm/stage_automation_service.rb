@@ -153,7 +153,8 @@ class Crm::StageAutomationService
   def template_variables
     @template_variables ||= {
       'lead_name' => @deal.name, 'contact_name' => @deal.contact.name, 'first_name' => @deal.contact.name.to_s.split.first,
-      'stage_name' => @deal.pipeline_stage.name, 'pipeline_name' => @deal.pipeline.name, 'owner_name' => @deal.owner&.name
+      'stage_name' => @deal.pipeline_stage.name, 'pipeline_name' => @deal.pipeline.name, 'owner_name' => @deal.owner&.name,
+      'lost_reason' => @deal.lost_reason&.name
     }
   end
 
@@ -170,6 +171,7 @@ class Crm::StageAutomationService
   def lead_payload
     {
       id: @deal.id, name: @deal.name, value: @deal.value&.to_f, status: @deal.status, description: @deal.description,
+      lost_reason: @deal.lost_reason&.then { |reason| { id: reason.id, name: reason.name } }, lost_note: @deal.lost_note,
       created_at: @deal.created_at, updated_at: @deal.updated_at,
       pipeline: { id: @deal.pipeline_id, name: @deal.pipeline.name },
       stage: { id: @deal.pipeline_stage_id, name: @deal.pipeline_stage.name, probability: @deal.pipeline_stage.probability },

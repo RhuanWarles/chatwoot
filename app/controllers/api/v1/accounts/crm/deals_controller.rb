@@ -19,11 +19,14 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
   end
 
   def create
-    @deal = Current.account.crm_deals.create!(deal_params)
+    @deal = Current.account.crm_deals.new(deal_params)
+    @deal.require_lost_reason = true
+    @deal.save!
     render json: deal_json(@deal), status: :created
   end
 
   def update
+    @deal.require_lost_reason = true
     @deal.update!(deal_params)
     render json: deal_json(@deal)
   end
@@ -45,7 +48,8 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def deal_params
     params.require(:deal).permit(
-      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :segment_id, :value, :status, :description
+      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :segment_id, :value, :status, :description,
+      :lost_reason_id, :lost_note
     )
   end
 
@@ -61,7 +65,7 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def filtered_deals
     deals = policy_scope(Crm::Deal).includes(
-      :pipeline_stage, :segment, custom_field_values: :custom_field, contact: :company, owner: { avatar_attachment: :blob }
+      :pipeline_stage, :segment, :lost_reason, custom_field_values: :custom_field, contact: :company, owner: { avatar_attachment: :blob }
     )
     deals = deals.where(pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
     deals = deals.where(contact_id: params[:contact_id]) if params[:contact_id].present?
@@ -74,6 +78,7 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
         contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },
         segment: { only: [:id, :name, :color] },
+        lost_reason: { only: [:id, :name] },
         pipeline_stage: { only: [:id, :name, :position, :color] },
         custom_field_values: {
           only: [:id, :custom_field_id, :value], methods: [:typed_value],
@@ -103,6 +108,7 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
         contact: { only: [:id, :name, :email, :phone_number, :additional_attributes], include: { company: { only: [:id, :name] } } },
         owner: { only: [:id, :name, :email] },
         segment: { only: [:id, :name, :color] },
+        lost_reason: { only: [:id, :name] },
         pipeline: { only: [:id, :name] },
         pipeline_stage: { only: [:id, :name, :position, :color] },
         custom_field_values: { only: [:id, :custom_field_id, :value], include: { custom_field: { only: [:id, :name, :key, :field_type, :required, :active, :position, :options] } } }

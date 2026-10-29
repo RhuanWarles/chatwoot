@@ -581,6 +581,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('crm_segments'),
           activeOn: ['crm_segments'],
         },
+        {
+          name: 'Lost Reasons',
+          label: t('CRM.LOST_REASONS_TITLE'),
+          to: accountScopedRoute('crm_lost_reasons'),
+          activeOn: ['crm_lost_reasons'],
+        },
       ],
     },
     ...(currentAccount.value?.features?.text_ai ||
@@ -636,7 +642,12 @@ const menuItems = computed(() => {
       label: t('SIDEBAR.AUTOMATION'),
       icon: 'i-lucide-kanban-square',
       to: accountScopedRoute('automation_list'),
-      activeOn: ['automation_list'],
+      activeOn: [
+        'automation_list',
+        'automation_workflows',
+        'automation_workflow_new',
+        'automation_workflow_edit',
+      ],
     },
     ...(isWhatsappConnectionsEnabled.value
       ? [

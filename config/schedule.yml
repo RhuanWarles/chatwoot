@@ -13,7 +13,13 @@ internal_check_new_versions_job:
   cron: '0 0 * * *'
   class: 'Internal::TriggerDailyScheduledItemsJob'
   queue: scheduled_jobs
-# # executed At every 5th minute..
+# # Resumes workflow runs whose wait step is over.
+resume_waiting_workflow_runs_job:
+  cron: '* * * * *'
+  class: 'Workflows::ResumeWaitingRunsJob'
+  queue: scheduled_jobs
+
+# executed At every 5th minute..
 trigger_scheduled_items_job:
   cron: '*/5 * * * *'
   class: 'TriggerScheduledItemsJob'

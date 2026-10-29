@@ -639,6 +639,9 @@ en:
     policy_actor: 'Automation System via %{policy_name}'
   automation:
     system_name: 'Automation System'
+  automation_workflows:
+    errors:
+      no_trigger: 'This workflow has no trigger to start from'
   crm:
     no_message: 'No messages in conversation'
     attachment: '[Attachment: %{type}]'
