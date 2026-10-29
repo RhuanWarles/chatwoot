@@ -9,7 +9,7 @@ class Conversations::FilterService < FilterService
   def perform
     validate_query_operator
     @conversations = query_builder(@filters['conversations'])
-    mine_count, unassigned_count, all_count, unanswered_count = set_count_for_all_conversations
+    mine_count, unassigned_count, all_count, unanswered_count, handoff_count = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
     {
@@ -19,7 +19,8 @@ class Conversations::FilterService < FilterService
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
         all_count: all_count,
-        unanswered_count: unanswered_count
+        unanswered_count: unanswered_count,
+        handoff_count: handoff_count
       }
     }
   end
@@ -106,8 +107,9 @@ class Conversations::FilterService < FilterService
       Arel.sql(ActiveRecord::Base.sanitize_sql_array(['COUNT(*) FILTER (WHERE assignee_id = ?)', @user.id])),
       Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NULL AND assignee_agent_bot_id IS NULL)'),
       Arel.sql('COUNT(*)'),
-      Arel.sql("COUNT(*) FILTER (WHERE #{Conversation.awaiting_response_sql})")
+      Arel.sql("COUNT(*) FILTER (WHERE #{Conversation.awaiting_response_sql})"),
+      Arel.sql("COUNT(*) FILTER (WHERE conversations.additional_attributes->>'ai_handoff' = 'true')")
     )
-    counts || [0, 0, 0, 0]
+    counts || [0, 0, 0, 0, 0]
   end
 end

@@ -97,7 +97,7 @@
         "SAVE_BUTTON": "Save filter",
         "CANCEL_BUTTON": "Cancel",
         "API_FOLDERS": {
-          "SUCCESS_MESSAGE": "Folder created successfully.",
+          "SUCCESS_MESSAGE": "Folder created successfully. Find it under Conversations > Folders.",
           "ERROR_MESSAGE": "Error while creating folder."
         },
         "API_SEGMENTS": {

@@ -956,7 +956,8 @@ describe Conversations::FilterService do
         assigned_count: 4,
         unassigned_count: 1,
         all_count: 5,
-        unanswered_count: 0
+        unanswered_count: 0,
+        handoff_count: 0
       )
     end
 
@@ -971,7 +972,8 @@ describe Conversations::FilterService do
         assigned_count: 5,
         unassigned_count: 1,
         all_count: 6,
-        unanswered_count: 0
+        unanswered_count: 0,
+        handoff_count: 0
       )
     end
 
@@ -987,7 +989,8 @@ describe Conversations::FilterService do
         assigned_count: 0,
         unassigned_count: 0,
         all_count: 0,
-        unanswered_count: 0
+        unanswered_count: 0,
+        handoff_count: 0
       )
     end
 
