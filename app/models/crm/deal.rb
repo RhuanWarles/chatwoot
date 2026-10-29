@@ -104,27 +104,22 @@ module Crm
     def dispatch_automation_events
       dispatcher = Rails.configuration.dispatcher
       conversation = contact.conversations.reorder(last_activity_at: :desc).first
-      changed = previous_changes
-      dispatcher.dispatch(Events::Types::CRM_DEAL_CREATED, Time.zone.now, deal: self, conversation: conversation,
-                          changed_attributes: changed, performed_by: Current.executed_by) if previously_new_record?
-      return if previously_new_record?
+      payload = { deal: self, conversation: conversation, changed_attributes: previous_changes, performed_by: Current.executed_by,
+                  automation_depth: automation_depth.to_i }
+      return dispatcher.dispatch(Events::Types::CRM_DEAL_CREATED, Time.zone.now, payload) if previously_new_record?
 
-      dispatcher.dispatch(Events::Types::CRM_DEAL_UPDATED, Time.zone.now, deal: self, conversation: conversation,
-                          changed_attributes: changed, performed_by: Current.executed_by)
-      dispatch_deal_change(dispatcher, changed, conversation)
+      dispatcher.dispatch(Events::Types::CRM_DEAL_UPDATED, Time.zone.now, payload)
+      dispatch_deal_change(dispatcher, payload)
     end
 
-    def dispatch_deal_change(dispatcher, changed, conversation)
+    def dispatch_deal_change(dispatcher, payload)
       event_by_attribute = {
         'pipeline_id' => Events::Types::CRM_DEAL_PIPELINE_CHANGED,
         'pipeline_stage_id' => Events::Types::CRM_DEAL_STAGE_CHANGED,
         'status' => Events::Types::CRM_DEAL_STATUS_CHANGED
       }
       event_by_attribute.each do |attribute, event_name|
-        next unless changed.key?(attribute)
-
-        dispatcher.dispatch(event_name, Time.zone.now, deal: self, conversation: conversation,
-                            changed_attributes: changed, performed_by: Current.executed_by)
+        dispatcher.dispatch(event_name, Time.zone.now, payload) if payload[:changed_attributes].key?(attribute)
       end
     end
   end
