@@ -4,4 +4,5 @@ json.meta do
   json.unassigned_count @conversations_count[:unassigned_count]
   json.all_count @conversations_count[:all_count]
   json.unanswered_count @conversations_count[:unanswered_count]
+  json.handoff_count @conversations_count[:handoff_count]
 end

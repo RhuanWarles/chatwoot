@@ -25,10 +25,6 @@ export default {
       type: Object,
       default: () => {},
     },
-    openLastSavedItem: {
-      type: Function,
-      default: () => {},
-    },
   },
   emits: ['close'],
   setup() {
@@ -87,7 +83,6 @@ export default {
       } finally {
         useAlert(this.alertMessage);
       }
-      this.openLastSavedItem();
     },
   },
 };

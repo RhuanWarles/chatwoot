@@ -277,7 +277,7 @@ const conversationFilters = computed(() => {
     assigneeType: isUnansweredTab || isHandoffTab
       ? wootConstants.ASSIGNEE_TYPE.ALL
       : activeAssigneeTab.value,
-    status: isHandoffTab ? wootConstants.STATUS_TYPE.ALL : activeStatus.value,
+    status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
     labels: props.label ? [props.label] : undefined,
@@ -1019,7 +1019,6 @@ watch(appliedFilters, () => resetBulkActions());
       <SaveCustomView
         v-model="appliedFilter"
         :custom-views-query="foldersQuery"
-        :open-last-saved-item="openLastSavedItemInFolder"
         @close="onCloseAddFoldersModal"
       />
     </TeleportWithDirection>
@@ -1034,7 +1033,6 @@ watch(appliedFilters, () => resetBulkActions());
     />
 
     <ChatTypeTabs
-      v-if="!hasAppliedFiltersOrActiveFolders"
       :items="assigneeTabItems"
       :active-tab="activeAssigneeTab"
       is-compact
