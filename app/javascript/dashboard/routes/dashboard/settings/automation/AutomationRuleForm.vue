@@ -236,10 +236,14 @@ const filterTypes = computed(() => {
   // renders, but it cannot be picked again.
   const isUnavailable = attr =>
     attr.key === CAPTAIN_CONDITION.key && !allowsCaptainConditions.value;
-  const attributes = getTranslatedAttributes(
-    props.automationTypes,
-    event
-  ).concat(CRM_CONDITIONS).filter(attr => !isUnavailable(attr) || usesCaptainCondition.value);
+  const eventAttributes = getTranslatedAttributes(props.automationTypes, event);
+  const attributes = [
+    ...eventAttributes,
+    ...CRM_CONDITIONS.filter(
+      crmCondition =>
+        !eventAttributes.some(attribute => attribute.key === crmCondition.key)
+    ),
+  ].filter(attr => !isUnavailable(attr) || usesCaptainCondition.value);
 
   return attributes.map(attr => {
     if (attr.disabled) {

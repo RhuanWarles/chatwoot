@@ -631,6 +631,13 @@ const menuItems = computed(() => {
           },
         ]
       : []),
+    {
+      name: 'Automation',
+      label: t('SIDEBAR.AUTOMATION'),
+      icon: 'i-lucide-kanban-square',
+      to: accountScopedRoute('automation_list'),
+      activeOn: ['automation_list'],
+    },
     ...(isWhatsappConnectionsEnabled.value
       ? [
           {
@@ -860,12 +867,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.CUSTOM_ATTRIBUTES'),
           icon: 'i-lucide-code',
           to: accountScopedRoute('attributes_list'),
-        },
-        {
-          name: 'Settings Automation',
-          label: t('SIDEBAR.AUTOMATION'),
-          icon: 'i-lucide-repeat',
-          to: accountScopedRoute('automation_list'),
         },
         {
           name: 'Settings Agent Bots',

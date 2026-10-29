@@ -47,7 +47,10 @@ export function useAutomation(startValue = null) {
    * Handles the event change for an automation.value.
    */
   const onEventChange = () => {
-    automation.value.conditions = getDefaultConditions(eventName.value);
+    automation.value.conditions = getDefaultConditions(
+      eventName.value,
+      automationTypes
+    );
     automation.value.actions = getDefaultActions();
   };
 
@@ -55,7 +58,10 @@ export function useAutomation(startValue = null) {
    * Appends a new condition to the automation.value.
    */
   const appendNewCondition = () => {
-    const defaultCondition = getDefaultConditions(eventName.value);
+    const defaultCondition = getDefaultConditions(
+      eventName.value,
+      automationTypes
+    );
     automation.value.conditions = [
       ...automation.value.conditions,
       ...defaultCondition,

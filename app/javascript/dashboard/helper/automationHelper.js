@@ -221,17 +221,38 @@ export const getFileName = (action, files = []) => {
   return '';
 };
 
-export const getDefaultConditions = eventName => {
+export const getDefaultConditions = (eventName, automationTypes = null) => {
+  let defaultConditions;
   if (eventName === 'message_created') {
-    return structuredClone(DEFAULT_MESSAGE_CREATED_CONDITION);
-  }
-  if (
+    defaultConditions = DEFAULT_MESSAGE_CREATED_CONDITION;
+  } else if (
     eventName === 'conversation_opened' ||
     eventName === 'conversation_resolved'
   ) {
-    return structuredClone(DEFAULT_CONVERSATION_CONDITION);
+    defaultConditions = DEFAULT_CONVERSATION_CONDITION;
+  } else {
+    defaultConditions = DEFAULT_OTHER_CONDITION;
   }
-  return structuredClone(DEFAULT_OTHER_CONDITION);
+
+  const availableConditions = automationTypes?.[eventName]?.conditions || [];
+  const hasDefaultAttribute = availableConditions.some(
+    condition => condition.key === defaultConditions[0]?.attribute_key
+  );
+
+  if (availableConditions.length && !hasDefaultAttribute) {
+    const firstCondition = availableConditions[0];
+    return [
+      {
+        attribute_key: firstCondition.key,
+        filter_operator: firstCondition.filterOperators?.[0]?.value,
+        values: firstCondition.inputType === 'plain_text' ? '' : {},
+        query_operator: 'and',
+        custom_attribute_type: firstCondition.customAttributeType || '',
+      },
+    ];
+  }
+
+  return structuredClone(defaultConditions);
 };
 
 export const getDefaultActions = () => {
