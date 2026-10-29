@@ -642,7 +642,12 @@ const menuItems = computed(() => {
       label: t('SIDEBAR.AUTOMATION'),
       icon: 'i-lucide-kanban-square',
       to: accountScopedRoute('automation_list'),
-      activeOn: ['automation_list'],
+      activeOn: [
+        'automation_list',
+        'automation_workflows',
+        'automation_workflow_new',
+        'automation_workflow_edit',
+      ],
     },
     ...(isWhatsappConnectionsEnabled.value
       ? [

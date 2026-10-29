@@ -19,6 +19,7 @@ import AutomationRuleRow from './AutomationRuleRow.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import { BaseTable } from 'dashboard/components-next/table';
+import AutomationSectionSwitch from './workflows/components/AutomationSectionSwitch.vue';
 import { DEFAULT_DELAY_MINUTES } from './constants';
 
 const getters = useStoreGetters();
@@ -310,11 +311,14 @@ const tableHeaders = computed(() => {
           </span>
         </template>
         <template #actions>
-          <Button
-            :label="$t('AUTOMATION.HEADER_BTN_TXT')"
-            size="sm"
-            @click="openAddPopup"
-          />
+          <div class="flex items-center gap-2">
+            <AutomationSectionSwitch active="rules" />
+            <Button
+              :label="$t('AUTOMATION.HEADER_BTN_TXT')"
+              size="sm"
+              @click="openAddPopup"
+            />
+          </div>
         </template>
       </BaseSettingsHeader>
     </template>

@@ -284,6 +284,437 @@
       "CRM_DEAL_VALUE": "CRM deal value",
       "CRM_DEAL_CUSTOM_FIELD": "CRM deal custom field",
       "CRM_CONTACT_CUSTOM_FIELD": "CRM contact custom field"
+    },
+    "WORKFLOWS": {
+      "SECTIONS": {
+        "RULES": "Rules",
+        "WORKFLOWS": "Workflows"
+      },
+      "HEADER": "Workflows",
+      "DESCRIPTION": "Build automations as a flow: pick what starts it, connect conditions, waits and actions, and let it run on conversations, contacts and CRM deals.",
+      "NODE_TYPES": {
+        "TRIGGER": "Trigger",
+        "CONDITION": "Condition",
+        "SWITCH": "Route by value",
+        "WAIT": "Wait",
+        "ACTION": "Action"
+      },
+      "TRIGGER_GROUPS": {
+        "CONVERSATION": "Conversations",
+        "CONTACT": "Contacts",
+        "CRM": "CRM deals",
+        "OTHER": "Other"
+      },
+      "TRIGGERS": {
+        "CONVERSATION_CREATED": "Conversation created",
+        "CONVERSATION_OPENED": "Conversation opened",
+        "CONVERSATION_RESOLVED": "Conversation resolved",
+        "MESSAGE_CREATED": "Message received or sent",
+        "ASSIGNEE_CHANGED": "Conversation assignee changed",
+        "TEAM_CHANGED": "Conversation team changed",
+        "CONTACT_CREATED": "Contact created",
+        "CONTACT_UPDATED": "Contact updated",
+        "CRM_DEAL_CREATED": "Deal created",
+        "CRM_DEAL_UPDATED": "Deal updated",
+        "CRM_DEAL_STAGE_CHANGED": "Deal moved to another stage",
+        "CRM_DEAL_STATUS_CHANGED": "Deal status changed",
+        "CRM_DEAL_PIPELINE_CHANGED": "Deal moved to another pipeline",
+        "CRM_DEAL_FIELD_CHANGED": "Deal field changed",
+        "CRM_DEAL_WON": "Deal won",
+        "CRM_DEAL_LOST": "Deal lost",
+        "WEBHOOK": "Incoming webhook",
+        "MANUAL": "Manual run"
+      },
+      "TRIGGER_HINTS": {
+        "CONVERSATION_CREATED": "Starts when a new conversation is created.",
+        "CONVERSATION_OPENED": "Starts when a conversation is opened or reopened.",
+        "CONVERSATION_RESOLVED": "Starts when a conversation is resolved.",
+        "MESSAGE_CREATED": "Starts on every message. Add a condition on the message type to react only to incoming or outgoing messages.",
+        "ASSIGNEE_CHANGED": "Starts when the agent responsible for a conversation changes.",
+        "TEAM_CHANGED": "Starts when the team responsible for a conversation changes.",
+        "CONTACT_CREATED": "Starts when a contact is created.",
+        "CONTACT_UPDATED": "Starts when a contact is edited.",
+        "CRM_DEAL_CREATED": "Starts when a deal is created.",
+        "CRM_DEAL_UPDATED": "Starts on every change of a deal. Prefer a more specific trigger when you can.",
+        "CRM_DEAL_STAGE_CHANGED": "Starts when a deal changes stage. Use the stage fields of the change to react to a specific stage.",
+        "CRM_DEAL_STATUS_CHANGED": "Starts when a deal becomes open, won or lost.",
+        "CRM_DEAL_PIPELINE_CHANGED": "Starts when a deal moves to another pipeline.",
+        "CRM_DEAL_FIELD_CHANGED": "Starts when a custom field of a deal changes.",
+        "CRM_DEAL_WON": "Starts when a deal is marked as won.",
+        "CRM_DEAL_LOST": "Starts when a deal is marked as lost. The loss reason is available as \"Lost reason\".",
+        "WEBHOOK": "Starts when something calls the workflow's webhook URL. The request body is available as trigger data.",
+        "MANUAL": "Starts only when you run it with the test button."
+      },
+      "ACTION_GROUPS": {
+        "CONVERSATION": "Conversation",
+        "DEAL": "CRM deal",
+        "CONTACT": "Contact",
+        "INTEGRATION": "Integrations and data"
+      },
+      "ACTIONS": {
+        "SEND_MESSAGE": "Send message",
+        "ADD_PRIVATE_NOTE": "Add private note",
+        "ASSIGN_AGENT": "Assign agent",
+        "ASSIGN_TEAM": "Assign team",
+        "ADD_LABEL": "Add labels to conversation",
+        "REMOVE_LABEL": "Remove labels from conversation",
+        "CHANGE_STATUS": "Change conversation status",
+        "CHANGE_PRIORITY": "Change conversation priority",
+        "MOVE_DEAL": "Move deal",
+        "SET_DEAL_STATUS": "Set deal status",
+        "ASSIGN_DEAL_OWNER": "Assign deal owner",
+        "UPDATE_DEAL": "Update deal",
+        "SET_DEAL_FIELD": "Set deal fields",
+        "CREATE_DEAL": "Create deal",
+        "CREATE_DEAL_ACTIVITY": "Create deal activity",
+        "SET_CONTACT_FIELD": "Set contact fields",
+        "ADD_CONTACT_LABEL": "Add labels to contact",
+        "HTTP_REQUEST": "Send HTTP request",
+        "SET_VARIABLE": "Set variable"
+      },
+      "OPERATORS": {
+        "EQUALS": "is",
+        "NOT_EQUALS": "is not",
+        "CONTAINS": "contains",
+        "NOT_CONTAINS": "does not contain",
+        "STARTS_WITH": "starts with",
+        "ENDS_WITH": "ends with",
+        "GT": "is greater than",
+        "GTE": "is greater than or equal to",
+        "LT": "is less than",
+        "LTE": "is less than or equal to",
+        "IS_PRESENT": "is filled",
+        "IS_BLANK": "is empty",
+        "IN": "is one of",
+        "NOT_IN": "is none of"
+      },
+      "OPTIONS": {
+        "CONVERSATION_STATUS": {
+          "OPEN": "Open",
+          "RESOLVED": "Resolved",
+          "PENDING": "Pending",
+          "SNOOZED": "Snoozed"
+        },
+        "PRIORITY": {
+          "URGENT": "Urgent",
+          "HIGH": "High",
+          "MEDIUM": "Medium",
+          "LOW": "Low",
+          "NIL": "None"
+        },
+        "DEAL_STATUS": {
+          "OPEN": "Open",
+          "WON": "Won",
+          "LOST": "Lost"
+        },
+        "ACTIVITY_TYPE": {
+          "TASK": "Task",
+          "CALL": "Call",
+          "MEETING": "Meeting",
+          "FOLLOW_UP": "Follow-up"
+        },
+        "HTTP_METHOD": {
+          "GET": "GET",
+          "POST": "POST",
+          "PUT": "PUT",
+          "PATCH": "PATCH",
+          "DELETE": "DELETE"
+        },
+        "OWNER_MODE": {
+          "USER": "A specific agent",
+          "RANDOM": "Random agent from a list",
+          "CONVERSATION_ASSIGNEE": "The agent assigned to the conversation"
+        },
+        "MESSAGE_TYPE": {
+          "INCOMING": "Incoming",
+          "OUTGOING": "Outgoing"
+        },
+        "WAIT_UNIT": {
+          "MINUTES": "minutes",
+          "HOURS": "hours",
+          "DAYS": "days"
+        },
+        "MATCH": {
+          "ALL": "All conditions must match",
+          "ANY": "Any condition can match"
+        }
+      },
+      "FIELD_GROUPS": {
+        "DEAL": "Deal",
+        "CONTACT": "Contact",
+        "CONVERSATION": "Conversation",
+        "MESSAGE": "Message",
+        "TRIGGER": "Trigger",
+        "VARS": "Variables"
+      },
+      "FIELDS": {
+        "DEAL_NAME": "Name",
+        "DEAL_STATUS": "Status",
+        "DEAL_VALUE": "Value",
+        "DEAL_DESCRIPTION": "Description",
+        "DEAL_PIPELINE_ID": "Pipeline",
+        "DEAL_PIPELINE_STAGE_ID": "Stage",
+        "DEAL_OWNER_ID": "Owner",
+        "DEAL_SEGMENT_ID": "Segment",
+        "DEAL_PIPELINE": "Pipeline name",
+        "DEAL_STAGE": "Stage name",
+        "DEAL_OWNER": "Owner name",
+        "DEAL_LOST_REASON_ID": "Lost reason",
+        "DEAL_LOST_REASON": "Lost reason name",
+        "DEAL_LOST_NOTE": "Lost note",
+        "CONTACT_NAME": "Name",
+        "CONTACT_EMAIL": "Email",
+        "CONTACT_PHONE_NUMBER": "Phone number",
+        "CONTACT_LABELS": "Labels",
+        "CONVERSATION_STATUS": "Status",
+        "CONVERSATION_INBOX_ID": "Inbox",
+        "CONVERSATION_ASSIGNEE_ID": "Assignee",
+        "CONVERSATION_TEAM_ID": "Team",
+        "CONVERSATION_PRIORITY": "Priority",
+        "CONVERSATION_LABELS": "Labels",
+        "MESSAGE_CONTENT": "Content",
+        "MESSAGE_MESSAGE_TYPE": "Direction",
+        "TRIGGER_EVENT": "Trigger event",
+        "TRIGGER_PAYLOAD": "Webhook data...",
+        "CHANGE_PIPELINE_STAGE_ID_FROM": "Stage before the change",
+        "CHANGE_PIPELINE_STAGE_ID_TO": "Stage after the change",
+        "CHANGE_PIPELINE_ID_FROM": "Pipeline before the change",
+        "CHANGE_PIPELINE_ID_TO": "Pipeline after the change",
+        "CHANGE_STATUS_FROM": "Status before the change",
+        "CHANGE_STATUS_TO": "Status after the change",
+        "VARS": "Variable..."
+      },
+      "PARAMS": {
+        "CONTENT": "Content",
+        "AGENT_ID": "Agent",
+        "TEAM_ID": "Team",
+        "LABELS": "Labels",
+        "STATUS": "Status",
+        "PRIORITY": "Priority",
+        "PIPELINE_ID": "Pipeline",
+        "PIPELINE_STAGE_ID": "Stage",
+        "REOPEN": "Reopen the deal",
+        "LOST_REASON_ID": "Lost reason",
+        "LOST_NOTE": "Lost note",
+        "MODE": "Who becomes the owner",
+        "USER_ID": "Agent",
+        "USER_IDS": "Agents to choose from",
+        "NAME": "Name",
+        "VALUE": "Value",
+        "DESCRIPTION": "Description",
+        "SEGMENT_ID": "Segment",
+        "FIELDS": "Fields",
+        "OWNER_ID": "Owner",
+        "ACTIVITY_TYPE": "Type",
+        "TITLE": "Title",
+        "DUE_IN_HOURS": "Due in (hours)",
+        "METHOD": "Method",
+        "URL": "URL",
+        "HEADERS": "Headers",
+        "INCLUDE_PAYLOAD": "Send the standard payload",
+        "BODY": "Body",
+        "SET_VARIABLE_NAME": "Variable name",
+        "SET_VARIABLE_VALUE": "Value"
+      },
+      "PARAM_HINTS": {
+        "REOPEN": "Set the deal back to open after moving it",
+        "INCLUDE_PAYLOAD": "Send the event, workflow, deal, contact and conversation as JSON"
+      },
+      "SPECIAL": {
+        "NIL": "Nobody (unassign)",
+        "LAST_RESPONDING_AGENT": "Last agent who replied"
+      },
+      "HANDLES": {
+        "TRUE": "Yes",
+        "FALSE": "No",
+        "DEFAULT": "Anything else",
+        "OUT": "Next"
+      },
+      "SWITCH": {
+        "EMPTY_CASE": "(empty case)"
+      },
+      "SUMMARY": {
+        "NO_FIELD": "Pick a field",
+        "NO_CONDITIONS": "No conditions yet",
+        "AND_MORE": "{text} (+{n} more)",
+        "SWITCH": "By {field} · {n} cases",
+        "WAIT": "Wait {amount} {unit}",
+        "RANDOM_OF": "Random of {n} agents",
+        "UPDATE_DEAL": "{n} field(s) to update",
+        "NOT_CONFIGURED": "Not configured yet"
+      },
+      "PALETTE": {
+        "TITLE": "Blocks",
+        "HINT": "Click or drag a block onto the canvas.",
+        "TRIGGERS": "Triggers",
+        "LOGIC": "Logic"
+      },
+      "INSPECTOR": {
+        "EMPTY": "Select a block to edit it, or add one from the left.",
+        "DELETE_NODE": "Delete block",
+        "REMOVE": "Remove",
+        "SEARCH": "Search...",
+        "SELECT": "Select...",
+        "TRIGGER_EVENT": "When this happens",
+        "MATCH": "Match",
+        "ADD_CONDITION": "Add condition",
+        "CONDITION_HINT": "The Yes line runs when the conditions match, the No line when they do not.",
+        "FIELD_PLACEHOLDER": "Pick a field",
+        "FREE_FIELD_PLACEHOLDER": "Name or path (e.g. customer.email)",
+        "VALUE_PLACEHOLDER": "Value",
+        "VALUES_PLACEHOLDER": "Add values",
+        "SWITCH_FIELD": "Route by",
+        "ADD_CASE": "Add case",
+        "ADD_CASE_PER_REASON": "Add one case per lost reason",
+        "ADD_CASE_PER_OPTION": "Add one case per option",
+        "CASE_LABEL": "Label (optional)",
+        "SWITCH_HINT": "Each case gets its own line. \"Anything else\" runs when no case matches.",
+        "WAIT_AMOUNT": "Wait for",
+        "WAIT_UNIT": "Unit",
+        "WAIT_HINT": "The run pauses here and continues after the time passes (checked about every minute).",
+        "ACTION": "What to do",
+        "REQUIRES_CONVERSATION": "Needs a conversation in the run. Triggers about deals use the contact's latest conversation.",
+        "REQUIRES_DEAL": "Needs a CRM deal in the run.",
+        "REQUIRES_CONTACT": "Needs a contact in the run.",
+        "AT_LEAST_ONE": "Fill in at least one field.",
+        "CONTINUE_ON_ERROR": "Continue if this fails",
+        "CONTINUE_ON_ERROR_HINT": "Otherwise a failure stops the whole run.",
+        "INSERT_VARIABLE": "Variables",
+        "HEADER_NAME": "Header name",
+        "HEADER_VALUE": "Header value",
+        "ADD_HEADER": "Add header",
+        "ADD_FIELD": "Add field"
+      },
+      "VALIDATION": {
+        "NO_TRIGGER": "Add at least one trigger.",
+        "TOO_MANY_NODES": "A workflow can have at most 100 blocks.",
+        "CYCLE": "The flow loops back on itself.",
+        "UNREACHABLE": "This block is not connected to a trigger.",
+        "EVENT_REQUIRED": "Pick the event that starts the flow.",
+        "CONDITIONS_REQUIRED": "Add at least one condition.",
+        "CONDITION_INCOMPLETE": "Complete every condition (field, operator and value).",
+        "SWITCH_FIELD_REQUIRED": "Pick the field to route by.",
+        "SWITCH_CASES_REQUIRED": "Add at least one case.",
+        "SWITCH_CASE_VALUE": "Every case needs a value.",
+        "WAIT_AMOUNT": "Enter how long to wait.",
+        "ACTION_REQUIRED": "Pick an action.",
+        "PARAM_REQUIRED": "This field is required.",
+        "AT_LEAST_ONE": "Fill in at least one field.",
+        "NODE_HAS_ISSUES": "This block needs attention"
+      },
+      "TEMPLATES": {
+        "TITLE": "Start from a template",
+        "DESCRIPTION": "Pick a ready-made flow. It is created turned off so you can adjust it first.",
+        "LOST_REASON_ROUTING": {
+          "NAME": "Route lost deals by reason",
+          "DESCRIPTION": "When a deal is lost, send it to a pipeline and stage that depends on the loss reason (one branch per reason)."
+        },
+        "WELCOME_MESSAGE": {
+          "NAME": "Welcome message",
+          "DESCRIPTION": "Reply automatically when a conversation starts.",
+          "CONTENT": "Hi {'{{'}contact.name{'}}'}! We received your message and will be with you shortly."
+        },
+        "RANDOM_OWNER": {
+          "NAME": "Random owner for new deals",
+          "DESCRIPTION": "Spread new deals between the sellers you choose."
+        },
+        "WON_WEBHOOK": {
+          "NAME": "Notify a system when a deal is won",
+          "DESCRIPTION": "Send the deal data to an external URL as soon as it is won."
+        },
+        "FOLLOW_UP_TASK": {
+          "NAME": "Follow-up task after a stage change",
+          "DESCRIPTION": "Wait two days after a deal changes stage and, if it is still open, create a follow-up task.",
+          "TITLE": "Follow up with {'{{'}contact.name{'}}'}"
+        }
+      },
+      "LIST": {
+        "LOADING": "Fetching workflows",
+        "EMPTY": "No workflows yet. Create one or start from a template.",
+        "LOAD_ERROR": "Could not load the workflows.",
+        "NEW": "New workflow",
+        "FROM_TEMPLATE": "Start from a template",
+        "EDIT": "Edit",
+        "DUPLICATE": "Duplicate",
+        "DELETE": "Delete",
+        "TABLE_HEADER": {
+          "NAME": "Name",
+          "TRIGGERS": "Triggers",
+          "LAST_RUN": "Last run",
+          "ACTIVE": "Active",
+          "ACTIONS": "Actions"
+        },
+        "ACTIVATED": "Workflow turned on",
+        "DEACTIVATED": "Workflow turned off",
+        "TOGGLE_ERROR": "Could not change the workflow.",
+        "COPY_NAME": "{name} (copy)",
+        "DUPLICATED": "Workflow duplicated",
+        "CREATE_ERROR": "Could not create the workflow.",
+        "DELETE_TITLE": "Delete workflow",
+        "DELETE_DESCRIPTION": "Delete \"{name}\"? Its run history is deleted too.",
+        "DELETED": "Workflow deleted",
+        "DELETE_ERROR": "Could not delete the workflow."
+      },
+      "EDITOR": {
+        "BACK": "Back to workflows",
+        "NAME_PLACEHOLDER": "Workflow name",
+        "DESCRIPTION_PLACEHOLDER": "Description (optional)",
+        "ACTIVE": "Active",
+        "SAVE": "Save",
+        "SAVED": "Workflow saved",
+        "SAVE_ERROR": "Could not save the workflow.",
+        "LOAD_ERROR": "Could not load the workflow.",
+        "LOADING": "Loading workflow",
+        "NAME_REQUIRED": "Give the workflow a name before saving.",
+        "FIX_BEFORE_ACTIVATE": "Fix the highlighted blocks before turning the workflow on.",
+        "UNSAVED": "Unsaved changes",
+        "ISSUES": "{n} issue to fix | {n} issues to fix",
+        "HISTORY": "History",
+        "TEST": "Run test",
+        "COPY_WEBHOOK": "Copy webhook URL",
+        "WEBHOOK_COPIED": "Webhook URL copied",
+        "LEAVE_TITLE": "Unsaved changes",
+        "LEAVE_CONFIRM": "You have unsaved changes. Leave without saving?",
+        "LEAVE_ACTION": "Leave without saving",
+        "LEAVE_STAY": "Keep editing"
+      },
+      "TEST": {
+        "TITLE": "Run a test",
+        "DESCRIPTION": "Runs this saved workflow once for the record you pick, using the manual trigger.",
+        "KIND": "Run for a",
+        "KINDS": {
+          "DEAL": "Deal",
+          "CONTACT": "Contact",
+          "CONVERSATION": "Conversation"
+        },
+        "TARGET": "Record",
+        "DEAL_PLACEHOLDER": "Search a deal",
+        "ID_PLACEHOLDER": "Record ID",
+        "RUN": "Run",
+        "STARTED": "Test run started",
+        "ERROR": "Could not start the test run.",
+        "SAVE_FIRST": "Save your changes before running a test."
+      },
+      "HISTORY": {
+        "TITLE": "Run history",
+        "DESCRIPTION": "The latest runs of this workflow and what each block did.",
+        "REFRESH": "Refresh",
+        "EMPTY": "This workflow has not run yet.",
+        "LOAD_ERROR": "Could not load the history.",
+        "NO_TRACE": "No steps were recorded.",
+        "RUN_STATUS": {
+          "RUNNING": "Running",
+          "WAITING": "Waiting",
+          "COMPLETED": "Completed",
+          "FAILED": "Failed"
+        },
+        "STEP_STATUS": {
+          "OK": "Done",
+          "ERROR": "Error",
+          "SKIPPED": "Skipped",
+          "WAITING": "Waiting"
+        }
+      }
     }
   }
 }
