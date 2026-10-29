@@ -578,7 +578,18 @@
     "CUSTOM_FIELD_DRAG": "Arraste para mudar a ordem",
     "CUSTOM_FIELD_MOVE_UP": "Mover para cima",
     "CUSTOM_FIELD_MOVE_DOWN": "Mover para baixo",
-    "CF_REORDER_ERROR": "Não foi possível salvar a nova ordem. A lista foi restaurada."
+    "CF_REORDER_ERROR": "Não foi possível salvar a nova ordem. A lista foi restaurada.",
+    "AUTO_CARD_TITLE": "Cards automáticos",
+    "AUTO_CARD_DESCRIPTION": "Todo novo lead ganha um card: a primeira mensagem de um contato sem card aberto, ou um contato novo com e-mail ou telefone, cria um card aqui. O card pertence a quem estiver responsável pela conversa.",
+    "AUTO_CARD_ENABLED": "Criar cards automaticamente",
+    "AUTO_CARD_PIPELINE": "Funil",
+    "AUTO_CARD_PIPELINE_AUTO": "Automático (funil ativo mais antigo)",
+    "AUTO_CARD_STAGE": "Etapa",
+    "AUTO_CARD_FIRST_STAGE": "Primeira etapa",
+    "AUTO_CARD_SAVE": "Salvar",
+    "AUTO_CARD_SAVED": "Configuração de cards automáticos salva.",
+    "AUTO_CARD_SAVE_ERROR": "Não foi possível salvar a configuração de cards automáticos.",
+    "AUTO_CARD_LOAD_ERROR": "Não foi possível carregar a configuração de cards automáticos."
   },
   "CRM_CONTACT_PICKER": {
     "SEARCH_PLACEHOLDER": "Buscar por nome, telefone ou e-mail",

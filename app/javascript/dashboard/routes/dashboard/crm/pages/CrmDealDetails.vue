@@ -9,6 +9,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import { useLostReasons } from 'dashboard/composables/useLostReasons';
+import { useOwnRecordsOnly } from 'dashboard/composables/useOwnRecordsOnly';
 import AgentsAPI from 'dashboard/api/agents';
 import { dealsAPI, pipelinesAPI, segmentsAPI } from 'dashboard/api/crm';
 import CrmActivities from '../components/CrmActivities.vue';
@@ -47,6 +48,9 @@ const summaryField = ref(null);
 const summaryDraft = ref({});
 const summaryCurrency = ref(null);
 const summaryLoading = ref(false);
+// An agent only works with their own cards: who owns the card is up to administrators.
+const { isOwnRecordsOnly } = useOwnRecordsOnly();
+const isReadOnlyField = key => key === 'owner_id' && isOwnRecordsOnly.value;
 const summaryFields = [
   { key: 'pipeline_id', label: 'CRM.PIPELINES_TITLE' },
   { key: 'pipeline_stage_id', label: 'CRM.STAGE' },
@@ -228,7 +232,7 @@ const summaryValue = key => {
   return deal.value.description || t('CRM.NOT_SET');
 };
 const editSummary = async key => {
-  if (saving.value || summaryLoading.value) return;
+  if (saving.value || summaryLoading.value || isReadOnlyField(key)) return;
   summaryLoading.value = true;
   error.value = '';
   try {
@@ -378,6 +382,7 @@ const save = async () => {
     owner_id: draft.value.owner_id === '' ? null : draft.value.owner_id,
     segment_id: draft.value.segment_id === '' ? null : draft.value.segment_id,
   };
+  if (isOwnRecordsOnly.value) delete payload.owner_id;
   if (draft.value.status === 'lost' && deal.value.status !== 'lost') {
     const lostReason = await askLostReason();
     if (!lostReason) return;
@@ -719,8 +724,15 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                   <button
                     v-else
                     type="button"
-                    class="group flex items-start justify-between gap-2 w-full min-w-0 py-1 px-2 rounded-md text-start cursor-pointer hover:bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-n-brand"
-                    :disabled="saving || summaryLoading"
+                    class="group flex items-start justify-between gap-2 w-full min-w-0 py-1 px-2 rounded-md text-start focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-n-brand"
+                    :class="
+                      isReadOnlyField(field.key)
+                        ? 'cursor-default'
+                        : 'cursor-pointer hover:bg-n-alpha-2'
+                    "
+                    :disabled="
+                      saving || summaryLoading || isReadOnlyField(field.key)
+                    "
                     @click="editSummary(field.key)"
                   >
                     <span
@@ -729,6 +741,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                       >{{ summaryValue(field.key) }}</span
                     >
                     <span
+                      v-if="!isReadOnlyField(field.key)"
                       class="i-lucide-pencil size-3 shrink-0 mt-1 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
                       aria-hidden="true"
                     />
@@ -984,6 +997,7 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
         <CrmContactPicker v-model="draft.contact_id" :contact="deal?.contact" />
         <CrmCurrencyInput ref="currency" v-model="draft.value" />
         <ComboBox
+          v-if="!isOwnRecordsOnly"
           v-model="draft.owner_id"
           :options="ownerOptions"
           :placeholder="t('CRM.OWNER')"

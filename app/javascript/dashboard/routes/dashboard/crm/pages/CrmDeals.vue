@@ -17,6 +17,7 @@ import CrmDealSearchResults from '../components/CrmDealSearchResults.vue';
 import { pipelinesAPI, dealsAPI, segmentsAPI } from 'dashboard/api/crm';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useLostReasons } from 'dashboard/composables/useLostReasons';
+import { useOwnRecordsOnly } from 'dashboard/composables/useOwnRecordsOnly';
 import { useCrmCardConfig } from '../components/cardConfig';
 import { brlFormatter } from '../components/currencyHelpers';
 import CrmCardCustomizer from '../components/CrmCardCustomizer.vue';
@@ -30,6 +31,8 @@ const { t } = useI18n();
 const { isAdmin } = useAdmin();
 const store = useStore();
 const agents = useMapGetter('agents/getAgents');
+// The list already only holds the agent's own cards, so there is nothing to filter by owner.
+const { isOwnRecordsOnly } = useOwnRecordsOnly();
 const segments = ref([]);
 const {
   activeReasons: lostReasons,
@@ -847,7 +850,7 @@ onUnmounted(() => {
         </header>
         <div class="flex-1 min-h-0 px-6 py-5 overflow-y-auto">
           <div v-if="filterDraft" class="flex flex-col gap-5">
-            <div class="flex flex-col gap-2">
+            <div v-if="!isOwnRecordsOnly" class="flex flex-col gap-2">
               <label class="text-sm font-medium text-n-slate-12">{{
                 t('CRM.OWNER')
               }}</label

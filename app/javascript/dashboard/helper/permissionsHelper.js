@@ -31,6 +31,11 @@ export const getUserRole = (user, accountId) => {
   return currentAccount.role || 'agent';
 };
 
+// An agent without a custom role only works with the records that belong to them: the conversations
+// assigned to them and the CRM cards they own. `getUserRole` reports 'custom_role' when a role id is set.
+export const isOwnRecordsOnlyUser = (user, accountId) =>
+  Boolean(user?.accounts) && getUserRole(user, accountId) === 'agent';
+
 /**
  * Filters and transforms items based on user permissions.
  *

@@ -20,6 +20,7 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
 
   def create
     @deal = Current.account.crm_deals.new(deal_params)
+    @deal.owner = Current.user if own_records_only?
     @deal.require_lost_reason = true
     @deal.save!
     render json: deal_json(@deal), status: :created
@@ -46,11 +47,15 @@ class Api::V1::Accounts::Crm::DealsController < Api::V1::Accounts::BaseControlle
     authorize(@deal || Crm::Deal)
   end
 
+  # A plain agent's cards are always their own: they cannot hand one over or leave it without an owner.
   def deal_params
-    params.require(:deal).permit(
-      :name, :pipeline_id, :pipeline_stage_id, :contact_id, :owner_id, :segment_id, :value, :status, :description,
-      :lost_reason_id, :lost_note
-    )
+    permitted = [:name, :pipeline_id, :pipeline_stage_id, :contact_id, :segment_id, :value, :status, :description, :lost_reason_id, :lost_note]
+    permitted << :owner_id unless own_records_only?
+    params.require(:deal).permit(*permitted)
+  end
+
+  def own_records_only?
+    Current.account_user&.own_records_only?
   end
 
   def next_activities_for(deals)

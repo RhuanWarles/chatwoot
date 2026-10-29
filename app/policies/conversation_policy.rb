@@ -14,6 +14,8 @@ class ConversationPolicy < ApplicationPolicy
   private
 
   def agent_can_view_conversation?
+    return inbox_access? && assigned_to_user? if account_user&.own_records_only?
+
     inbox_access? || team_access?
   end
 

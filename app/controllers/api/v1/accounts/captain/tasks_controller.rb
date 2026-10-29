@@ -1,5 +1,6 @@
 class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseController
   before_action :check_authorization
+  before_action :authorize_conversation
 
   def rewrite
     result = Captain::RewriteService.new(
@@ -52,6 +53,13 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   end
 
   private
+
+  def authorize_conversation
+    return if params[:conversation_display_id].blank?
+
+    conversation = Current.account.conversations.find_by(display_id: params[:conversation_display_id])
+    authorize(conversation, :show?) if conversation
+  end
 
   def render_result(result)
     if result.nil?

@@ -65,6 +65,12 @@ class AccountUser < ApplicationRecord
     administrator? ? ['administrator'] : ['agent']
   end
 
+  # A plain agent (no custom role) only sees the conversations assigned to them and the CRM cards they own.
+  # Administrators and agents with a custom role keep the access their role grants.
+  def own_records_only?
+    agent? && custom_role_id.blank?
+  end
+
   # nil = every screen. An empty list is stored as nil, because it would leave the person with nothing to open.
   def allowed_screens=(screens)
     super(screens.nil? ? nil : Array(screens).map(&:to_s).compact_blank.uniq.presence)

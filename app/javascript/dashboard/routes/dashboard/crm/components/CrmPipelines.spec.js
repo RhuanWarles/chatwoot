@@ -31,6 +31,7 @@ vi.mock('dashboard/api/crm', () => ({
     reorderStages: vi.fn(),
   },
   stagesAPI: vi.fn(),
+  autoCardSettingsAPI: { getSettings: vi.fn(), updateSettings: vi.fn() },
   dealsAPI: { get: vi.fn(), update: vi.fn() },
   customFieldsAPI: { get: vi.fn() },
 }));
@@ -73,7 +74,11 @@ const mountPage = async () => {
       plugins: [
         createI18n({ legacy: false, locale: 'pt_BR', messages: { pt_BR: pt } }),
       ],
-      stubs: { Dialog: DialogStub, Draggable: DraggableStub },
+      stubs: {
+        Dialog: DialogStub,
+        Draggable: DraggableStub,
+        CrmAutoCardSettings: true,
+      },
     },
   });
   await flushPromises();

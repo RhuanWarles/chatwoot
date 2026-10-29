@@ -578,6 +578,17 @@
     "CUSTOM_FIELD_DRAG": "Drag to change the order",
     "CUSTOM_FIELD_MOVE_UP": "Move up",
     "CUSTOM_FIELD_MOVE_DOWN": "Move down",
-    "CF_REORDER_ERROR": "Could not save the new order. The list was restored."
+    "CF_REORDER_ERROR": "Could not save the new order. The list was restored.",
+    "AUTO_CARD_TITLE": "Automatic cards",
+    "AUTO_CARD_DESCRIPTION": "Every new lead gets a card: the first message of a contact that has no open card, or a new contact with an email or phone number, creates one here. The card belongs to whoever is assigned to the conversation.",
+    "AUTO_CARD_ENABLED": "Create cards automatically",
+    "AUTO_CARD_PIPELINE": "Pipeline",
+    "AUTO_CARD_PIPELINE_AUTO": "Automatic (oldest active pipeline)",
+    "AUTO_CARD_STAGE": "Stage",
+    "AUTO_CARD_FIRST_STAGE": "First stage",
+    "AUTO_CARD_SAVE": "Save",
+    "AUTO_CARD_SAVED": "Automatic cards settings saved.",
+    "AUTO_CARD_SAVE_ERROR": "Could not save the automatic cards settings.",
+    "AUTO_CARD_LOAD_ERROR": "Could not load the automatic cards settings."
   }
 }

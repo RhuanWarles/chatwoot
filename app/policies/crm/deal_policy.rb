@@ -7,8 +7,10 @@ module Crm
     def destroy? = @account_user&.administrator?
 
     class Scope < ApplicationPolicy::Scope
+      # A plain agent only sees the cards they own; administrators and agents with a custom role see the whole account.
       def resolve
-        scope.where(account_id: account.id)
+        deals = scope.where(account_id: account.id)
+        account_user&.own_records_only? ? deals.where(owner_id: user.id) : deals
       end
     end
   end

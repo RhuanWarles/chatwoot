@@ -643,6 +643,10 @@ en:
     errors:
       no_trigger: 'This workflow has no trigger to start from'
   crm:
+    auto_card:
+      errors:
+        pipeline: 'The pipeline for automatic cards must be an active pipeline of this account'
+        stage: 'The stage for automatic cards must belong to the chosen pipeline'
     no_message: 'No messages in conversation'
     attachment: '[Attachment: %{type}]'
     no_content: '[No content]'

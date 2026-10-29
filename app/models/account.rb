@@ -62,7 +62,7 @@ class Account < ApplicationRecord
   store_accessor :settings, :captain_auto_resolve_mode
   store_accessor :settings, :enforce_mfa
   # Team that sees the CS notes of the contacts, besides the administrators (see CsNotes::Access)
-  store_accessor :settings, :cs_team_id
+  store_accessor :settings, :cs_team_id, :crm_auto_card
   include AccountCaptainAutoResolve
 
   has_many :account_users, dependent: :destroy_async

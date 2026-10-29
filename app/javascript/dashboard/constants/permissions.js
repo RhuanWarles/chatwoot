@@ -29,6 +29,9 @@ export const REPORTS_PERMISSIONS = 'report_manage';
 
 export const PORTAL_PERMISSIONS = 'knowledge_base_manage';
 
+// Tabs that list conversations of other people, so an agent who only sees their own never gets them.
+export const OWN_RECORDS_HIDDEN_ASSIGNEE_TABS = ['unassigned', 'all'];
+
 export const ASSIGNEE_TYPE_TAB_PERMISSIONS = {
   me: {
     count: 'mineCount',

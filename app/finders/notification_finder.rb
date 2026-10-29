@@ -38,6 +38,20 @@ class NotificationFinder
 
   def find_all_notifications
     @notifications = current_user.notifications.where(account_id: @current_account.id)
+    @notifications = only_own_conversations(@notifications) if own_records_only?
+  end
+
+  # Notifications that were created before the agent lost access to a conversation must not keep exposing it.
+  def only_own_conversations(notifications)
+    own_conversations = @current_account.conversations.where(assignee_id: current_user.id).select(:id)
+    own_messages = @current_account.messages.where(conversation_id: own_conversations).select(:id)
+    notifications.where(primary_actor_type: 'Conversation', primary_actor_id: own_conversations)
+                 .or(notifications.where(primary_actor_type: 'Message', primary_actor_id: own_messages))
+                 .or(notifications.where.not(primary_actor_type: %w[Conversation Message]))
+  end
+
+  def own_records_only?
+    @current_account.account_users.find_by(user_id: current_user.id)&.own_records_only?
   end
 
   def filter_snoozed_notifications
