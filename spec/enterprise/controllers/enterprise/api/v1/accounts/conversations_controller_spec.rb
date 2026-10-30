@@ -15,9 +15,21 @@ RSpec.describe 'Enterprise Conversations API', type: :request do
       before do
         account.enable_features!('sla')
         create(:inbox_member, user: agent, inbox: conversation.inbox)
+        conversation.update!(assignee: agent)
       end
 
-      it 'updates the conversation if you are an agent with access to inbox' do
+      it 'does not update a conversation that is not assigned to the agent' do
+        conversation.update!(assignee: nil)
+
+        patch "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}",
+              params: params,
+              headers: agent.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it 'updates the conversation if you are the agent it is assigned to' do
         patch "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}",
               params: params,
               headers: agent.create_new_auth_token,
@@ -61,6 +73,7 @@ RSpec.describe 'Enterprise Conversations API', type: :request do
         conversation.update!(sla_policy: existing_sla_policy)
         account.disable_features!('sla')
         create(:inbox_member, user: agent, inbox: conversation.inbox)
+        conversation.update!(assignee: agent)
       end
 
       it 'ignores the sla assignment and keeps the existing policy' do

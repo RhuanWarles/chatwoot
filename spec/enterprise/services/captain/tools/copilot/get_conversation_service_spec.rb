@@ -104,7 +104,7 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
     context 'when conversation exists' do
       let(:inbox) { create(:inbox, account: account) }
-      let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+      let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: user) }
 
       before { create(:inbox_member, user: user, inbox: inbox) }
 
@@ -166,12 +166,27 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
     context 'when conversation is accessible through team membership' do
       let(:team) { create(:team, account: account) }
+      let(:custom_role) { create(:custom_role, account: account, permissions: ['conversation_manage']) }
+      let(:conversation) { create(:conversation, :with_team, account: account, team: team) }
+
+      before do
+        create(:team_member, team: team, user: user)
+        AccountUser.find_by!(user: user, account: account).update!(role: :agent, custom_role: custom_role)
+      end
+
+      it 'returns the conversation in llm text format' do
+        expect(service.execute(conversation_id: conversation.display_id)).to eq(conversation.to_llm_text)
+      end
+    end
+
+    context 'when a plain agent only shares the team of the conversation' do
+      let(:team) { create(:team, account: account) }
       let(:conversation) { create(:conversation, :with_team, account: account, team: team) }
 
       before { create(:team_member, team: team, user: user) }
 
-      it 'returns the conversation in llm text format' do
-        expect(service.execute(conversation_id: conversation.display_id)).to eq(conversation.to_llm_text)
+      it 'returns not found message' do
+        expect(service.execute(conversation_id: conversation.display_id)).to eq('Conversation not found')
       end
     end
 

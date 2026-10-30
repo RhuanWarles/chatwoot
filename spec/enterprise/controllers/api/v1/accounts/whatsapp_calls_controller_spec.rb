@@ -8,7 +8,7 @@ RSpec.describe 'WhatsApp Calls API', type: :request do
                               validate_provider_config: false, sync_templates: false)
   end
   let(:inbox) { channel.inbox }
-  let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+  let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: agent) }
   let(:call) do
     create(:call, account: account, inbox: inbox, conversation: conversation, contact: conversation.contact,
                   provider: :whatsapp, direction: :incoming, status: 'ringing', provider_call_id: 'wacid_abc')
@@ -109,7 +109,7 @@ RSpec.describe 'WhatsApp Calls API', type: :request do
     let(:contact) { create(:contact, account: account, phone_number: '+15551234567') }
     let!(:contact_inbox) { create(:contact_inbox, contact: contact, inbox: inbox, source_id: '15551234567') }
     let(:initiate_conversation) do
-      create(:conversation, account: account, inbox: inbox, contact: contact, contact_inbox: contact_inbox)
+      create(:conversation, account: account, inbox: inbox, contact: contact, contact_inbox: contact_inbox, assignee: agent)
     end
 
     it 'creates an outbound Call and returns calling status' do
@@ -139,18 +139,33 @@ RSpec.describe 'WhatsApp Calls API', type: :request do
       expect(Call.find_by(provider_call_id: 'wacid_bsuid').conversation).to eq(initiate_conversation)
     end
 
-    it 'assigns the conversation to the agent placing the call when it is unassigned' do
+    # A plain agent only sees the conversations assigned to them, so who can place a call on an unassigned or someone
+    # else's conversation is an administrator.
+    it 'assigns the conversation to the person placing the call when it is unassigned' do
+      administrator = create(:user, account: account, role: :administrator)
+      initiate_conversation.update!(assignee: nil)
       allow(provider_service).to receive(:initiate_call).and_return({ 'calls' => [{ 'id' => 'wacid_outbound' }] })
+
+      post "/api/v1/accounts/#{account.id}/whatsapp_calls/initiate",
+           params: { conversation_id: initiate_conversation.display_id, sdp_offer: 'sdp_offer' },
+           headers: administrator.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(initiate_conversation.reload.assignee_id).to eq(administrator.id)
+    end
+
+    it 'does not let an agent place a call on a conversation that is not assigned to them' do
+      initiate_conversation.update!(assignee: nil)
 
       post "/api/v1/accounts/#{account.id}/whatsapp_calls/initiate",
            params: { conversation_id: initiate_conversation.display_id, sdp_offer: 'sdp_offer' },
            headers: agent.create_new_auth_token
 
-      expect(response).to have_http_status(:ok)
-      expect(initiate_conversation.reload.assignee_id).to eq(agent.id)
+      expect(response).to have_http_status(:unauthorized)
     end
 
     it 'keeps the existing assignee when the conversation is already assigned' do
+      administrator = create(:user, account: account, role: :administrator)
       other_agent = create(:user, account: account, role: :agent)
       create(:inbox_member, user: other_agent, inbox: inbox)
       initiate_conversation.update!(assignee: other_agent)
@@ -158,20 +173,22 @@ RSpec.describe 'WhatsApp Calls API', type: :request do
 
       post "/api/v1/accounts/#{account.id}/whatsapp_calls/initiate",
            params: { conversation_id: initiate_conversation.display_id, sdp_offer: 'sdp_offer' },
-           headers: agent.create_new_auth_token
+           headers: administrator.create_new_auth_token
 
       expect(response).to have_http_status(:ok)
       expect(initiate_conversation.reload.assignee_id).to eq(other_agent.id)
     end
 
     it 'keeps the AgentBot owner when the conversation is already assigned' do
+      administrator = create(:user, account: account, role: :administrator)
       agent_bot = create(:agent_bot, account: account)
+      initiate_conversation.update!(assignee: nil)
       initiate_conversation.update!(ai_assignee: agent_bot)
       allow(provider_service).to receive(:initiate_call).and_return({ 'calls' => [{ 'id' => 'wacid_outbound' }] })
 
       post "/api/v1/accounts/#{account.id}/whatsapp_calls/initiate",
            params: { conversation_id: initiate_conversation.display_id, sdp_offer: 'sdp_offer' },
-           headers: agent.create_new_auth_token
+           headers: administrator.create_new_auth_token
 
       expect(response).to have_http_status(:ok)
       expect(initiate_conversation.reload.assigned_entity).to eq(agent_bot)
@@ -272,7 +289,7 @@ RSpec.describe 'WhatsApp Calls API', type: :request do
     it 'returns 422 when the conversation belongs to a non-WhatsApp inbox' do
       twilio_channel = create(:channel_twilio_sms, :with_voice, account: account, phone_number: '+15551239998')
       create(:inbox_member, user: agent, inbox: twilio_channel.inbox)
-      twilio_conversation = create(:conversation, account: account, inbox: twilio_channel.inbox)
+      twilio_conversation = create(:conversation, account: account, inbox: twilio_channel.inbox, assignee: agent)
 
       post "/api/v1/accounts/#{account.id}/whatsapp_calls/initiate",
            params: { conversation_id: twilio_conversation.display_id, sdp_offer: 'sdp_offer' },

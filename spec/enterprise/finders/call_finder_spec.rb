@@ -38,9 +38,16 @@ describe CallFinder do
       expect(result[:calls].map(&:id)).to contain_exactly(agent_call.id, other_call.id)
     end
 
-    it 'limits a regular agent to calls they accepted in accessible conversations' do
+    it 'limits a regular agent to calls they accepted in conversations assigned to them' do
+      conversation.update!(assignee: agent)
+
       result = perform(agent)
       expect(result[:calls].map(&:id)).to contain_exactly(agent_call.id)
+    end
+
+    it 'does not show a regular agent the calls of conversations that are not assigned to them' do
+      result = perform(agent)
+      expect(result[:calls]).to be_empty
     end
 
     it 'limits a custom-role agent without report_manage to their own accepted calls' do

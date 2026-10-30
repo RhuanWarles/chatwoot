@@ -34,7 +34,7 @@ describe ConversationFinder do
     end
 
     context 'with inbox' do
-      let!(:restricted_conversation) { create(:conversation, account: account, inbox_id: restricted_inbox.id) }
+      let!(:restricted_conversation) { create(:conversation, account: account, inbox_id: restricted_inbox.id, assignee: user_1) }
 
       it 'returns conversation from any inbox if its admin' do
         params = { inbox_id: restricted_inbox.id }
@@ -74,7 +74,9 @@ describe ConversationFinder do
 
       it 'filter conversations by assignee type all' do
         result = conversation_finder.perform
-        expect(result[:conversations].length).to be 4
+        # a plain agent only sees the conversations assigned to them
+        expect(result[:conversations].length).to be 2
+        expect(result[:conversations].map(&:assignee_id).uniq).to eq([user_1.id])
       end
     end
 
@@ -86,7 +88,8 @@ describe ConversationFinder do
 
       it 'filter conversations by assignee type unassigned' do
         result = conversation_finder.perform
-        expect(result[:conversations].length).to be 1
+        # a plain agent never sees unassigned conversations
+        expect(result[:conversations]).to be_empty
         expect(result[:conversations]).not_to include(agent_bot_conversation)
       end
     end
@@ -96,7 +99,8 @@ describe ConversationFinder do
 
       it 'returns all conversations' do
         result = conversation_finder.perform
-        expect(result[:conversations].length).to be 5
+        # the open and the resolved conversations assigned to the agent
+        expect(result[:conversations].length).to be 3
       end
     end
 
@@ -104,13 +108,13 @@ describe ConversationFinder do
       let(:params) { { status: 'open', sort_by: 'unread' } }
 
       it 'returns all conversations matching the selected status with the highest unread count first' do
-        most_unread_conversation = create(:conversation, account: account, inbox: inbox,
+        most_unread_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1,
                                                          agent_last_seen_at: 1.hour.ago)
-        unread_conversation = create(:conversation, account: account, inbox: inbox,
+        unread_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1,
                                                     agent_last_seen_at: 1.hour.ago)
-        read_conversation = create(:conversation, account: account, inbox: inbox,
+        read_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1,
                                                   agent_last_seen_at: 1.minute.from_now)
-        resolved_unread_conversation = create(:conversation, account: account, inbox: inbox, status: 'resolved',
+        resolved_unread_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1, status: 'resolved',
                                                              agent_last_seen_at: 1.hour.ago)
 
         [most_unread_conversation, unread_conversation, read_conversation, resolved_unread_conversation].each do |conversation|
@@ -133,11 +137,11 @@ describe ConversationFinder do
       end
 
       it 'includes private incoming messages in unread counts used for ordering' do
-        private_unread_conversation = create(:conversation, account: account, inbox: inbox,
+        private_unread_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1,
                                                             agent_last_seen_at: 1.hour.ago)
-        unread_conversation = create(:conversation, account: account, inbox: inbox,
+        unread_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1,
                                                     agent_last_seen_at: 1.hour.ago)
-        read_conversation = create(:conversation, account: account, inbox: inbox,
+        read_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1,
                                                   agent_last_seen_at: 1.minute.from_now)
 
         2.times do
@@ -169,17 +173,18 @@ describe ConversationFinder do
 
       it 'filter conversations by assignee type assigned' do
         result = conversation_finder.perform
-        expect(result[:conversations].length).to be 4
-        expect(result[:conversations]).to include(agent_bot_conversation)
+        # the conversation handled by the bot has no human assignee, so a plain agent does not see it
+        expect(result[:conversations].length).to be 2
+        expect(result[:conversations]).not_to include(agent_bot_conversation)
       end
 
       it 'returns the correct meta' do
         result = conversation_finder.perform
         expect(result[:count]).to eq({
                                        mine_count: 2,
-                                       assigned_count: 4,
-                                       unassigned_count: 1,
-                                       all_count: 5,
+                                       assigned_count: 2,
+                                       unassigned_count: 0,
+                                       all_count: 2,
                                        unanswered_count: 0
                                      })
       end
@@ -189,10 +194,22 @@ describe ConversationFinder do
       let(:team) { create(:team, account: account) }
       let(:params) { { team_id: team.id } }
 
+      before do
+        create(:team_member, user: user_1, team: team)
+        create(:team_member, user: user_2, team: team)
+      end
+
       it 'filter conversations by team' do
-        create(:conversation, account: account, inbox: inbox, team: team)
+        create(:conversation, account: account, inbox: inbox, team: team, assignee: user_1)
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 1
+      end
+
+      it 'does not return team conversations assigned to another agent' do
+        own_conversation = create(:conversation, account: account, inbox: inbox, team: team, assignee: user_1)
+        create(:conversation, account: account, inbox: inbox, team: team, assignee: user_2)
+        result = conversation_finder.perform
+        expect(result[:conversations].map(&:id)).to eq([own_conversation.id])
       end
     end
 
@@ -254,8 +271,12 @@ describe ConversationFinder do
       let(:params) { { source_id: 'testing_source_id' } }
 
       it 'filter conversations by source id' do
+        # the conversation of user_2 with the same source id is not visible to user_1
+        create(:conversation, account: account, inbox: inbox, assignee: user_1, contact_inbox: contact_inbox)
+
         result = conversation_finder.perform
         expect(result[:conversations].length).to be 1
+        expect(result[:conversations].map(&:assignee_id)).to eq([user_1.id])
       end
     end
 
@@ -264,7 +285,7 @@ describe ConversationFinder do
 
       it 'returns conversations with any source' do
         result = conversation_finder.perform
-        expect(result[:conversations].length).to be 4
+        expect(result[:conversations].length).to be 2
       end
     end
 
@@ -282,7 +303,7 @@ describe ConversationFinder do
         conversations[0..27].each do |conversation|
           conversation.update(updated_at: Time.now.utc - 10.seconds)
         end
-        result = conversation_finder.perform
+        result = described_class.new(admin, params).perform
         # pagination is not applied
         # filters are applied
         # modified conversations + 1 conversation created during set up
@@ -315,9 +336,9 @@ describe ConversationFinder do
         result = conversation_finder.perform_meta_only
         expect(result[:count]).to eq({
                                        mine_count: 2,
-                                       assigned_count: 3,
-                                       unassigned_count: 1,
-                                       all_count: 4,
+                                       assigned_count: 2,
+                                       unassigned_count: 0,
+                                       all_count: 2,
                                        unanswered_count: 0
                                      })
       end
@@ -347,8 +368,8 @@ describe ConversationFinder do
       let(:params) { { status: 'open', assignee_type: 'all', conversation_type: 'participating' } }
 
       it 'excludes participating conversations from inboxes the user no longer has access to' do
-        accessible_conversation = create(:conversation, account: account, inbox: inbox)
-        revoked_conversation = create(:conversation, account: account, inbox: restricted_inbox)
+        accessible_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1)
+        revoked_conversation = create(:conversation, account: account, inbox: restricted_inbox, assignee: user_1)
         revoked_membership = create(:inbox_member, user: user_1, inbox: restricted_inbox)
         create(:conversation_participant, user: user_1, conversation: accessible_conversation, account: account)
         create(:conversation_participant, user: user_1, conversation: revoked_conversation, account: account)
@@ -360,8 +381,8 @@ describe ConversationFinder do
       end
 
       it 'excludes the inaccessible conversation from the meta counts too' do
-        accessible_conversation = create(:conversation, account: account, inbox: inbox)
-        revoked_conversation = create(:conversation, account: account, inbox: restricted_inbox)
+        accessible_conversation = create(:conversation, account: account, inbox: inbox, assignee: user_1)
+        revoked_conversation = create(:conversation, account: account, inbox: restricted_inbox, assignee: user_1)
         revoked_membership = create(:inbox_member, user: user_1, inbox: restricted_inbox)
         create(:conversation_participant, user: user_1, conversation: accessible_conversation, account: account)
         create(:conversation_participant, user: user_1, conversation: revoked_conversation, account: account)
