@@ -18,6 +18,8 @@ RSpec.describe MacrosExecutionJob do
   end
 
   context 'when the user belongs to the inbox' do
+    let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: user, status: :open) }
+
     before { create(:inbox_member, user: user, inbox: inbox) }
 
     it 'executes the macro' do
@@ -74,10 +76,10 @@ RSpec.describe MacrosExecutionJob do
 
     before { create(:team_member, user: user, team: team) }
 
-    it 'executes without inbox membership' do
+    it 'does not execute for an agent who only shares the team of the conversation' do
       described_class.perform_now(macro, conversation_ids: [conversation.display_id], user: user)
 
-      expect(conversation.reload).to be_resolved
+      expect(conversation.reload).to be_open
     end
 
     it 'rechecks team access when a queued job runs' do

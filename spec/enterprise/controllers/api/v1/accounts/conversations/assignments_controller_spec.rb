@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Captain assistant conversation assignment API', type: :request do
   let(:account) { create(:account) }
   let(:agent) { create(:user, account: account, role: :agent) }
+  let(:administrator) { create(:user, account: account, role: :administrator) }
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:assistant) { create(:captain_assistant, account: account) }
@@ -32,7 +33,7 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
     )
 
     get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}",
-        headers: agent.create_new_auth_token,
+        headers: administrator.create_new_auth_token,
         as: :json
 
     expect(response.parsed_body.dig('meta', 'assignee')).to include('id' => assistant.id, 'name' => assistant.name)
@@ -41,6 +42,7 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
 
   it 'does not assign an unconnected Captain assistant' do
     unconnected_assistant = create(:captain_assistant, account: account)
+    conversation.update!(assignee: agent)
 
     post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
          params: { assignee_id: unconnected_assistant.id, assignee_type: 'Captain::Assistant' },
@@ -71,7 +73,7 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
 
     post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
          params: { assignee_id: nil },
-         headers: agent.create_new_auth_token,
+         headers: administrator.create_new_auth_token,
          as: :json
 
     expect(response).to have_http_status(:success)
@@ -83,7 +85,7 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
 
     post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
          params: { assignee_id: agent.id },
-         headers: agent.create_new_auth_token,
+         headers: administrator.create_new_auth_token,
          as: :json
 
     expect(response).to have_http_status(:success)
