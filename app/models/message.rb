@@ -496,7 +496,10 @@ class Message < ApplicationRecord
     return if conversation.muted?
     return unless incoming?
 
-    conversation.open! if conversation.snoozed?
+    # A new customer message should make a conversation actionable again. This
+    # also applies to conversations waiting for an agent (`pending`), including
+    # WhatsApp groups, whose header exposes the same "Abrir" action.
+    conversation.open! if conversation.snoozed? || conversation.pending?
 
     reopen_resolved_conversation if conversation.resolved?
   end
