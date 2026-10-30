@@ -16,6 +16,10 @@ vi.mock('dashboard/composables/useImpersonation', () => ({
   }),
 }));
 
+vi.mock('../AudioAlerts/DashboardAudioNotificationHelper', () => ({
+  default: { onNewMessage: vi.fn(), onConversationBotHandoff: vi.fn() },
+}));
+
 global.chatwootConfig = {
   websocketURL: 'wss://test.chatwoot.com',
 };
@@ -428,6 +432,118 @@ describe('ActionCableConnector - Copilot Tests', () => {
 
       vi.advanceTimersByTime(4000);
       expect(mockDispatch).toHaveBeenCalledTimes(2);
+    });
+  });
+  describe('agent without a custom role', () => {
+    const accountUser = (role, customRoleId = null) => ({
+      id: 7,
+      accounts: [{ id: 1, role, custom_role_id: customRoleId }],
+    });
+    const conversation = (id, assigneeId) => ({
+      id,
+      account_id: 1,
+      meta: { assignee: assigneeId ? { id: assigneeId } : null },
+    });
+    const receive = (event, data) =>
+      actionCable.onReceived({ event, data: { account_id: 1, ...data } });
+    const dispatched = name =>
+      mockDispatch.mock.calls.some(([action]) => action === name);
+
+    beforeEach(() => {
+      store.$store.getters.getCurrentUser = accountUser('agent');
+      store.$store.getters.getConversationById = vi.fn(() => undefined);
+    });
+
+    it('ignores messages of conversations assigned to somebody else', () => {
+      receive('message.created', {
+        conversation_id: 5,
+        conversation: { assignee_id: 9, last_activity_at: 1 },
+      });
+
+      expect(dispatched('addMessage')).toBe(false);
+      expect(dispatched('updateConversation')).toBe(false);
+    });
+
+    it('keeps messages of their own conversations', () => {
+      receive('message.created', {
+        conversation_id: 5,
+        conversation: { assignee_id: 7, last_activity_at: 1 },
+      });
+
+      expect(dispatched('addMessage')).toBe(true);
+    });
+
+    it('ignores new and updated conversations that are not assigned to them', () => {
+      receive('conversation.created', conversation(5, 9));
+      receive('conversation.created', conversation(6, null));
+      receive('conversation.updated', conversation(5, 9));
+      receive('conversation.status_changed', conversation(5, 9));
+
+      expect(dispatched('addConversation')).toBe(false);
+      expect(dispatched('updateConversation')).toBe(false);
+    });
+
+    it('removes a conversation that was assigned to somebody else', () => {
+      receive('assignee.changed', conversation(5, 9));
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'removeConversationFromList',
+        5
+      );
+      expect(emitter.emit).toHaveBeenCalledWith(
+        BUS_EVENTS.CONVERSATION_REMOVED,
+        { conversationId: 5 }
+      );
+      expect(dispatched('updateConversation')).toBe(false);
+    });
+
+    it('removes a conversation that was unassigned', () => {
+      receive('assignee.changed', conversation(5, null));
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'removeConversationFromList',
+        5
+      );
+    });
+
+    it('adds a conversation that was just assigned to them', () => {
+      receive('assignee.changed', conversation(5, 7));
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'addConversation',
+        expect.objectContaining({ id: 5 })
+      );
+    });
+
+    it('updates a conversation they already have when it is assigned to them', () => {
+      store.$store.getters.getConversationById = vi.fn(() => ({ id: 5 }));
+
+      receive('assignee.changed', conversation(5, 7));
+
+      expect(mockDispatch).toHaveBeenCalledWith(
+        'updateConversation',
+        expect.objectContaining({ id: 5 })
+      );
+      expect(dispatched('addConversation')).toBe(false);
+    });
+
+    it('does not change anything for administrators', () => {
+      store.$store.getters.getCurrentUser = accountUser('administrator');
+
+      receive('conversation.created', conversation(5, 9));
+      receive('assignee.changed', conversation(5, 9));
+
+      expect(dispatched('addConversation')).toBe(true);
+      expect(dispatched('updateConversation')).toBe(true);
+      expect(dispatched('removeConversationFromList')).toBe(false);
+    });
+
+    it('does not change anything for agents with a custom role', () => {
+      store.$store.getters.getCurrentUser = accountUser('agent', 4);
+
+      receive('conversation.created', conversation(5, 9));
+
+      expect(dispatched('addConversation')).toBe(true);
     });
   });
 });

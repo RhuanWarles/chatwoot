@@ -27,25 +27,37 @@ RSpec.describe Conversations::PermissionFilterService do
     end
 
     context 'when user is an agent' do
-      it 'returns all conversations with no further filtering' do
-        inbox_ids = agent.inboxes.where(account_id: account.id).pluck(:id)
+      let(:colleague) { create(:user, account: account, role: :agent) }
 
-        # The base implementation returns all conversations
-        # expecting the caller to filter by assigned inboxes
-        result = described_class.new(
-          account.conversations.where(inbox_id: inbox_ids),
-          agent,
-          account
-        ).perform
+      before { create(:inbox_member, user: colleague, inbox: inbox) }
 
-        expect(result).to include(conversation)
-        expect(result).to include(another_conversation)
-        expect(result.count).to eq(2)
+      it 'returns only the conversations assigned to the agent' do
+        conversation.update!(assignee: agent)
+        another_conversation.update!(assignee: colleague)
+        create(:conversation, account: account, inbox: inbox)
+
+        result = described_class.new(account.conversations, agent, account).perform
+
+        expect(result).to contain_exactly(conversation)
+      end
+
+      it 'does not return a conversation assigned to the agent in an inbox they are not a member of' do
+        other_inbox_conversation = create(:conversation, account: account, inbox: create(:inbox, account: account), assignee: agent)
+
+        result = described_class.new(account.conversations, agent, account).perform
+
+        expect(result).not_to include(other_inbox_conversation)
+      end
+
+      it 'returns nothing when no conversation is assigned to the agent' do
+        expect(described_class.new(account.conversations, agent, account).perform).to be_empty
       end
     end
 
     context 'when plan_hint_selective_filter is enabled' do
       let!(:other_inbox) { create(:inbox, account: account) }
+
+      before { conversation.update!(assignee: agent) }
       let!(:inaccessible_conversation) { create(:conversation, account: account, inbox: other_inbox) }
 
       it 'returns the same conversations as the default scoping for an agent' do

@@ -50,7 +50,12 @@ import {
 import { createFiltersMatcher } from '../store/modules/conversations/helpers/filterHelpers';
 import { sortComparator } from '../store/modules/conversations/helpers';
 import { CONVERSATION_EVENTS } from '../helper/AnalyticsHelper/events';
-import { ASSIGNEE_TYPE_TAB_PERMISSIONS } from 'dashboard/constants/permissions.js';
+import {
+  ASSIGNEE_TYPE_TAB_PERMISSIONS,
+  OWN_RECORDS_HIDDEN_ASSIGNEE_TABS,
+} from 'dashboard/constants/permissions.js';
+import { useOwnRecordsOnly } from 'dashboard/composables/useOwnRecordsOnly';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { normalizeConversationViewPreferences } from 'dashboard/helper/conversationViewPreferences';
 
 const props = defineProps({
@@ -179,6 +184,8 @@ const userPermissions = computed(() => {
   return getUserPermissions(currentUser.value, currentAccountId.value);
 });
 
+const { isOwnRecordsOnly } = useOwnRecordsOnly();
+
 const assigneeTabItems = computed(() => {
   const preferences = normalizeConversationViewPreferences(
     uiSettings.value.conversation_view_preferences
@@ -189,6 +196,11 @@ const assigneeTabItems = computed(() => {
     item => item.permissions
   )
     .filter(({ key }) => preferences.tabs[key])
+    .filter(
+      ({ key }) =>
+        !isOwnRecordsOnly.value ||
+        !OWN_RECORDS_HIDDEN_ASSIGNEE_TABS.includes(key)
+    )
     .map(({ key, count: countKey }) => ({
       key,
       name: t(`CHAT_LIST.ASSIGNEE_TYPE_TABS.${key}`),
@@ -274,9 +286,10 @@ const conversationFilters = computed(() => {
     activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.HANDOFF_REQUESTED;
   return {
     inboxId: props.conversationInbox || undefined,
-    assigneeType: isUnansweredTab || isHandoffTab
-      ? wootConstants.ASSIGNEE_TYPE.ALL
-      : activeAssigneeTab.value,
+    assigneeType:
+      isUnansweredTab || isHandoffTab
+        ? wootConstants.ASSIGNEE_TYPE.ALL
+        : activeAssigneeTab.value,
     status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
@@ -891,6 +904,13 @@ function allSelectedConversationsStatus(status) {
 function toggleSelectAll(check) {
   selectAllConversations(check, conversationList);
 }
+
+// The open conversation was assigned to somebody else, so it is no longer ours to look at.
+useEmitter(BUS_EVENTS.CONVERSATION_REMOVED, ({ conversationId }) => {
+  if (Number(route.params.conversation_id) === Number(conversationId)) {
+    redirectToConversationList();
+  }
+});
 
 useEmitter('fetch_conversation_stats', () => {
   if (hasAppliedFiltersOrActiveFolders.value) return;

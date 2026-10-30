@@ -156,7 +156,9 @@ class Conversations::UnreadCounts::Counter
 
   def permission_mode
     @permission_mode ||=
-      if !custom_role_agent? || permissions.include?(MANAGE_ALL_PERMISSION)
+      if account_user&.own_records_only?
+        :mine
+      elsif !custom_role_agent? || permissions.include?(MANAGE_ALL_PERMISSION)
         :base
       elsif permissions.include?(UNASSIGNED_PERMISSION)
         :unassigned_and_mine

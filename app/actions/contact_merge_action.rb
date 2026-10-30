@@ -14,6 +14,7 @@ class ContactMergeAction
       merge_contact_inboxes
       merge_contact_notes
       merge_cs_notes
+      merge_crm_deals
       merge_calls
       merge_and_remove_mergee_contact
     end
@@ -48,6 +49,14 @@ class ContactMergeAction
     base_note = ContactCsNote.find_or_initialize_by(account_id: @account.id, contact_id: @base_contact.id)
     base_note.field_values = mergee_note.field_values.merge(base_note.field_values)
     base_note.save!
+  end
+
+  # The mergee's cards come along (with their history) instead of being destroyed together with the contact.
+  def merge_crm_deals
+    Crm::Deal.where(account_id: @account.id, contact_id: @mergee_contact.id).update(contact_id: @base_contact.id)
+    # rubocop:disable Rails/SkipsModelValidations
+    Crm::Activity.where(account_id: @account.id, contact_id: @mergee_contact.id).update_all(contact_id: @base_contact.id)
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def merge_messages

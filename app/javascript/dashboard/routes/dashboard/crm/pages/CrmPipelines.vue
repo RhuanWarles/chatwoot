@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import Button from 'dashboard/components-next/button/Button.vue';
 import CrmPipelineEditor from '../components/CrmPipelineEditor.vue';
+import CrmAutoCardSettings from '../components/CrmAutoCardSettings.vue';
 import { pipelinesAPI } from 'dashboard/api/crm';
 const { t } = useI18n();
 const { isAdmin } = useAdmin();
@@ -53,6 +54,7 @@ onMounted(load);
         @click="editor.open()"
       />
     </header>
+    <CrmAutoCardSettings v-if="isAdmin && !loading" :pipelines="pipelines" />
     <p v-if="error" role="alert" class="text-sm text-n-ruby-11">{{ error }}</p>
     <div
       v-if="!loading && !pipelines.length"

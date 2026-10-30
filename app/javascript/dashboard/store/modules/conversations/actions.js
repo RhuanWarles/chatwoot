@@ -109,11 +109,12 @@ const actions = {
         // The unanswered tab queries the API with assignee_type=all and uses
         // `unanswered` as an additional filter. Keep its pagination state
         // separate from the regular "all" tab.
-        const filterType = params.handoffRequested
-          ? 'handoff_requested'
-          : params.unanswered
-            ? 'unanswered'
-            : params.assigneeType;
+        let filterType = params.assigneeType;
+        if (params.handoffRequested) {
+          filterType = 'handoff_requested';
+        } else if (params.unanswered) {
+          filterType = 'unanswered';
+        }
 
         buildConversationList({ commit, dispatch }, params, data, filterType, {
           replaceExisting,
@@ -458,8 +459,7 @@ const actions = {
           });
           commit(types.UPDATE_CONVERSATION, {
             id: conversationId,
-            additional_attributes:
-              handoffResponse.data.additional_attributes,
+            additional_attributes: handoffResponse.data.additional_attributes,
           });
         } catch (error) {
           // Keep the marker visible if the server could not persist the reply.
@@ -573,6 +573,12 @@ const actions = {
     } catch (error) {
       throw new Error(error);
     }
+  },
+
+  // Drops a conversation from the local list only (nothing is deleted on the server): used when it stops
+  // being visible to the person, e.g. it was assigned to somebody else.
+  removeConversationFromList({ commit }, conversationId) {
+    commit(types.DELETE_CONVERSATION, conversationId);
   },
 
   addConversation({ commit, state, dispatch, rootState }, conversation) {

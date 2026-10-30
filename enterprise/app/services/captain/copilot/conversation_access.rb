@@ -21,6 +21,9 @@ module Captain::Copilot::ConversationAccess
   def base_accessible_conversations(conversations, account, user, account_user)
     return conversations if account_user.administrator?
 
+    inbox_ids = user.inboxes.where(account_id: account.id).select(:id)
+    return conversations.where(inbox_id: inbox_ids, assignee_id: user.id) if account_user.own_records_only?
+
     inbox_conversations = conversations.where(inbox_id: user.inboxes.where(account_id: account.id).select(:id))
     team_conversations = conversations.where(team_id: user.teams.where(account_id: account.id).select(:id))
 

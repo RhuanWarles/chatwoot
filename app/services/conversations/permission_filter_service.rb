@@ -10,6 +10,7 @@ class Conversations::PermissionFilterService
 
   def perform
     return conversations if user_role == 'administrator'
+    return accessible_conversations.where(assignee_id: user.id) if account_user&.own_records_only?
 
     accessible_conversations
   end
@@ -37,7 +38,7 @@ class Conversations::PermissionFilterService
   end
 
   def account_user
-    AccountUser.find_by(account_id: account.id, user_id: user.id)
+    @account_user ||= AccountUser.find_by(account_id: account.id, user_id: user.id)
   end
 
   def user_role

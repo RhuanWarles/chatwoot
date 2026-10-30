@@ -40,9 +40,9 @@ RSpec.describe ConversationPolicy, type: :policy do
       end
     end
 
-    context 'when agent has inbox access' do
+    context 'when the conversation is assigned to the agent' do
       let(:inbox) { create(:inbox, account: account) }
-      let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+      let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: agent) }
 
       before { create(:inbox_member, user: agent, inbox: inbox) }
 
@@ -51,14 +51,34 @@ RSpec.describe ConversationPolicy, type: :policy do
       end
     end
 
-    context 'when agent has team access' do
+    context 'when the agent is in the inbox but the conversation is unassigned or belongs to someone else' do
+      let(:inbox) { create(:inbox, account: account) }
+      let(:colleague) { create(:user, account: account, role: :agent) }
+      let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+      let(:colleague_conversation) { create(:conversation, account: account, inbox: inbox, assignee: colleague) }
+
+      before do
+        create(:inbox_member, user: agent, inbox: inbox)
+        create(:inbox_member, user: colleague, inbox: inbox)
+      end
+
+      it 'denies access to an unassigned conversation' do
+        expect(subject).not_to permit(agent_context, conversation)
+      end
+
+      it 'denies access to a conversation assigned to a colleague' do
+        expect(subject).not_to permit(agent_context, colleague_conversation)
+      end
+    end
+
+    context 'when agent only shares the team of the conversation' do
       let(:team) { create(:team, account: account) }
       let(:conversation) { create(:conversation, :with_team, account: account, team: team) }
 
       before { create(:team_member, team: team, user: agent) }
 
-      it 'allows access' do
-        expect(subject).to permit(agent_context, conversation)
+      it 'denies access' do
+        expect(subject).not_to permit(agent_context, conversation)
       end
     end
 

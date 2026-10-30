@@ -35,9 +35,14 @@ class SearchService
     @search_query ||= params[:q].to_s.strip
   end
 
+  # The same rule as the conversation lists, so a search never shows what the lists hide.
+  def permitted_conversations
+    Conversations::PermissionFilterService.new(current_account.conversations, current_user, current_account).perform
+  end
+
   def filter_conversations
-    conversations_query = current_account.conversations.where(inbox_id: accessable_inbox_ids)
-                                         .joins('INNER JOIN contacts ON conversations.contact_id = contacts.id')
+    conversations_query = permitted_conversations
+                          .joins('INNER JOIN contacts ON conversations.contact_id = contacts.id')
                                          .where("cast(conversations.display_id as text) ILIKE :search OR contacts.name ILIKE :search OR contacts.email
                             ILIKE :search OR contacts.phone_number ILIKE :search OR contacts.identifier ILIKE :search
                             OR conversations.additional_attributes->>'mail_subject' ILIKE :search", search: "%#{search_query}%")
@@ -70,7 +75,7 @@ class SearchService
   end
 
   def should_run_advanced_search?
-    ChatwootApp.advanced_search_allowed? && current_account.feature_enabled?('advanced_search')
+    ChatwootApp.advanced_search_allowed? && current_account.feature_enabled?('advanced_search') && !account_user&.own_records_only?
   end
 
   def advanced_search; end
@@ -113,6 +118,7 @@ class SearchService
   def message_base_query
     query = current_account.messages.where('created_at >= ?', 3.months.ago)
     query = query.where(inbox_id: accessable_inbox_ids) unless should_skip_inbox_filtering?
+    query = query.where(conversation_id: permitted_conversations.select(:id)) unless account_user.administrator?
     query
   end
 

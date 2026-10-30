@@ -72,6 +72,7 @@ class CrmAPI extends ApiClient {
   }
 }
 
+export { default as autoCardSettingsAPI } from './crmAutoCardSettings';
 export const pipelinesAPI = new CrmAPI('pipelines');
 export const dealsAPI = new CrmAPI('deals');
 export const customFieldsAPI = new CrmAPI('custom_fields');

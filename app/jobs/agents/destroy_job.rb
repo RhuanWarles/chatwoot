@@ -7,6 +7,7 @@ class Agents::DestroyJob < ApplicationJob
       remove_user_from_teams(account, user)
       remove_user_from_inboxes(account, user)
       unassign_conversations(account, user)
+      release_crm_deals(account, user)
     end
   end
 
@@ -27,6 +28,13 @@ class Agents::DestroyJob < ApplicationJob
   def destroy_notification_setting(account, user)
     setting = user.notification_settings.find_by(account_id: account.id)
     setting&.destroy!
+  end
+
+  # The cards of someone who leaves wait, without an owner, for an administrator to hand them over.
+  def release_crm_deals(account, user)
+    # rubocop:disable Rails/SkipsModelValidations
+    account.crm_deals.where(owner_id: user.id).in_batches.update_all(owner_id: nil)
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def unassign_conversations(account, user)

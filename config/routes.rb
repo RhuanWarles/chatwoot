@@ -418,6 +418,7 @@ Rails.application.routes.draw do
             end
             resources :segments, only: [:index, :create, :update, :destroy]
             resources :lost_reasons, only: [:index, :create, :update, :destroy]
+            resource :auto_card_settings, only: [:show, :update], controller: 'auto_card_settings'
             resources :pipelines, only: [:index, :show, :create, :update, :destroy] do
               resources :stages, controller: 'pipeline_stages', only: [:create, :update, :destroy] do
                 collection { patch :reorder }

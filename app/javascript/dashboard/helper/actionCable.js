@@ -15,6 +15,11 @@ import { VOICE_CALL_PROVIDERS } from 'dashboard/helper/inbox';
 import { markCallDismissed, isLocalCall } from 'dashboard/helper/voice';
 import { VOICE_CALL_DIRECTION } from 'dashboard/components-next/message/constants';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import {
+  getEventAssigneeId,
+  isForeignConversationEvent,
+} from 'dashboard/helper/ownRecordsScope';
+import { isOwnRecordsOnlyUser } from 'dashboard/helper/permissionsHelper';
 
 const { isImpersonating } = useImpersonation();
 const UNREAD_COUNTS_REFETCH_THROTTLE_MS = 5000;
@@ -94,7 +99,18 @@ class ActionCableConnector extends BaseActionCableConnector {
     return this.app.$store.getters.getCurrentAccountId === data.account_id;
   };
 
+  // An agent without a custom role only works with the conversations assigned to them.
+  isForeignConversation = data => {
+    const { getCurrentUser, getCurrentAccountId } = this.app.$store.getters;
+    return isForeignConversationEvent(
+      data,
+      getCurrentUser,
+      getCurrentAccountId
+    );
+  };
+
   onMessageUpdated = data => {
+    if (this.isForeignConversation(data)) return;
     this.app.$store.dispatch('updateMessage', data);
   };
 
@@ -118,18 +134,42 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onAssigneeChanged = payload => {
     const { id } = payload;
-    if (id) {
+    const { getters } = this.app.$store;
+    const ownRecordsOnly = isOwnRecordsOnlyUser(
+      getters.getCurrentUser,
+      getters.getCurrentAccountId
+    );
+    if (id && ownRecordsOnly) {
+      this.syncOwnConversation(payload);
+    } else if (id) {
       this.app.$store.dispatch('updateConversation', payload);
     }
     this.fetchConversationStats();
   };
 
+  // Assigned to somebody else: the conversation leaves the list (and the open view) at once. Assigned
+  // to the person: it joins the list, as nothing else would announce it to them.
+  syncOwnConversation = payload => {
+    const { id } = payload;
+    const { getters, dispatch } = this.app.$store;
+    if (getEventAssigneeId(payload) !== getters.getCurrentUser.id) {
+      dispatch('removeConversationFromList', id);
+      emitter.emit(BUS_EVENTS.CONVERSATION_REMOVED, { conversationId: id });
+    } else if (getters.getConversationById(id)) {
+      dispatch('updateConversation', payload);
+    } else {
+      dispatch('addConversation', payload);
+    }
+  };
+
   onConversationCreated = data => {
+    if (this.isForeignConversation(data)) return;
     this.app.$store.dispatch('addConversation', data);
     this.fetchConversationStats();
   };
 
   onConversationBotHandoff = data => {
+    if (this.isForeignConversation(data)) return;
     // Trust the handoff event, not its request's performer: a bot handoff can
     // run inside an agent-authenticated API request.
     const key = `${data.account_id}:${data.id}`;
@@ -184,6 +224,7 @@ class ActionCableConnector extends BaseActionCableConnector {
   }
 
   onConversationRead = data => {
+    if (this.isForeignConversation(data)) return;
     this.app.$store.dispatch('updateConversation', data);
   };
 
@@ -191,6 +232,7 @@ class ActionCableConnector extends BaseActionCableConnector {
   onLogout = () => AuthAPI.logout();
 
   onMessageCreated = data => {
+    if (this.isForeignConversation(data)) return;
     const {
       conversation: { last_activity_at: lastActivityAt },
       conversation_id: conversationId,
@@ -214,11 +256,13 @@ class ActionCableConnector extends BaseActionCableConnector {
   onReload = () => window.location.reload();
 
   onStatusChange = data => {
+    if (this.isForeignConversation(data)) return;
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
   };
 
   onConversationUpdated = data => {
+    if (this.isForeignConversation(data)) return;
     this.app.$store.dispatch('updateConversation', data);
     this.fetchConversationStats();
   };

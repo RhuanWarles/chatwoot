@@ -57,7 +57,9 @@ describe('handoff event → conversation store → audible alert', () => {
     alerts.store = new AudioNotificationStore(store);
     alerts.currentUser = {
       id: 7,
-      accounts: [{ id: 1, permissions: ['administrator'] }],
+      accounts: [
+        { id: 1, role: 'administrator', permissions: ['administrator'] },
+      ],
     };
     alerts.notificationConfig = {
       audioAlertType: ['mine'],

@@ -108,6 +108,7 @@ class Api::V1::Accounts::Integrations::LinearController < Api::V1::Accounts::Int
 
   def fetch_conversation
     @conversation = Current.account.conversations.find_by!(display_id: permitted_params[:conversation_id])
+    authorize @conversation, :show?
   end
 
   def linear_processor_service
