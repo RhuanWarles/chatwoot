@@ -166,6 +166,7 @@
     "TIMEOUT_ERROR": "O teste demorou demais para responder. Tente novamente.",
     "LIVE_TOOLS_WARNING": "Este assistente possui ferramentas que podem fazer requisições externas durante o teste.",
     "DIAGNOSTICS": "Mostrar diagnóstico",
+    "REQUEST_LOG": "Log da requisição",
     "UNKNOWN_TOOL": "Ferramenta desconhecida",
     "STATUS": "status {status}",
     "TOOLS_SKIPPED": "{count} ferramenta(s) ativa(s) não estão habilitadas no Playground e não serão chamadas aqui. Ative “Permitir requisições reais no Playground” na ferramenta para testá-la.",

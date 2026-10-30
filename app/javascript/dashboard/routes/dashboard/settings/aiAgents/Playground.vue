@@ -137,9 +137,11 @@ onMounted(load);
 </script>
 
 <template>
-  <main class="flex flex-col w-full min-w-0 h-full min-h-0 gap-4">
+  <main
+    class="flex flex-col w-full h-full min-w-0 min-h-0 gap-4 overflow-hidden"
+  >
     <header
-      class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 py-3 border-b bg-n-solid-1 border-n-weak"
+      class="flex flex-wrap items-center justify-between flex-none gap-4 py-3 border-b bg-n-solid-1 border-n-weak"
     >
       <div class="flex items-start min-w-0 gap-3">
         <RouterLink
@@ -176,7 +178,7 @@ onMounted(load);
     </header>
 
     <div
-      class="flex flex-wrap items-center justify-between gap-2 text-xs text-n-slate-11"
+      class="flex flex-wrap items-center justify-between flex-none gap-2 text-xs text-n-slate-11"
     >
       <span v-if="runtime?.mode === 'platform'">{{
         t('AI_PLAYGROUND.PLATFORM_CREDITS', { amount: availableCredits ?? 0 })
@@ -187,20 +189,20 @@ onMounted(load);
     </div>
     <p
       v-if="hasLiveTools"
-      class="p-3 text-sm rounded-lg text-n-amber-11 bg-n-amber-2"
+      class="flex-none p-3 text-sm rounded-lg text-n-amber-11 bg-n-amber-2"
     >
       {{ t('AI_PLAYGROUND.LIVE_TOOLS_WARNING') }}
     </p>
     <p
       v-if="skippedToolsCount"
-      class="p-3 text-sm rounded-lg text-n-slate-11 bg-n-solid-2"
+      class="flex-none p-3 text-sm rounded-lg text-n-slate-11 bg-n-solid-2"
     >
       {{ t('AI_PLAYGROUND.TOOLS_SKIPPED', { count: skippedToolsCount }) }}
     </p>
     <p
       v-if="error"
       role="alert"
-      class="p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
+      class="flex-none p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
     >
       {{ t(error.key)
       }}<span v-if="error.status" class="text-xs">
@@ -210,24 +212,25 @@ onMounted(load);
 
     <div
       ref="messagesRef"
-      class="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto rounded-xl bg-n-solid-2"
+      class="flex-1 min-h-0 p-4 overflow-y-auto rounded-xl overscroll-contain bg-n-solid-2"
     >
-      <p
-        v-if="!loading && !messages.length"
-        class="m-auto text-sm text-center text-n-slate-11"
-      >
-        {{ t('AI_PLAYGROUND.EMPTY') }}
-      </p>
-      <article
-        v-for="message in messages"
-        :key="`${message.request_id || message.created_at}-${message.role}`"
-        class="flex flex-col gap-2 w-full max-w-[85%]"
-        :class="
-          message.role === 'user'
-            ? 'self-end items-end'
-            : 'self-start items-start'
-        "
-      >
+      <div class="flex flex-col min-h-full gap-4 justify-end">
+        <p
+          v-if="!loading && !messages.length"
+          class="m-auto text-sm text-center text-n-slate-11"
+        >
+          {{ t('AI_PLAYGROUND.EMPTY') }}
+        </p>
+        <article
+          v-for="message in messages"
+          :key="`${message.request_id || message.created_at}-${message.role}`"
+          class="flex flex-col gap-2 w-full max-w-[85%]"
+          :class="
+            message.role === 'user'
+              ? 'self-end items-end'
+              : 'self-start items-start'
+          "
+        >
         <div
           class="px-4 py-3 text-sm whitespace-pre-wrap rounded-2xl"
           :class="
@@ -241,7 +244,9 @@ onMounted(load);
         <details
           v-if="
             message.role === 'assistant' &&
-            (message.knowledge_sources?.length || toolCallsFor(message).length)
+            (message.request_log ||
+              message.knowledge_sources?.length ||
+              toolCallsFor(message).length)
           "
           class="w-full text-xs text-n-slate-11"
         >
@@ -249,6 +254,13 @@ onMounted(load);
             {{ t('AI_PLAYGROUND.DIAGNOSTICS') }}
           </summary>
           <div class="flex flex-col gap-2 p-3 mt-2 rounded-lg bg-n-solid-1">
+            <div v-if="message.request_log">
+              <strong>{{ t('AI_PLAYGROUND.REQUEST_LOG') }}</strong>
+              <pre
+                class="p-2 mt-1 overflow-x-auto whitespace-pre-wrap rounded bg-n-alpha-2"
+                >{{ JSON.stringify(message.request_log, null, 2) }}</pre
+              >
+            </div>
             <div v-if="message.knowledge_sources?.length">
               <strong>{{
                 t('KNOWLEDGE.CONTEXT_USED', {
@@ -295,14 +307,15 @@ onMounted(load);
             </div>
           </div>
         </details>
-      </article>
-      <p v-if="sending" class="self-start text-sm text-n-slate-11">
-        {{ t('AI_PLAYGROUND.RESPONDING', { name: agent?.name || '' }) }}
-      </p>
+        </article>
+        <p v-if="sending" class="self-start text-sm text-n-slate-11">
+          {{ t('AI_PLAYGROUND.RESPONDING', { name: agent?.name || '' }) }}
+        </p>
+      </div>
     </div>
 
     <form
-      class="flex items-end gap-2 p-3 rounded-xl bg-n-solid-2"
+      class="flex-none flex items-end gap-2 p-3 rounded-xl bg-n-solid-2"
       @submit.prevent="send"
     >
       <TextArea

@@ -538,6 +538,7 @@
     "TEST_COST": "This test uses {count} credit(s).",
     "DURATION": "{duration} ms",
     "DIAGNOSTICS": "Show diagnostics",
+    "REQUEST_LOG": "Request log",
     "UNKNOWN_TOOL": "Unknown tool",
     "STATUS": "status {status}",
     "VALIDATION_ERROR": "Check the message and assistant configuration.",

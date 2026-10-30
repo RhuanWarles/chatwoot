@@ -35,14 +35,21 @@ class Saas::AiAgents::Playground
       tools = Saas::AiAgents::Provider.tools_supported?(effective_provider(mode)) ? Saas::AiTools::Catalog.for_agent(@agent, playground: true) : []
       executor = Saas::AiTools::Executor.new(account: @account, agent: @agent, playground_session_id: session_id)
       sources = Saas::Knowledge::Retrieval.for_agent(@agent, prompt)
+      request_messages = build_messages(data, prompt, sources, tools)
+      request_log = {
+        'provider' => effective_provider(mode), 'model' => effective_model(mode),
+        'temperature' => @agent.temperature.to_f, 'messages' => request_messages,
+        'tools' => tools
+      }
       result = Saas::AiAgents::Provider.for(@account, @agent.provider, mode: mode).generate(
-        model: effective_model(mode), messages: build_messages(data, prompt, sources, tools), temperature: @agent.temperature.to_f,
+        model: effective_model(mode), messages: request_messages, temperature: @agent.temperature.to_f,
         tools: tools, timezone: @agent.timezone, tool_handler: ->(name, arguments) { executor.call(name, arguments) }
       )
       assistant = {
         'role' => 'assistant', 'content' => Saas::AiAgents::Context.strip_internal_author_context(result.fetch(:content)), 'request_id' => request_id,
         'created_at' => Time.current.iso8601,
         'knowledge_sources' => sources,
+        'request_log' => request_log,
         'tool_calls_count' => result.fetch(:tool_calls_count, 0), 'tool_names' => result.fetch(:tool_names, []),
         'tool_calls' => result.fetch(:tool_calls, [])
       }

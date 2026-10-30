@@ -21,7 +21,7 @@ export default {
           path: ':agentId/playground',
           name: 'ai_agent_playground',
           component: Playground,
-          meta: { permissions: ['administrator'] },
+          meta: { permissions: ['administrator'], fullHeight: true, wide: true },
         },
         {
           path: 'new',
