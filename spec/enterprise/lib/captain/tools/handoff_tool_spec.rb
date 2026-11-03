@@ -79,7 +79,8 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
           tool.perform(tool_context, reason: 'Customer needs specialized support')
         end
 
-        it 'notifies inbox members after the committed handoff' do
+        it 'notifies inbox members who can open the conversation after the committed handoff' do
+          user.account_users.find_by!(account: account).update!(role: :administrator)
           create(:inbox_member, user: user, inbox: inbox)
           notification_setting = user.notification_settings.find_by!(account: account)
           notification_setting.selected_email_flags = [:email_conversation_creation]
@@ -91,6 +92,20 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
           end
 
           expect(user.notifications.find_by(primary_actor: conversation, notification_type: :conversation_creation)).to be_present
+        end
+
+        it 'does not notify a plain agent about a handed off conversation that is not assigned to them' do
+          create(:inbox_member, user: user, inbox: inbox)
+          notification_setting = user.notification_settings.find_by!(account: account)
+          notification_setting.selected_email_flags = [:email_conversation_creation]
+          notification_setting.selected_push_flags = []
+          notification_setting.save!
+
+          perform_enqueued_jobs do
+            tool.perform(tool_context, reason: 'Customer needs specialized support')
+          end
+
+          expect(user.notifications.find_by(primary_actor: conversation, notification_type: :conversation_creation)).to be_nil
         end
 
         it 'skips the handoff when a newer message has arrived' do

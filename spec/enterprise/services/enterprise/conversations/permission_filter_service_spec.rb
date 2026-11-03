@@ -32,7 +32,7 @@ RSpec.describe Enterprise::Conversations::PermissionFilterService do
     end
 
     context 'when user is a regular agent' do
-      it 'returns all conversations in assigned inboxes' do
+      it 'returns only the conversations assigned to the agent in their inboxes' do
         result = Conversations::PermissionFilterService.new(
           account.conversations,
           agent,
@@ -40,10 +40,10 @@ RSpec.describe Enterprise::Conversations::PermissionFilterService do
         ).perform
 
         expect(result).to include(assigned_conversation)
-        expect(result).to include(unassigned_conversation)
-        expect(result).to include(another_assigned_conversation)
+        expect(result).not_to include(unassigned_conversation)
+        expect(result).not_to include(another_assigned_conversation)
         expect(result).not_to include(another_inbox_conversation)
-        expect(result.count).to eq(3)
+        expect(result.count).to eq(1)
       end
     end
 

@@ -11,11 +11,16 @@ RSpec.describe SearchService, 'agent scope' do
   let!(:unassigned_conversation) { create(:conversation, account: account, inbox: inbox, contact: contact) }
 
   before do
+    Current.account = account
     create(:inbox_member, inbox: inbox, user: agent)
     create(:inbox_member, inbox: inbox, user: colleague)
     [own_conversation, colleague_conversation, unassigned_conversation].each do |conversation|
       create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, content: "Quero o plano #{conversation.id}")
     end
+  end
+
+  after do
+    Current.account = nil
   end
 
   def search(user, type)

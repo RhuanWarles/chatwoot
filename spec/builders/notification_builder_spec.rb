@@ -7,7 +7,7 @@ describe NotificationBuilder do
     let!(:account) { create(:account) }
     let!(:user) { create(:user, account: account) }
     let!(:inbox) { create(:inbox, account: account) }
-    let!(:primary_actor) { create(:conversation, account: account, inbox: inbox) }
+    let!(:primary_actor) { create(:conversation, account: account, inbox: inbox, assignee: user) }
 
     before do
       create(:inbox_member, user: user, inbox: inbox)

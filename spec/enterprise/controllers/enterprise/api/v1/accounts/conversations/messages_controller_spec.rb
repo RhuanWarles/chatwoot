@@ -10,6 +10,7 @@ RSpec.describe 'Enterprise Conversation Messages API', type: :request do
 
     before do
       create(:inbox_member, inbox: conversation.inbox, user: agent)
+      conversation.update!(assignee: agent)
     end
 
     it 'soft deletes the message and records an audit log with the original content' do

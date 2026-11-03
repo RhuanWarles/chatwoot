@@ -159,16 +159,32 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
 
     context 'when the user has team access without inbox access' do
       let(:user) { create(:user, account: account, role: :agent) }
+      let(:custom_role) { create(:custom_role, account: account, permissions: ['conversation_manage']) }
       let(:team) { create(:team, account: account) }
       let!(:team_conversation) { create(:conversation, :with_team, account: account, team: team) }
 
-      before { create(:team_member, team: team, user: user) }
+      before do
+        create(:team_member, team: team, user: user)
+        AccountUser.find_by!(user: user, account: account).update!(role: :agent, custom_role: custom_role)
+      end
 
       it 'returns and counts the team conversation' do
         result = service.execute
 
         expect(result).to include('Total number of conversations: 1')
         expect(result).to include("Conversation ID: ##{team_conversation.display_id}")
+      end
+    end
+
+    context 'when a plain agent only shares the team of a conversation' do
+      let(:user) { create(:user, account: account, role: :agent) }
+      let(:team) { create(:team, account: account) }
+      let!(:team_conversation) { create(:conversation, :with_team, account: account, team: team) }
+
+      before { create(:team_member, team: team, user: user) }
+
+      it 'does not return the team conversation' do
+        expect(service.execute).not_to include("Conversation ID: ##{team_conversation.display_id}")
       end
     end
 

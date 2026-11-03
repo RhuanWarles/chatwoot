@@ -19,7 +19,7 @@ describe NotificationListener do
         notification_setting.save!
 
         create(:inbox_member, user: first_agent, inbox: inbox)
-        conversation.reload
+        conversation.update!(assignee: first_agent)
 
         event = Events::Base.new(event_name, Time.zone.now, conversation: conversation)
 
@@ -34,7 +34,7 @@ describe NotificationListener do
         notification_setting.save!
 
         create(:inbox_member, user: agent_with_out_notification, inbox: inbox)
-        conversation.reload
+        conversation.update!(assignee: agent_with_out_notification)
 
         event = Events::Base.new(event_name, Time.zone.now, conversation: conversation)
 
@@ -143,6 +143,23 @@ describe NotificationListener do
     end
 
     it 'will create a mention notification when a user is mentioned in a private note' do
+      administrator = create(:user, account: account, role: :administrator)
+
+      message = build(
+        :message,
+        conversation: conversation,
+        account: account,
+        content: "hey [#{administrator.name}](mention://user/#{administrator.id}/#{administrator.name})",
+        private: true
+      )
+      event = Events::Base.new(event_name, Time.zone.now, message: message)
+      listener.message_created(event)
+
+      expect(administrator.notifications.count).to eq(1)
+      expect(administrator.notifications.first.notification_type).to eq('conversation_mention')
+    end
+
+    it 'will not notify a mentioned agent who cannot open the conversation' do
       create(:inbox_member, user: first_agent, inbox: inbox)
 
       message = build(
@@ -155,8 +172,7 @@ describe NotificationListener do
       event = Events::Base.new(event_name, Time.zone.now, message: message)
       listener.message_created(event)
 
-      expect(first_agent.notifications.count).to eq(1)
-      expect(first_agent.notifications.first.notification_type).to eq('conversation_mention')
+      expect(first_agent.notifications.count).to eq(0)
     end
 
     it 'will not create new message notifications for private messages without mentions' do
@@ -192,7 +208,7 @@ describe NotificationListener do
         notification_setting.save!
 
         create(:inbox_member, user: first_agent, inbox: inbox)
-        conversation.reload
+        conversation.update!(assignee: first_agent)
 
         event = Events::Base.new(event_name, Time.zone.now, conversation: conversation)
 
@@ -207,7 +223,7 @@ describe NotificationListener do
         notification_setting.save!
 
         create(:inbox_member, user: agent_with_out_notification, inbox: inbox)
-        conversation.reload
+        conversation.update!(assignee: agent_with_out_notification)
 
         event = Events::Base.new(event_name, Time.zone.now, conversation: conversation)
 

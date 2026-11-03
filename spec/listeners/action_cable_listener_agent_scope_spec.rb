@@ -19,7 +19,8 @@ RSpec.describe ActionCableListener, 'agent scope' do
 
   it 'tells a conversation only to its assignee, the administrators and the agents whose role decides what they see' do
     expect(ActionCableBroadcastJob).to receive(:perform_later).with(
-      a_collection_containing_exactly(assignee.pubsub_token, administrator.pubsub_token, custom_role_agent.pubsub_token),
+      a_collection_containing_exactly(assignee.pubsub_token, administrator.pubsub_token, custom_role_agent.pubsub_token,
+                                      conversation.contact_inbox.pubsub_token),
       'conversation.updated',
       anything
     )

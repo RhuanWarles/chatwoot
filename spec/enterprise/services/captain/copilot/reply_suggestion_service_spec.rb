@@ -14,7 +14,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   let(:user) { create(:user, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:inbox) { create(:inbox, account: account) }
-  let(:conversation) { create(:conversation, account: account, inbox: inbox) }
+  let(:conversation) { create(:conversation, account: account, inbox: inbox, assignee: user) }
   let(:copilot_thread) { create(:captain_copilot_thread, account: account, user: user, assistant: assistant) }
   let(:runner) do
     instance_double(

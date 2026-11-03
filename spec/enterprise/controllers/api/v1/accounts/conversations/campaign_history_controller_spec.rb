@@ -58,6 +58,7 @@ RSpec.describe 'Conversation campaign history API', type: :request do
   it 'allows an agent who can view the conversation' do
     agent = create(:user, account: account, role: :agent)
     create(:inbox_member, inbox: inbox, user: agent)
+    conversation.update!(assignee: agent)
     recipient
 
     get url, headers: agent.create_new_auth_token
@@ -68,6 +69,16 @@ RSpec.describe 'Conversation campaign history API', type: :request do
 
   it 'rejects unauthenticated requests' do
     get url
+    expect(response).to have_http_status(:unauthorized)
+  end
+
+  it 'rejects an agent of the inbox when the conversation is not assigned to them' do
+    agent = create(:user, account: account, role: :agent)
+    create(:inbox_member, inbox: inbox, user: agent)
+    recipient
+
+    get url, headers: agent.create_new_auth_token
+
     expect(response).to have_http_status(:unauthorized)
   end
 

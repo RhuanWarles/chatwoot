@@ -179,6 +179,7 @@ RSpec.describe Captain::Copilot::ChatService do
 
     it 'includes current viewing history when conversation_id is present' do
       create(:inbox_member, user: user, inbox: inbox)
+      conversation.update!(assignee: user)
       service = described_class.new(assistant, { user_id: user.id, conversation_id: conversation.display_id })
       messages = service.messages
 
@@ -232,14 +233,26 @@ RSpec.describe Captain::Copilot::ChatService do
       expect(service.messages.any? { |m| m[:content].include?('You are currently viewing the conversation') }).to be false
     end
 
-    it 'includes current viewing history when the user has team access' do
+    it 'includes current viewing history when a user whose role manages every conversation has team access' do
+      team = create(:team, account: account)
+      create(:team_member, team: team, user: user)
+      custom_role = create(:custom_role, account: account, permissions: ['conversation_manage'])
+      AccountUser.find_by!(user: user, account: account).update!(role: :agent, custom_role: custom_role)
+      conversation.update!(team: team)
+
+      service = described_class.new(assistant, { user_id: user.id, conversation_id: conversation.display_id })
+
+      expect(service.messages.any? { |m| m[:content].include?('You are currently viewing the conversation') }).to be true
+    end
+
+    it 'omits current viewing history when a plain agent only has team access' do
       team = create(:team, account: account)
       create(:team_member, team: team, user: user)
       conversation.update!(team: team)
 
       service = described_class.new(assistant, { user_id: user.id, conversation_id: conversation.display_id })
 
-      expect(service.messages.any? { |m| m[:content].include?('You are currently viewing the conversation') }).to be true
+      expect(service.messages.any? { |m| m[:content].include?('You are currently viewing the conversation') }).to be false
     end
   end
 

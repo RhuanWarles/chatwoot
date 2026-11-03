@@ -68,7 +68,16 @@ RSpec.describe 'Conversations API', type: :request do
         create(:team_member, team: team, user: agent)
       end
 
-      it 'allows accessing the conversation via team membership' do
+      it 'does not allow a plain agent to access the conversation only through the team' do
+        get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}", headers: agent.create_new_auth_token
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it 'allows accessing the conversation when it is assigned to the agent of the team' do
+        create(:inbox_member, user: agent, inbox: conversation.inbox)
+        conversation.update!(assignee: agent)
+
         get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}", headers: agent.create_new_auth_token
 
         expect(response).to have_http_status(:ok)
@@ -259,7 +268,18 @@ RSpec.describe 'Conversations API', type: :request do
         conversation.update!(team: team)
       end
 
-      it 'allows accessing conversation reporting events via team membership' do
+      it 'does not allow a plain agent to read the reporting events only through the team' do
+        get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/reporting_events",
+            headers: team_agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it 'allows accessing conversation reporting events when it is assigned to the agent of the team' do
+        create(:inbox_member, user: team_agent, inbox: conversation.inbox)
+        conversation.update!(assignee: team_agent)
+
         get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/reporting_events",
             headers: team_agent.create_new_auth_token,
             as: :json
