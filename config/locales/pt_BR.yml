@@ -357,6 +357,9 @@ pt_BR:
         participant_left: '%{participant_name} saiu do grupo do WhatsApp'
         participant_removed: '%{actor_name} removeu %{participant_name} do grupo do WhatsApp'
         system_actor: 'O sistema'
+      whatsapp_reaction:
+        message: '%{actor_name} reagiu %{emoji} a uma mensagem'
+        unknown_actor: 'Alguém'
     templates:
       greeting_message_body: '%{account_name} normalmente responde em algumas horas.'
       ways_to_reach_you_message_body: 'Informe à equipe uma forma de contatá-lo.'

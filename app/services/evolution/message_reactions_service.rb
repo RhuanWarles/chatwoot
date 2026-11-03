@@ -121,8 +121,12 @@ class Evolution::MessageReactionsService
 
   def store!(identity, emoji, timestamp, event_id)
     changed = false
+    reaction_added = false
     @message.with_lock do
       records = Array(@message.content_attributes[ATTRIBUTE]).map(&:dup)
+      reaction_added = emoji.present? && records.none? do |record|
+        record['event_id'] == event_id && record['emoji'] == emoji
+      end
       updated = updated_records(records, identity, emoji, timestamp, event_id)
       next unless updated
 
@@ -131,8 +135,65 @@ class Evolution::MessageReactionsService
       @message.update_columns(content_attributes: @message.content_attributes.merge(ATTRIBUTE => updated)) # rubocop:disable Rails/SkipsModelValidations
       changed = true
     end
-    Rails.configuration.dispatcher.dispatch('message.reaction_updated', Time.current, message: @message, previous_changes: {}) if changed
+    if changed
+      record_reaction_activity(identity, emoji) if reaction_added
+      Rails.configuration.dispatcher.dispatch('message.reaction_updated', Time.current, message: @message, previous_changes: {})
+    end
     @message.content_attributes[ATTRIBUTE] || []
+  end
+
+  def record_reaction_activity(identity, emoji)
+    from_me = identity['from_me']
+    actor_name = identity['display_name'].presence || I18n.t('conversations.activity.whatsapp_reaction.unknown_actor')
+    activity = @conversation.messages.create!(
+      account_id: @conversation.account_id,
+      inbox_id: @conversation.inbox_id,
+      message_type: :activity,
+      content: I18n.t('conversations.activity.whatsapp_reaction.message', actor_name: actor_name, emoji: emoji),
+      content_attributes: {
+        activity: {
+          type: 'whatsapp_reaction',
+          message_id: @message.id,
+          emoji: emoji,
+          from_me: from_me
+        }
+      },
+      sender: reaction_sender(identity)
+    )
+
+    update_conversation_reply_state(from_me)
+    notify_reaction(activity, identity)
+  end
+
+  def reaction_sender(identity)
+    return User.find_by(id: identity['user_id']) if identity['from_me']
+
+    Contact.find_by(id: identity['contact_id']) || @conversation.contact
+  end
+
+  def update_conversation_reply_state(from_me)
+    now = Time.current
+    @conversation.update_columns( # rubocop:disable Rails/SkipsModelValidations
+      waiting_for_reply: !from_me,
+      last_relevant_message_type: from_me ? Message.message_types[:outgoing] : Message.message_types[:incoming],
+      last_activity_at: now,
+      updated_at: now
+    )
+    @conversation.dispatch_conversation_updated_event
+  end
+
+  def notify_reaction(activity, identity)
+    users = [@conversation.assignee, *@conversation.conversation_participants.map(&:user)].compact.uniq
+    users.reject! { |user| identity['from_me'] && user.id == identity['user_id'] }
+    users.each do |user|
+      NotificationBuilder.new(
+        notification_type: 'assigned_conversation_new_message',
+        user: user,
+        account: @conversation.account,
+        primary_actor: @conversation,
+        secondary_actor: activity
+      ).perform
+    end
   end
 
   def updated_records(records, identity, emoji, timestamp, event_id)

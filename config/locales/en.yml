@@ -410,6 +410,9 @@ en:
         participant_left: '%{participant_name} left the WhatsApp group'
         participant_removed: '%{actor_name} removed %{participant_name} from the WhatsApp group'
         system_actor: 'The system'
+      whatsapp_reaction:
+        message: '%{actor_name} reacted %{emoji} to a message'
+        unknown_actor: 'Someone'
     templates:
       greeting_message_body: '%{account_name} typically replies in a few hours.'
       ways_to_reach_you_message_body: 'Give the team a way to reach you.'
