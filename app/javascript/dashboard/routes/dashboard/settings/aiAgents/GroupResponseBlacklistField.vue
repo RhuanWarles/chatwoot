@@ -3,11 +3,10 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import { normalizeGroupPhone } from './form';
+import { normalizeGroupPhoneInput } from './form';
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
-  enabled: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue']);
@@ -16,7 +15,7 @@ const number = ref('');
 const error = ref('');
 
 const addNumber = () => {
-  const normalized = normalizeGroupPhone(number.value);
+  const normalized = normalizeGroupPhoneInput(number.value);
   if (!normalized) {
     error.value = t('AI_AGENTS.GROUP_BLACKLIST_INVALID');
     return;
@@ -39,17 +38,14 @@ const removeNumber = value => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3" :class="{ 'opacity-60': !enabled }">
+  <div class="flex flex-col gap-3">
     <p class="text-sm font-medium text-n-slate-12">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_LABEL') }}
     </p>
     <p class="text-xs text-n-slate-11">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_HELP') }}
     </p>
-    <p v-if="!enabled" class="text-xs text-n-slate-11">
-      {{ t('AI_AGENTS.GROUP_BLACKLIST_DISABLED') }}
-    </p>
-    <p v-else-if="!modelValue.length" class="text-xs text-n-slate-11">
+    <p v-if="!modelValue.length" class="text-xs text-n-slate-11">
       {{ t('AI_AGENTS.GROUP_BLACKLIST_EMPTY') }}
     </p>
     <ul v-if="modelValue.length" class="flex flex-wrap gap-2">
@@ -65,7 +61,7 @@ const removeNumber = value => {
           size="sm"
           icon="i-lucide-x"
           :aria-label="t('AI_AGENTS.GROUP_BLACKLIST_REMOVE', { number: phone })"
-          :disabled="disabled || !enabled"
+          :disabled="disabled"
           @click="removeNumber(phone)"
         />
       </li>
@@ -77,7 +73,7 @@ const removeNumber = value => {
         class="flex-1"
         :label="t('AI_AGENTS.GROUP_BLACKLIST_NUMBER')"
         :placeholder="t('AI_AGENTS.GROUP_BLACKLIST_PLACEHOLDER')"
-        :disabled="disabled || !enabled"
+        :disabled="disabled"
         :message="error"
         :message-type="error ? 'error' : 'info'"
         @enter="addNumber"
@@ -86,7 +82,7 @@ const removeNumber = value => {
         type="button"
         variant="faded"
         :label="t('AI_AGENTS.GROUP_BLACKLIST_ADD')"
-        :disabled="disabled || !enabled"
+        :disabled="disabled"
         @click="addNumber"
       />
     </div>

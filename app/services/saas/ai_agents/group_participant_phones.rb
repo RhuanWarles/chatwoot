@@ -1,4 +1,5 @@
 # A group's Contact represents the group, not the author of an incoming message.
+# In a direct conversation the Contact is the author, so its own identities count.
 class Saas::AiAgents::GroupParticipantPhones
   PARTICIPANT_KEYS = %w[
     participant participantAlt participant_alt participant_identifier participant_phone participant_phone_number
@@ -16,6 +17,12 @@ class Saas::AiAgents::GroupParticipantPhones
 
   def call
     resolution[:phones]
+  end
+
+  def group?
+    return @group if defined?(@group)
+
+    @group = Evolution::GroupJidResolver.call(@message.conversation).present?
   end
 
   def resolution
@@ -38,7 +45,7 @@ class Saas::AiAgents::GroupParticipantPhones
   def mapped_phones(lids)
     contacts = @message.account.contacts.where(identifier: lids).pluck(:phone_number)
     phones = contacts.filter_map { |number| phone(number) }
-    return phones.uniq if phones.any?
+    return phones.uniq if phones.any? || !group?
 
     members = Evolution::GroupParticipantsService.new(@message.conversation).perform
     members.filter_map { |member| phone(member[:phone]) if lids.include?(member[:lid]) }.uniq
@@ -48,12 +55,18 @@ class Saas::AiAgents::GroupParticipantPhones
     metadata = [@message.additional_attributes, @message.content_attributes].filter_map do |attributes|
       attributes.respond_to?(:to_h) ? attributes.to_h.stringify_keys : nil
     end
-    identities = metadata.flat_map { |attributes| nested_participant_identities(attributes) }
-    sender = @message.sender
-    if sender && sender.id != @message.conversation.contact_id
-      identities.concat([['sender.identifier', sender.identifier], ['sender.phone_number', sender.phone_number]])
-    end
+    identities = metadata.flat_map { |attributes| nested_participant_identities(attributes) } + sender_identities
     identities.select { |_source, value| value.is_a?(String) && value.present? }.uniq
+  end
+
+  def sender_identities
+    sender = @message.sender
+    identities = []
+    if sender && (!group? || sender.id != @message.conversation.contact_id)
+      identities.push(['sender.identifier', sender.identifier], ['sender.phone_number', sender.phone_number])
+    end
+    identities.push(['contact_inbox.source_id', @message.conversation.contact_inbox&.source_id]) unless group?
+    identities
   end
 
   def nested_participant_identities(value, path = 'metadata')

@@ -66,9 +66,16 @@ RSpec.describe Saas::AiAgents::Respond do
       expect(incoming.reload.content).to eq('Important context from A')
     end
 
-    it 'still replies to the blacklisted number in private' do
+    it 'does not reply to the blacklisted number in private' do
       conversation.contact_inbox.update!(source_id: '5562999991111@s.whatsapp.net')
-      incoming.update!(content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      described_class.new(conversation, incoming).perform
+      expect(provider).not_to have_received(:generate)
+      expect(conversation.messages.outgoing).to be_empty
+      expect(conversation.messages).to include(incoming)
+    end
+
+    it 'still replies to other numbers in private' do
+      conversation.contact_inbox.update!(source_id: '5562988882222@s.whatsapp.net')
       described_class.new(conversation, incoming).perform
       expect(provider).to have_received(:generate).once
     end

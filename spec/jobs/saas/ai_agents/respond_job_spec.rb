@@ -16,6 +16,20 @@ RSpec.describe Saas::AiAgents::RespondJob do
     described_class.perform_now(account.id, conversation.id, message.id)
   end
 
+  it 'checks an updated blacklist for a private conversation before responding' do
+    account = create(:account)
+    conversation = create(:conversation, account: account)
+    conversation.contact.update!(phone_number: '+5562999991111')
+    message = create(:message, account: account, inbox: conversation.inbox, conversation: conversation, sender: conversation.contact)
+    account.saas_ai_agents.build.configure!(
+      { name: 'AI', system_prompt: 'Help', provider: 'openai', model: 'test-model', active: true,
+        group_response_blacklist: ['5562999991111'] }, selected_inboxes: [conversation.inbox]
+    )
+    expect(Saas::AiAgents::Context).not_to receive(:latest_incoming)
+    expect(Saas::AiAgents::Respond).not_to receive(:new)
+    described_class.perform_now(account.id, conversation.id, message.id)
+  end
+
   it 'rejects a conversation outside the supplied account' do
     account = create(:account)
     conversation = create(:conversation)

@@ -526,7 +526,6 @@ onMounted(load);
           </label>
           <GroupResponseBlacklistField
             v-model="draft.group_response_blacklist"
-            :enabled="draft.respond_to_groups"
             :disabled="busy"
           />
           <label class="flex items-center justify-between gap-3"

@@ -31,12 +31,68 @@ RSpec.describe Saas::AiAgents::GroupResponseBlacklist do
     expect(conversation.messages).to include(message)
   end
 
-  it 'does not block private conversations or other participants' do
+  it 'does not block other participants of the group' do
     message.update!(content_attributes: { participant: '5562988882222@s.whatsapp.net' })
     expect(described_class.blocked?(agent, message)).to be(false)
-    conversation.contact_inbox.update!(source_id: '5562999991111@s.whatsapp.net')
-    message.update!(content_attributes: { participant: '5562999991111@s.whatsapp.net' })
-    expect(described_class.blocked?(agent, message)).to be(false)
+  end
+
+  context 'with a direct conversation' do
+    let(:contact) { conversation.contact }
+    let(:direct_message) do
+      create(:message, account: account, inbox: conversation.inbox, conversation: conversation, sender: contact)
+    end
+
+    before { conversation.contact_inbox.update!(source_id: 'direct-chat') }
+
+    it 'blocks the contact by phone number without altering the stored message' do
+      contact.update!(phone_number: '+5562999991111')
+      expect(described_class.blocked?(agent, direct_message)).to be(true)
+      expect(conversation.messages).to include(direct_message)
+    end
+
+    it 'blocks a number saved without the ninth digit' do
+      contact.update!(phone_number: '+556299991111')
+      expect(described_class.blocked?(agent, direct_message)).to be(true)
+    end
+
+    it 'blocks when only the contact identifier carries the phone JID' do
+      contact.update!(identifier: '5562999991111@s.whatsapp.net')
+      expect(described_class.blocked?(agent, direct_message)).to be(true)
+    end
+
+    it 'blocks when only the conversation source id carries the phone JID' do
+      conversation.contact_inbox.update!(source_id: '5562999991111@s.whatsapp.net')
+      expect(described_class.blocked?(agent, direct_message)).to be(true)
+    end
+
+    it 'blocks a LID contact when the message carries the real phone as remoteJidAlt' do
+      contact.update!(identifier: '247613823709228@lid')
+      direct_message.update!(content_attributes: { whatsapp_message_key: {
+                               remoteJid: '247613823709228@lid', remoteJidAlt: '5562999991111@s.whatsapp.net'
+                             } })
+      expect(described_class.blocked?(agent, direct_message)).to be(true)
+    end
+
+    it 'does not block other numbers' do
+      contact.update!(phone_number: '+5562988882222', identifier: '5562988882222@s.whatsapp.net')
+      conversation.contact_inbox.update!(source_id: '5562988882222@s.whatsapp.net')
+      expect(described_class.blocked?(agent, direct_message)).to be(false)
+    end
+
+    it 'does not guess a number for an unresolved LID nor ask Evolution for group members' do
+      contact.update!(identifier: '247613823709228@lid')
+      agent.group_response_blacklist = ['247613823709228']
+      expect(Evolution::GroupParticipantsService).not_to receive(:new)
+      expect(described_class.blocked?(agent, direct_message)).to be(false)
+    end
+
+    it 'does not block staff replies or private notes' do
+      contact.update!(phone_number: '+5562999991111')
+      direct_message.update!(private: true)
+      expect(described_class.blocked?(agent, direct_message)).to be(false)
+      direct_message.update!(private: false, message_type: :outgoing, sender: create(:user, account: account))
+      expect(described_class.blocked?(agent, direct_message)).to be(false)
+    end
   end
 
   it 'uses participantAlt in the stored WhatsApp key without looking up LID when a phone is available' do
