@@ -409,6 +409,7 @@ class Message < ApplicationRecord
     mark_pending_conversation_as_open_for_human_response
     set_conversation_activity
     dispatch_create_events
+    clear_ai_handoff_after_human_response
     send_reply
     execute_message_template_hooks
     update_contact_activity
@@ -418,6 +419,15 @@ class Message < ApplicationRecord
   # The newest internal note stays on top of the conversation (see Conversations::PinnedNoteService).
   def pin_as_latest_note
     Conversations::PinnedNoteService.new(conversation).pin_latest(self)
+  end
+
+  def clear_ai_handoff_after_human_response
+    return unless human_response? && !private? && content_attributes['generated_by_ai'] != true
+
+    conversation.with_lock do
+      attributes = conversation.additional_attributes
+      conversation.update!(additional_attributes: attributes.except('ai_handoff')) if attributes['ai_handoff'] == true
+    end
   end
 
   def update_contact_activity
