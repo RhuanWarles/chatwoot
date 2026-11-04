@@ -10,12 +10,24 @@ export const normalizeGroupPhone = value => {
 
   if (digits.startsWith('55')) {
     const national = digits.slice(2);
-    if (national.length === 10 && /^[1-9]\d{7}$/.test(national)) {
+    if (national.length === 10 && /^[1-9]\d[6-9]\d{7}$/.test(national)) {
       return `55${national.slice(0, 2)}9${national.slice(2)}`;
     }
   }
 
   return digits;
+};
+
+// DDD + number typed without a country code, e.g. "62 99466-5004". Typing "+" opts out of this guess.
+const BRAZIL_NATIONAL_NUMBER = /^[1-9][1-9](?:9\d{8}|[2-9]\d{7})$/;
+
+export const normalizeGroupPhoneInput = value => {
+  const normalized = normalizeGroupPhone(value);
+  if (!normalized || value.trim().startsWith('+')) return normalized;
+
+  return BRAZIL_NATIONAL_NUMBER.test(normalized)
+    ? normalizeGroupPhone(`55${normalized}`)
+    : normalized;
 };
 
 export const validGroupBlacklist = value =>

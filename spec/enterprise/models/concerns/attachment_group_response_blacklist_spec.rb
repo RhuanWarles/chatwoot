@@ -25,6 +25,16 @@ RSpec.describe Attachment do
     expect(message.reload.attachments).to include(attachment)
   end
 
+  it 'does not enqueue independent transcription for a blacklisted contact in a direct conversation' do
+    direct = create(:conversation, account: account, inbox: inbox)
+    direct.contact.update!(phone_number: '+5562999991111')
+    audio = create(:message, account: account, inbox: inbox, conversation: direct, sender: direct.contact)
+    expect(Messages::AudioTranscriptionJob).not_to receive(:perform_later)
+    attachment = audio.attachments.create!(account: account, file_type: :audio,
+                                           file: fixture_file_upload('spec/assets/sample.mp3', 'audio/mpeg'))
+    expect(attachment).to be_persisted
+  end
+
   it 'preserves independent transcription for staff audio notes in the same group' do
     note = create(:message, account: account, inbox: inbox, conversation: conversation, private: true,
                             message_type: :outgoing, sender: create(:user, account: account))

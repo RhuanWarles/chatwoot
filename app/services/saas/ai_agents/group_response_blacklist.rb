@@ -1,3 +1,4 @@
+# Despite the name, the list applies to direct conversations and groups alike.
 class Saas::AiAgents::GroupResponseBlacklist
   def self.phone(value)
     Evolution::ParticipantNumbers.normalize_phone(value, minimum_digits: 7)
@@ -10,7 +11,6 @@ class Saas::AiAgents::GroupResponseBlacklist
   def self.blocked?(agent, message)
     return false if agent.group_response_blacklist.empty?
     return false unless message.incoming? && !message.private? && message.sender_type == 'Contact'
-    return false unless Evolution::GroupJidResolver.call(message.conversation)
 
     participants = Saas::AiAgents::GroupParticipantPhones.new(message)
     resolution = participants.resolution
@@ -18,7 +18,7 @@ class Saas::AiAgents::GroupResponseBlacklist
     matched = agent.group_response_blacklist.intersect?(phones)
     Rails.logger.info({
       event: 'ai_group_blacklist_check', message_id: message.id, conversation_id: message.conversation_id,
-      agent_id: agent.id, group: true, participant_source: resolution[:source],
+      agent_id: agent.id, group: participants.group?, participant_source: resolution[:source],
       phone: mask_phone(phones.first), blacklist_size: agent.group_response_blacklist.size,
       blacklist_match: matched, action: matched ? 'skip' : 'respond'
     }.to_json)

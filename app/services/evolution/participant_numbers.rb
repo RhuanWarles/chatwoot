@@ -23,7 +23,7 @@ class Evolution::ParticipantNumbers
     return digits unless digits.start_with?('55')
 
     national = digits.delete_prefix('55')
-    return digits unless national.length == 10 && national.match?(/\A[1-9]\d{7}\z/)
+    return digits unless national.length == 10 && national.match?(/\A[1-9]\d[6-9]\d{7}\z/)
 
     "55#{national[0, 2]}9#{national[2, 8]}"
   end

@@ -65,10 +65,19 @@ RSpec.describe AiAgentListener do
       expect(Saas::AiAgents::RespondJob).to have_received(:perform_later).with(account.id, conversation.id, other.id)
     end
 
-    it 'allows the same blocked number in a private conversation' do
+    it 'does not enqueue a response for the blocked number in a private conversation' do
+      conversation.contact.update!(phone_number: '+5562999991111')
       conversation.contact_inbox.update!(source_id: '5562999991111@s.whatsapp.net')
-      private_message = create(:message, account: account, inbox: inbox, conversation: conversation,
-                                         content_attributes: { participant: '5562999991111@s.whatsapp.net' })
+      private_message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact)
+      described_class.instance.message_created(Events::Base.new('message.created', Time.current, message: private_message))
+      expect(Saas::AiAgents::RespondJob).not_to have_received(:perform_later)
+      expect(conversation.messages).to include(private_message)
+    end
+
+    it 'still responds to other numbers in a private conversation' do
+      conversation.contact.update!(phone_number: '+5562988882222')
+      conversation.contact_inbox.update!(source_id: '5562988882222@s.whatsapp.net')
+      private_message = create(:message, account: account, inbox: inbox, conversation: conversation, sender: conversation.contact)
       expect(Saas::AiAgents::RespondJob).to have_received(:perform_later).with(account.id, conversation.id, private_message.id)
     end
 

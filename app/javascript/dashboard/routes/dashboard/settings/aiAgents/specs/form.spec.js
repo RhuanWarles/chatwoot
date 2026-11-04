@@ -3,6 +3,7 @@ import {
   newAgent,
   validAgent,
   normalizeGroupPhone,
+  normalizeGroupPhoneInput,
   validGroupBlacklist,
 } from '../form';
 
@@ -44,6 +45,17 @@ describe('AI agent configuration', () => {
       })
     ).toBe(false);
   });
+  it('assumes Brazil only for typed numbers without a country code', () => {
+    expect(normalizeGroupPhoneInput('62994665004')).toBe('5562994665004');
+    expect(normalizeGroupPhoneInput('(62) 99466-5004')).toBe('5562994665004');
+    expect(normalizeGroupPhoneInput('62 9466-5004')).toBe('5562994665004');
+    expect(normalizeGroupPhoneInput('5562994665004')).toBe('5562994665004');
+    expect(normalizeGroupPhoneInput('+51 912 345 678')).toBe('51912345678');
+    expect(normalizeGroupPhoneInput('+290 1234')).toBe('2901234');
+    expect(normalizeGroupPhoneInput('hello')).toBeNull();
+    expect(normalizeGroupPhone('62994665004')).toBe('62994665004');
+  });
+
   it('starts inactive and requires a prompt and model', () => {
     expect(newAgent().active).toBe(false);
     expect(newAgent().respond_to_groups).toBe(false);
