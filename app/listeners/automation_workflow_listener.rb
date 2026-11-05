@@ -1,6 +1,7 @@
 class AutomationWorkflowListener < BaseListener
   DEAL_EVENTS = %w[
-    crm_deal_created crm_deal_updated crm_deal_stage_changed crm_deal_status_changed crm_deal_pipeline_changed crm_deal_field_changed
+    crm_deal_created crm_deal_updated crm_deal_stage_changed crm_deal_status_changed crm_deal_pipeline_changed crm_deal_owner_changed
+    crm_deal_field_changed
   ].freeze
   OUTCOME_EVENTS = { 'won' => 'crm_deal_won', 'lost' => 'crm_deal_lost' }.freeze
 

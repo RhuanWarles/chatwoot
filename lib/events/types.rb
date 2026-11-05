@@ -55,6 +55,7 @@ module Events::Types
   CRM_DEAL_STAGE_CHANGED = 'crm.deal.stage_changed'
   CRM_DEAL_STATUS_CHANGED = 'crm.deal.status_changed'
   CRM_DEAL_PIPELINE_CHANGED = 'crm.deal.pipeline_changed'
+  CRM_DEAL_OWNER_CHANGED = 'crm.deal.owner_changed'
   CRM_DEAL_FIELD_CHANGED = 'crm.deal.field_changed'
 
   # contact events
