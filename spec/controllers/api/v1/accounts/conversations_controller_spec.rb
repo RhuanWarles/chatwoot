@@ -592,6 +592,58 @@ RSpec.describe 'Conversations API', type: :request do
         expect(conversation.reload.status).to eq('resolved')
       end
 
+      context 'when the agent cannot resolve conversations' do
+        # A plain agent only reaches the conversations assigned to them, so the guard to test is the next one.
+        before do
+          conversation.update!(assignee: agent)
+          agent.account_users.find_by(account: account).update!(can_resolve_conversations: false)
+        end
+
+        it 'refuses to resolve when the status is empty' do
+          post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/toggle_status",
+               headers: agent.create_new_auth_token,
+               params: { status: '' },
+               as: :json
+
+          expect(response).to have_http_status(:forbidden)
+          expect(conversation.reload.status).to eq('open')
+        end
+
+        it 'refuses to resolve when the status is resolved' do
+          post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/toggle_status",
+               headers: agent.create_new_auth_token,
+               params: { status: 'resolved' },
+               as: :json
+
+          expect(response).to have_http_status(:forbidden)
+          expect(conversation.reload.status).to eq('open')
+        end
+
+        it 'still lets the agent reopen a resolved conversation' do
+          conversation.update!(status: 'resolved')
+
+          post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/toggle_status",
+               headers: agent.create_new_auth_token,
+               params: { status: 'open' },
+               as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(conversation.reload.status).to eq('open')
+        end
+
+        it 'still lets an administrator resolve' do
+          administrator.account_users.find_by(account: account).update!(can_resolve_conversations: false)
+
+          post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/toggle_status",
+               headers: administrator.create_new_auth_token,
+               params: { status: 'resolved' },
+               as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(conversation.reload.status).to eq('resolved')
+        end
+      end
+
       it 'toggles the conversation status to open from pending' do
         conversation.update!(status: 'pending')
 

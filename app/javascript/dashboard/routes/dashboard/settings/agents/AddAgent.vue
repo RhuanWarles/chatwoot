@@ -18,6 +18,8 @@ const agentEmail = ref('');
 const selectedRoleId = ref('agent');
 const inboxIds = ref([]);
 const allowedScreens = ref(null);
+const hiddenFields = ref(null);
+const canResolveConversations = ref(true);
 
 const rules = {
   agentName: { required },
@@ -96,6 +98,10 @@ const addAgent = async () => {
       if (Array.isArray(allowedScreens.value)) {
         payload.allowed_screens = allowedScreens.value;
       }
+      if (Array.isArray(hiddenFields.value)) {
+        payload.hidden_fields = hiddenFields.value;
+      }
+      payload.can_resolve_conversations = canResolveConversations.value;
     }
 
     await store.dispatch('agents/create', payload);
@@ -172,6 +178,8 @@ const addAgent = async () => {
         v-if="isRestrictable"
         v-model:inbox-ids="inboxIds"
         v-model:allowed-screens="allowedScreens"
+        v-model:hidden-fields="hiddenFields"
+        v-model:can-resolve-conversations="canResolveConversations"
       />
 
       <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">

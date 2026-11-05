@@ -145,6 +145,39 @@
         "COMPANIES": "Companies",
         "CRM": "CRM",
         "HELP_CENTER": "Help center"
+      },
+      "FIELDS": {
+        "LABEL": "Fields the agent sees",
+        "HELP": "Unmarked fields are hidden from this agent in the contact panel, the conversation and the CRM card. They are only hidden on screen: the data is not removed from what the system sends to the browser.",
+        "GROUPS": {
+          "CONTACT": "Contact",
+          "CONVERSATION": "Conversation",
+          "DEAL": "CRM card"
+        },
+        "ITEMS": {
+          "CONTACT_EMAIL": "Email",
+          "CONTACT_PHONE_NUMBER": "Phone number (also hides the identifier)",
+          "CONTACT_WHATSAPP": "WhatsApp username",
+          "CONTACT_IDENTIFIER": "Identifier",
+          "CONTACT_COMPANY": "Company",
+          "CONTACT_LOCATION": "Location",
+          "CONTACT_SOCIAL_PROFILES": "Social profiles",
+          "CONTACT_BIO": "Description",
+          "CONVERSATION_INITIATED_AT": "Initiated at",
+          "CONVERSATION_BROWSER_LANGUAGE": "Browser language",
+          "CONVERSATION_REFERER": "Initiated from",
+          "CONVERSATION_BROWSER": "Browser",
+          "CONVERSATION_PLATFORM": "Operating system",
+          "CONVERSATION_IP_ADDRESS": "IP address",
+          "DEAL_VALUE": "Value",
+          "DEAL_DESCRIPTION": "Description",
+          "DEAL_OWNER": "Owner"
+        }
+      },
+      "RESOLVE": {
+        "LABEL": "Conversation actions",
+        "CHECKBOX": "Can resolve conversations",
+        "HELP": "When unmarked, the Resolve button is hidden for this agent and resolving by shortcut, in bulk or through the API is refused. Macros still run their other steps."
       }
     }
   }

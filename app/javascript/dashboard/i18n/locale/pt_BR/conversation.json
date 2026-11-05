@@ -190,6 +190,7 @@
     },
     "HEADER": {
       "RESOLVE_ACTION": "Resolver",
+      "RESOLVE_NOT_ALLOWED": "Seu usuário não pode resolver conversas",
       "REOPEN_ACTION": "Reabrir",
       "OPEN_ACTION": "Abrir",
       "MORE_ACTIONS": "Mais ações",

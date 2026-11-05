@@ -14,6 +14,13 @@ const attributes = [
 ];
 
 const mocks = vi.hoisted(() => ({ updateUISettings: vi.fn() }));
+const access = vi.hoisted(() => ({ hidden: [] }));
+vi.mock('dashboard/composables/useFieldAccess', () => ({
+  useFieldAccess: () => ({
+    canViewCustomField: (record, key) =>
+      !access.hidden.includes(`${record}.custom.${key}`),
+  }),
+}));
 let savedOrder;
 vi.mock('dashboard/composables/useUISettings', () => ({
   useUISettings: () => ({
@@ -131,5 +138,30 @@ describe('ContactCustomAttributes ordering', () => {
     expect(
       wrapper.findAll('[data-test="unused-attribute"] .attribute-drag-handle')
     ).toHaveLength(0);
+  });
+});
+
+describe('ContactCustomAttributes hidden fields', () => {
+  afterEach(() => {
+    access.hidden = [];
+  });
+
+  it('does not list the attributes an administrator hid from this person', () => {
+    savedOrder = undefined;
+    access.hidden = ['contact.custom.cpf', 'contact.custom.city'];
+    const wrapper = mountList();
+    const [used, unused] = draggables(wrapper);
+
+    expect(names(used)).toEqual(['Plano']);
+    expect(names(unused)).toEqual(['Empresa']);
+  });
+
+  it('lists every attribute when nothing was hidden', () => {
+    savedOrder = undefined;
+    const wrapper = mountList();
+    const [used, unused] = draggables(wrapper);
+
+    expect(names(used)).toEqual(['Plano', 'Cidade']);
+    expect(names(unused)).toEqual(['CPF', 'Empresa']);
   });
 });

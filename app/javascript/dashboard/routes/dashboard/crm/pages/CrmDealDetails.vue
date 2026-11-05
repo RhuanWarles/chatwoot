@@ -10,6 +10,7 @@ import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import { useLostReasons } from 'dashboard/composables/useLostReasons';
 import { useOwnRecordsOnly } from 'dashboard/composables/useOwnRecordsOnly';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import AgentsAPI from 'dashboard/api/agents';
 import { dealsAPI, pipelinesAPI, segmentsAPI } from 'dashboard/api/crm';
 import CrmActivities from '../components/CrmActivities.vue';
@@ -51,15 +52,20 @@ const summaryLoading = ref(false);
 // An agent only works with their own cards: who owns the card is up to administrators.
 const { isOwnRecordsOnly } = useOwnRecordsOnly();
 const isReadOnlyField = key => key === 'owner_id' && isOwnRecordsOnly.value;
-const summaryFields = [
+const { canViewField } = useFieldAccess();
+// `access` names the field an administrator can hide from an agent.
+const allSummaryFields = [
   { key: 'pipeline_id', label: 'CRM.PIPELINES_TITLE' },
   { key: 'pipeline_stage_id', label: 'CRM.STAGE' },
-  { key: 'value', label: 'CRM.VALUE' },
-  { key: 'owner_id', label: 'CRM.OWNER' },
+  { key: 'value', label: 'CRM.VALUE', access: 'deal.value' },
+  { key: 'owner_id', label: 'CRM.OWNER', access: 'deal.owner' },
   { key: 'segment_id', label: 'CRM.SEGMENT' },
   { key: 'status', label: 'CRM.STATUS' },
-  { key: 'description', label: 'CRM.DESCRIPTION' },
+  { key: 'description', label: 'CRM.DESCRIPTION', access: 'deal.description' },
 ];
+const summaryFields = computed(() =>
+  allSummaryFields.filter(field => !field.access || canViewField(field.access))
+);
 const summaryStages = computed(
   () =>
     pipelines.value.find(item => item.id === summaryDraft.value.pipeline_id)
@@ -489,7 +495,10 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
           <p class="mb-1 text-sm text-n-slate-11">
             {{ deal.pipeline.name }} &gt; {{ deal.pipeline_stage.name }}
           </p>
-          <p class="mb-1 text-sm text-n-slate-11">
+          <p
+            v-if="canViewField('deal.owner')"
+            class="mb-1 text-sm text-n-slate-11"
+          >
             {{ t('CRM.OWNER') }}: {{ deal.owner?.name || t('CRM.UNASSIGNED') }}
           </p>
           <span
@@ -588,21 +597,25 @@ watch(() => [route.params.accountId, route.params.dealId], load, {
                 }}</span>
               </RouterLink>
               <a
-                v-if="deal.contact.phone_number"
+                v-if="
+                  deal.contact.phone_number &&
+                  canViewField('contact.phone_number')
+                "
                 :href="`tel:${deal.contact.phone_number}`"
                 class="text-sm text-n-slate-11 break-words"
                 >{{ formatContactPhone(deal.contact.phone_number) }}</a
               >
               <a
-                v-if="deal.contact.email"
+                v-if="deal.contact.email && canViewField('contact.email')"
                 :href="`mailto:${deal.contact.email}`"
                 class="text-sm text-n-slate-11 break-words"
                 >{{ deal.contact.email }}</a
               >
               <p
                 v-if="
-                  deal.contact.company?.name ||
-                  deal.contact.additional_attributes?.company_name
+                  canViewField('contact.company') &&
+                  (deal.contact.company?.name ||
+                    deal.contact.additional_attributes?.company_name)
                 "
                 class="mb-0 text-sm text-n-slate-11"
               >

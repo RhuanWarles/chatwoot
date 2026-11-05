@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { getUnixTime } from 'date-fns';
 import { getLanguageName } from 'dashboard/components/widgets/conversation/advancedFilterItems/languages';
 import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import ContactDetailsItem from './ContactDetailsItem.vue';
 import CustomAttributes from './customAttributes/CustomAttributes.vue';
 
@@ -16,6 +17,8 @@ const props = defineProps({
     default: () => ({}),
   },
 });
+
+const { canViewField } = useFieldAccess();
 
 const referer = computed(() => props.conversationAttributes.referer);
 
@@ -62,39 +65,47 @@ const staticElements = computed(() =>
       content: initiatedAt,
       title: 'CONTACT_PANEL.INITIATED_AT',
       key: 'static-initiated-at',
+      field: 'conversation.initiated_at',
       type: 'static_attribute',
     },
     {
       content: browserLanguage,
       title: 'CONTACT_PANEL.BROWSER_LANGUAGE',
       key: 'static-browser-language',
+      field: 'conversation.browser_language',
       type: 'static_attribute',
     },
     {
       content: referer,
       title: 'CONTACT_PANEL.INITIATED_FROM',
       key: 'static-referer',
+      field: 'conversation.referer',
       type: 'static_attribute',
     },
     {
       content: browserName,
       title: 'CONTACT_PANEL.BROWSER',
       key: 'static-browser',
+      field: 'conversation.browser',
       type: 'static_attribute',
     },
     {
       content: platformName,
       title: 'CONTACT_PANEL.OS',
       key: 'static-platform',
+      field: 'conversation.platform',
       type: 'static_attribute',
     },
     {
       content: createdAtIp,
       title: 'CONTACT_PANEL.IP_ADDRESS',
       key: 'static-ip-address',
+      field: 'conversation.ip_address',
       type: 'static_attribute',
     },
-  ].filter(attribute => !!attribute.content.value)
+  ].filter(
+    attribute => !!attribute.content.value && canViewField(attribute.field)
+  )
 );
 </script>
 

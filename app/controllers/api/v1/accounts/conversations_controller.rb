@@ -5,6 +5,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   include ConversationCustomAttributesConcern
 
   before_action :conversation, except: [:index, :meta, :search, :create, :filter]
+  before_action :ensure_can_resolve, only: :toggle_status
   before_action :inbox, :contact, :contact_inbox, only: [:create]
 
   ATTACHMENT_RESULTS_PER_PAGE = 100
@@ -189,6 +190,19 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   private
+
+  # An administrator can switch resolving off for an agent; the dashboard hides the button, this closes the API too.
+  def ensure_can_resolve
+    return unless Current.user.is_a?(User) && resolving_conversation?
+    return if Current.account_user&.may_resolve_conversations?
+
+    render json: { error: 'You are not allowed to resolve conversations' }, status: :forbidden
+  end
+
+  # Without a status the call flips an open conversation to resolved.
+  def resolving_conversation?
+    params[:status].present? ? params[:status] == 'resolved' : @conversation.open?
+  end
 
   def permitted_update_params
     # TODO: Move the other conversation attributes to this method and remove specific endpoints for each attribute
