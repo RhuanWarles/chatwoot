@@ -68,6 +68,14 @@ describe('fields', () => {
     );
   });
 
+  it('offers the owner of a deal before and after a change as a person to pick', () => {
+    expect(fieldKindOf('change.owner_id.from')).toBe(FIELD_KINDS.AGENT);
+    expect(fieldKindOf('change.owner_id.to')).toBe(FIELD_KINDS.AGENT);
+    expect(valueOptionsFor('change.owner_id.to', lookups)).toEqual([
+      { value: '7', label: 'Ana' },
+    ]);
+  });
+
   it('recognises the fields whose tail is typed by the user', () => {
     expect(freePrefixOf('trigger.payload.email')).toBe('trigger.payload.');
     expect(freePrefixOf('vars.')).toBe('vars.');

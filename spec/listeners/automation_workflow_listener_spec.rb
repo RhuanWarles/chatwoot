@@ -31,6 +31,17 @@ RSpec.describe AutomationWorkflowListener do
     expect(Workflows::TriggerService).not_to have_received(:fire).with(hash_including(event: 'crm_deal_lost'))
   end
 
+  it 'fires the owner change of a deal with who it was and who it is now' do
+    event = Events::Base.new(Events::Types::CRM_DEAL_OWNER_CHANGED, Time.current,
+                             { deal: deal, conversation: nil, changed_attributes: { 'owner_id' => [nil, 7], 'updated_at' => [1, 2] } })
+
+    listener.crm_deal_owner_changed(event)
+
+    context = { 'deal_id' => deal.id, 'contact_id' => contact.id, 'changes' => { 'owner_id' => [nil, 7] } }
+    expect(Workflows::TriggerService).to have_received(:fire)
+      .with(account: account, event: 'crm_deal_owner_changed', context: context, performed_by: nil)
+  end
+
   it 'passes who caused the event so a workflow cannot start itself' do
     workflow = account.automation_workflows.create!(name: 'Qualquer', graph: { 'nodes' => [], 'edges' => [] })
     event = Events::Base.new(Events::Types::CRM_DEAL_CREATED, Time.current, { deal: deal, conversation: nil, performed_by: workflow })
