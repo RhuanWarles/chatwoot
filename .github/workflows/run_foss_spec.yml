@@ -10,9 +10,12 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The jobs that install Ruby run on ubuntu-24.04: ruby-3.4.4 (.ruby-version) is not built for ubuntu-26.04, which is
+  # what ubuntu-latest points to now. Go back to ubuntu-latest once .ruby-version names a patch that exists there.
+
   # Separate linting jobs for faster feedback
   lint-backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -22,7 +25,7 @@ jobs:
         run: bundle exec rubocop --parallel
 
   security-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -70,7 +73,7 @@ jobs:
 
   # Backend tests with parallelization
   backend-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
