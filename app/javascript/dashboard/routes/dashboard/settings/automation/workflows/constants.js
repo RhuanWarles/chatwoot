@@ -55,6 +55,11 @@ export const TRIGGER_EVENTS = [
     icon: 'i-lucide-git-branch',
   },
   {
+    key: 'crm_deal_owner_changed',
+    group: 'crm',
+    icon: 'i-lucide-user-round-cog',
+  },
+  {
     key: 'crm_deal_field_changed',
     group: 'crm',
     icon: 'i-lucide-text-cursor-input',

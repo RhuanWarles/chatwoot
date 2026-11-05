@@ -13,3 +13,5 @@ json.role resource.role
 json.thumbnail resource.avatar_url
 json.custom_role_id resource.current_account_user&.custom_role_id if ChatwootApp.enterprise?
 json.allowed_screens resource.current_account_user&.allowed_screens
+json.hidden_fields resource.current_account_user&.hidden_fields
+json.can_resolve_conversations resource.current_account_user&.can_resolve_conversations

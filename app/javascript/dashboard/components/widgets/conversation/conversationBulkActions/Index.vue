@@ -7,6 +7,7 @@ import { findSnoozeTime } from 'dashboard/helper/snoozeHelpers';
 import { emitter } from 'shared/helpers/mitt';
 import { useBulkActions } from 'dashboard/composables/chatlist/useBulkActions.js';
 import { usePolicy } from 'dashboard/composables/usePolicy';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import wootConstants from 'dashboard/constants/globals';
 import {
@@ -71,6 +72,7 @@ const {
 } = useBulkActions();
 
 const { isFeatureFlagEnabled } = usePolicy();
+const { canResolve } = useFieldAccess();
 const isMacrosEnabled = computed(() =>
   isFeatureFlagEnabled(FEATURE_FLAGS.MACROS)
 );
@@ -109,6 +111,7 @@ function onCmdReopenConversation() {
 }
 
 function onCmdResolveConversation() {
+  if (!canResolve.value) return;
   onUpdateConversations('resolved', null);
 }
 
@@ -195,7 +198,7 @@ onUnmounted(() => {
             @remove="onRemoveLabels"
           />
           <BulkUpdateActions
-            :show-resolve="!showResolvedAction"
+            :show-resolve="!showResolvedAction && canResolve"
             :show-reopen="!showOpenAction"
             :show-snooze="!showSnoozedAction"
             @update="onUpdateConversations"

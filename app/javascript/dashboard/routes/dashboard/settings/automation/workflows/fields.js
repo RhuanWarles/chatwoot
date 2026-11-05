@@ -82,6 +82,8 @@ export const STATIC_FIELDS = [
   idField('change.pipeline_stage_id.to', 'trigger', FIELD_KINDS.STAGE),
   idField('change.pipeline_id.from', 'trigger', FIELD_KINDS.PIPELINE),
   idField('change.pipeline_id.to', 'trigger', FIELD_KINDS.PIPELINE),
+  idField('change.owner_id.from', 'trigger', FIELD_KINDS.AGENT),
+  idField('change.owner_id.to', 'trigger', FIELD_KINDS.AGENT),
   staticField('change.status.from', 'trigger', 'DEAL_STATUS'),
   staticField('change.status.to', 'trigger', 'DEAL_STATUS'),
   text('vars.', 'vars'),

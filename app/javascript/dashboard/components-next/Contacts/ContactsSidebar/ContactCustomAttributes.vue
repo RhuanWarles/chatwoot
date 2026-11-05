@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import Draggable from 'vuedraggable';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import {
   mergeAttributeOrder,
   reorderSubset,
@@ -28,7 +29,16 @@ const ORDER_KEY = 'conversation_elements_order_conversation_contact_panel';
 
 const searchQuery = ref('');
 
-const contactAttributes = useMapGetter('attributes/getContactAttributes') || [];
+const allContactAttributes =
+  useMapGetter('attributes/getContactAttributes') || [];
+const { canViewCustomField } = useFieldAccess();
+
+// The attributes an administrator hid from this person are not listed at all.
+const contactAttributes = computed(() =>
+  (allContactAttributes.value || []).filter(({ attributeKey }) =>
+    canViewCustomField('contact', attributeKey)
+  )
+);
 
 const hasContactAttributes = computed(
   () => contactAttributes.value?.length > 0

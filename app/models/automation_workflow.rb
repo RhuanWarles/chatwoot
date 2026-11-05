@@ -2,7 +2,7 @@ class AutomationWorkflow < ApplicationRecord
   TRIGGER_EVENTS = %w[
     conversation_created conversation_opened conversation_resolved message_created assignee_changed team_changed
     contact_created contact_updated crm_deal_created crm_deal_updated crm_deal_stage_changed crm_deal_status_changed
-    crm_deal_pipeline_changed crm_deal_field_changed crm_deal_won crm_deal_lost webhook manual
+    crm_deal_pipeline_changed crm_deal_owner_changed crm_deal_field_changed crm_deal_won crm_deal_lost webhook manual
   ].freeze
 
   belongs_to :account

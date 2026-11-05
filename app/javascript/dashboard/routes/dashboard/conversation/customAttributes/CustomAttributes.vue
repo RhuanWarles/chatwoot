@@ -7,6 +7,7 @@ import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import CustomAttribute from 'dashboard/components/CustomAttribute.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -39,6 +40,13 @@ const getters = useStoreGetters();
 const route = useRoute();
 const { t } = useI18n();
 const { uiSettings, updateUISettings } = useUISettings();
+const { canViewCustomField } = useFieldAccess();
+
+// The record a custom attribute belongs to, as an administrator names it when hiding fields from an agent.
+const HIDEABLE_RECORDS = {
+  conversation_attribute: 'conversation',
+  contact_attribute: 'contact',
+};
 
 const dragging = ref(false);
 
@@ -75,18 +83,27 @@ const toggleButtonText = computed(() =>
 );
 
 const filteredCustomAttributes = computed(() =>
-  attributes.value.map(attribute => {
-    // Check if the attribute key exists in customAttributes
-    const hasValue = attribute.attribute_key in customAttributes.value;
+  attributes.value
+    .filter(
+      attribute =>
+        !HIDEABLE_RECORDS[props.attributeType] ||
+        canViewCustomField(
+          HIDEABLE_RECORDS[props.attributeType],
+          attribute.attribute_key
+        )
+    )
+    .map(attribute => {
+      // Check if the attribute key exists in customAttributes
+      const hasValue = attribute.attribute_key in customAttributes.value;
 
-    return {
-      ...attribute,
-      type: 'custom_attribute',
-      key: attribute.attribute_key,
-      // Set value from customAttributes if it exists, otherwise use ''
-      value: hasValue ? customAttributes.value[attribute.attribute_key] : '',
-    };
-  })
+      return {
+        ...attribute,
+        type: 'custom_attribute',
+        key: attribute.attribute_key,
+        // Set value from customAttributes if it exists, otherwise use ''
+        value: hasValue ? customAttributes.value[attribute.attribute_key] : '',
+      };
+    })
 );
 
 // Order key name for UI settings

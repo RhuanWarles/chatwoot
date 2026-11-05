@@ -68,6 +68,14 @@ describe('fields', () => {
     );
   });
 
+  it('offers the owner of a deal before and after a change as a person to pick', () => {
+    expect(fieldKindOf('change.owner_id.from')).toBe(FIELD_KINDS.AGENT);
+    expect(fieldKindOf('change.owner_id.to')).toBe(FIELD_KINDS.AGENT);
+    expect(valueOptionsFor('change.owner_id.to', lookups)).toEqual([
+      { value: '7', label: 'Ana' },
+    ]);
+  });
+
   it('treats a user field of the deal as a list of people', () => {
     const [field] = buildCustomFields(
       [{ key: 'vendedor', name: 'Vendedor', field_type: 'user' }],

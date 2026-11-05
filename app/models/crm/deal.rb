@@ -121,7 +121,8 @@ module Crm
       event_by_attribute = {
         'pipeline_id' => Events::Types::CRM_DEAL_PIPELINE_CHANGED,
         'pipeline_stage_id' => Events::Types::CRM_DEAL_STAGE_CHANGED,
-        'status' => Events::Types::CRM_DEAL_STATUS_CHANGED
+        'status' => Events::Types::CRM_DEAL_STATUS_CHANGED,
+        'owner_id' => Events::Types::CRM_DEAL_OWNER_CHANGED
       }
       event_by_attribute.each do |attribute, event_name|
         dispatcher.dispatch(event_name, Time.zone.now, payload) if payload[:changed_attributes].key?(attribute)

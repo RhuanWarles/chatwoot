@@ -14,6 +14,8 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
       availability: new_agent_params['availability'],
       auto_offline: new_agent_params['auto_offline'],
       allowed_screens: screens_params[:allowed_screens],
+      hidden_fields: field_access_params[:hidden_fields],
+      can_resolve_conversations: field_access_params[:can_resolve_conversations],
       inviter: current_user,
       account: Current.account
     )
@@ -26,7 +28,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
 
   def update
     @agent.update!(agent_params.slice(:name).compact)
-    @agent.current_account_user.update!(agent_params.slice(*account_user_attributes).compact.merge(screens_params))
+    @agent.current_account_user.update!(agent_params.slice(*account_user_attributes).compact.merge(screens_params).merge(field_access_params))
     sync_inboxes(@agent) if inbox_ids_given?
   end
 
@@ -98,6 +100,18 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
     return {} unless params[:agent]&.key?(:allowed_screens)
 
     { allowed_screens: Array(params[:agent][:allowed_screens]).presence }
+  end
+
+  # hidden_fields: null (or an empty list) shows every field, so the key must be read even when it is nil.
+  # can_resolve_conversations cannot be null, so a missing or null value leaves it as it is.
+  def field_access_params
+    return {} unless params[:agent]
+
+    permitted = {}
+    permitted[:hidden_fields] = Array(params[:agent][:hidden_fields]).presence if params[:agent].key?(:hidden_fields)
+    resolve = ActiveModel::Type::Boolean.new.cast(params[:agent][:can_resolve_conversations])
+    permitted[:can_resolve_conversations] = resolve unless resolve.nil?
+    permitted
   end
 
   def agent_inbox_ids(agent)

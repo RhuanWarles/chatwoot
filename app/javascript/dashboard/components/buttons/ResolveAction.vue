@@ -7,6 +7,7 @@ import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 
 import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
 import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu.vue';
@@ -24,6 +25,8 @@ const store = useStore();
 const getters = useStoreGetters();
 const { t } = useI18n();
 const { checkMissingAttributes } = useConversationRequiredAttributes();
+// An administrator can switch resolving off for an agent: the button is disabled and the shortcuts do nothing.
+const { canResolve } = useFieldAccess();
 
 const arrowDownButtonRef = ref(null);
 const isLoading = ref(false);
@@ -118,6 +121,8 @@ const onCmdOpenConversation = () => {
 };
 
 const onCmdResolveConversation = () => {
+  if (!canResolve.value) return;
+
   const currentCustomAttributes = currentChat.value.custom_attributes || {};
   const { hasMissing, missing } = checkMissingAttributes(
     currentCustomAttributes
@@ -155,6 +160,8 @@ const keyboardEvents = {
   },
   '$mod+Alt+KeyE': {
     action: async event => {
+      if (!canResolve.value) return;
+
       const { all, activeIndex, lastIndex } = getConversationParams();
       onCmdResolveConversation();
 
@@ -183,11 +190,15 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
     >
       <Button
         v-if="isOpen"
+        v-tooltip.top="
+          canResolve ? '' : t('CONVERSATION.HEADER.RESOLVE_NOT_ALLOWED')
+        "
         :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
         size="sm"
         color="slate"
         no-animation
         class="ltr:rounded-r-none rtl:rounded-l-none !outline-0"
+        :disabled="!canResolve"
         :is-loading="isLoading"
         @click="onCmdResolveConversation"
       />

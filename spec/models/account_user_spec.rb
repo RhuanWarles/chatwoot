@@ -28,6 +28,57 @@ RSpec.describe AccountUser do
     end
   end
 
+  describe 'hidden fields' do
+    it 'is nil when the list is nil, empty or blank' do
+      account_user.update!(hidden_fields: ['contact.email'])
+      [nil, [], ['', nil]].each do |value|
+        account_user.update!(hidden_fields: value)
+        expect(account_user.reload.hidden_fields).to be_nil
+      end
+    end
+
+    it 'accepts the known fields and the custom fields of contacts, conversations and deals' do
+      fields = %w[contact.phone_number contact.custom.cpf conversation.custom.origem deal.custom.renda_mensal deal.value]
+
+      expect(account_user.update(hidden_fields: fields)).to be(true)
+      expect(account_user.reload.hidden_fields).to eq(fields)
+    end
+
+    it 'drops repeated fields' do
+      account_user.update!(hidden_fields: %w[contact.email contact.email])
+
+      expect(account_user.reload.hidden_fields).to eq(['contact.email'])
+    end
+
+    it 'refuses fields that do not exist' do
+      expect(account_user.update(hidden_fields: %w[contact.email contact.password])).to be(false)
+      expect(account_user.errors[:hidden_fields].first).to include('contact.password')
+    end
+
+    it 'refuses a custom field without a key or of another record' do
+      expect(account_user.update(hidden_fields: ['contact.custom.'])).to be(false)
+      expect(account_user.update(hidden_fields: ['inbox.custom.cpf'])).to be(false)
+    end
+  end
+
+  describe '#may_resolve_conversations?' do
+    it 'is true for an agent by default' do
+      expect(account_user.may_resolve_conversations?).to be(true)
+    end
+
+    it 'is false for an agent whose permission was switched off' do
+      account_user.update!(can_resolve_conversations: false)
+
+      expect(account_user.may_resolve_conversations?).to be(false)
+    end
+
+    it 'is always true for an administrator' do
+      account_user.update!(role: :administrator, can_resolve_conversations: false)
+
+      expect(account_user.may_resolve_conversations?).to be(true)
+    end
+  end
+
   describe 'destroy call agent::destroy service' do
     it 'gets created with the right default settings' do
       create(:conversation, account: account_user.account, assignee: account_user.user, inbox: inbox)

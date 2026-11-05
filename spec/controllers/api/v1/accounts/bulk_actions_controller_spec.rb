@@ -46,6 +46,38 @@ RSpec.describe 'Api::V1::Accounts::BulkActionsController', type: :request do
         expect(response).to have_http_status(:unprocessable_entity)
       end
 
+      context 'when the agent cannot resolve conversations' do
+        before do
+          # A plain agent only reaches the conversations assigned to them.
+          Conversation.first(3).each { |conversation| conversation.update!(assignee: agent) }
+          agent.account_users.find_by(account: account).update!(can_resolve_conversations: false)
+        end
+
+        it 'refuses to bulk resolve' do
+          perform_enqueued_jobs do
+            post "/api/v1/accounts/#{account.id}/bulk_actions",
+                 headers: agent.create_new_auth_token,
+                 params: { type: 'Conversation', fields: { status: 'resolved' }, ids: Conversation.first(3).pluck(:display_id) }
+
+            expect(response).to have_http_status(:forbidden)
+          end
+
+          expect(Conversation.where(status: :resolved)).to be_empty
+        end
+
+        it 'still bulk updates to other statuses' do
+          perform_enqueued_jobs do
+            post "/api/v1/accounts/#{account.id}/bulk_actions",
+                 headers: agent.create_new_auth_token,
+                 params: { type: 'Conversation', fields: { status: 'snoozed' }, ids: Conversation.first(3).pluck(:display_id) }
+
+            expect(response).to have_http_status(:success)
+          end
+
+          expect(Conversation.first.status).to eq('snoozed')
+        end
+      end
+
       it 'Bulk update conversation status' do
         expect(Conversation.first.status).to eq('open')
         expect(Conversation.last.status).to eq('open')

@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router';
 import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
 import { useCaptain } from 'dashboard/composables/useCaptain';
 import { useAgentsList } from 'dashboard/composables/useAgentsList';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import {
   mockAssignableAgents,
@@ -20,6 +21,7 @@ vi.mock('vue-router');
 vi.mock('dashboard/composables/useConversationLabels');
 vi.mock('dashboard/composables/useCaptain');
 vi.mock('dashboard/composables/useAgentsList');
+vi.mock('dashboard/composables/useFieldAccess');
 
 describe('useConversationHotKeys', () => {
   let store;
@@ -50,10 +52,25 @@ describe('useConversationHotKeys', () => {
       removeLabelFromConversation: vi.fn(),
     });
     useCaptain.mockReturnValue({ captainTasksEnabled: { value: true } });
+    useFieldAccess.mockReturnValue({ canResolve: { value: true } });
     useAgentsList.mockReturnValue({
       agentsList: { value: [] },
       assignableAgents: { value: mockAssignableAgents },
     });
+  });
+
+  it('offers to resolve an open conversation unless the agent cannot resolve conversations', () => {
+    store.getters.getSelectedChat = { ...mockCurrentChat, status: 'open' };
+    const idsOf = () =>
+      useConversationHotKeys().conversationHotKeys.value.map(
+        action => action.id
+      );
+
+    expect(idsOf()).toContain('resolve_conversation');
+
+    useFieldAccess.mockReturnValue({ canResolve: { value: false } });
+    expect(idsOf()).not.toContain('resolve_conversation');
+    expect(idsOf()).toContain('snooze_conversation');
   });
 
   it('should return the correct computed properties', () => {

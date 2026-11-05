@@ -315,6 +315,8 @@ const confirmDeletion = () => {
         :custom-role-id="currentAgent.custom_role_id"
         :inbox-ids="currentAgent.inbox_ids"
         :allowed-screens="currentAgent.allowed_screens"
+        :hidden-fields="currentAgent.hidden_fields"
+        :can-resolve-conversations="currentAgent.can_resolve_conversations"
         @close="hideEditPopup"
       />
     </woot-modal>

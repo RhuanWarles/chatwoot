@@ -5,6 +5,7 @@
 #  id                       :bigint           not null, primary key
 #  active_at                :datetime
 #  auto_offline             :boolean          default(TRUE), not null
+#  can_resolve_conversations :boolean          default(TRUE), not null
 #  availability             :integer          default("online"), not null
 #  role                     :integer          default("agent")
 #  created_at               :datetime         not null
@@ -13,6 +14,7 @@
 #  agent_capacity_policy_id :bigint
 #  allowed_screens          :string           is an Array
 #  custom_role_id           :bigint
+#  hidden_fields            :string           is an Array
 #  inviter_id               :bigint
 #  user_id                  :bigint
 #
@@ -35,12 +37,23 @@ class AccountUser < ApplicationRecord
   # Sections of the dashboard that can be switched off for a person; administrators always see everything.
   SCREENS = %w[inbox conversations calls contacts companies crm help_center].freeze
 
+  # Fields that can be hidden from a person (dashboard only), plus the custom fields of each record, which are
+  # `<record>.custom.<key>`. Keep in sync with app/javascript/dashboard/helper/fieldAccess.js.
+  HIDDEN_FIELDS = %w[
+    contact.email contact.phone_number contact.whatsapp contact.identifier contact.company contact.location
+    contact.social_profiles contact.bio
+    conversation.initiated_at conversation.browser_language conversation.referer conversation.browser
+    conversation.platform conversation.ip_address
+    deal.value deal.description deal.owner
+  ].freeze
+  CUSTOM_HIDDEN_FIELD = /\A(?:contact|conversation|deal)\.custom\.[\p{L}\p{N}_.\-]+\z/
+
   enum role: { agent: 0, administrator: 1 }
   enum availability: { online: 0, offline: 1, busy: 2 }
 
   accepts_nested_attributes_for :account
 
-  validate :allowed_screens_are_known
+  validate :allowed_screens_are_known, :hidden_fields_are_known
 
   after_create_commit :notify_creation, :create_notification_setting
   after_destroy :notify_deletion, :remove_user_from_account
@@ -76,6 +89,16 @@ class AccountUser < ApplicationRecord
     super(screens.nil? ? nil : Array(screens).map(&:to_s).compact_blank.uniq.presence)
   end
 
+  # nil = every field is visible. An empty list is stored as nil for the same reason.
+  def hidden_fields=(fields)
+    super(fields.nil? ? nil : Array(fields).map(&:to_s).compact_blank.uniq.presence)
+  end
+
+  # Administrators always resolve; for an agent the switch decides.
+  def may_resolve_conversations?
+    administrator? || can_resolve_conversations?
+  end
+
   def push_event_data
     {
       id: id,
@@ -92,6 +115,13 @@ class AccountUser < ApplicationRecord
 
     unknown = allowed_screens - SCREENS
     errors.add(:allowed_screens, "unknown screens: #{unknown.join(', ')}") if unknown.any?
+  end
+
+  def hidden_fields_are_known
+    return if hidden_fields.blank?
+
+    unknown = hidden_fields.reject { |field| HIDDEN_FIELDS.include?(field) || field.match?(CUSTOM_HIDDEN_FIELD) }
+    errors.add(:hidden_fields, "unknown fields: #{unknown.join(', ')}") if unknown.any?
   end
 
   def notify_creation

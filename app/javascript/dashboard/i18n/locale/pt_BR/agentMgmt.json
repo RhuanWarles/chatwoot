@@ -145,6 +145,39 @@
         "COMPANIES": "Empresas",
         "CRM": "CRM",
         "HELP_CENTER": "Central de ajuda"
+      },
+      "FIELDS": {
+        "LABEL": "Campos que o agente vê",
+        "HELP": "Os campos desmarcados ficam ocultos para este agente no painel do contato, na conversa e no card do CRM. É um bloqueio só de tela: o dado não é removido do que o sistema envia ao navegador.",
+        "GROUPS": {
+          "CONTACT": "Contato",
+          "CONVERSATION": "Conversa",
+          "DEAL": "Card do CRM"
+        },
+        "ITEMS": {
+          "CONTACT_EMAIL": "E-mail",
+          "CONTACT_PHONE_NUMBER": "Telefone (oculta também o identificador)",
+          "CONTACT_WHATSAPP": "Usuário do WhatsApp",
+          "CONTACT_IDENTIFIER": "Identificador",
+          "CONTACT_COMPANY": "Empresa",
+          "CONTACT_LOCATION": "Localização",
+          "CONTACT_SOCIAL_PROFILES": "Redes sociais",
+          "CONTACT_BIO": "Descrição",
+          "CONVERSATION_INITIATED_AT": "Iniciada em",
+          "CONVERSATION_BROWSER_LANGUAGE": "Idioma do navegador",
+          "CONVERSATION_REFERER": "Iniciada a partir de",
+          "CONVERSATION_BROWSER": "Navegador",
+          "CONVERSATION_PLATFORM": "Sistema operacional",
+          "CONVERSATION_IP_ADDRESS": "Endereço IP",
+          "DEAL_VALUE": "Valor",
+          "DEAL_DESCRIPTION": "Descrição",
+          "DEAL_OWNER": "Responsável"
+        }
+      },
+      "RESOLVE": {
+        "LABEL": "Ações na conversa",
+        "CHECKBOX": "Pode resolver conversas",
+        "HELP": "Desmarcado, o botão Resolver some para este agente e resolver por atalho, em massa ou pela API é recusado. As macros continuam executando os outros passos."
       }
     }
   }

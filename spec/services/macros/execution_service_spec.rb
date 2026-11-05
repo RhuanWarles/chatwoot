@@ -12,6 +12,30 @@ RSpec.describe Macros::ExecutionService, type: :service do
   end
 
   describe '#perform' do
+    context 'when the macro resolves the conversation' do
+      before do
+        allow(macro).to receive(:actions).and_return([
+                                                       { action_name: 'resolve_conversation' },
+                                                       { action_name: 'add_private_note', action_params: ['Done'] }
+                                                     ])
+      end
+
+      it 'resolves it for an agent that can resolve' do
+        service.perform
+
+        expect(conversation.reload).to be_resolved
+      end
+
+      it 'skips the resolve step but runs the other steps when the agent cannot resolve' do
+        user.account_users.find_by(account: account).update!(can_resolve_conversations: false)
+
+        service.perform
+
+        expect(conversation.reload).to be_open
+        expect(conversation.messages.where(private: true).pluck(:content)).to include('Done')
+      end
+    end
+
     context 'when actions are present' do
       before do
         allow(macro).to receive(:actions).and_return([

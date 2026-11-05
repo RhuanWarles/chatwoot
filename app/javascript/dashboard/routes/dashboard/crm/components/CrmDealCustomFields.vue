@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dealsAPI } from 'dashboard/api/crm';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import { useMapGetter } from 'dashboard/composables/store';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -14,8 +15,13 @@ import {
 const props = defineProps({ dealId: { type: Number, required: true } });
 const emit = defineEmits(['changed']);
 const { t, locale } = useI18n();
+const { canViewCustomField } = useFieldAccess();
 const agents = useMapGetter('agents/getAgents');
-const fields = ref([]);
+const allFields = ref([]);
+// The fields an administrator hid from this person are not listed.
+const fields = computed(() =>
+  allFields.value.filter(field => canViewCustomField('deal', field.key))
+);
 const expanded = ref(true);
 const editingId = ref(null);
 const editingField = computed(() =>
@@ -64,9 +70,9 @@ const load = async () => {
   error.value = '';
   editingId.value = null;
   expandedTexts.value = {};
-  fields.value = [];
+  allFields.value = [];
   try {
-    fields.value = (await dealsAPI.customFields(props.dealId)).data;
+    allFields.value = (await dealsAPI.customFields(props.dealId)).data;
   } catch {
     error.value = t('CRM.CF_LOAD_ERROR');
   } finally {
@@ -110,7 +116,7 @@ const save = async () => {
         const result = await dealsAPI.updateCustomFields(props.dealId, {
           [field.key]: normalized,
         });
-        fields.value = result.data;
+        allFields.value = result.data;
         emit('changed');
       }
     }
