@@ -33,6 +33,8 @@ json.accounts do
     json.role account_user.role
     json.permissions account_user.permissions
     json.allowed_screens account_user.allowed_screens
+    json.hidden_fields account_user.hidden_fields
+    json.can_resolve_conversations account_user.can_resolve_conversations
     # the actual availability user has configured
     json.availability account_user.availability
     # availability derived from presence

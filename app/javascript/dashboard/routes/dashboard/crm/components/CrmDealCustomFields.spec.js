@@ -4,6 +4,13 @@ import { dealsAPI } from 'dashboard/api/crm';
 import Component from './CrmDealCustomFields.vue';
 import messages from 'dashboard/i18n/locale/pt_BR/crm.json';
 
+const access = vi.hoisted(() => ({ hidden: [] }));
+vi.mock('dashboard/composables/useFieldAccess', () => ({
+  useFieldAccess: () => ({
+    canViewCustomField: (record, key) =>
+      !access.hidden.includes(`${record}.custom.${key}`),
+  }),
+}));
 vi.mock('dashboard/api/crm', () => ({
   dealsAPI: {
     customFields: vi.fn(),
@@ -275,4 +282,34 @@ it('prevents duplicate saves and editing another field while the request is pend
   expect(wrapper.find('#cf-read-3').attributes('disabled')).toBeDefined();
   finish({ data: definitions });
   await flushPromises();
+});
+
+describe('fields hidden by an administrator', () => {
+  afterEach(() => {
+    access.hidden = [];
+  });
+
+  it('does not list the custom fields hidden from this person', async () => {
+    access.hidden = ['deal.custom.number', 'deal.custom.date'];
+    const wrapper = await create();
+
+    expect(
+      wrapper.findAll('[id^="cf-read-"]').map(item => item.find('span').text())
+    ).toEqual(
+      definitions
+        .map(item => item.name)
+        .filter(name => !['number', 'date'].includes(name))
+    );
+    expect(wrapper.find('#cf-read-3').exists()).toBe(false);
+    expect(wrapper.find('#cf-read-1').exists()).toBe(true);
+  });
+
+  it('keeps a custom field of another record visible', async () => {
+    access.hidden = ['contact.custom.number'];
+    const wrapper = await create();
+
+    expect(wrapper.findAll('[id^="cf-read-"]')).toHaveLength(
+      definitions.length
+    );
+  });
 });

@@ -7,12 +7,14 @@ import searchAPI from 'dashboard/api/search';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 import { normalizeSearchTerm } from 'dashboard/helper/searchTerm';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 
 const MIN_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 
 const { t } = useI18n();
 const { accountId } = useAccount();
+const { canViewField } = useFieldAccess();
 
 const query = ref('');
 const results = ref([]);
@@ -152,12 +154,19 @@ onBeforeUnmount(() => {
             <span class="text-sm font-medium truncate text-n-slate-12">
               {{
                 conversation.contact?.name ||
-                conversation.contact?.phone_number ||
+                (canViewField('contact.phone_number') &&
+                  conversation.contact?.phone_number) ||
                 `#${conversation.id}`
               }}
             </span>
             <span class="flex items-center gap-2 text-xs text-n-slate-11">
-              <span v-if="conversation.contact?.phone_number" class="truncate">
+              <span
+                v-if="
+                  conversation.contact?.phone_number &&
+                  canViewField('contact.phone_number')
+                "
+                class="truncate"
+              >
                 {{ conversation.contact.phone_number }}
               </span>
               <span class="shrink-0">#{{ conversation.id }}</span>

@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import { useRoute } from 'vue-router';
 import { emitter } from 'shared/helpers/mitt';
 import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
@@ -149,6 +150,7 @@ export function useConversationHotKeys() {
   const { captainTasksEnabled } = useCaptain();
   const { agentsList } = useAgentsList();
 
+  const { canResolve } = useFieldAccess();
   const currentChat = useMapGetter('getSelectedChat');
   const replyMode = useMapGetter('draftMessages/getReplyEditorMode');
   const contextMenuChatId = useMapGetter('getContextMenuChatId');
@@ -201,7 +203,10 @@ export function useConversationHotKeys() {
 
     let actions = [];
     if (isOpen) {
-      actions = [...OPEN_CONVERSATION_ACTIONS, ...SNOOZE_CONVERSATION_ACTIONS];
+      actions = [
+        ...(canResolve.value ? OPEN_CONVERSATION_ACTIONS : []),
+        ...SNOOZE_CONVERSATION_ACTIONS,
+      ];
     } else if (isResolved || isSnoozed) {
       actions = RESOLVED_CONVERSATION_ACTIONS;
     }

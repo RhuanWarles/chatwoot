@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import wootConstants from 'dashboard/constants/globals';
 
 import {
@@ -58,6 +59,7 @@ const OPEN_CONVERSATION_BULK_ACTIONS = [
 
 export function useBulkActionsHotKeys() {
   const { t } = useI18n();
+  const { canResolve } = useFieldAccess();
 
   const selectedConversations = useMapGetter(
     'bulkActions/getSelectedConversationIds'
@@ -77,7 +79,7 @@ export function useBulkActionsHotKeys() {
       actions = [
         ...SNOOZE_CONVERSATION_BULK_ACTIONS,
         ...RESOLVED_CONVERSATION_BULK_ACTIONS,
-        ...OPEN_CONVERSATION_BULK_ACTIONS,
+        ...(canResolve.value ? OPEN_CONVERSATION_BULK_ACTIONS : []),
       ];
     }
     return prepareActions(actions);

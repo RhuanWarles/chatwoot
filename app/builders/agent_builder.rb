@@ -18,8 +18,10 @@ class AgentBuilder
   # @param availability [String] the availability status of the user, defaults to 'offline' if not provided.
   # @param auto_offline [Boolean] the auto offline status of the user.
   # @param allowed_screens [Array<String>, nil] dashboard screens the agent can open, nil for all of them.
+  # @param hidden_fields [Array<String>, nil] fields hidden from the agent in the dashboard, nil for none of them.
+  # @param can_resolve_conversations [Boolean, nil] whether the agent can resolve conversations, nil keeps the default (yes).
   pattr_initialize [:email, { name: '' }, :inviter, :account, { role: :agent }, { availability: :offline }, { auto_offline: false },
-                    { allowed_screens: nil }]
+                    { allowed_screens: nil }, { hidden_fields: nil }, { can_resolve_conversations: nil }]
 
   # Creates a user and account user in a transaction.
   # @return [User] the created user.
@@ -81,7 +83,9 @@ class AgentBuilder
       role: role,
       availability: availability,
       auto_offline: auto_offline,
-      allowed_screens: allowed_screens
+      allowed_screens: allowed_screens,
+      hidden_fields: hidden_fields,
+      can_resolve_conversations: can_resolve_conversations
     }.compact))
   end
 end

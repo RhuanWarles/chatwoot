@@ -7,6 +7,7 @@ import {
 } from 'shared/helpers/CustomErrors';
 import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
 import { useAdmin } from 'dashboard/composables/useAdmin';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import ContactInfoRow from './ContactInfoRow.vue';
 import ViewAllConversations from './ViewAllConversations.vue';
 import Avatar from 'next/avatar/Avatar.vue';
@@ -46,8 +47,10 @@ export default {
   emits: ['panelClose'],
   setup() {
     const { isAdmin } = useAdmin();
+    const { canViewField } = useFieldAccess();
     return {
       isAdmin,
+      canViewField,
       exactTimestamp: useExactTimestamp(),
     };
   },
@@ -261,11 +264,15 @@ export default {
           </div>
         </div>
 
-        <p v-if="additionalAttributes.description" class="break-words mb-0.5">
+        <p
+          v-if="additionalAttributes.description && canViewField('contact.bio')"
+          class="break-words mb-0.5"
+        >
           {{ additionalAttributes.description }}
         </p>
         <div class="flex flex-col items-start w-full gap-2">
           <ContactInfoRow
+            v-if="canViewField('contact.email')"
             :href="contact.email ? `mailto:${contact.email}` : ''"
             :value="contact.email"
             icon="mail"
@@ -276,6 +283,7 @@ export default {
             @update="value => onFieldUpdate('email', value)"
           />
           <ContactInfoRow
+            v-if="canViewField('contact.phone_number')"
             :href="contact.phone_number ? `tel:${contact.phone_number}` : ''"
             :value="contact.phone_number"
             icon="call"
@@ -286,7 +294,7 @@ export default {
             @update="value => onFieldUpdate('phone_number', value)"
           />
           <ContactInfoRow
-            v-if="formattedWhatsappUsername"
+            v-if="formattedWhatsappUsername && canViewField('contact.whatsapp')"
             :value="formattedWhatsappUsername"
             icon="brand-whatsapp"
             emoji="💬"
@@ -294,13 +302,14 @@ export default {
             show-copy
           />
           <ContactInfoRow
-            v-if="contact.identifier"
+            v-if="contact.identifier && canViewField('contact.identifier')"
             :value="contact.identifier"
             icon="contact-identify"
             emoji="🪪"
             :title="$t('CONTACT_PANEL.IDENTIFIER')"
           />
           <ContactInfoRow
+            v-if="canViewField('contact.company')"
             :value="additionalAttributes.company_name"
             icon="building-bank"
             emoji="🏢"
@@ -317,13 +326,19 @@ export default {
             "
           />
           <ContactInfoRow
-            v-if="location || additionalAttributes.location"
+            v-if="
+              (location || additionalAttributes.location) &&
+              canViewField('contact.location')
+            "
             :value="location || additionalAttributes.location"
             icon="map"
             emoji="🌍"
             :title="$t('CONTACT_PANEL.LOCATION')"
           />
-          <SocialIcons :social-profiles="socialProfiles" />
+          <SocialIcons
+            v-if="canViewField('contact.social_profiles')"
+            :social-profiles="socialProfiles"
+          />
         </div>
       </div>
       <div class="flex items-center w-full mt-0.5 gap-2">
@@ -350,6 +365,10 @@ export default {
           :tooltip-label="$t('CONTACT_PANEL.CALL')"
         />
         <NextButton
+          v-if="
+            canViewField('contact.email') &&
+            canViewField('contact.phone_number')
+          "
           v-tooltip.top-end="$t('EDIT_CONTACT.BUTTON_LABEL')"
           icon="i-ph-pencil-simple"
           slate

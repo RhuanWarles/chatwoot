@@ -7,6 +7,7 @@ import { splitName } from '@chatwoot/utils';
 import countries from 'shared/constants/countries.js';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import CompanySelector from 'dashboard/components-next/Companies/CompanySelector.vue';
@@ -32,6 +33,17 @@ const emit = defineEmits(['update']);
 
 const { t } = useI18n();
 const { currentAccount, isCloudFeatureEnabled } = useAccount();
+const { canViewField } = useFieldAccess();
+
+// The fields an administrator can hide from an agent. Only an existing contact is limited: a new one is typed in full.
+const FORM_FIELD_ACCESS = {
+  EMAIL_ADDRESS: 'contact.email',
+  PHONE_NUMBER: 'contact.phone_number',
+  CITY: 'contact.location',
+  COUNTRY: 'contact.location',
+  BIO: 'contact.bio',
+  COMPANY_NAME: 'contact.company',
+};
 
 const FORM_CONFIG = {
   FIRST_NAME: { field: 'firstName' },
@@ -169,13 +181,23 @@ const countryOptions = computed(() =>
   countries.map(({ name, id }) => ({ label: name, value: id }))
 );
 
+const isFieldVisible = key =>
+  props.isNewContact ||
+  !FORM_FIELD_ACCESS[key] ||
+  canViewField(FORM_FIELD_ACCESS[key]);
+const showSocialProfiles = computed(
+  () => props.isNewContact || canViewField('contact.social_profiles')
+);
+
 const editDetailsForm = computed(() =>
-  Object.keys(FORM_CONFIG).map(key => ({
-    key,
-    placeholder: t(
-      `CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM.${key}.PLACEHOLDER`
-    ),
-  }))
+  Object.keys(FORM_CONFIG)
+    .filter(isFieldVisible)
+    .map(key => ({
+      key,
+      placeholder: t(
+        `CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM.${key}.PLACEHOLDER`
+      ),
+    }))
 );
 
 const socialProfilesForm = computed(() =>
@@ -347,7 +369,7 @@ defineExpose({
         </template>
       </div>
     </div>
-    <div class="flex flex-col items-start gap-2">
+    <div v-if="showSocialProfiles" class="flex flex-col items-start gap-2">
       <span class="py-1 text-sm font-medium text-n-slate-12">
         {{ t('CONTACTS_LAYOUT.CARD.SOCIAL_MEDIA.TITLE') }}
       </span>

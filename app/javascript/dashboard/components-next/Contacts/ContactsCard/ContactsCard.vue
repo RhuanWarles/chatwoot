@@ -10,6 +10,7 @@ import Flag from 'dashboard/components-next/flag/Flag.vue';
 import ContactDeleteSection from 'dashboard/components-next/Contacts/ContactsCard/ContactDeleteSection.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import countries from 'shared/constants/countries';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -35,6 +36,7 @@ const emit = defineEmits([
 ]);
 
 const { t } = useI18n();
+const { canViewField } = useFieldAccess();
 
 const contactsFormRef = ref(null);
 
@@ -149,7 +151,10 @@ const handleAvatarHover = isHovered => {
             <span class="text-base font-medium truncate text-n-slate-12">
               {{ name }}
             </span>
-            <span class="inline-flex items-center gap-1">
+            <span
+              v-if="canViewField('contact.company')"
+              class="inline-flex items-center gap-1"
+            >
               <span
                 v-if="additionalAttributes?.companyName"
                 class="i-ph-building-light size-4 text-n-slate-10 mb-0.5"
@@ -165,24 +170,40 @@ const handleAvatarHover = isHovered => {
           <div
             class="flex flex-wrap items-center justify-start gap-x-3 gap-y-1"
           >
-            <div v-if="email" class="truncate max-w-72" :title="email">
+            <div
+              v-if="email && canViewField('contact.email')"
+              class="truncate max-w-72"
+              :title="email"
+            >
               <span class="text-sm text-n-slate-11">
                 {{ email }}
               </span>
             </div>
-            <div v-if="email" class="w-px h-3 truncate bg-n-slate-6" />
-            <span v-if="phoneNumber" class="text-sm truncate text-n-slate-11">
+            <div
+              v-if="email && canViewField('contact.email')"
+              class="w-px h-3 truncate bg-n-slate-6"
+            />
+            <span
+              v-if="phoneNumber && canViewField('contact.phone_number')"
+              class="text-sm truncate text-n-slate-11"
+            >
               {{ phoneNumber }}
             </span>
-            <div v-if="phoneNumber" class="w-px h-3 truncate bg-n-slate-6" />
+            <div
+              v-if="phoneNumber && canViewField('contact.phone_number')"
+              class="w-px h-3 truncate bg-n-slate-6"
+            />
             <span
-              v-if="countryDetails"
+              v-if="countryDetails && canViewField('contact.location')"
               class="inline-flex items-center gap-2 text-sm truncate text-n-slate-11"
             >
               <Flag :country="countryDetails.countryCode" class="size-3.5" />
               {{ formattedLocation }}
             </span>
-            <div v-if="countryDetails" class="w-px h-3 truncate bg-n-slate-6" />
+            <div
+              v-if="countryDetails && canViewField('contact.location')"
+              class="w-px h-3 truncate bg-n-slate-6"
+            />
             <Button
               :label="t('CONTACTS_LAYOUT.CARD.VIEW_DETAILS')"
               variant="link"

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownBody from 'dashboard/components-next/dropdown-menu/base/DropdownBody.vue';
@@ -46,7 +47,19 @@ const accountLabels = useMapGetter('labels/getLabels');
 // The menu renders on <body>: the column list scrolls and would clip it.
 provideDropdownTeleport();
 
-const shows = key => props.fields.includes(key);
+// The card fields an administrator can hide from an agent, even when the card is set to show them.
+const FIELD_ACCESS = {
+  phone: 'contact.phone_number',
+  email: 'contact.email',
+  company: 'contact.company',
+  value: 'deal.value',
+  description: 'deal.description',
+  owner: 'deal.owner',
+};
+const { canViewField, canViewCustomField } = useFieldAccess();
+const shows = key =>
+  props.fields.includes(key) &&
+  (!FIELD_ACCESS[key] || canViewField(FIELD_ACCESS[key]));
 // The reason of a lost deal, with the note of whoever marked it as the tooltip.
 const lostReason = computed(() => {
   const name = props.deal.status === 'lost' && props.deal.lost_reason?.name;
@@ -108,7 +121,10 @@ const customRows = computed(() =>
       props.deal.custom_field_values?.find(item => item.custom_field_id === id)
     )
     .filter(
-      item => item?.custom_field.active && !isEmptyCustomValue(item.typed_value)
+      item =>
+        item?.custom_field.active &&
+        canViewCustomField('deal', item.custom_field.key) &&
+        !isEmptyCustomValue(item.typed_value)
     )
     .map(item => {
       const { name, field_type: fieldType } = item.custom_field;

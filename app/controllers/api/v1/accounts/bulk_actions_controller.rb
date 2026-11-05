@@ -2,6 +2,8 @@ class Api::V1::Accounts::BulkActionsController < Api::V1::Accounts::BaseControll
   def create
     case normalized_type
     when 'Conversation'
+      return render_cannot_resolve if resolving? && !can_resolve?
+
       enqueue_conversation_job
       head :ok
     when 'Contact'
@@ -17,6 +19,18 @@ class Api::V1::Accounts::BulkActionsController < Api::V1::Accounts::BaseControll
 
   def normalized_type
     params[:type].to_s.camelize
+  end
+
+  def resolving?
+    params.permit(fields: [:status]).dig(:fields, :status) == 'resolved'
+  end
+
+  def can_resolve?
+    !current_user.is_a?(User) || Current.account_user&.may_resolve_conversations?
+  end
+
+  def render_cannot_resolve
+    render json: { error: 'You are not allowed to resolve conversations' }, status: :forbidden
   end
 
   def enqueue_conversation_job

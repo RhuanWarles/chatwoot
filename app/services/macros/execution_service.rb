@@ -10,6 +10,8 @@ class Macros::ExecutionService < ActionService
   def perform
     @macro.actions.each do |action|
       action = action.with_indifferent_access
+      next unless allowed?(action[:action_name])
+
       begin
         send(action[:action_name], action[:action_params])
       rescue StandardError => e
@@ -21,6 +23,14 @@ class Macros::ExecutionService < ActionService
   end
 
   private
+
+  # An agent whose permission to resolve was switched off still runs the other steps of a macro.
+  def allowed?(action_name)
+    return true unless action_name == 'resolve_conversation' && @user.is_a?(User)
+
+    account_user = @account.account_users.find_by(user_id: @user.id)
+    account_user.nil? || account_user.may_resolve_conversations?
+  end
 
   def assign_agent(agent_ids)
     agent_ids = agent_ids.map { |id| id == 'self' ? @user.id : id }

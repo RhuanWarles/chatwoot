@@ -47,6 +47,14 @@ const props = defineProps({
     type: Array,
     default: null,
   },
+  hiddenFields: {
+    type: Array,
+    default: null,
+  },
+  canResolveConversations: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const emit = defineEmits(['close']);
@@ -64,6 +72,10 @@ const inboxIds = ref([...props.inboxIds]);
 const allowedScreens = ref(
   Array.isArray(props.allowedScreens) ? [...props.allowedScreens] : null
 );
+const hiddenFields = ref(
+  Array.isArray(props.hiddenFields) ? [...props.hiddenFields] : null
+);
+const canResolveConversations = ref(props.canResolveConversations);
 
 const rules = {
   agentName: { required, minLength: minLength(1) },
@@ -162,6 +174,8 @@ const editAgent = async () => {
     if (isRestrictable.value) {
       payload.inbox_ids = inboxIds.value;
       payload.allowed_screens = allowedScreens.value;
+      payload.hidden_fields = hiddenFields.value;
+      payload.can_resolve_conversations = canResolveConversations.value;
     }
 
     await store.dispatch('agents/update', payload);
@@ -237,6 +251,8 @@ const resetPassword = async () => {
         v-if="isRestrictable"
         v-model:inbox-ids="inboxIds"
         v-model:allowed-screens="allowedScreens"
+        v-model:hidden-fields="hiddenFields"
+        v-model:can-resolve-conversations="canResolveConversations"
       />
 
       <div class="flex flex-row justify-start w-full gap-2 px-0 py-2">

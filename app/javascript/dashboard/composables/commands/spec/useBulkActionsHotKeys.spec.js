@@ -1,10 +1,12 @@
 import { useBulkActionsHotKeys } from '../useBulkActionsHotKeys';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
+import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
 import wootConstants from 'dashboard/constants/globals';
 import { emitter } from 'shared/helpers/mitt';
 
 vi.mock('dashboard/composables/store');
+vi.mock('dashboard/composables/useFieldAccess');
 vi.mock('vue-i18n');
 vi.mock('shared/helpers/mitt');
 
@@ -24,6 +26,7 @@ describe('useBulkActionsHotKeys', () => {
     }));
 
     useI18n.mockReturnValue({ t: vi.fn(key => key) });
+    useFieldAccess.mockReturnValue({ canResolve: { value: true } });
     emitter.emit = vi.fn();
   });
 
@@ -91,6 +94,17 @@ describe('useBulkActionsHotKeys', () => {
     expect(emitter.emit).toHaveBeenCalledWith(
       'CMD_BULK_ACTION_RESOLVE_CONVERSATION'
     );
+  });
+
+  it('does not offer to resolve when the agent cannot resolve conversations', () => {
+    useFieldAccess.mockReturnValue({ canResolve: { value: false } });
+    store.getters['bulkActions/getSelectedConversationIds'] = [1, 2, 3];
+    const { bulkActionsHotKeys } = useBulkActionsHotKeys();
+    const ids = bulkActionsHotKeys.value.map(action => action.id);
+
+    expect(ids).not.toContain('bulk_action_resolve_conversation');
+    expect(ids).toContain('bulk_action_reopen_conversation');
+    expect(ids).toContain('bulk_action_snooze_conversation');
   });
 
   it('should return an empty array when no conversations are selected', () => {

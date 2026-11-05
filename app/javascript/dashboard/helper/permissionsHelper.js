@@ -22,6 +22,25 @@ export const getAllowedScreens = (user, accountId) => {
   return currentAccount.allowed_screens ?? null;
 };
 
+// Fields an administrator hid from this person; administrators and unrestricted people see every field.
+export const getHiddenFields = (user, accountId) => {
+  if (!user?.accounts) return [];
+  const currentAccount = getCurrentAccount(user, accountId) || {};
+  return currentAccount.role === 'administrator'
+    ? []
+    : (currentAccount.hidden_fields ?? []);
+};
+
+// An administrator can switch resolving conversations off for an agent; administrators always resolve.
+export const canResolveConversations = (user, accountId) => {
+  if (!user?.accounts) return true;
+  const currentAccount = getCurrentAccount(user, accountId) || {};
+  return (
+    currentAccount.role === 'administrator' ||
+    currentAccount.can_resolve_conversations !== false
+  );
+};
+
 export const getUserRole = (user, accountId) => {
   const currentAccount = getCurrentAccount(user, accountId) || {};
   if (currentAccount.custom_role_id) {

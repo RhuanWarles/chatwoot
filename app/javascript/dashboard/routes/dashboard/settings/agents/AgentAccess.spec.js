@@ -18,10 +18,39 @@ vi.mock('dashboard/composables/store', () => ({
       ]);
     }
     if (name === 'agents/getUIFlags') return ref({ isCreating: false });
+    if (name === 'attributes/getAttributes') return ref([{ id: 1 }]);
+    if (name === 'attributes/getAttributesByModel') {
+      return ref(
+        model =>
+          ({
+            contact_attribute: [
+              { attribute_key: 'cpf', attribute_display_name: 'CPF' },
+            ],
+            conversation_attribute: [
+              {
+                attribute_key: 'origem',
+                attribute_display_name: 'Origem do lead',
+              },
+            ],
+          })[model] || []
+      );
+    }
     return ref([]);
   },
 }));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+vi.mock('dashboard/api/crm', () => ({
+  // A plain function: the mocks of this project are reset before every test.
+  customFieldsAPI: {
+    get: () =>
+      Promise.resolve({
+        data: [
+          { key: 'renda', name: 'Renda mensal', active: true },
+          { key: 'antigo', name: 'Campo antigo', active: false },
+        ],
+      }),
+  },
+}));
 
 const TagMultiSelectComboBox = {
   props: ['modelValue', 'options'],
@@ -60,6 +89,7 @@ const global = {
 
 const screenBoxes = wrapper =>
   wrapper.findAll('[data-test="screens"] input[type="checkbox"]');
+const fieldBox = (wrapper, key) => wrapper.find(`[data-test="${key}"]`);
 
 describe('AgentAccessFields', () => {
   const mountFields = props =>
@@ -112,6 +142,92 @@ describe('AgentAccessFields', () => {
       messages.AGENT_MGMT.ACCESS.SCREENS.AT_LEAST_ONE
     );
   });
+
+  describe('fields the agent sees', () => {
+    it('lists the fixed fields and the active custom fields of contacts, conversations and cards', async () => {
+      const wrapper = mountFields();
+      await flushPromises();
+
+      const text = wrapper.find('[data-test="fields"]').text();
+      expect(text).toContain('E-mail');
+      expect(text).toContain('Telefone');
+      expect(text).toContain('Valor');
+      expect(text).toContain('CPF');
+      expect(text).toContain('Origem do lead');
+      expect(text).toContain('Renda mensal');
+      expect(text).not.toContain('Campo antigo');
+      expect(fieldBox(wrapper, 'contact.custom.cpf').exists()).toBe(true);
+      expect(fieldBox(wrapper, 'conversation.custom.origem').exists()).toBe(
+        true
+      );
+      expect(fieldBox(wrapper, 'deal.custom.renda').exists()).toBe(true);
+    });
+
+    it('starts with every field ticked and no list of hidden fields', async () => {
+      const wrapper = mountFields();
+      await flushPromises();
+
+      const boxes = wrapper.findAll(
+        '[data-test="fields"] input[type="checkbox"]'
+      );
+      expect(boxes.length).toBeGreaterThan(10);
+      expect(boxes.every(box => box.element.checked)).toBe(true);
+      expect(wrapper.emitted('update:hiddenFields')).toBeUndefined();
+    });
+
+    it('hides a field when it is unticked', async () => {
+      const wrapper = mountFields();
+      await flushPromises();
+
+      await fieldBox(wrapper, 'contact.phone_number').setValue(false);
+
+      expect(wrapper.emitted('update:hiddenFields')[0][0]).toEqual([
+        'contact.phone_number',
+      ]);
+    });
+
+    it('hides a custom field when it is unticked', async () => {
+      const wrapper = mountFields({ hiddenFields: ['contact.email'] });
+      await flushPromises();
+
+      await fieldBox(wrapper, 'deal.custom.renda').setValue(false);
+
+      expect(wrapper.emitted('update:hiddenFields')[0][0]).toEqual([
+        'contact.email',
+        'deal.custom.renda',
+      ]);
+    });
+
+    it('shows the fields hidden before as unticked and ticks one back', async () => {
+      const wrapper = mountFields({ hiddenFields: ['contact.email'] });
+      await flushPromises();
+
+      expect(fieldBox(wrapper, 'contact.email').element.checked).toBe(false);
+      expect(fieldBox(wrapper, 'contact.company').element.checked).toBe(true);
+
+      await fieldBox(wrapper, 'contact.email').setValue(true);
+
+      expect(wrapper.emitted('update:hiddenFields')[0][0]).toBeNull();
+    });
+  });
+
+  describe('resolving conversations', () => {
+    it('is allowed by default', () => {
+      const wrapper = mountFields();
+
+      expect(fieldBox(wrapper, 'can-resolve').element.checked).toBe(true);
+    });
+
+    it('is switched off by unticking the box', async () => {
+      const wrapper = mountFields();
+
+      await fieldBox(wrapper, 'can-resolve').setValue(false);
+
+      expect(wrapper.emitted('update:canResolveConversations')[0][0]).toBe(
+        false
+      );
+    });
+  });
 });
 
 describe('AddAgent', () => {
@@ -138,6 +254,7 @@ describe('AddAgent', () => {
       email: 'brenda@example.com',
       role: 'agent',
       inbox_ids: [2],
+      can_resolve_conversations: true,
     });
   });
 
@@ -153,6 +270,21 @@ describe('AddAgent', () => {
     const [, payload] = mocks.dispatch.mock.calls[0];
     expect(payload.allowed_screens).not.toContain('inbox');
     expect(payload.allowed_screens).toContain('crm');
+  });
+
+  it('sends the hidden fields and the permission to resolve too', async () => {
+    const wrapper = mount(AddAgent, { global });
+    await fill(wrapper);
+    await flushPromises();
+    await fieldBox(wrapper, 'contact.phone_number').setValue(false);
+    await fieldBox(wrapper, 'can-resolve').setValue(false);
+
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    const [, payload] = mocks.dispatch.mock.calls[0];
+    expect(payload.hidden_fields).toEqual(['contact.phone_number']);
+    expect(payload.can_resolve_conversations).toBe(false);
   });
 
   it('does not offer inboxes or screens when the new person is an administrator', async () => {
