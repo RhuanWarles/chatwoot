@@ -54,6 +54,20 @@ describe('summarizeNode', () => {
     );
   });
 
+  it('writes each person of a distribution with their share', () => {
+    const { detail } = summary('action', {
+      action: 'distribute_deal',
+      params: {
+        assignees: [
+          { user_id: 7, percentage: 60 },
+          { user_id: 9, percentage: 40 },
+        ],
+      },
+    });
+
+    expect(detail).toBe('Ana 60%, #9 40%');
+  });
+
   it('omits the value for operators that take none', () => {
     const { detail } = summary('condition', {
       conditions: [

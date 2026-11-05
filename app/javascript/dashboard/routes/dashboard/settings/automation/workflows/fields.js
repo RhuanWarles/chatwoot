@@ -98,6 +98,8 @@ export const freePrefixOf = field =>
 const NUMERIC_TYPES = ['number', 'currency', 'percent'];
 
 const customFieldKind = definition => {
+  // A user field holds the id of a person, so conditions pick people.
+  if (definition.field_type === 'user') return FIELD_KINDS.AGENT;
   if (definition.options?.length || definition.attribute_values?.length) {
     return FIELD_KINDS.OPTIONS;
   }

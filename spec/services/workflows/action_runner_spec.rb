@@ -40,6 +40,122 @@ RSpec.describe Workflows::ActionRunner do
     end
   end
 
+  describe 'filling the user field after the draw' do
+    let!(:seller_field) { account.crm_custom_fields.create!(name: 'Vendedor', key: 'vendedor', field_type: 'user') }
+    let(:sellers) { create_list(:user, 2, account: account, role: :agent) }
+
+    def filled
+      deal.reload.custom_field_values.find_by(custom_field: seller_field)&.typed_value
+    end
+
+    it 'writes the person of a random assignment in the field' do
+      runner.perform('assign_deal_owner', { 'mode' => 'random', 'user_ids' => sellers.map(&:id), 'custom_field_key' => 'vendedor' })
+
+      expect(filled).to eq(deal.reload.owner_id)
+      expect(sellers.map(&:id)).to include(filled)
+    end
+
+    it 'writes the person of a fixed assignment too' do
+      runner.perform('assign_deal_owner', { 'mode' => 'user', 'user_id' => sellers.first.id, 'custom_field_key' => 'vendedor' })
+
+      expect(filled).to eq(sellers.first.id)
+    end
+
+    it 'does not touch any field when none was chosen' do
+      runner.perform('assign_deal_owner', { 'mode' => 'user', 'user_id' => sellers.first.id })
+
+      expect(filled).to be_nil
+    end
+
+    it 'refuses a field that is not of type user and one that does not exist' do
+      account.crm_custom_fields.create!(name: 'Texto', key: 'texto', field_type: 'text')
+
+      expect { runner.perform('assign_deal_owner', { 'mode' => 'user', 'user_id' => sellers.first.id, 'custom_field_key' => 'texto' }) }
+        .to raise_error(ArgumentError, /not a user field/)
+      expect { runner.perform('assign_deal_owner', { 'mode' => 'user', 'user_id' => sellers.first.id, 'custom_field_key' => 'nope' }) }
+        .to raise_error(Workflows::ActionRunner::MissingRecord)
+    end
+  end
+
+  describe 'distribute_deal' do
+    let!(:seller_field) { account.crm_custom_fields.create!(name: 'Vendedor', key: 'vendedor', field_type: 'user') }
+    let(:ana) { create(:user, account: account, role: :agent) }
+    let(:bia) { create(:user, account: account, role: :agent) }
+    let(:context) { Workflows::Context.new(run) }
+
+    def half_and_half
+      [{ 'user_id' => ana.id, 'percentage' => 50 }, { 'user_id' => bia.id, 'percentage' => 50 }]
+    end
+
+    def distributor
+      described_class.new(context, workflow)
+    end
+
+    before { context.node_id = 'rodizio' }
+
+    it 'makes the next person the owner of the card and writes them in the field' do
+      params = { 'assignees' => half_and_half, 'custom_field_key' => 'vendedor', 'assign_conversation' => false }
+
+      output = distributor.perform('distribute_deal', params)
+
+      expect(output).to include('deal_id' => deal.id, 'owner_id' => ana.id)
+      expect(deal.reload.owner_id).to eq(ana.id)
+      expect(deal.custom_field_values.find_by(custom_field: seller_field).typed_value).to eq(ana.id)
+    end
+
+    it 'follows the percentages from one lead to the next' do
+      owners = Array.new(4) do
+        other = account.crm_deals.create!(pipeline: pipeline, pipeline_stage: stage, contact: contact, name: 'Outro')
+        another = Workflows::Context.new(workflow.runs.create!(account_id: account.id, trigger_event: 'manual', started_at: Time.current,
+                                                               context: { 'deal_id' => other.id, 'contact_id' => contact.id }))
+        another.node_id = 'rodizio'
+        described_class.new(another, workflow).perform('distribute_deal', { 'assignees' => half_and_half, 'assign_conversation' => false })
+        other.reload.owner_id
+      end
+
+      expect(owners).to eq([ana.id, bia.id, ana.id, bia.id])
+    end
+
+    it 'hands the conversation of the lead to the same person' do
+      conversation = create(:conversation, account: account, contact: contact)
+      create(:inbox_member, user: ana, inbox: conversation.inbox)
+      conversation_context = Workflows::Context.new(workflow.runs.create!(account_id: account.id, trigger_event: 'manual', started_at: Time.current,
+                                                                          context: run_context.merge('conversation_id' => conversation.id)))
+      conversation_context.node_id = 'rodizio'
+
+      output = described_class.new(conversation_context, workflow).perform('distribute_deal', { 'assignees' => half_and_half })
+
+      expect(conversation.reload.assignee_id).to eq(ana.id)
+      expect(output).to include('owner_id' => ana.id, 'conversation_id' => conversation.id)
+    end
+
+    it 'reports a person who cannot take the conversation' do
+      conversation = create(:conversation, account: account, contact: contact)
+      conversation_context = Workflows::Context.new(workflow.runs.create!(account_id: account.id, trigger_event: 'manual', started_at: Time.current,
+                                                                          context: run_context.merge('conversation_id' => conversation.id)))
+      conversation_context.node_id = 'rodizio'
+
+      expect { described_class.new(conversation_context, workflow).perform('distribute_deal', { 'assignees' => half_and_half }) }
+        .to raise_error(ArgumentError, /could not assign/)
+    end
+
+    it 'still sets the owner when the lead has no conversation' do
+      output = distributor.perform('distribute_deal', { 'assignees' => half_and_half })
+
+      expect(deal.reload.owner_id).to eq(ana.id)
+      expect(output['conversation_id']).to be_nil
+    end
+
+    it 'refuses percentages that do not add up and people from another account' do
+      stranger = create(:user, account: create(:account), role: :agent)
+
+      expect { distributor.perform('distribute_deal', { 'assignees' => [{ 'user_id' => ana.id, 'percentage' => 40 }] }) }
+        .to raise_error(ArgumentError, /add up to 100/)
+      expect { distributor.perform('distribute_deal', { 'assignees' => [{ 'user_id' => stranger.id, 'percentage' => 100 }] }) }
+        .to raise_error(ArgumentError, /does not belong/)
+    end
+  end
+
   describe 'deal actions' do
     it 'sets the status with a reason' do
       reason = account.crm_lost_reasons.create!(name: 'Preço')

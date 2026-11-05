@@ -68,6 +68,33 @@ describe('fields', () => {
     );
   });
 
+  it('treats a user field of the deal as a list of people', () => {
+    const [field] = buildCustomFields(
+      [{ key: 'vendedor', name: 'Vendedor', field_type: 'user' }],
+      []
+    );
+
+    expect(field).toMatchObject({
+      key: 'deal.custom.vendedor',
+      kind: FIELD_KINDS.AGENT,
+    });
+  });
+
+  it('lists the active user fields as the places a draw can write the person', () => {
+    const { userFields } = buildLookups(
+      {
+        dealFields: [
+          { key: 'vendedor', name: 'Vendedor', field_type: 'user' },
+          { key: 'antigo', name: 'Antigo', field_type: 'user', active: false },
+          { key: 'origem', name: 'Origem', field_type: 'text' },
+        ],
+      },
+      t
+    );
+
+    expect(userFields).toEqual([{ value: 'vendedor', label: 'Vendedor' }]);
+  });
+
   it('recognises the fields whose tail is typed by the user', () => {
     expect(freePrefixOf('trigger.payload.email')).toBe('trigger.payload.');
     expect(freePrefixOf('vars.')).toBe('vars.');

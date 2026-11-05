@@ -121,6 +121,12 @@ const ACTION_DETAILS = {
         key => params[key]
       ).length,
     }),
+  distribute_deal: (params, ctx) =>
+    truncate(
+      (params.assignees || [])
+        .map(row => `${ctx.name('agent', row.user_id)} ${row.percentage}%`)
+        .join(', ')
+    ),
   set_deal_field: params => fieldsText(params.fields),
   set_contact_field: params => fieldsText(params.fields),
   create_deal_activity: params => truncate(params.title),

@@ -15,7 +15,14 @@ module Crm::AutomationFieldValidations
   def valid_assign_random?(action)
     ids = action['user_ids']
     ids.is_a?(Array) && ids.length.between?(1, Crm::Automatable::MAX_RANDOM_OWNERS) && ids.all?(Integer) && ids.uniq.length == ids.length &&
-      account.users.where(id: ids).count == ids.length
+      account.users.where(id: ids).count == ids.length && valid_user_field?(action['custom_field_id'])
+  end
+
+  # The field that receives the person who was drawn is optional, and has to be a user field.
+  def valid_user_field?(field_id)
+    return true if field_id.nil?
+
+    field_id.is_a?(Integer) && account.crm_custom_fields.exists?(id: field_id, active: true, field_type: 'user')
   end
 
   def valid_set_field?(action)

@@ -87,17 +87,27 @@ class Crm::StageAutomationService
   end
 
   # Spreads new leads evenly (in the long run) between the chosen sellers without having to build one automation per seller.
+  # With a user field chosen, the person who was drawn is also written there.
   def assign_random(action)
-    @deal.update!(owner_id: action['user_ids'].sample)
+    user_id = action['user_ids'].sample
+    @deal.update!(owner_id: user_id)
+    return if action['custom_field_id'].blank?
+
+    ensure_depth_left!
+    write_field(action['custom_field_id'], user_id)
   end
 
   def set_field(action)
     # Writing a field can trigger the pipeline's field automations, which may write it back.
     ensure_depth_left!
-    record = @deal.custom_field_values.find_or_initialize_by(custom_field_id: action['custom_field_id'])
+    write_field(action['custom_field_id'], action['value'])
+  end
+
+  def write_field(custom_field_id, value)
+    record = @deal.custom_field_values.find_or_initialize_by(custom_field_id: custom_field_id)
     record.account_id = @deal.account_id
     record.automation_depth = @deal.automation_depth
-    record.typed_value = action['value']
+    record.typed_value = value
     record.save!
   end
 

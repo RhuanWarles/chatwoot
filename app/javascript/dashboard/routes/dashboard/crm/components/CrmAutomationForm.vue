@@ -81,6 +81,17 @@ const customField = computed(() =>
 const fieldOptions = computed(() =>
   (fields.value ?? []).map(({ id, name }) => ({ value: id, label: name }))
 );
+// The field of type user that can receive the person who was drawn; 0 means none.
+const userFieldOptions = computed(() => [
+  { value: 0, label: t('CRM.AUTOMATION_RANDOM_FIELD_NONE') },
+  ...(fields.value ?? [])
+    .filter(({ field_type: type }) => type === 'user')
+    .map(({ id, name }) => ({ value: id, label: name })),
+]);
+const setRandomField = id => {
+  if (id) action.value.custom_field_id = id;
+  else delete action.value.custom_field_id;
+};
 const operatorOptions = computed(() =>
   getFieldOperators(customField.value).map(operator => ({
     value: operator,
@@ -238,6 +249,19 @@ const insertVariable = token => {
           :options="agentOptions"
           :placeholder="t('CRM.AUTOMATION_SELECT_OWNERS')"
           :has-error="Boolean(errorText('user_ids'))"
+        />
+      </CrmAutomationField>
+      <CrmAutomationField
+        group
+        class="md:col-span-2"
+        :label="t('CRM.AUTOMATION_RANDOM_FIELD')"
+        :hint="t('CRM.AUTOMATION_RANDOM_FIELD_HINT')"
+      >
+        <ComboBox
+          :model-value="action.custom_field_id || 0"
+          :options="userFieldOptions"
+          :empty-state="t('CRM.AUTOMATION_NO_USER_FIELDS')"
+          @update:model-value="setRandomField"
         />
       </CrmAutomationField>
     </template>

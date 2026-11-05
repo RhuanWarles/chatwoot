@@ -21,6 +21,7 @@ const OPERATORS_BY_FIELD_TYPE = {
   boolean: ['equals', 'filled', 'empty'],
   select: ['equals', 'not_equals', 'filled', 'empty'],
   multiselect: ['equals', 'filled', 'empty'],
+  user: ['equals', 'not_equals', 'filled', 'empty'],
 };
 export const OPERATOR_LABEL_KEYS = {
   equals: 'CRM.AUTOMATION_OPERATOR_EQUALS',
@@ -329,6 +330,7 @@ const getFieldValueError = (field, value) => {
     currency: () => /^-?\d+(\.\d+)?$/.test(text),
     date: () => /^\d{4}-\d{2}-\d{2}$/.test(text),
     datetime: () => !Number.isNaN(Date.parse(text)),
+    user: () => /^\d+$/.test(text),
   }[type];
   return !valid || valid() ? '' : 'FIELD_VALUE_INVALID';
 };
@@ -549,10 +551,16 @@ const describeAction = (
       const names = agents
         .filter(({ id }) => action.user_ids.includes(id))
         .map(({ name }) => name);
-      return t('CRM.AUTOMATION_SUMMARY_RANDOM', {
+      const summary = t('CRM.AUTOMATION_SUMMARY_RANDOM', {
         count: action.user_ids.length,
         names: names.join(', '),
       });
+      return action.custom_field_id
+        ? t('CRM.AUTOMATION_SUMMARY_RANDOM_FIELD', {
+            summary,
+            field: fieldName(action.custom_field_id),
+          })
+        : summary;
     }
     case 'set_field': {
       const { value } = action;

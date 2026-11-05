@@ -7,6 +7,7 @@ class AutomationWorkflow < ApplicationRecord
 
   belongs_to :account
   has_many :runs, class_name: 'AutomationWorkflowRun', dependent: :delete_all
+  has_many :distribution_states, class_name: 'AutomationDistributionState', dependent: :delete_all
 
   has_secure_token :webhook_token, length: 32
 

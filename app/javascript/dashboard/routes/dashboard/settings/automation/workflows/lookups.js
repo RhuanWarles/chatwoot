@@ -82,6 +82,10 @@ export const buildLookups = (source, t = key => key) => {
     dealFields: (source.dealFields || [])
       .filter(item => item.active !== false)
       .map(item => ({ value: item.key, label: item.name, field: item })),
+    // The deal fields that hold a person: where a draw or a distribution can write who was chosen.
+    userFields: (source.dealFields || [])
+      .filter(item => item.active !== false && item.field_type === 'user')
+      .map(item => ({ value: item.key, label: item.name })),
     contactFields: (source.contactAttributes || []).map(item => ({
       value: item.attribute_key,
       label: item.attribute_display_name,

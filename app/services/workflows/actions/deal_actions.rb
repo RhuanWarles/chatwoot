@@ -1,5 +1,5 @@
 class Workflows::Actions::DealActions
-  NAMES = %w[move_deal set_deal_status assign_deal_owner update_deal set_deal_field create_deal create_deal_activity].freeze
+  NAMES = %w[move_deal set_deal_status assign_deal_owner distribute_deal update_deal set_deal_field create_deal create_deal_activity].freeze
   DEFAULT_ACTIVITY_DUE_HOURS = 24
 
   def initialize(context, workflow)
@@ -32,7 +32,20 @@ class Workflows::Actions::DealActions
     raise ArgumentError, 'there is nobody to assign the deal to' if owner_id.blank?
 
     save!(deal, owner_id: owner_id)
+    fill_user_field(params['custom_field_key'], deal.owner_id)
     { 'deal_id' => deal.id, 'owner_id' => deal.owner_id }
+  end
+
+  # Weighted round robin: each person gets the share of leads set for them. The person who is next also becomes the owner
+  # of the card, is written in the user field (when chosen) and, by default, takes over the conversation of the lead.
+  def distribute_deal(params)
+    assignees = distribution_of(params)
+    user_id = Workflows::Distribution.pick!(@workflow, @context.node_id || 'manual', assignees)
+    save!(deal, owner_id: user_id)
+    fill_user_field(params['custom_field_key'], user_id)
+    output = { 'deal_id' => deal.id, 'owner_id' => user_id }
+    assign_conversation(user_id, output) if ActiveModel::Type::Boolean.new.cast(params.fetch('assign_conversation', true))
+    output
   end
 
   def update_deal(params)
@@ -71,6 +84,36 @@ class Workflows::Actions::DealActions
   end
 
   private
+
+  # The people of the distribution, checked before anything is changed.
+  def distribution_of(params)
+    assignees = Array(params['assignees'])
+    messages = Workflows::Distribution.errors(assignees)
+    raise ArgumentError, messages.first if messages.any?
+
+    ids = assignees.map { |item| Integer(item['user_id']) }
+    raise ArgumentError, 'a person of the distribution does not belong to the account' unless @account.users.where(id: ids).count == ids.size
+
+    assignees
+  end
+
+  # A lead without a conversation still gets its owner; the output tells that nobody was assigned there.
+  def assign_conversation(user_id, output)
+    return output['conversation_id'] = nil unless @context.conversation
+
+    Workflows::Actions::ConversationActions.new(@context, @workflow).assign_agent('agent_id' => user_id.to_s)
+    output['conversation_id'] = @context.conversation.id
+  end
+
+  def fill_user_field(key, user_id)
+    return if key.blank?
+
+    field = @account.crm_custom_fields.find_by(key: key.to_s, active: true) ||
+            raise(Workflows::ActionRunner::MissingRecord, "CRM custom field #{key} not found")
+    raise ArgumentError, "CRM custom field #{key} is not a user field" unless field.field_type == 'user'
+
+    write_field(field, user_id)
+  end
 
   def deal
     @context.deal || raise(Workflows::ActionRunner::MissingRecord, 'No CRM deal is available for this run')

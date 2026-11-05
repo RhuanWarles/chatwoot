@@ -19,6 +19,24 @@ RSpec.describe Workflows::Graph do
     expect(errors_for(graph, [])).to include('unknown trigger event "nope"', 'unknown action "nope"')
   end
 
+  describe 'a distribution step' do
+    def distribution(assignees)
+      action.merge('data' => { 'action' => 'distribute_deal', 'params' => { 'assignees' => assignees } })
+    end
+
+    it 'accepts people whose percentages add up to 100' do
+      assignees = [{ 'user_id' => 1, 'percentage' => 70 }, { 'user_id' => 2, 'percentage' => 30 }]
+
+      expect(errors_for([trigger, distribution(assignees)], [edge])).to be_empty
+    end
+
+    it 'rejects a distribution that is empty or does not add up to 100' do
+      expect(errors_for([trigger, distribution([])], [edge])).to include('distribution needs at least one person')
+      expect(errors_for([trigger, distribution([{ 'user_id' => 1, 'percentage' => 60 }])], [edge]))
+        .to include('the percentages must add up to 100')
+    end
+  end
+
   it 'rejects edges to missing nodes and self loops' do
     expect(errors_for([trigger], [edge])).to include('edges must connect existing nodes')
     expect(errors_for([trigger], [edge.merge('target' => 't')])).to include('edges must connect existing nodes')

@@ -197,7 +197,8 @@
       "DATETIME": "Date and time",
       "BOOLEAN": "Yes/No",
       "SELECT": "Options list",
-      "MULTISELECT": "Multiple options"
+      "MULTISELECT": "Multiple options",
+      "USER": "User"
     },
     "CUSTOM_FIELD_TYPE_DESCRIPTIONS": {
       "TEXT": "Ideal for names, codes or short text.",
@@ -208,9 +209,13 @@
       "DATETIME": "Stores a date and time.",
       "BOOLEAN": "Stores a yes or no choice.",
       "SELECT": "Choose one option from a defined list.",
-      "MULTISELECT": "Choose multiple options from a defined list."
+      "MULTISELECT": "Choose multiple options from a defined list.",
+      "USER": "Holds a person of the team, for example the seller who received the lead."
     },
     "CUSTOM_FIELD_REQUIRED": "Required",
+    "CUSTOM_FIELD_SYSTEM_BADGE": "Automatic",
+    "CUSTOM_FIELD_SYSTEM_NOTE": "The system fills this field with the lost reason and keeps it in line with the list of reasons. Only the name can be changed, and it cannot be removed or deactivated.",
+    "CF_UNKNOWN_USER": "Removed user",
     "CUSTOM_FIELD_REQUIRED_HELP": "Require this field when saving the deal's custom data.",
     "CUSTOM_FIELD_OPTIONS": "Options",
     "CUSTOM_FIELD_OPTIONS_HELP": "Add and arrange the values available for this field.",
@@ -505,6 +510,11 @@
     "AUTOMATION_BOOLEAN_TRUE": "Yes",
     "AUTOMATION_BOOLEAN_FALSE": "No",
     "AUTOMATION_SUMMARY_RANDOM": "Random between {names}",
+    "AUTOMATION_SUMMARY_RANDOM_FIELD": "{summary}, written in {field}",
+    "AUTOMATION_RANDOM_FIELD": "Write the person who was drawn in the field",
+    "AUTOMATION_RANDOM_FIELD_HINT": "After the draw, whoever received the deal is also written in this field of type User.",
+    "AUTOMATION_RANDOM_FIELD_NONE": "Do not fill any field",
+    "AUTOMATION_NO_USER_FIELDS": "No fields of type User. Create one in Custom fields.",
     "AUTOMATION_SUMMARY_SET_FIELD": "{field}: {value}",
     "AUTOMATION_SUMMARY_ROUTE": "By {field} ({count} rules)",
     "AUTOMATION_SUMMARY_CONDITION": "only if {field} {condition}",
