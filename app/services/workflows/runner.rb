@@ -84,6 +84,7 @@ class Workflows::Runner
   def run_action(node)
     data = node[:data]
     params = render_params(data)
+    @context.node_id = node[:id]
     output = Workflows::ActionRunner.new(@context, @workflow).perform(data[:action], params)
     @context.reload!
     record(node[:id], 'action', 'ok', output: output.merge('action' => data[:action]))

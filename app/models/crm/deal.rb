@@ -25,6 +25,7 @@ module Crm
     before_save :clear_lost_reason_unless_lost
     after_create :record_creation
     after_update :record_changes
+    after_save :sync_lost_reason_field, if: -> { saved_change_to_status? || saved_change_to_lost_reason_id? }
     after_commit :enqueue_stage_automations, on: [:create, :update]
     after_commit :enqueue_outcome_automations, on: [:create, :update]
     after_commit :dispatch_automation_events, on: [:create, :update]
@@ -77,6 +78,10 @@ module Crm
       return {} unless status == 'lost'
 
       { 'lost_reason_id' => lost_reason_id, 'lost_reason' => lost_reason&.name, 'lost_note' => lost_note }
+    end
+
+    def sync_lost_reason_field
+      Crm::LostReasonField.write(self)
     end
 
     def clear_lost_reason_unless_lost

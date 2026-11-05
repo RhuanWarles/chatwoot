@@ -27,12 +27,17 @@ class Api::V1::Accounts::Crm::CustomFieldsController < Api::V1::Accounts::BaseCo
     render json: fields.order(:position, :id)
   end
 
+  # The field of the lost reason is kept by the system: only its name and place can change.
   def update
-    @field.update!(field_params.except(:key))
+    attributes = field_params.except(:key)
+    attributes = attributes.slice(:name, :position) if @field.system?
+    @field.update!(attributes)
     render json: @field
   end
 
   def destroy
+    return render json: { error: 'System fields cannot be removed' }, status: :unprocessable_entity if @field.system?
+
     if @field.deal_values.exists?
       @field.update!(active: false)
       render json: @field

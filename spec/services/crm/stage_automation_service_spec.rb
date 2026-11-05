@@ -54,6 +54,48 @@ RSpec.describe Crm::StageAutomationService do
     end
   end
 
+  describe 'assign_random filling a user field' do
+    let(:seller_field) { account.crm_custom_fields.create!(name: 'Vendedor', key: 'vendedor', field_type: 'user') }
+
+    it 'writes the person who was drawn in the field' do
+      entry_stage.update!(automations: [{ 'type' => 'assign_random', 'user_ids' => sellers.map(&:id), 'custom_field_id' => seller_field.id }])
+
+      run
+
+      owner_id = deal.reload.owner_id
+      expect(sellers.map(&:id)).to include(owner_id)
+      expect(deal.custom_field_values.find_by(custom_field: seller_field).typed_value).to eq(owner_id)
+    end
+
+    it 'leaves the field alone when none was chosen' do
+      entry_stage.update!(automations: [{ 'type' => 'assign_random', 'user_ids' => sellers.map(&:id) }])
+
+      run
+
+      expect(deal.reload.custom_field_values).to be_empty
+    end
+
+    def draw_into(field)
+      entry_stage.update(automations: [{ 'type' => 'assign_random', 'user_ids' => sellers.map(&:id), 'custom_field_id' => field.id }])
+    end
+
+    it 'only accepts an active field of type user' do
+      expect(draw_into(notes)).to be(false)
+      seller_field.update!(active: false)
+      expect(draw_into(seller_field)).to be(false)
+      seller_field.update!(active: true)
+      expect(draw_into(seller_field)).to be(true)
+    end
+
+    it 'lets set_field write a person in a user field' do
+      entry_stage.update!(automations: [{ 'type' => 'set_field', 'custom_field_id' => seller_field.id, 'value' => sellers.first.id }])
+
+      run
+
+      expect(deal.custom_field_values.find_by(custom_field: seller_field).typed_value).to eq(sellers.first.id)
+    end
+  end
+
   describe 'set_field' do
     it 'fills a custom field of the deal' do
       entry_stage.update!(automations: [{ 'type' => 'set_field', 'custom_field_id' => notes.id, 'value' => 'Veio do Instagram' }])

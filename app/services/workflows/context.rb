@@ -5,6 +5,8 @@ class Workflows::Context
   CHANGE_KEYS = %w[pipeline_id pipeline_stage_id status owner_id value segment_id lost_reason_id name assignee_id team_id priority].freeze
 
   attr_reader :account, :run, :state
+  # The step being run, for the actions that keep a state per step (the distribution).
+  attr_accessor :node_id
 
   def initialize(run)
     @run = run

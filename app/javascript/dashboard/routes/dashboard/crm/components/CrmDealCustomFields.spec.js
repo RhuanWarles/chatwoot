@@ -1,4 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils';
+import { ref } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { dealsAPI } from 'dashboard/api/crm';
 import Component from './CrmDealCustomFields.vue';
@@ -10,6 +11,13 @@ vi.mock('dashboard/composables/useFieldAccess', () => ({
     canViewCustomField: (record, key) =>
       !access.hidden.includes(`${record}.custom.${key}`),
   }),
+}));
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: () =>
+    ref([
+      { id: 7, name: 'Ana' },
+      { id: 8, name: 'Bia' },
+    ]),
 }));
 vi.mock('dashboard/api/crm', () => ({
   dealsAPI: {
@@ -311,5 +319,70 @@ describe('fields hidden by an administrator', () => {
     expect(wrapper.findAll('[id^="cf-read-"]')).toHaveLength(
       definitions.length
     );
+  });
+});
+
+describe('a user field', () => {
+  const seller = {
+    id: 40,
+    key: 'vendedor',
+    name: 'Vendedor',
+    field_type: 'user',
+    value: 7,
+    options: [],
+    required: false,
+    active: true,
+    position: 40,
+  };
+
+  it('shows the name of the person, and says so when they are not on the team any more', async () => {
+    const known = await create([seller]);
+    expect(known.find('#cf-read-40').text()).toContain('Ana');
+
+    const gone = await create([{ ...seller, value: 99 }]);
+    expect(gone.find('#cf-read-40').text()).toContain(
+      messages.CRM.CF_UNKNOWN_USER
+    );
+  });
+
+  it('is edited by picking someone from the team and saves the id', async () => {
+    dealsAPI.updateCustomFields.mockResolvedValue({
+      data: [{ ...seller, value: 8 }],
+    });
+    const wrapper = await create([seller]);
+    await wrapper.find('#cf-read-40').trigger('click');
+    await flushPromises();
+
+    const select = wrapper.find('select#cf-40');
+    expect(select.findAll('option').map(option => option.text())).toEqual([
+      messages.CRM.NOT_SET,
+      'Ana',
+      'Bia',
+    ]);
+    await select.setValue(8);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(dealsAPI.updateCustomFields).toHaveBeenCalledWith(12, {
+      vendedor: 8,
+    });
+    expect(wrapper.find('#cf-read-40').text()).toContain('Bia');
+  });
+
+  it('clears the person when nobody is picked', async () => {
+    dealsAPI.updateCustomFields.mockResolvedValue({
+      data: [{ ...seller, value: null }],
+    });
+    const wrapper = await create([seller]);
+    await wrapper.find('#cf-read-40').trigger('click');
+    await flushPromises();
+
+    await wrapper.find('select#cf-40').setValue('');
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(dealsAPI.updateCustomFields).toHaveBeenCalledWith(12, {
+      vendedor: null,
+    });
   });
 });

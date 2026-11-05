@@ -87,7 +87,9 @@ class Workflows::Graph
   end
 
   def action_errors(data)
-    Workflows::ActionRunner::NAMES.include?(data[:action]) ? [] : ["unknown action #{data[:action].inspect}"]
+    return ["unknown action #{data[:action].inspect}"] unless Workflows::ActionRunner::NAMES.include?(data[:action])
+
+    data[:action] == 'distribute_deal' ? Workflows::Distribution.errors(data.dig(:params, :assignees)) : []
   end
 
   def edge_errors

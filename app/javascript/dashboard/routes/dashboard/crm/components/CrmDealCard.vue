@@ -44,6 +44,7 @@ const DATE_ROWS = [
 
 const { t, locale } = useI18n();
 const accountLabels = useMapGetter('labels/getLabels');
+const agents = useMapGetter('agents/getAgents');
 // The menu renders on <body>: the column list scrolls and would clip it.
 provideDropdownTeleport();
 
@@ -132,6 +133,7 @@ const customRows = computed(() =>
         formatCustomFieldValue(fieldType, item.typed_value, {
           t,
           locale: locale.value,
+          agents: agents.value,
         })
       );
       return {

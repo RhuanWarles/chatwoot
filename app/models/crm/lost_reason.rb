@@ -8,4 +8,14 @@ class Crm::LostReason < ApplicationRecord
   validates :name, presence: true, length: { maximum: 80 }, uniqueness: { scope: :account_id, case_sensitive: false }
 
   scope :active, -> { where(active: true) }
+
+  # The "Motivo da perda" field mirrors the reasons; a rename also renames what the deals hold.
+  after_commit :sync_lost_reason_field, on: [:create, :update, :destroy]
+
+  private
+
+  def sync_lost_reason_field
+    renamed = previous_changes['name'] unless destroyed? || previously_new_record?
+    Crm::LostReasonFieldSyncJob.perform_later(account_id, *renamed)
+  end
 end

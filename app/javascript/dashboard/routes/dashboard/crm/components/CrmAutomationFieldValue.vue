@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useMapGetter } from 'dashboard/composables/store';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -15,6 +16,7 @@ const props = defineProps({
 const model = defineModel({ type: [String, Number, Array], default: '' });
 
 const { t } = useI18n();
+const agents = useMapGetter('agents/getAgents');
 
 const type = computed(() => props.field?.field_type);
 const options = computed(() =>
@@ -22,6 +24,10 @@ const options = computed(() =>
     value: option,
     label: option,
   }))
+);
+// Values are stored as text, so the people are offered by the text of their id.
+const userOptions = computed(() =>
+  agents.value.map(agent => ({ value: String(agent.id), label: agent.name }))
 );
 const booleanOptions = computed(() => [
   { value: 'true', label: t('CRM.AUTOMATION_BOOLEAN_TRUE') },
@@ -55,6 +61,13 @@ const setText = value => {
     v-else-if="type === 'select' || type === 'multiselect'"
     v-model="model"
     :options="options"
+    :placeholder="placeholder"
+    :has-error="hasError"
+  />
+  <ComboBox
+    v-else-if="type === 'user'"
+    v-model="model"
+    :options="userOptions"
     :placeholder="placeholder"
     :has-error="hasError"
   />

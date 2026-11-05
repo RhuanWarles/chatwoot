@@ -407,3 +407,36 @@ describe('validateGraph', () => {
     expect(codes(validateGraph(nodes, edges))).toContain('TOO_MANY_NODES');
   });
 });
+
+describe('validateGraph with a distribution step', () => {
+  const distribution = assignees =>
+    node('d', 'action', {
+      action: 'distribute_deal',
+      params: { assignees, custom_field_key: '', assign_conversation: true },
+    });
+  const check = assignees =>
+    validateGraph(
+      [node('t', 'trigger'), distribution(assignees)],
+      [edge('t', 'd')]
+    );
+
+  it('accepts people whose shares add up to 100', () => {
+    expect(
+      check([
+        { user_id: 7, percentage: 70 },
+        { user_id: 8, percentage: 30 },
+      ]).valid
+    ).toBe(true);
+  });
+
+  it('flags a distribution that is empty, short of 100 or with a missing person', () => {
+    expect(check([]).byNode.d.map(item => item.param)).toEqual(['assignees']);
+    expect(check([{ user_id: 7, percentage: 60 }]).valid).toBe(false);
+    expect(
+      check([
+        { user_id: '', percentage: 50 },
+        { user_id: 8, percentage: 50 },
+      ]).valid
+    ).toBe(false);
+  });
+});

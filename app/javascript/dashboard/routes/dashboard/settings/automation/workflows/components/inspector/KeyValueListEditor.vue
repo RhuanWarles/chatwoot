@@ -12,6 +12,8 @@ const props = defineProps({
   keyPlaceholder: { type: String, default: '' },
   valuePlaceholder: { type: String, default: '' },
   addLabel: { type: String, default: '' },
+  // Given the key of a row, the closed list its value is picked from as { value, label }, or null for free text.
+  valueOptions: { type: Function, default: () => null },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -71,7 +73,16 @@ const addRow = () =>
           @click="removeRow(index)"
         />
       </div>
+      <ComboBox
+        v-if="valueOptions(row.key)"
+        :model-value="row.value"
+        :options="valueOptions(row.key)"
+        :display-label="String(row.value ?? '')"
+        :search-placeholder="t('AUTOMATION.WORKFLOWS.INSPECTOR.SEARCH')"
+        @update:model-value="setRow(index, { value: $event })"
+      />
       <TemplateTextField
+        v-else
         :model-value="row.value"
         :placeholder="valuePlaceholder"
         @update:model-value="setRow(index, { value: $event })"

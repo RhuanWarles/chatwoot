@@ -13,12 +13,8 @@ class Crm::DealCustomFieldValue < ApplicationRecord
 
   def typed_value
     return nil if value.nil? || value == ''
-    case custom_field.field_type
-    when 'number', 'currency' then Float(value, exception: false)
-    when 'boolean' then value == 'true'
-    when 'multiselect' then JSON.parse(value)
-    else value
-    end
+
+    cast_value
   rescue JSON::ParserError
     # The field type can change after values were saved; one stale value must not fail the whole deals list.
     nil
@@ -29,6 +25,16 @@ class Crm::DealCustomFieldValue < ApplicationRecord
   end
 
   private
+
+  def cast_value
+    case custom_field.field_type
+    when 'number', 'currency' then Float(value, exception: false)
+    when 'user' then Integer(value, exception: false)
+    when 'boolean' then value == 'true'
+    when 'multiselect' then JSON.parse(value)
+    else value
+    end
+  end
 
   def enqueue_field_automations
     return unless saved_change_to_value?

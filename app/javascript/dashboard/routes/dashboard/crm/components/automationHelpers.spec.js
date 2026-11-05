@@ -1,4 +1,9 @@
-import { MAX_MESSAGE_LENGTH, isAutomationValid } from './automationHelpers';
+import {
+  MAX_MESSAGE_LENGTH,
+  getActionSummary,
+  getFieldOperators,
+  isAutomationValid,
+} from './automationHelpers';
 
 describe('isAutomationValid', () => {
   it.each([
@@ -75,5 +80,71 @@ describe('isAutomationValid', () => {
     expect(isAutomationValid(action, { destinations: [pipeline] })).toBe(
       expected
     );
+  });
+});
+
+describe('user fields in the automations of a pipeline', () => {
+  const userField = {
+    id: 5,
+    name: 'Vendedor',
+    field_type: 'user',
+    options: [],
+  };
+
+  it('compares a person only with equals, not equals, filled and empty', () => {
+    expect(getFieldOperators(userField)).toEqual([
+      'equals',
+      'not_equals',
+      'filled',
+      'empty',
+    ]);
+  });
+
+  it('writes the id of a person in the field, and nothing else', () => {
+    const write = value => ({ type: 'set_field', custom_field_id: 5, value });
+
+    expect(isAutomationValid(write('7'), { fields: [userField] })).toBe(true);
+    expect(isAutomationValid(write('Ana'), { fields: [userField] })).toBe(
+      false
+    );
+    expect(isAutomationValid(write(''), { fields: [userField] })).toBe(false);
+  });
+
+  it('draws with or without a field to write the person in', () => {
+    expect(isAutomationValid({ type: 'assign_random', user_ids: [1, 2] })).toBe(
+      true
+    );
+    expect(
+      isAutomationValid({
+        type: 'assign_random',
+        user_ids: [1, 2],
+        custom_field_id: 5,
+      })
+    ).toBe(true);
+    expect(isAutomationValid({ type: 'assign_random', user_ids: [] })).toBe(
+      false
+    );
+  });
+
+  it('names the field in the summary of a draw', () => {
+    const t = (key, params) => `${key}|${JSON.stringify(params)}`;
+    const context = {
+      t,
+      agents: [{ id: 1, name: 'Ana' }],
+      fields: [userField],
+    };
+
+    const plain = getActionSummary(
+      { type: 'assign_random', user_ids: [1] },
+      context
+    );
+    const filling = getActionSummary(
+      { type: 'assign_random', user_ids: [1], custom_field_id: 5 },
+      context
+    );
+
+    expect(plain).toContain('CRM.AUTOMATION_SUMMARY_RANDOM|');
+    expect(filling).toContain('CRM.AUTOMATION_SUMMARY_RANDOM_FIELD');
+    expect(filling).toContain('Vendedor');
   });
 });

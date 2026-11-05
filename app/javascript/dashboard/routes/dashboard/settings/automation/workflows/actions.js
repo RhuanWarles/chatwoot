@@ -15,6 +15,8 @@ export const PARAM_TYPES = Object.freeze({
   DEAL_FIELDS: 'deal_fields',
   CONTACT_FIELDS: 'contact_fields',
   HEADERS: 'headers',
+  DISTRIBUTION: 'distribution',
+  DEAL_USER_FIELD: 'deal_user_field',
 });
 
 export const ACTION_GROUPS = ['conversation', 'deal', 'contact', 'integration'];
@@ -154,8 +156,25 @@ export const ACTIONS = [
         showWhen: params => params.mode === 'random',
         requiredWhen: params => params.mode === 'random',
       }),
+      param('custom_field_key', PARAM_TYPES.DEAL_USER_FIELD),
     ],
-    defaults: { mode: 'user', user_id: '', user_ids: [] },
+    defaults: { mode: 'user', user_id: '', user_ids: [], custom_field_key: '' },
+  },
+  {
+    key: 'distribute_deal',
+    group: 'deal',
+    icon: 'i-lucide-percent',
+    requires: 'deal',
+    params: [
+      param('assignees', PARAM_TYPES.DISTRIBUTION, { required: true }),
+      param('custom_field_key', PARAM_TYPES.DEAL_USER_FIELD),
+      param('assign_conversation', PARAM_TYPES.CHECKBOX),
+    ],
+    defaults: {
+      assignees: [],
+      custom_field_key: '',
+      assign_conversation: true,
+    },
   },
   {
     key: 'update_deal',

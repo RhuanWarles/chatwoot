@@ -6,6 +6,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import InspectorField from './InspectorField.vue';
+import DistributionEditor from './DistributionEditor.vue';
 import KeyValueListEditor from './KeyValueListEditor.vue';
 import SelectField from './SelectField.vue';
 import TemplateTextField from './TemplateTextField.vue';
@@ -39,6 +40,9 @@ const label = computed(() => {
 
 const set = next => emit('update', props.definition.key, next);
 
+// The optional field of a draw: "no field" is a choice of the list, stored as an empty key.
+const NO_FIELD = '__none__';
+
 const withSpecials = options => [
   ...(props.definition.specials || []).map(special => ({
     value: special,
@@ -68,6 +72,14 @@ const comboOptions = computed(() => {
       return lookups.value.options('segment');
     case PARAM_TYPES.LOST_REASON:
       return lookups.value.options('lost_reason');
+    case PARAM_TYPES.DEAL_USER_FIELD:
+      return [
+        {
+          value: NO_FIELD,
+          label: t('AUTOMATION.WORKFLOWS.INSPECTOR.NO_FIELD'),
+        },
+        ...lookups.value.userFields,
+      ];
     default:
       return [];
   }
@@ -80,6 +92,7 @@ const COMBO_TYPES = [
   PARAM_TYPES.STAGE,
   PARAM_TYPES.SEGMENT,
   PARAM_TYPES.LOST_REASON,
+  PARAM_TYPES.DEAL_USER_FIELD,
 ];
 const TEXT_TYPES = [PARAM_TYPES.TEMPLATE_TEXT, PARAM_TYPES.TEMPLATE_LINE];
 
@@ -96,7 +109,24 @@ const fieldKeyOptions = computed(() =>
     ? lookups.value.dealFields
     : lookups.value.contactFields
 );
-const comboValue = computed(() => value.value ?? '');
+const comboValue = computed(() => {
+  if (type.value === PARAM_TYPES.DEAL_USER_FIELD)
+    return value.value || NO_FIELD;
+  return value.value ?? '';
+});
+const setCombo = next =>
+  set(
+    type.value === PARAM_TYPES.DEAL_USER_FIELD && next === NO_FIELD ? '' : next
+  );
+
+// A user field of the deal is filled by picking a person, not by typing an id.
+const dealFieldValueOptions = key =>
+  lookups.value.dealFields.find(item => item.value === key)?.field
+    ?.field_type === 'user'
+    ? lookups.value
+        .options('agent')
+        .map(agent => ({ value: String(agent.value), label: agent.label }))
+    : null;
 
 const setNumber = raw => set(raw === '' ? '' : Number(raw));
 const setTags = tags => set([...tags]);
@@ -147,6 +177,13 @@ const setTags = tags => set([...tags]);
       :has-error="hasError"
       :placeholder="t('AUTOMATION.WORKFLOWS.INSPECTOR.SELECT')"
       :search-placeholder="t('AUTOMATION.WORKFLOWS.INSPECTOR.SEARCH')"
+      @update:model-value="setCombo"
+    />
+    <DistributionEditor
+      v-else-if="type === PARAM_TYPES.DISTRIBUTION"
+      :model-value="Array.isArray(value) ? value : []"
+      :agents="lookups.options('agent')"
+      :has-error="hasError"
       @update:model-value="set"
     />
     <TagMultiSelectComboBox
@@ -182,6 +219,7 @@ const setTags = tags => set([...tags]);
       :key-placeholder="t('AUTOMATION.WORKFLOWS.INSPECTOR.FIELD_PLACEHOLDER')"
       :value-placeholder="t('AUTOMATION.WORKFLOWS.INSPECTOR.VALUE_PLACEHOLDER')"
       :add-label="t('AUTOMATION.WORKFLOWS.INSPECTOR.ADD_FIELD')"
+      :value-options="dealFieldValueOptions"
       @update:model-value="set"
     />
   </InspectorField>

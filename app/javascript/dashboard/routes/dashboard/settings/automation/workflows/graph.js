@@ -8,6 +8,7 @@ import {
   TRIGGER_EVENT_KEYS,
   WAIT_UNITS,
 } from './constants';
+import { isDistributionValid } from './distribution';
 import { FREE_FIELD_PREFIXES } from './fields';
 
 const EDGE_MARKER = 'arrowclosed';
@@ -262,6 +263,9 @@ const paramIssue = (definition, params) => {
   if (!required) return null;
   const value = params[definition.key];
   if (!isFilled(value)) return definition.key;
+  if (definition.type === PARAM_TYPES.DISTRIBUTION) {
+    return isDistributionValid(value) ? null : definition.key;
+  }
   if (FIELD_LIST_TYPES.includes(definition.type)) {
     return value.every(item => isFilled(item?.key)) ? null : definition.key;
   }

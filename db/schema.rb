@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_04_100000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_05_100200) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -288,6 +288,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_04_100000) do
     t.index ["created_at"], name: "index_audits_on_created_at"
     t.index ["request_uuid"], name: "index_audits_on_request_uuid"
     t.index ["user_id", "user_type"], name: "user_index"
+  end
+
+  create_table "automation_distribution_states", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "automation_workflow_id", null: false
+    t.string "node_id", null: false
+    t.string "signature", null: false
+    t.jsonb "scores", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_automation_distribution_states_on_account_id"
+    t.index ["automation_workflow_id", "node_id"], name: "idx_automation_distribution_workflow_node", unique: true
   end
 
   create_table "automation_executions", force: :cascade do |t|
@@ -1159,8 +1171,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_04_100000) do
     t.jsonb "options", default: [], null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "system_key"
     t.index ["account_id", "key"], name: "index_crm_custom_fields_on_account_id_and_key", unique: true
     t.index ["account_id", "position"], name: "index_crm_custom_fields_on_account_id_and_position"
+    t.index ["account_id", "system_key"], name: "index_crm_custom_fields_on_account_id_and_system_key", unique: true, where: "(system_key IS NOT NULL)"
     t.index ["account_id"], name: "index_crm_custom_fields_on_account_id"
   end
 

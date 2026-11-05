@@ -12,6 +12,28 @@ RSpec.describe 'Crm custom fields API', type: :request do
     patch "#{base_url}/reorder", headers: agent.create_new_auth_token, params: { field_ids: ids }, as: :json
   end
 
+  describe 'the field of the lost reason' do
+    let!(:system_field) do
+      account.crm_custom_fields.create!(name: 'Motivo da perda', key: 'motivo_da_perda', field_type: 'select', options: ['Preço'],
+                                        system_key: Crm::CustomField::LOST_REASON_KEY)
+    end
+
+    it 'can be renamed but not reshaped' do
+      patch "#{base_url}/#{system_field.id}", headers: agent.create_new_auth_token, as: :json,
+                                              params: { custom_field: { name: 'Por que perdeu', field_type: 'text', options: ['X'], active: false } }
+
+      expect(response).to have_http_status(:success)
+      expect(system_field.reload).to have_attributes(name: 'Por que perdeu', field_type: 'select', options: ['Preço'], active: true)
+    end
+
+    it 'cannot be removed' do
+      delete "#{base_url}/#{system_field.id}", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(system_field.reload).to be_active
+    end
+  end
+
   describe 'POST /crm/custom_fields' do
     it 'puts a new field at the end of the list' do
       first.update!(position: 4)
@@ -20,6 +42,13 @@ RSpec.describe 'Crm custom fields API', type: :request do
 
       expect(response).to have_http_status(:created)
       expect(account.crm_custom_fields.find_by(key: 'novo').position).to eq(5)
+    end
+
+    it 'creates a field of type user' do
+      post base_url, headers: agent.create_new_auth_token, params: { custom_field: { name: 'Vendedor', field_type: 'user' } }, as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(response.parsed_body).to include('field_type' => 'user', 'key' => 'vendedor')
     end
 
     it 'keeps a position that was asked for' do

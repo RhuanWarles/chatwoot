@@ -26,6 +26,7 @@ const FIELD_TYPES = [
   'boolean',
   'select',
   'multiselect',
+  'user',
 ];
 
 const createDraft = field => ({
@@ -35,6 +36,7 @@ const createDraft = field => ({
   required: field?.required || false,
   active: field?.active ?? true,
   options: [...(field?.options || [])],
+  system_key: field?.system_key || null,
 });
 
 const fields = ref([]);
@@ -61,6 +63,7 @@ const typeLabels = computed(() => ({
   boolean: t('CRM.CUSTOM_FIELD_TYPES.BOOLEAN'),
   select: t('CRM.CUSTOM_FIELD_TYPES.SELECT'),
   multiselect: t('CRM.CUSTOM_FIELD_TYPES.MULTISELECT'),
+  user: t('CRM.CUSTOM_FIELD_TYPES.USER'),
 }));
 
 const typeDescriptions = computed(() => ({
@@ -73,6 +76,7 @@ const typeDescriptions = computed(() => ({
   boolean: t('CRM.CUSTOM_FIELD_TYPE_DESCRIPTIONS.BOOLEAN'),
   select: t('CRM.CUSTOM_FIELD_TYPE_DESCRIPTIONS.SELECT'),
   multiselect: t('CRM.CUSTOM_FIELD_TYPE_DESCRIPTIONS.MULTISELECT'),
+  user: t('CRM.CUSTOM_FIELD_TYPE_DESCRIPTIONS.USER'),
 }));
 
 const typeOptions = computed(() =>
@@ -87,6 +91,9 @@ const statusOptions = computed(() => [
     label: t('CRM.CUSTOM_FIELD_STATUS_FILTER.INACTIVE'),
   },
 ]);
+
+// The system keeps the field of the lost reason: only its name can be edited.
+const isSystemField = computed(() => Boolean(draft.value.system_key));
 
 const isOptionsField = computed(() =>
   ['select', 'multiselect'].includes(draft.value.field_type)
@@ -205,6 +212,10 @@ const save = async () => {
           .filter(Boolean),
       },
     };
+
+    if (draft.value.system_key) {
+      payload.custom_field = { name: payload.custom_field.name };
+    }
 
     if (draft.value.id) {
       await customFieldsAPI.update(draft.value.id, payload);
@@ -393,6 +404,12 @@ onMounted(load);
                   </p>
                   <p class="mt-1 truncate text-xs text-n-slate-10">
                     {{ field.key || t('CRM.NOT_AVAILABLE') }}
+                    <span
+                      v-if="field.system_key"
+                      class="ms-2 rounded bg-n-alpha-2 px-1.5 py-0.5 text-n-slate-11"
+                    >
+                      {{ t('CRM.CUSTOM_FIELD_SYSTEM_BADGE') }}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -472,6 +489,7 @@ onMounted(load);
                       :click="() => handleMenuAction(field, 'down')"
                     />
                     <DropdownItem
+                      v-if="!field.system_key"
                       :label="
                         field.active !== false
                           ? t('CRM.DEACTIVATE')
@@ -485,6 +503,7 @@ onMounted(load);
                       :click="() => handleMenuAction(field, 'toggle')"
                     />
                     <DropdownItem
+                      v-if="!field.system_key"
                       :label="t('CRM.DELETE')"
                       icon="i-lucide-trash-2"
                       :click="() => handleMenuAction(field, 'delete')"
@@ -554,6 +573,7 @@ onMounted(load);
           </label>
           <ComboBox
             v-model="draft.field_type"
+            :disabled="isSystemField"
             :options="typeOptions"
             :placeholder="t('CRM.CUSTOM_FIELD_TYPE_PLACEHOLDER')"
           />
@@ -562,7 +582,15 @@ onMounted(load);
           </p>
         </div>
 
+        <p
+          v-if="isSystemField"
+          class="rounded-lg border border-n-weak p-3 text-xs text-n-slate-11"
+        >
+          {{ t('CRM.CUSTOM_FIELD_SYSTEM_NOTE') }}
+        </p>
+
         <label
+          v-if="!isSystemField"
           class="flex items-start gap-3 rounded-lg border border-n-weak p-3"
         >
           <Checkbox v-model:model-value="draft.required" />
@@ -577,7 +605,7 @@ onMounted(load);
         </label>
 
         <div
-          v-if="isOptionsField"
+          v-if="isOptionsField && !isSystemField"
           class="flex flex-col gap-3 rounded-lg border border-n-weak p-3"
         >
           <div>

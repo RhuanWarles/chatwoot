@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dealsAPI } from 'dashboard/api/crm';
 import { useFieldAccess } from 'dashboard/composables/useFieldAccess';
+import { useMapGetter } from 'dashboard/composables/store';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import CrmCurrencyInput from './CrmCurrencyInput.vue';
@@ -15,6 +16,7 @@ const props = defineProps({ dealId: { type: Number, required: true } });
 const emit = defineEmits(['changed']);
 const { t, locale } = useI18n();
 const { canViewCustomField } = useFieldAccess();
+const agents = useMapGetter('agents/getAgents');
 const allFields = ref([]);
 // The fields an administrator hid from this person are not listed.
 const fields = computed(() =>
@@ -39,6 +41,7 @@ const display = field =>
     : formatCustomFieldValue(field.field_type, field.value, {
         t,
         locale: locale.value,
+        agents: agents.value,
       });
 const longText = field =>
   field.field_type === 'textarea' &&
@@ -105,7 +108,7 @@ const save = async () => {
   try {
     if (JSON.stringify(value) !== JSON.stringify(inputValue(field))) {
       let normalized = missing ? null : value;
-      if (!missing && ['number', 'currency'].includes(field.field_type))
+      if (!missing && ['number', 'currency', 'user'].includes(field.field_type))
         normalized = Number(value);
       if (!missing && field.field_type === 'datetime')
         normalized = new Date(value).toISOString();
@@ -233,6 +236,19 @@ watch(() => props.dealId, load, { immediate: true });
               {{ t('CRM.CF_NO') }}
             </label>
           </fieldset>
+          <select
+            v-else-if="field.field_type === 'user'"
+            :id="'cf-' + field.id"
+            v-model="draft"
+            :required="field.required"
+            :disabled="saving"
+            class="w-full p-2 border rounded-lg border-n-weak bg-n-solid-1 text-sm text-n-slate-12"
+          >
+            <option value="">{{ t('CRM.NOT_SET') }}</option>
+            <option v-for="agent in agents" :key="agent.id" :value="agent.id">
+              {{ agent.name }}
+            </option>
+          </select>
           <select
             v-else-if="['select', 'multiselect'].includes(field.field_type)"
             :id="'cf-' + field.id"

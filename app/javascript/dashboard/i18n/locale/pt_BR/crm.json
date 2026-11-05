@@ -197,7 +197,8 @@
       "DATETIME": "Data e hora",
       "BOOLEAN": "Sim/Não",
       "SELECT": "Lista de opções",
-      "MULTISELECT": "Várias opções"
+      "MULTISELECT": "Várias opções",
+      "USER": "Usuário"
     },
     "CUSTOM_FIELD_TYPE_DESCRIPTIONS": {
       "TEXT": "Ideal para nomes, códigos ou textos pequenos.",
@@ -208,9 +209,13 @@
       "DATETIME": "Armazena data e horário.",
       "BOOLEAN": "Armazena uma escolha de sim ou não.",
       "SELECT": "Permite escolher uma opção de uma lista definida.",
-      "MULTISELECT": "Permite escolher várias opções de uma lista definida."
+      "MULTISELECT": "Permite escolher várias opções de uma lista definida.",
+      "USER": "Guarda uma pessoa da equipe, por exemplo o vendedor que recebeu o lead."
     },
     "CUSTOM_FIELD_REQUIRED": "Obrigatório",
+    "CUSTOM_FIELD_SYSTEM_BADGE": "Automático",
+    "CUSTOM_FIELD_SYSTEM_NOTE": "Este campo é preenchido pelo sistema com o motivo da perda e acompanha a lista de motivos. Só o nome pode ser alterado, e ele não pode ser removido nem desativado.",
+    "CF_UNKNOWN_USER": "Usuário removido",
     "CUSTOM_FIELD_REQUIRED_HELP": "Exigir o preenchimento deste campo ao salvar os dados personalizados do negócio.",
     "CUSTOM_FIELD_OPTIONS": "Opções",
     "CUSTOM_FIELD_OPTIONS_HELP": "Adicione e organize os valores disponíveis para este campo.",
@@ -505,6 +510,11 @@
     "AUTOMATION_BOOLEAN_TRUE": "Sim",
     "AUTOMATION_BOOLEAN_FALSE": "Não",
     "AUTOMATION_SUMMARY_RANDOM": "Sorteio entre {names}",
+    "AUTOMATION_SUMMARY_RANDOM_FIELD": "{summary}, gravando em {field}",
+    "AUTOMATION_RANDOM_FIELD": "Gravar a pessoa sorteada no campo",
+    "AUTOMATION_RANDOM_FIELD_HINT": "Depois do sorteio, quem recebeu o negócio também é gravada neste campo do tipo Usuário.",
+    "AUTOMATION_RANDOM_FIELD_NONE": "Não preencher nenhum campo",
+    "AUTOMATION_NO_USER_FIELDS": "Nenhum campo do tipo Usuário. Crie um em Campos personalizados.",
     "AUTOMATION_SUMMARY_SET_FIELD": "{field}: {value}",
     "AUTOMATION_SUMMARY_ROUTE": "Por {field} ({count} regras)",
     "AUTOMATION_SUMMARY_CONDITION": "somente se {field} {condition}",
