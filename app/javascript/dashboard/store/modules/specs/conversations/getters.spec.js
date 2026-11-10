@@ -496,6 +496,15 @@ describe('#getters', () => {
       getCurrentAccountId: 1,
     };
 
+    // Administrators see every conversation, so the sorting tests are not narrowed down by the role.
+    const adminRootGetters = {
+      ...mockRootGetters,
+      getCurrentUser: {
+        ...mockRootGetters.getCurrentUser,
+        accounts: [{ id: 1, role: 'administrator', permissions: [] }],
+      },
+    };
+
     it('filters conversations based on role permissions for administrator', () => {
       const state = {
         allConversations: mockConversations,
@@ -525,7 +534,7 @@ describe('#getters', () => {
       ]);
     });
 
-    it('filters conversations based on role permissions for agent', () => {
+    it('only shows a plain agent the conversations assigned to them', () => {
       const state = {
         allConversations: mockConversations,
         chatSortFilter: 'last_activity_at_desc',
@@ -547,11 +556,7 @@ describe('#getters', () => {
         rootGetters
       );
 
-      expect(result).toEqual([
-        mockConversations[2],
-        mockConversations[1],
-        mockConversations[0],
-      ]);
+      expect(result).toEqual([mockConversations[0]]);
     });
 
     it('filters conversations for custom role with conversation_manage permission', () => {
@@ -759,7 +764,7 @@ describe('#getters', () => {
         state,
         {},
         {},
-        mockRootGetters
+        adminRootGetters
       );
 
       expect(result).toEqual([
@@ -784,7 +789,7 @@ describe('#getters', () => {
         state,
         {},
         {},
-        mockRootGetters
+        adminRootGetters
       );
 
       expect(result.map(conversation => conversation.id)).toEqual([3, 2, 1]);

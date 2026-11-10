@@ -148,7 +148,8 @@ describe('useAutomation', () => {
     appendNewAction();
 
     expect(automationHelper.getDefaultConditions).toHaveBeenCalledWith(
-      'message_created'
+      'message_created',
+      expect.any(Object)
     );
     expect(automationHelper.getDefaultActions).toHaveBeenCalled();
     expect(automation.value.conditions).toHaveLength(1);
@@ -216,8 +217,15 @@ describe('useAutomation', () => {
       2
     );
     expect(automationHelper.generateCustomAttributes).toHaveBeenCalledTimes(1);
-    Object.values(automationTypes).forEach(type => {
-      expect(type.conditions).toHaveLength(0);
+    // The CRM events keep their own conditions; only the five conversation events are rebuilt here.
+    [
+      'message_created',
+      'conversation_created',
+      'conversation_updated',
+      'conversation_opened',
+      'conversation_resolved',
+    ].forEach(eventName => {
+      expect(automationTypes[eventName].conditions).toHaveLength(0);
     });
   });
 
@@ -271,7 +279,8 @@ describe('useAutomation', () => {
     onEventChange();
 
     expect(automationHelper.getDefaultConditions).toHaveBeenCalledWith(
-      'message_created'
+      'message_created',
+      expect.any(Object)
     );
     expect(automationHelper.getDefaultActions).toHaveBeenCalled();
     expect(automation.value.conditions).toHaveLength(1);
