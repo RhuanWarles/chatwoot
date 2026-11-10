@@ -288,10 +288,31 @@ export const mutations = {
         existingMessage => existingMessage.id === message.id
       );
       if (existingMessageIndex !== -1) {
-        chat.messages[existingMessageIndex] = mergeMessageUpdate(
-          chat.messages[existingMessageIndex],
-          message
+        const existingMessage = chat.messages[existingMessageIndex];
+        const mergedMessage = mergeMessageUpdate(existingMessage, message);
+        const confirmedStatus = DELIVERY_STATUS_ORDER.indexOf(
+          existingMessage.status
         );
+        const incomingStatus = DELIVERY_STATUS_ORDER.indexOf(message.status);
+
+        // A late HTTP response must not move a delivered or read message back to sent.
+        if (incomingStatus !== -1 && confirmedStatus > incomingStatus) {
+          mergedMessage.status = existingMessage.status;
+        }
+        // A confirmed delivery means the provider error no longer applies.
+        if (incomingStatus !== -1 && mergedMessage.content_attributes) {
+          const { external_error: _error, ...contentAttributes } =
+            mergedMessage.content_attributes;
+          mergedMessage.content_attributes = contentAttributes;
+        }
+
+        chat.messages[existingMessageIndex] = mergedMessage;
+        // The optimistic copy is a duplicate once the real message is known (its echo_id is its own temporary id).
+        if (message.echo_id != null && message.echo_id !== message.id) {
+          chat.messages = chat.messages.filter(
+            existing => existing.id !== message.echo_id
+          );
+        }
         return;
       }
     }

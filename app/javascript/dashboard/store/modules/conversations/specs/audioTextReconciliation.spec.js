@@ -62,7 +62,9 @@ describe('independent audio/text message reconciliation', () => {
       if (order === 'websocket-first') commit(types.ADD_MESSAGE, response);
       commit(types.ADD_MESSAGE, response);
       commit(types.ADD_MESSAGE, update);
-      expect(state.allConversations[0].messages).toEqual([update]);
+      // One message is left: the optimistic copy is gone and the real one keeps its echo_id.
+      expect(state.allConversations[0].messages).toHaveLength(1);
+      expect(state.allConversations[0].messages[0]).toMatchObject(update);
     }
   );
 
@@ -76,7 +78,7 @@ describe('independent audio/text message reconciliation', () => {
       MessageApi.create.mockResolvedValue({
         data: { id: 382, echo_id: audio.id, conversation_id: 9, status },
       });
-      await actions.sendMessageWithData({ commit }, audio);
+      await actions.sendMessageWithData({ commit, state }, audio);
       expect(state.allConversations[0].messages).toHaveLength(1);
       expect(state.allConversations[0].messages[0].status).toBe(status);
     }
