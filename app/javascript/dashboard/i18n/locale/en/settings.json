@@ -38,6 +38,15 @@
       "INTERFACE_SECTION": {
         "TITLE": "Interface",
         "NOTE": "Customize the look and feel of your Chatwoot dashboard.",
+        "APPEARANCE": {
+          "TITLE": "Appearance",
+          "NOTE": "Choose between the light and dark themes, or follow your device setting.",
+          "OPTIONS": {
+            "LIGHT": "Light",
+            "DARK": "Dark",
+            "SYSTEM": "System"
+          }
+        },
         "FONT_SIZE": {
           "TITLE": "Font size",
           "NOTE": "Adjust the text size across the dashboard based on your preference.",

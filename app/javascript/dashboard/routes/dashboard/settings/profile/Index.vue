@@ -12,6 +12,7 @@ import { parseBoolean } from '@chatwoot/utils';
 import UserProfilePicture from './UserProfilePicture.vue';
 import UserBasicDetails from './UserBasicDetails.vue';
 import MessageSignature from './MessageSignature.vue';
+import AppearanceTheme from './AppearanceTheme.vue';
 import FontSize from './FontSize.vue';
 import ListContrast from './ListContrast.vue';
 import UserLanguageSelect from './UserLanguageSelect.vue';
@@ -34,6 +35,7 @@ export default {
   components: {
     MessageSignature,
     SectionLayout,
+    AppearanceTheme,
     FontSize,
     ListContrast,
     UserLanguageSelect,
@@ -264,6 +266,14 @@ export default {
       "
     >
       <div class="flex flex-col gap-6 items-start">
+        <AppearanceTheme
+          :label="
+            $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.APPEARANCE.TITLE')
+          "
+          :description="
+            $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.APPEARANCE.NOTE')
+          "
+        />
         <FontSize
           :value="currentFontSize"
           :label="$t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.FONT_SIZE.TITLE')"
