@@ -306,3 +306,14 @@
   }
 }
 // NEXT COLORS END
+
+// Tint of the soft shadows (see boxShadow in tailwind.config.js): a cool slate in light mode, pure black in dark mode.
+@layer base {
+  :root {
+    --shadow-color: 16 24 40;
+  }
+
+  .dark {
+    --shadow-color: 0 0 0;
+  }
+}

@@ -160,7 +160,13 @@ export default {
       <SaasAiCreditBanner />
     </template>
     <router-view v-slot="{ Component }">
-      <transition name="fade" mode="out-in">
+      <transition
+        mode="out-in"
+        enter-active-class="transition-opacity duration-300 ease-out"
+        leave-active-class="transition-opacity duration-150 ease-out"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
         <component :is="Component" />
       </transition>
     </router-view>
@@ -177,7 +183,7 @@ export default {
   background: black !important;
   font-size: 0.75rem;
   padding: 4px 8px !important;
-  border-radius: 6px;
+  border-radius: 0.5rem;
   font-weight: 400;
 }
 

@@ -58,9 +58,9 @@ const varaintBaseMap = {
 
 const orientationMap = {
   [ORIENTATION.LEFT]:
-    'left-bubble rounded-xl ltr:rounded-bl-sm rtl:rounded-br-sm',
+    'left-bubble rounded-2xl ltr:rounded-bl-md rtl:rounded-br-md',
   [ORIENTATION.RIGHT]:
-    'right-bubble rounded-xl ltr:rounded-br-sm rtl:rounded-bl-sm',
+    'right-bubble rounded-2xl ltr:rounded-br-md rtl:rounded-bl-md',
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 

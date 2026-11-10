@@ -51,6 +51,35 @@ const tailwindConfig = {
         520: '520',
         620: '620',
       },
+      // Rounder corners across the whole product: every step of the scale is one notch softer than the Tailwind default.
+      borderRadius: {
+        sm: '0.25rem',
+        DEFAULT: '0.375rem',
+        md: '0.5rem',
+        lg: '0.75rem',
+        xl: '1rem',
+        '2xl': '1.25rem',
+        '3xl': '1.75rem',
+      },
+      // Softer, wider and layered shadows (the color comes from --shadow-color, so dark mode can retune it).
+      boxShadow: {
+        sm: '0 1px 2px 0 rgb(var(--shadow-color, 16 24 40) / 0.05)',
+        DEFAULT:
+          '0 1px 3px 0 rgb(var(--shadow-color, 16 24 40) / 0.07), 0 1px 2px -1px rgb(var(--shadow-color, 16 24 40) / 0.05)',
+        md: '0 4px 12px -2px rgb(var(--shadow-color, 16 24 40) / 0.08), 0 2px 4px -2px rgb(var(--shadow-color, 16 24 40) / 0.05)',
+        lg: '0 12px 28px -6px rgb(var(--shadow-color, 16 24 40) / 0.12), 0 4px 10px -4px rgb(var(--shadow-color, 16 24 40) / 0.06)',
+        xl: '0 24px 48px -12px rgb(var(--shadow-color, 16 24 40) / 0.16), 0 8px 16px -8px rgb(var(--shadow-color, 16 24 40) / 0.06)',
+        '2xl': '0 32px 64px -16px rgb(var(--shadow-color, 16 24 40) / 0.22)',
+      },
+      // Gentler motion: a little longer by default and eased out, so things settle instead of snapping.
+      transitionDuration: {
+        DEFAULT: '200ms',
+      },
+      transitionTimingFunction: {
+        DEFAULT: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        out: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'in-out': 'cubic-bezier(0.45, 0, 0.15, 1)',
+      },
       typography: {
         bubble: {
           css: {
