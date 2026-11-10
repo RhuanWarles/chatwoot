@@ -172,7 +172,7 @@ const activityTooltip = activity =>
 
 <template>
   <article
-    class="flex flex-col flex-shrink-0 min-w-0 gap-1.5 p-2.5 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-colors hover:border-n-strong"
+    class="flex flex-col flex-shrink-0 min-w-0 gap-1.5 p-2.5 rounded-lg border border-n-weak bg-n-background shadow-sm cursor-grab transition-all duration-200 hover:border-n-strong hover:shadow-md"
     @click="emit('open')"
   >
     <div class="flex items-start justify-between gap-1">

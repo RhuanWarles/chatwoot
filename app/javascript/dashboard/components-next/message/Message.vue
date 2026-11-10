@@ -803,11 +803,11 @@ provideMessageContext({
 <style lang="scss">
 .group-with-next + .message-bubble-container {
   .left-bubble {
-    @apply ltr:rounded-tl-sm rtl:rounded-tr-sm;
+    @apply ltr:rounded-tl-md rtl:rounded-tr-md;
   }
 
   .right-bubble {
-    @apply ltr:rounded-tr-sm rtl:rounded-tl-sm;
+    @apply ltr:rounded-tr-md rtl:rounded-tl-md;
   }
 }
 </style>

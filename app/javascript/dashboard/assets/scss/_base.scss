@@ -201,3 +201,13 @@ code {
 table {
   @apply border-spacing-0 text-sm w-full;
 }
+
+// Motion: transitions settle instantly for people who ask their system to reduce motion (spinners keep spinning).
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
