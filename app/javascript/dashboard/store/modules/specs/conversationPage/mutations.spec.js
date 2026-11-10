@@ -28,6 +28,7 @@ describe('#mutations', () => {
           unassigned: 0,
           all: 0,
           unanswered: 0,
+          handoff_requested: 0,
           appliedFilters: 0,
         },
         hasEndReached: {
@@ -35,6 +36,7 @@ describe('#mutations', () => {
           unassigned: false,
           all: false,
           unanswered: false,
+          handoff_requested: false,
           appliedFilters: false,
         },
       });

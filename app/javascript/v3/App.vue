@@ -77,7 +77,7 @@ body {
   background: black !important;
   font-size: 0.75rem;
   padding: 4px 8px !important;
-  border-radius: 6px;
+  border-radius: 0.5rem;
   font-weight: 400;
 }
 

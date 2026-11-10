@@ -1009,13 +1009,13 @@ onUnmounted(() => {
     </section>
     <section
       ref="kanbanBoard"
-      class="flex flex-1 w-full min-w-0 gap-2 min-h-0 overflow-x-auto overflow-y-hidden pb-2 select-none"
+      class="flex flex-1 w-full min-w-0 gap-3 min-h-0 overflow-x-auto overflow-y-hidden pb-2 select-none"
     >
       <div
         v-for="stage in boardStages"
         :key="stage.id"
         data-crm-stage-column
-        class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-xl bg-n-alpha-2 p-2.5"
+        class="flex flex-col flex-1 basis-0 min-w-56 min-h-0 h-full overflow-hidden rounded-2xl bg-n-alpha-2 p-2.5"
       >
         <div class="sticky top-0 z-10 flex-shrink-0 mb-2 min-w-0">
           <h2

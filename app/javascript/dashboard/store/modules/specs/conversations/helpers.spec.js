@@ -175,15 +175,20 @@ describe('#filterByUnattended', () => {
 });
 
 describe('#filterByUnanswered', () => {
-  it('matches conversations whose latest relevant message is incoming', () => {
-    expect(filterByUnanswered(true, true, 0)).toEqual(true);
+  it('matches conversations that are waiting for a reply', () => {
+    expect(filterByUnanswered(true, true, true)).toEqual(true);
   });
 
-  it('excludes conversations whose latest relevant message is outgoing', () => {
-    expect(filterByUnanswered(true, true, 1)).toEqual(false);
+  it('excludes conversations that are not waiting for a reply', () => {
+    expect(filterByUnanswered(true, true, false)).toEqual(false);
+  });
+
+  it('falls back to the latest relevant message type when the flag is missing', () => {
+    expect(filterByUnanswered(true, true, undefined, 0)).toEqual(true);
+    expect(filterByUnanswered(true, true, undefined, 1)).toEqual(false);
   });
 
   it('does not filter when the unanswered tab is inactive', () => {
-    expect(filterByUnanswered(true, false, 1)).toEqual(true);
+    expect(filterByUnanswered(true, false, false)).toEqual(true);
   });
 });

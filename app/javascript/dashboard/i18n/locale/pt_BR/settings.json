@@ -38,6 +38,15 @@
       "INTERFACE_SECTION": {
         "TITLE": "Interface",
         "NOTE": "Personalize a aparência do seu painel do Chatwoot.",
+        "APPEARANCE": {
+          "TITLE": "Aparência",
+          "NOTE": "Escolha entre o tema claro e o escuro, ou siga a configuração do seu dispositivo.",
+          "OPTIONS": {
+            "LIGHT": "Claro",
+            "DARK": "Escuro",
+            "SYSTEM": "Sistema"
+          }
+        },
         "FONT_SIZE": {
           "TITLE": "Tamanho da fonte",
           "NOTE": "Ajuste o tamanho do texto do painel com base na sua preferência.",

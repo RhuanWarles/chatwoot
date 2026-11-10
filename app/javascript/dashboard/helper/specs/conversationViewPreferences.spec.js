@@ -4,7 +4,13 @@ import { normalizeConversationViewPreferences } from '../conversationViewPrefere
 describe('conversation view preferences', () => {
   it('defaults every tab and filter to visible', () => {
     expect(normalizeConversationViewPreferences()).toEqual({
-      tabs: { me: true, unassigned: true, all: true, unanswered: true },
+      tabs: {
+        me: true,
+        unassigned: true,
+        all: true,
+        unanswered: true,
+        handoff_requested: true,
+      },
       filters: { assistant: true, inbox: true, tag: true, ai: true },
     });
   });
@@ -16,7 +22,13 @@ describe('conversation view preferences', () => {
         filters: { ai: false },
       })
     ).toEqual({
-      tabs: { me: false, unassigned: true, all: true, unanswered: true },
+      tabs: {
+        me: false,
+        unassigned: true,
+        all: true,
+        unanswered: true,
+        handoff_requested: true,
+      },
       filters: { assistant: true, inbox: true, tag: true, ai: false },
     });
   });
@@ -24,8 +36,20 @@ describe('conversation view preferences', () => {
   it('restores defaults if every tab is hidden', () => {
     expect(
       normalizeConversationViewPreferences({
-        tabs: { me: false, unassigned: false, all: false, unanswered: false },
+        tabs: {
+          me: false,
+          unassigned: false,
+          all: false,
+          unanswered: false,
+          handoff_requested: false,
+        },
       }).tabs
-    ).toEqual({ me: true, unassigned: true, all: true, unanswered: true });
+    ).toEqual({
+      me: true,
+      unassigned: true,
+      all: true,
+      unanswered: true,
+      handoff_requested: true,
+    });
   });
 });

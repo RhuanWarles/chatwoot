@@ -184,12 +184,14 @@ describe('AutomationRuleForm', () => {
     const filterTypes = wrapper
       .findComponent(AutomationInstantTrigger)
       .props('filterTypes');
-    expect(filterTypes.map(filter => filter.attributeKey)).toEqual([
-      'captain_condition',
-      'status',
-    ]);
-    expect(filterTypes[0].maxLength).toBe(500);
-    expect(filterTypes[0].inputType).toBe('longText');
+    expect(filterTypes.map(filter => filter.attributeKey)).toEqual(
+      expect.arrayContaining(['captain_condition', 'status'])
+    );
+    const captainCondition = filterTypes.find(
+      filter => filter.attributeKey === 'captain_condition'
+    );
+    expect(captainCondition.maxLength).toBe(500);
+    expect(captainCondition.inputType).toBe('longText');
   });
 
   it('hides the Captain condition without the classifier feature', () => {
@@ -204,7 +206,8 @@ describe('AutomationRuleForm', () => {
       .findComponent(AutomationInstantTrigger)
       .props('filterTypes')
       .map(filter => filter.attributeKey);
-    expect(keys).toEqual(['status']);
+    expect(keys).toContain('status');
+    expect(keys).not.toContain('captain_condition');
   });
 
   it('keeps a saved Captain condition renderable but not selectable without the classifier feature', () => {

@@ -12,6 +12,9 @@ vi.mock('dashboard/api/search', () => ({
 vi.mock('dashboard/composables/useAccount', () => ({
   useAccount: () => ({ accountId: ref(7) }),
 }));
+vi.mock('dashboard/composables/useFieldAccess', () => ({
+  useFieldAccess: () => ({ canViewField: () => true }),
+}));
 
 const RouterLink = {
   props: ['to'],
