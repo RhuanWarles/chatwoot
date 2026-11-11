@@ -103,6 +103,9 @@ const buildDraft = source => {
   });
   next.provider = configuredTextProvider.value || next.provider;
   next.model = configuredTextModel.value || next.model;
+  // agentPayload turns an empty value into null, but the handoff conditions field reads its length: a
+  // null here broke the render of the whole Behavior tab.
+  next.handoff_conditions ||= '';
   return next;
 };
 

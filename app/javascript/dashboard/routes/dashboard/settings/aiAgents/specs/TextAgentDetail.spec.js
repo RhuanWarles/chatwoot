@@ -309,3 +309,16 @@ it('renders every tab without reading properties that do not exist', async () =>
 
   expect(warnings.filter(message => /not defined/.test(message))).toEqual([]);
 });
+
+// agentPayload turns an empty value into null, but the handoff conditions field reads its length.
+it('keeps the handoff conditions a string when the saved value is empty', async () => {
+  const { wrapper } = await mountDetail(
+    savedAgent({ handoff_enabled: true, handoff_conditions: null })
+  );
+  expect(wrapper.vm.draft.handoff_conditions).toBe('');
+
+  wrapper.vm.draft.handoff_conditions = 'Cliente pede cancelamento';
+  wrapper.vm.discard();
+  expect(wrapper.vm.draft.handoff_conditions).toBe('');
+  expect(wrapper.vm.isDirty).toBe(false);
+});
