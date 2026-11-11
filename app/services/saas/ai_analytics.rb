@@ -1,5 +1,6 @@
 class Saas::AiAnalytics
   PERIODS = { 'today' => 1.day, '7d' => 7.days, '30d' => 30.days }.freeze
+  UNANSWERED_LIMIT = 5
 
   def initialize(account, params)
     @account = account
@@ -22,6 +23,7 @@ class Saas::AiAnalytics
         conversations: conversations.length,
         turns: turn_count(messages),
         messages: messages.count,
+        other_bot_messages: other_bot_messages,
         handoffs: handoffs,
         handoff_rate: percentage(handoffs, conversations.length),
         average_response_ms: nil
@@ -71,6 +73,19 @@ class Saas::AiAnalytics
     scope = scope.where(inbox_id: @inbox_id) if @inbox_id
     scope = scope.where("(content_attributes #>> '{}')::json ->> 'ai_agent_id' = ?", @agent_id.to_s) if @agent_id
     scope.reorder(nil)
+  end
+
+  # Public replies sent by bots that are not AI agents of this platform (no generated_by_ai flag). They are not in
+  # "messages" above, but the AI vs people report counts them as AI, which is one reason the two numbers can differ.
+  # Not attributable to an AI agent, so there is no number when one is chosen.
+  def other_bot_messages
+    return nil if @agent_id
+
+    scope = Message.where(account_id: @account.id, message_type: :outgoing, private: false, created_at: @range)
+                   .where(Crm::Responders::AI_CONDITION)
+                   .where("COALESCE((content_attributes #>> '{}')::json ->> 'generated_by_ai', '') <> 'true'")
+    scope = scope.where(inbox_id: @inbox_id) if @inbox_id
+    scope.reorder(nil).count
   end
 
   def runtime_usage
@@ -124,22 +139,27 @@ class Saas::AiAnalytics
     accepted = scope.where("COALESCE(NULLIF(metadata -> 'retrieval' ->> 'accepted_count', ''), '0')::integer > 0")
     conversations = accepted.distinct.count("metadata ->> 'conversation_id'")
     { queries: scope.count, hits: accepted.count, hit_rate: percentage(accepted.count, scope.count),
-      conversations: conversations, utilization_rate: percentage(conversations, ai_messages.distinct.count(:conversation_id)) }
+      conversations: conversations, utilization_rate: percentage(conversations, ai_messages.distinct.count(:conversation_id)),
+      unanswered: unanswered_queries(scope) }
+  end
+
+  # The questions that found nothing in the knowledge base, most frequent first. The text is already kept with each query.
+  def unanswered_queries(scope)
+    scope.where("COALESCE(NULLIF(metadata -> 'retrieval' ->> 'accepted_count', ''), '0')::integer = 0")
+         .where("COALESCE(metadata -> 'retrieval' ->> 'query', '') <> ''")
+         .group("metadata -> 'retrieval' ->> 'query'").reorder(Arel.sql('COUNT(*) DESC')).limit(UNANSWERED_LIMIT).count
+         .map { |query, count| { query: query.first(300), count: count } }
   end
 
   def billing_data(scope)
     wallet = @account.saas_wallets.find_by(resource: 'text_credits')
     mode = @account.saas_ai_setting&.text_mode || 'platform'
-    return { mode: mode, credits_consumed: scope.sum(:units), credits_available: wallet ? wallet.available_units : 0,
-             average_credits_per_conversation: average(scope.sum(:units), ai_messages.distinct.count(:conversation_id)) } if mode == 'platform'
+    tokens = Saas::AiTokenUsage.new(ai_messages).perform
+    return tokens.merge(mode: mode, estimated_cost_usd: nil, average_cost_per_conversation: nil) unless mode == 'platform'
 
-    usage = ai_messages.to_a.uniq { |message| message.content_attributes['ai_response_batch_id'] || message.id }
-                       .map { |message| message.content_attributes['ai_token_usage'].to_h }
-    prompt_tokens = usage.sum { |item| item['prompt_tokens'].to_i }
-    completion_tokens = usage.sum { |item| item['completion_tokens'].to_i }
-    total_tokens = usage.sum { |item| item['total_tokens'].to_i }
-    { mode: mode, prompt_tokens: prompt_tokens, completion_tokens: completion_tokens, total_tokens: total_tokens,
-      estimated_cost_usd: nil, average_cost_per_conversation: nil }
+    average_credits = average(scope.sum(:units), ai_messages.distinct.count(:conversation_id))
+    tokens.merge(mode: mode, credits_consumed: scope.sum(:units), credits_available: wallet ? wallet.available_units : 0,
+                 average_credits_per_conversation: average_credits)
   end
 
   def timeseries(messages, usage)
