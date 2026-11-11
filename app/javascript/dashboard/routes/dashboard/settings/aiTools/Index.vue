@@ -1,24 +1,48 @@
 <script setup>
-import { computed, onActivated, onMounted, ref } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
 import aiToolsAPI from 'dashboard/api/aiTools';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import { useAccount } from 'dashboard/composables/useAccount';
+import DetailSkeleton from '../aiShared/DetailSkeleton.vue';
+import DetailState from '../aiShared/DetailState.vue';
+import ListSkeleton from '../aiShared/ListSkeleton.vue';
+import MasterDetailLayout from '../aiShared/MasterDetailLayout.vue';
+import {
+  nextAfterRemoval,
+  sortNewestFirst,
+  useMasterDetailRedirect,
+} from '../aiShared/masterDetail';
+import ToolCreateDialog from './ToolCreateDialog.vue';
+import { TOOLS_WORKSPACE } from './workspace';
 
 const { t } = useI18n();
+const route = useRoute();
 const router = useRouter();
+const { accountId } = useAccount();
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('md');
+
+// Newest first. The detail panel reads this list and the agents that use each tool.
 const tools = ref([]);
 const agents = ref([]);
 const loading = ref(true);
-const error = ref('');
-const busy = ref(false);
-const deleting = ref(null);
-const deletion = ref(null);
+const loaded = ref(false);
+const loadError = ref('');
+const paused = ref(false);
 const search = ref('');
 const status = ref('all');
+const createDialog = ref(null);
+let loadRequest = 0;
+
+const selectedId = computed(() => route.params.toolId);
+const isLogsRoute = computed(() => route.name === 'ai_tool_logs');
+const selectedTool = computed(() =>
+  tools.value.find(tool => String(tool.id) === String(selectedId.value))
+);
 
 const linkedAgents = tool =>
   agents.value.filter(agent =>
@@ -47,293 +71,217 @@ const filteredTools = computed(() => {
   });
 });
 
+const indexLocation = () => ({
+  name: 'ai_tools_settings',
+  params: { accountId: accountId.value },
+});
+const detailLocation = id => ({
+  name: 'ai_tool_detail',
+  params: { accountId: accountId.value, toolId: id },
+});
+const isSelected = tool => String(tool.id) === String(selectedId.value);
+const method = tool => tool.configuration?.method || 'GET';
+
 const load = async () => {
+  loadRequest += 1;
+  const request = loadRequest;
   loading.value = true;
-  error.value = '';
+  loaded.value = false;
+  loadError.value = '';
+  tools.value = [];
   try {
     const [toolsResponse, agentsResponse] = await Promise.all([
       aiToolsAPI.get(),
       aiAgentsAPI.get(),
     ]);
-    tools.value = toolsResponse.data.tools || [];
+    if (request !== loadRequest) return;
+    tools.value = sortNewestFirst(toolsResponse.data.tools || []);
     agents.value = agentsResponse.data.agents || [];
+    loaded.value = true;
   } catch {
-    error.value = t('AI_TOOLS.LOAD_ERROR');
+    if (request === loadRequest) loadError.value = t('AI_TOOLS.LOAD_ERROR');
   } finally {
-    loading.value = false;
+    if (request === loadRequest) loading.value = false;
   }
 };
 
-const openEditor = tool =>
-  router.push(
-    tool
-      ? { name: 'ai_tool_edit', params: { toolId: tool.id } }
-      : { name: 'ai_tool_new' }
-  );
-
-const openLogs = () => router.push({ name: 'ai_tool_logs' });
-
-const onSaved = tool => {
-  tools.value = tools.value.map(item => (item.id === tool.id ? tool : item));
+// Keeps the left panel in sync after a save, create or toggle, without reloading the list.
+const upsert = tool => {
+  tools.value = sortNewestFirst([
+    ...tools.value.filter(item => item.id !== tool.id),
+    tool,
+  ]);
 };
 
-const toggle = async tool => {
-  if (busy.value) return;
-  busy.value = true;
+// Opens the next tool (or the previous one) in place of the deleted one; the redirect is paused so it
+// does not compete with this navigation while the list changes under the current URL.
+const removeTool = async id => {
+  const next = nextAfterRemoval(tools.value, id);
+  paused.value = true;
   try {
-    const { data } = await aiToolsAPI.update(tool.id, {
-      ai_tool: { active: !tool.active },
-    });
-    onSaved(data);
-  } catch {
-    error.value = t('AI_TOOLS.SAVE_ERROR');
+    tools.value = tools.value.filter(item => item.id !== id);
+    await router.replace(next ? detailLocation(next.id) : indexLocation());
   } finally {
-    busy.value = false;
+    paused.value = false;
   }
 };
 
-const requestDelete = tool => {
-  deleting.value = tool;
-  deletion.value.open();
+const goToList = () => router.push(indexLocation());
+const openLogs = () =>
+  router.push({
+    name: 'ai_tool_logs',
+    params: { accountId: accountId.value },
+  });
+
+const onCreated = tool => {
+  upsert(tool);
+  router.push(detailLocation(tool.id));
 };
 
-const remove = async () => {
-  if (!deleting.value || busy.value) return;
-  busy.value = true;
-  try {
-    await aiToolsAPI.delete(deleting.value.id);
-    tools.value = tools.value.filter(tool => tool.id !== deleting.value.id);
-    deletion.value.close();
-  } catch {
-    error.value = t('AI_TOOLS.DELETE_ERROR');
-  } finally {
-    busy.value = false;
-  }
-};
+watch(accountId, () => load(), { immediate: true });
 
-const method = tool => tool.configuration?.method || 'GET';
-const url = tool => tool.configuration?.url || t('AI_TOOLS.NO_URL');
-const description = tool => tool.description || t('AI_TOOLS.NO_DESCRIPTION');
+useMasterDetailRedirect({
+  items: tools,
+  loaded,
+  selectedId,
+  atIndex: computed(() => route.name === 'ai_tools_settings'),
+  isMobile,
+  paused,
+  detailLocation,
+  indexLocation,
+});
 
-onMounted(load);
-onActivated(() => {
-  if (!loading.value) load();
+provide(TOOLS_WORKSPACE, {
+  tools,
+  agents,
+  linkedAgents,
+  upsert,
+  removeTool,
+  goToList,
 });
 </script>
 
 <template>
-  <main class="flex flex-col w-full min-w-0 gap-6 pb-8">
-    <header class="flex flex-wrap items-start justify-between gap-4">
-      <div class="min-w-0">
-        <p
-          class="mb-1 text-xs font-medium tracking-wide uppercase text-n-slate-11"
-        >
-          {{ t('AI_HUB.TITLE') }}
-        </p>
-        <h1 class="text-2xl font-semibold text-n-slate-12">
-          {{ t('AI_TOOLS.TITLE') }}
-        </h1>
-        <p class="max-w-2xl mt-1 text-sm text-n-slate-11">
-          {{ t('AI_TOOLS.SUBTITLE') }}
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <Button
-          variant="faded"
-          :label="t('AI_TOOLS.LOGS_TAB')"
-          icon="i-lucide-scroll-text"
-          @click="openLogs"
-        />
-        <Button
-          :label="t('AI_TOOLS.NEW')"
-          icon="i-lucide-plus"
-          :disabled="loading || busy"
-          @click="openEditor()"
-        />
-      </div>
-    </header>
-
-    <nav
-      class="flex gap-1 p-1 rounded-lg bg-n-solid-2"
-      :aria-label="t('AI_TOOLS.NAVIGATION')"
-    >
-      <Button variant="faded" :label="t('AI_TOOLS.TOOLS_TAB')" disabled />
-      <Button
-        variant="ghost"
-        :label="t('AI_TOOLS.LOGS_TAB')"
-        @click="openLogs"
-      />
-    </nav>
-
-    <section
-      v-if="!loading && !error && tools.length"
-      class="flex flex-wrap items-end gap-3 p-4 rounded-xl bg-n-solid-2"
-    >
-      <Input
-        v-model="search"
-        class="flex-1 min-w-56"
-        :label="t('AI_TOOLS.SEARCH')"
-        :placeholder="t('AI_TOOLS.SEARCH_PLACEHOLDER')"
-      />
-      <label class="flex flex-col gap-1 min-w-44 text-sm text-n-slate-12">
-        {{ t('AI_TOOLS.STATUS_FILTER') }}
-        <select
-          v-model="status"
-          class="h-10 px-3 rounded-lg outline outline-1 outline-n-weak bg-n-solid-1 text-n-slate-12"
-        >
-          <option value="all">{{ t('AI_TOOLS.ALL_STATUS') }}</option>
-          <option value="active">{{ t('AI_TOOLS.FILTER_ACTIVE') }}</option>
-          <option value="inactive">{{ t('AI_TOOLS.FILTER_INACTIVE') }}</option>
-        </select>
-      </label>
-      <p class="w-full m-0 text-xs text-n-slate-11">
-        {{ t('AI_TOOLS.RESULT_COUNT', { count: filteredTools.length }) }}
-      </p>
-    </section>
-
-    <p v-if="loading" role="status" class="text-n-slate-11">
-      {{ t('AI_TOOLS.LOADING') }}
-    </p>
-    <div
-      v-else-if="error"
-      class="flex items-center gap-3 text-n-ruby-9"
-      role="alert"
-    >
-      {{ error }} <Button :label="t('AI_TOOLS.RETRY')" @click="load" />
-    </div>
-    <div
-      v-else-if="!tools.length"
-      class="flex flex-col items-start gap-4 p-8 rounded-xl bg-n-solid-2"
-    >
-      <div>
-        <h2 class="text-base font-medium text-n-slate-12">
-          {{ t('AI_TOOLS.EMPTY') }}
-        </h2>
-        <p class="mt-1 text-sm text-n-slate-11">
-          {{ t('AI_TOOLS.EMPTY_HELP') }}
-        </p>
-      </div>
-      <Button
-        :label="t('AI_TOOLS.NEW')"
-        icon="i-lucide-plus"
-        @click="openEditor()"
-      />
-    </div>
-    <div
-      v-else-if="!filteredTools.length"
-      class="p-8 text-center rounded-xl bg-n-solid-2"
-    >
-      <p class="text-sm text-n-slate-11">{{ t('AI_TOOLS.EMPTY_FILTERED') }}</p>
-    </div>
-    <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <article
-        v-for="tool in filteredTools"
-        :key="tool.id"
-        class="flex flex-col min-w-0 gap-4 p-5 rounded-xl outline outline-1 outline-n-weak bg-n-solid-1"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <h2
-                class="m-0 text-base font-semibold break-words text-n-slate-12"
-              >
-                {{ tool.name }}
-              </h2>
+  <div class="flex w-full h-full min-h-0">
+    <MasterDetailLayout :show-detail="Boolean(selectedId) || isLogsRoute">
+      <template #master>
+        <div class="flex flex-col gap-3 p-4 border-b border-n-weak">
+          <div class="flex items-center justify-between gap-2">
+            <h1 class="flex items-center gap-2 text-heading-3 text-n-slate-12">
+              {{ t('AI_TOOLS.TITLE') }}
               <span
-                class="px-2 py-0.5 text-xs rounded-full"
-                :class="
-                  tool.active
-                    ? 'text-n-emerald-11 bg-n-emerald-2'
-                    : 'text-n-slate-11 bg-n-solid-2'
-                "
+                class="px-2 py-0.5 text-xs font-medium rounded-full bg-n-alpha-2 text-n-slate-11"
               >
-                {{
-                  tool.active ? t('AI_TOOLS.ACTIVE') : t('AI_TOOLS.INACTIVE')
-                }}
+                {{ tools.length }}
               </span>
-            </div>
-            <p class="mt-1 text-sm break-words text-n-slate-11">
-              {{ description(tool) }}
-            </p>
+            </h1>
+            <Button
+              :variant="isLogsRoute ? 'faded' : 'ghost'"
+              size="sm"
+              icon="i-lucide-scroll-text"
+              :label="t('AI_TOOLS.LOGS_TAB')"
+              @click="openLogs"
+            />
           </div>
-          <details class="relative shrink-0">
-            <summary
-              class="flex items-center justify-center w-8 h-8 list-none rounded-lg cursor-pointer text-n-slate-11 hover:bg-n-alpha-2"
-              :aria-label="t('AI_TOOLS.MORE')"
+          <Button
+            :label="t('AI_TOOLS.CREATE')"
+            icon="i-lucide-plus"
+            :disabled="!loaded || Boolean(loadError)"
+            @click="createDialog.open()"
+          />
+          <template v-if="tools.length">
+            <Input
+              v-model="search"
+              size="sm"
+              :placeholder="t('AI_TOOLS.SEARCH_PLACEHOLDER')"
+              :aria-label="t('AI_TOOLS.SEARCH')"
+            />
+            <select
+              v-model="status"
+              :aria-label="t('AI_TOOLS.STATUS_FILTER')"
+              class="h-8 px-3 mb-0 text-sm rounded-lg outline outline-1 outline-n-weak bg-n-solid-1 text-n-slate-12"
             >
-              <span class="i-lucide-ellipsis text-lg" aria-hidden="true" />
-            </summary>
-            <div
-              class="absolute end-0 z-10 flex flex-col w-40 gap-1 p-2 mt-1 rounded-lg shadow-lg bg-n-solid-1 outline outline-1 outline-n-weak"
-            >
-              <Button
-                variant="ghost"
-                justify="start"
-                :label="
-                  tool.active
-                    ? t('AI_TOOLS.DEACTIVATE')
-                    : t('AI_TOOLS.ACTIVATE')
-                "
-                :disabled="busy"
-                @click="toggle(tool)"
-              />
-              <Button
-                variant="ghost"
-                justify="start"
-                color="ruby"
-                :label="t('AI_TOOLS.DELETE')"
-                :disabled="busy"
-                @click="requestDelete(tool)"
-              />
-            </div>
-          </details>
+              <option value="all">{{ t('AI_TOOLS.ALL_STATUS') }}</option>
+              <option value="active">{{ t('AI_TOOLS.FILTER_ACTIVE') }}</option>
+              <option value="inactive">
+                {{ t('AI_TOOLS.FILTER_INACTIVE') }}
+              </option>
+            </select>
+          </template>
         </div>
-        <div class="flex flex-wrap items-center gap-2 text-xs text-n-slate-11">
-          <span class="px-2 py-1 font-medium rounded bg-n-solid-2">{{
-            method(tool)
-          }}</span>
-          <span class="max-w-full truncate" :title="url(tool)">{{
-            url(tool)
-          }}</span>
-        </div>
-        <div class="flex items-center gap-2 text-sm text-n-slate-11">
-          <span class="i-lucide-users" aria-hidden="true" />
-          <span>
-            {{
-              t('AI_TOOLS.ASSISTANTS_COUNT', {
-                count: linkedAgents(tool).length,
-              })
-            }}
-          </span>
-        </div>
-        <div
-          class="flex flex-wrap items-center gap-2 pt-2 mt-auto border-t border-n-weak"
+        <ListSkeleton v-if="loading" />
+        <DetailState
+          v-else-if="loadError"
+          is-error
+          :title="loadError"
+          :action-label="t('AI_TOOLS.RETRY')"
+          @action="load"
+        />
+        <nav
+          v-else
+          class="flex flex-col flex-1 min-h-0 gap-1 p-3 overflow-y-auto"
+          :aria-label="t('AI_TOOLS.LIST_LABEL')"
         >
-          <Button
-            variant="ghost"
-            :label="t('AI_TOOLS.EDIT')"
-            :disabled="busy"
-            @click="openEditor(tool)"
-          />
-          <Button
-            variant="ghost"
-            :label="t('AI_TOOLS.OPEN_LOGS')"
-            :disabled="busy"
-            @click="openLogs"
-          />
-        </div>
-      </article>
-    </div>
-    <Dialog
-      ref="deletion"
-      type="alert"
-      :title="t('AI_TOOLS.DELETE')"
-      :description="t('AI_TOOLS.DELETE_CONFIRM', { name: deleting?.name })"
-      :is-loading="busy"
-      :disable-confirm-button="busy"
-      :confirm-button-label="t('AI_TOOLS.DELETE')"
-      :cancel-button-label="t('AI_TOOLS.CANCEL')"
-      @confirm="remove"
-    />
-  </main>
+          <p
+            v-if="tools.length && !filteredTools.length"
+            class="p-3 text-sm text-n-slate-11"
+          >
+            {{ t('AI_TOOLS.EMPTY_FILTERED') }}
+          </p>
+          <RouterLink
+            v-for="tool in filteredTools"
+            :key="tool.id"
+            :to="detailLocation(tool.id)"
+            class="flex flex-col gap-1.5 p-3 transition-colors border rounded-xl"
+            :class="
+              isSelected(tool)
+                ? 'bg-n-solid-2 border-n-strong'
+                : 'border-transparent hover:bg-n-alpha-1'
+            "
+            :aria-current="isSelected(tool) ? 'page' : undefined"
+          >
+            <span class="flex items-center justify-between gap-2">
+              <span class="font-semibold truncate text-n-slate-12">{{
+                tool.name
+              }}</span>
+              <span
+                class="size-2 rounded-full shrink-0"
+                :class="tool.active ? 'bg-n-teal-9' : 'bg-n-slate-9'"
+                role="img"
+                :aria-label="
+                  tool.active ? t('AI_TOOLS.ACTIVE') : t('AI_TOOLS.INACTIVE')
+                "
+              />
+            </span>
+            <span class="flex items-center gap-2">
+              <span
+                class="px-2 py-0.5 text-xs font-medium rounded bg-n-alpha-2 text-n-slate-11"
+                >{{ method(tool) }}</span
+              >
+              <span class="text-xs truncate text-n-slate-11">{{
+                tool.configuration?.url || t('AI_TOOLS.NO_URL')
+              }}</span>
+            </span>
+          </RouterLink>
+        </nav>
+      </template>
+
+      <router-view v-if="isLogsRoute" />
+      <DetailSkeleton
+        v-else-if="loading || (loaded && tools.length && !selectedTool)"
+      />
+      <DetailState
+        v-else-if="loaded && !tools.length"
+        :title="t('AI_TOOLS.EMPTY')"
+        :description="t('AI_TOOLS.EMPTY_HELP')"
+        :action-label="t('AI_TOOLS.CREATE')"
+        action-icon="i-lucide-plus"
+        @action="createDialog.open()"
+      />
+      <router-view v-else-if="selectedTool" v-slot="{ Component }">
+        <component :is="Component" :key="selectedId" />
+      </router-view>
+    </MasterDetailLayout>
+    <ToolCreateDialog ref="createDialog" @created="onCreated" />
+  </div>
 </template>

@@ -1,39 +1,43 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
+import EmptyRoute from '../aiShared/EmptyRoute';
 import Index from './Index.vue';
-import ToolEditorPage from './ToolEditorPage.vue';
+import ToolDetailRoute from './ToolDetailRoute.vue';
 import Logs from './Logs.vue';
+
+const meta = { permissions: ['administrator'] };
 
 export default {
   routes: [
     {
+      // Master-detail: Index.vue is the list, the child route is the open tool (or the logs).
       path: frontendURL('accounts/:accountId/settings/ai-tools'),
-      component: SettingsWrapper,
-      meta: { permissions: ['administrator'] },
+      component: Index,
+      meta,
       children: [
+        {
+          path: '',
+          name: 'ai_tools_settings',
+          component: EmptyRoute,
+          meta,
+        },
         {
           path: 'logs',
           name: 'ai_tool_logs',
           component: Logs,
-          meta: { permissions: ['administrator'] },
+          meta,
         },
         {
-          path: '',
-          name: 'ai_tools_settings',
-          component: Index,
-          meta: { permissions: ['administrator'] },
+          path: ':toolId(\\d+)',
+          name: 'ai_tool_detail',
+          component: ToolDetailRoute,
+          props: true,
+          meta,
         },
+        // Old bookmarks: creating happens in a modal now and editing is the detail itself.
+        { path: 'new', redirect: { name: 'ai_tools_settings' } },
         {
-          path: 'new',
-          name: 'ai_tool_new',
-          component: ToolEditorPage,
-          meta: { permissions: ['administrator'] },
-        },
-        {
-          path: ':toolId/edit',
-          name: 'ai_tool_edit',
-          component: ToolEditorPage,
-          meta: { permissions: ['administrator'] },
+          path: ':toolId(\\d+)/edit',
+          redirect: to => ({ name: 'ai_tool_detail', params: to.params }),
         },
       ],
     },
