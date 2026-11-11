@@ -115,8 +115,7 @@ watch(
   <div
     class="relative flex items-start flex-grow-0 flex-shrink-0 w-auto max-w-full py-0 mx-2 rounded-xl cursor-pointer conversation transition-colors duration-200 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-3 group hover:z-[1]"
     :class="{
-      'active animate-card-select bg-n-background outline outline-1 outline-n-weak':
-        isActiveChat,
+      'active animate-card-select bg-n-slate-3 dark:bg-n-alpha-2': isActiveChat,
       'selected bg-n-slate-2': selected,
       'px-0': compact,
       'px-3': !compact,
@@ -133,7 +132,7 @@ watch(
         v-if="!hideThumbnail"
         :name="currentContact.name"
         :src="currentContact.thumbnail"
-        :size="32"
+        :size="36"
         :status="currentContact.availability_status"
         :class="!showInboxName ? 'mt-4' : 'mt-8'"
         hide-offline-status
@@ -150,7 +149,7 @@ watch(
         </template>
       </Avatar>
     </div>
-    <div class="px-0 py-3 flex-1 min-w-0 border-line">
+    <div class="px-0 py-3.5 flex-1 min-w-0 border-line">
       <div
         v-if="showMetaSection"
         class="flex items-center min-w-0 gap-1"
