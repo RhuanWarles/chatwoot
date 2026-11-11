@@ -49,7 +49,7 @@ const tool = (extra = {}) => ({
   ...extra,
 });
 
-const mountDetail = (source = tool(), linked = []) => {
+const mountDetail = (source = tool(), linked = [], warnHandler = undefined) => {
   const workspace = {
     tools: ref([source]),
     agents: ref([{ id: 7, name: 'Vendas' }]),
@@ -62,6 +62,7 @@ const mountDetail = (source = tool(), linked = []) => {
     props: { tool: source },
     global: {
       renderStubDefaultSlot: true,
+      config: warnHandler ? { warnHandler } : {},
       provide: { aiToolsWorkspace: workspace },
       stubs: {
         UnsavedChangesDialog: {
@@ -91,6 +92,15 @@ const disabled = component => component.attributes('disabled') === 'true';
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.guards = {};
+});
+
+// The child components are stubbed in these specs, so a template that points a prop at a name the script
+// does not define (for example after renaming a constant) only shows up as a Vue warning.
+it('renders every section without reading properties that do not exist', () => {
+  const warnings = [];
+  mountDetail(tool(), [], message => warnings.push(message));
+
+  expect(warnings.filter(message => /not defined/.test(message))).toEqual([]);
 });
 
 it('loads the tool from the list, with its headers and parameters', () => {

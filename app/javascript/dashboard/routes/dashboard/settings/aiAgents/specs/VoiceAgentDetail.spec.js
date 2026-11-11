@@ -152,3 +152,29 @@ it('asks before switching to another assistant with unsaved changes', async () =
   expect(await mocks.guards.update()).toBe(false);
   expect(mocks.ask).toHaveBeenCalledTimes(1);
 });
+
+// The child components are stubbed in these specs, so a template that points a prop at a name the script
+// does not define only shows up as a Vue warning.
+it('renders without reading properties that do not exist', () => {
+  const warnings = [];
+  shallowMount(VoiceAgentDetail, {
+    props: { agent: voiceAgent() },
+    global: {
+      config: { warnHandler: message => warnings.push(message) },
+      provide: {
+        aiAgentsWorkspace: {
+          voiceMeta: ref({ providers: ['vapi'], durationRange: [10, 3600] }),
+          upsert: vi.fn(),
+          removeAgent: vi.fn(),
+          goToList: vi.fn(),
+        },
+      },
+      stubs: {
+        UnsavedChangesDialog: { template: '<div />' },
+        Dialog: { template: '<div><slot /></div>' },
+      },
+    },
+  });
+
+  expect(warnings.filter(message => /not defined/.test(message))).toEqual([]);
+});

@@ -283,3 +283,29 @@ it('opens the playground for the assistant', async () => {
     params: { accountId: '1', agentId: 3 },
   });
 });
+
+// The child components are stubbed in these specs, so a template that points a prop at a name the script
+// does not define only shows up as a Vue warning.
+it('renders every tab without reading properties that do not exist', async () => {
+  const warnings = [];
+  const workspace = makeWorkspace();
+  const wrapper = shallowMount(TextAgentDetail, {
+    props: { agent: savedAgent() },
+    global: {
+      config: { warnHandler: message => warnings.push(message) },
+      provide: { aiAgentsWorkspace: workspace },
+      stubs: {
+        UnsavedChangesDialog: { template: '<div />' },
+        Dialog: { template: '<div><slot /></div>' },
+      },
+    },
+  });
+  await flushPromises();
+  const tabs = wrapper.findAll('nav button');
+  for (let index = 0; index < tabs.length; index += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await tabs[index].trigger('click');
+  }
+
+  expect(warnings.filter(message => /not defined/.test(message))).toEqual([]);
+});

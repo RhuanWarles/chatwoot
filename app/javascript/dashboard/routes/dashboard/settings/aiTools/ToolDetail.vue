@@ -671,7 +671,7 @@ useUnsavedChangesGuard(isDirty, leaveDialog);
           <ComboBox
             v-model="form.configuration.method"
             :label="t('AI_TOOLS.METHOD')"
-            :options="methodOptions"
+            :options="METHOD_OPTIONS"
           />
           <Input
             v-model="form.configuration.url"
