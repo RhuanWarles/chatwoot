@@ -1,22 +1,45 @@
 <script setup>
-import { computed, onActivated, onMounted, ref } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
 import api from 'dashboard/api/knowledgeBases';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import { useAccount } from 'dashboard/composables/useAccount';
+import DetailSkeleton from '../aiShared/DetailSkeleton.vue';
+import DetailState from '../aiShared/DetailState.vue';
+import ListSkeleton from '../aiShared/ListSkeleton.vue';
+import MasterDetailLayout from '../aiShared/MasterDetailLayout.vue';
+import {
+  nextAfterRemoval,
+  sortNewestFirst,
+  useMasterDetailRedirect,
+} from '../aiShared/masterDetail';
+import KnowledgeBaseCreateDialog from './KnowledgeBaseCreateDialog.vue';
+import { KNOWLEDGE_WORKSPACE } from './workspace';
 
 const { t } = useI18n();
+const route = useRoute();
 const router = useRouter();
+const { accountId } = useAccount();
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('md');
+
+// Newest first. The detail panel reads this list.
 const bases = ref([]);
 const loading = ref(true);
-const error = ref('');
-const busy = ref(false);
+const loaded = ref(false);
+const loadError = ref('');
+const paused = ref(false);
 const search = ref('');
 const status = ref('all');
-const deletion = ref(null);
-const target = ref(null);
+const createDialog = ref(null);
+let loadRequest = 0;
+
+const selectedId = computed(() => route.params.knowledgeBaseId);
+const selectedBase = computed(() =>
+  bases.value.find(base => String(base.id) === String(selectedId.value))
+);
 
 const filteredBases = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -35,250 +58,191 @@ const filteredBases = computed(() => {
   });
 });
 
-const load = async () => {
-  loading.value = true;
-  error.value = '';
-  try {
-    bases.value = (await api.get()).data.bases || [];
-  } catch {
-    error.value = t('KNOWLEDGE.ERROR');
-  } finally {
-    loading.value = false;
-  }
-};
-
-const openEditor = base =>
-  router.push(
-    base
-      ? { name: 'knowledge_base_edit', params: { knowledgeBaseId: base.id } }
-      : { name: 'knowledge_base_new' }
-  );
-
-const askDelete = base => {
-  target.value = base;
-  deletion.value.open();
-};
-
-const toggle = async base => {
-  if (busy.value) return;
-  busy.value = true;
-  error.value = '';
-  try {
-    const response = await api.update(base.id, {
-      knowledge_base: { active: !base.active },
-    });
-    bases.value = bases.value.map(item =>
-      item.id === base.id ? response.data : item
-    );
-  } catch {
-    error.value = t('KNOWLEDGE.ERROR');
-  } finally {
-    busy.value = false;
-  }
-};
-
-const remove = async () => {
-  if (!target.value || busy.value) return;
-  busy.value = true;
-  error.value = '';
-  try {
-    await api.delete(target.value.id);
-    bases.value = bases.value.filter(base => base.id !== target.value.id);
-    deletion.value.close();
-  } catch {
-    error.value = t('KNOWLEDGE.ERROR');
-  } finally {
-    busy.value = false;
-  }
-};
-
+const indexLocation = () => ({
+  name: 'knowledge_bases_settings',
+  params: { accountId: accountId.value },
+});
+const detailLocation = id => ({
+  name: 'knowledge_base_detail',
+  params: { accountId: accountId.value, knowledgeBaseId: id },
+});
+const isSelected = base => String(base.id) === String(selectedId.value);
 const documentCount = count => t('KNOWLEDGE.DOCUMENTS_COUNT', { count }, count);
 const agentCount = count => t('KNOWLEDGE.AGENTS_COUNT', { count }, count);
-const description = base => base.description || t('KNOWLEDGE.NO_DESCRIPTION');
 
-onMounted(load);
-onActivated(() => {
-  if (!loading.value) load();
+const load = async () => {
+  loadRequest += 1;
+  const request = loadRequest;
+  loading.value = true;
+  loaded.value = false;
+  loadError.value = '';
+  bases.value = [];
+  try {
+    const { data } = await api.get();
+    if (request !== loadRequest) return;
+    bases.value = sortNewestFirst(data.bases || []);
+    loaded.value = true;
+  } catch {
+    if (request === loadRequest) loadError.value = t('KNOWLEDGE.ERROR');
+  } finally {
+    if (request === loadRequest) loading.value = false;
+  }
+};
+
+// Keeps the left panel in sync after a save, create, toggle or upload, without reloading the list.
+const upsert = base => {
+  bases.value = sortNewestFirst([
+    ...bases.value.filter(item => item.id !== base.id),
+    base,
+  ]);
+};
+
+// Opens the next base (or the previous one) in place of the deleted one; the redirect is paused so it
+// does not compete with this navigation while the list changes under the current URL.
+const removeBase = async id => {
+  const next = nextAfterRemoval(bases.value, id);
+  paused.value = true;
+  try {
+    bases.value = bases.value.filter(item => item.id !== id);
+    await router.replace(next ? detailLocation(next.id) : indexLocation());
+  } finally {
+    paused.value = false;
+  }
+};
+
+const goToList = () => router.push(indexLocation());
+
+const onCreated = base => {
+  upsert(base);
+  router.push(detailLocation(base.id));
+};
+
+watch(accountId, () => load(), { immediate: true });
+
+useMasterDetailRedirect({
+  items: bases,
+  loaded,
+  selectedId,
+  atIndex: computed(() => route.name === 'knowledge_bases_settings'),
+  isMobile,
+  paused,
+  detailLocation,
+  indexLocation,
+});
+
+provide(KNOWLEDGE_WORKSPACE, {
+  bases,
+  upsert,
+  removeBase,
+  goToList,
 });
 </script>
 
 <template>
-  <main class="flex flex-col w-full min-w-0 gap-6 pb-8">
-    <header class="flex flex-wrap items-start justify-between gap-4">
-      <div class="min-w-0">
-        <p
-          class="mb-1 text-xs font-medium tracking-wide uppercase text-n-slate-11"
-        >
-          {{ t('KNOWLEDGE.SECTION') }}
-        </p>
-        <h1 class="text-2xl font-semibold text-n-slate-12">
-          {{ t('KNOWLEDGE.TITLE') }}
-        </h1>
-        <p class="max-w-2xl mt-1 text-sm text-n-slate-11">
-          {{ t('KNOWLEDGE.HELP') }}
-        </p>
-      </div>
-      <Button
-        :label="t('KNOWLEDGE.CREATE')"
-        icon="i-lucide-plus"
-        :disabled="loading || busy"
-        @click="openEditor()"
-      />
-    </header>
-
-    <section
-      v-if="!loading && !error && bases.length"
-      class="flex flex-wrap items-end gap-3 p-4 rounded-xl bg-n-solid-2"
-    >
-      <Input
-        v-model="search"
-        class="flex-1 min-w-56"
-        :label="t('KNOWLEDGE.SEARCH_BASES')"
-        :placeholder="t('KNOWLEDGE.SEARCH_BASES_PLACEHOLDER')"
-      />
-      <label class="flex flex-col gap-1 min-w-44 text-sm text-n-slate-12">
-        {{ t('KNOWLEDGE.STATUS_FILTER') }}
-        <select
-          v-model="status"
-          class="h-10 px-3 rounded-lg outline outline-1 outline-n-weak bg-n-solid-1 text-n-slate-12"
-        >
-          <option value="all">{{ t('KNOWLEDGE.ALL_STATUS') }}</option>
-          <option value="active">{{ t('KNOWLEDGE.ACTIVE') }}</option>
-          <option value="inactive">{{ t('KNOWLEDGE.INACTIVE') }}</option>
-        </select>
-      </label>
-      <p class="w-full m-0 text-xs text-n-slate-11">
-        {{
-          t(
-            'KNOWLEDGE.RESULT_COUNT',
-            { count: filteredBases.length },
-            filteredBases.length
-          )
-        }}
-      </p>
-    </section>
-
-    <p v-if="loading" role="status" class="text-sm text-n-slate-11">
-      {{ t('KNOWLEDGE.LOADING') }}
-    </p>
-    <div
-      v-else-if="error"
-      class="flex items-center gap-3 text-n-ruby-11"
-      role="alert"
-    >
-      {{ error }} <Button :label="t('KNOWLEDGE.RETRY')" @click="load" />
-    </div>
-    <div
-      v-else-if="!bases.length"
-      class="flex flex-col items-start gap-4 p-8 rounded-xl bg-n-solid-2"
-    >
-      <div>
-        <h2 class="text-base font-medium text-n-slate-12">
-          {{ t('KNOWLEDGE.EMPTY') }}
-        </h2>
-        <p class="mt-1 text-sm text-n-slate-11">
-          {{ t('KNOWLEDGE.EMPTY_HELP') }}
-        </p>
-      </div>
-      <Button
-        :label="t('KNOWLEDGE.CREATE')"
-        icon="i-lucide-plus"
-        @click="openEditor()"
-      />
-    </div>
-    <div
-      v-else-if="!filteredBases.length"
-      class="p-8 text-center rounded-xl bg-n-solid-2"
-    >
-      <p class="text-sm text-n-slate-11">{{ t('KNOWLEDGE.EMPTY_FILTERED') }}</p>
-    </div>
-    <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <article
-        v-for="base in filteredBases"
-        :key="base.id"
-        class="flex flex-col min-w-0 gap-4 p-5 rounded-xl outline outline-1 outline-n-weak bg-n-solid-1"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <h2
-                class="m-0 text-base font-semibold break-words text-n-slate-12"
-              >
-                {{ base.name }}
-              </h2>
-              <span
-                class="px-2 py-0.5 text-xs rounded-full"
-                :class="
-                  base.active
-                    ? 'text-n-emerald-11 bg-n-emerald-2'
-                    : 'text-n-slate-11 bg-n-solid-2'
-                "
-              >
-                {{ t(base.active ? 'KNOWLEDGE.ACTIVE' : 'KNOWLEDGE.INACTIVE') }}
-              </span>
-            </div>
-            <p class="mt-1 text-sm break-words text-n-slate-11">
-              {{ description(base) }}
-            </p>
-          </div>
-          <details class="relative shrink-0">
-            <summary
-              class="flex items-center justify-center w-8 h-8 list-none rounded-lg cursor-pointer text-n-slate-11 hover:bg-n-alpha-2"
-              :aria-label="t('KNOWLEDGE.MORE')"
+  <div class="flex w-full h-full min-h-0">
+    <MasterDetailLayout :show-detail="Boolean(selectedId)">
+      <template #master>
+        <div class="flex flex-col gap-3 p-4 border-b border-n-weak">
+          <h1 class="flex items-center gap-2 text-heading-3 text-n-slate-12">
+            {{ t('KNOWLEDGE.TITLE') }}
+            <span
+              class="px-2 py-0.5 text-xs font-medium rounded-full bg-n-alpha-2 text-n-slate-11"
             >
-              <span class="i-lucide-ellipsis text-lg" aria-hidden="true" />
-            </summary>
-            <div
-              class="absolute end-0 z-10 flex flex-col w-44 gap-1 p-2 mt-1 rounded-lg shadow-lg bg-n-solid-1 outline outline-1 outline-n-weak"
-            >
-              <Button
-                variant="ghost"
-                justify="start"
-                :label="
-                  base.active
-                    ? t('KNOWLEDGE.DEACTIVATE')
-                    : t('KNOWLEDGE.ACTIVATE')
-                "
-                :disabled="busy"
-                @click="toggle(base)"
-              />
-              <Button
-                variant="ghost"
-                justify="start"
-                color="ruby"
-                :label="t('KNOWLEDGE.DELETE')"
-                :disabled="busy"
-                @click="askDelete(base)"
-              />
-            </div>
-          </details>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 text-sm text-n-slate-11">
-          <span>{{ documentCount(base.documents_count || 0) }}</span>
-          <span aria-hidden="true">·</span>
-          <span>{{ agentCount((base.agents || []).length) }}</span>
-        </div>
-        <div class="flex flex-wrap gap-2 pt-2 mt-auto border-t border-n-weak">
+              {{ bases.length }}
+            </span>
+          </h1>
           <Button
-            variant="ghost"
-            :label="t('KNOWLEDGE.EDIT')"
-            :disabled="busy"
-            @click="openEditor(base)"
+            :label="t('KNOWLEDGE.CREATE')"
+            icon="i-lucide-plus"
+            :disabled="!loaded || Boolean(loadError)"
+            @click="createDialog.open()"
           />
+          <template v-if="bases.length">
+            <Input
+              v-model="search"
+              size="sm"
+              :placeholder="t('KNOWLEDGE.SEARCH_BASES_PLACEHOLDER')"
+              :aria-label="t('KNOWLEDGE.SEARCH_BASES')"
+            />
+            <select
+              v-model="status"
+              :aria-label="t('KNOWLEDGE.STATUS_FILTER')"
+              class="h-8 px-3 mb-0 text-sm rounded-lg outline outline-1 outline-n-weak bg-n-solid-1 text-n-slate-12"
+            >
+              <option value="all">{{ t('KNOWLEDGE.ALL_STATUS') }}</option>
+              <option value="active">{{ t('KNOWLEDGE.ACTIVE') }}</option>
+              <option value="inactive">{{ t('KNOWLEDGE.INACTIVE') }}</option>
+            </select>
+          </template>
         </div>
-      </article>
-    </div>
+        <ListSkeleton v-if="loading" />
+        <DetailState
+          v-else-if="loadError"
+          is-error
+          :title="loadError"
+          :action-label="t('KNOWLEDGE.RETRY')"
+          @action="load"
+        />
+        <nav
+          v-else
+          class="flex flex-col flex-1 min-h-0 gap-1 p-3 overflow-y-auto"
+          :aria-label="t('KNOWLEDGE.LIST_LABEL')"
+        >
+          <p
+            v-if="bases.length && !filteredBases.length"
+            class="p-3 text-sm text-n-slate-11"
+          >
+            {{ t('KNOWLEDGE.EMPTY_FILTERED') }}
+          </p>
+          <RouterLink
+            v-for="base in filteredBases"
+            :key="base.id"
+            :to="detailLocation(base.id)"
+            class="flex flex-col gap-1 p-3 transition-colors border rounded-xl"
+            :class="
+              isSelected(base)
+                ? 'bg-n-solid-2 border-n-strong'
+                : 'border-transparent hover:bg-n-alpha-1'
+            "
+            :aria-current="isSelected(base) ? 'page' : undefined"
+          >
+            <span class="flex items-center justify-between gap-2">
+              <span class="font-semibold truncate text-n-slate-12">{{
+                base.name
+              }}</span>
+              <span
+                class="size-2 rounded-full shrink-0"
+                :class="base.active ? 'bg-n-teal-9' : 'bg-n-slate-9'"
+                role="img"
+                :aria-label="
+                  t(base.active ? 'KNOWLEDGE.ACTIVE' : 'KNOWLEDGE.INACTIVE')
+                "
+              />
+            </span>
+            <span class="text-sm truncate text-n-slate-11">
+              {{ documentCount(base.documents_count || 0) }}
+              <span aria-hidden="true">·</span>
+              {{ agentCount((base.agents || []).length) }}
+            </span>
+          </RouterLink>
+        </nav>
+      </template>
 
-    <Dialog
-      ref="deletion"
-      type="alert"
-      :title="t('KNOWLEDGE.DELETE')"
-      :description="t('KNOWLEDGE.DELETE_CONFIRM', { name: target?.name })"
-      :confirm-button-label="t('KNOWLEDGE.DELETE')"
-      :cancel-button-label="t('KNOWLEDGE.CANCEL')"
-      :disable-confirm-button="busy"
-      :is-loading="busy"
-      @confirm="remove"
-    />
-  </main>
+      <DetailSkeleton
+        v-if="loading || (loaded && bases.length && !selectedBase)"
+      />
+      <DetailState
+        v-else-if="loaded && !bases.length"
+        :title="t('KNOWLEDGE.EMPTY')"
+        :description="t('KNOWLEDGE.EMPTY_HELP')"
+        :action-label="t('KNOWLEDGE.CREATE')"
+        action-icon="i-lucide-plus"
+        @action="createDialog.open()"
+      />
+      <router-view v-else-if="selectedBase" v-slot="{ Component }">
+        <component :is="Component" :key="selectedId" />
+      </router-view>
+    </MasterDetailLayout>
+    <KnowledgeBaseCreateDialog ref="createDialog" @created="onCreated" />
+  </div>
 </template>

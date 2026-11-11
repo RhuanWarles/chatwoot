@@ -631,7 +631,10 @@ const menuItems = computed(() => {
                       name: 'Knowledge bases',
                       label: t('KNOWLEDGE.TITLE'),
                       to: accountScopedRoute('knowledge_bases_settings'),
-                      activeOn: ['knowledge_bases_settings'],
+                      activeOn: [
+                        'knowledge_bases_settings',
+                        'knowledge_base_detail',
+                      ],
                     },
                     {
                       name: 'Analytics',

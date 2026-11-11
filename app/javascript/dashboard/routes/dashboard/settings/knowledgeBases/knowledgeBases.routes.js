@@ -1,32 +1,39 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
+import EmptyRoute from '../aiShared/EmptyRoute';
 import Index from './Index.vue';
-import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage.vue';
+import KnowledgeBaseDetailRoute from './KnowledgeBaseDetailRoute.vue';
+
+const meta = { permissions: ['administrator'] };
 
 export default {
   routes: [
     {
+      // Master-detail: Index.vue is the list, the child route is the open knowledge base.
       path: frontendURL('accounts/:accountId/settings/knowledge-bases'),
-      component: SettingsWrapper,
-      meta: { permissions: ['administrator'] },
+      component: Index,
+      meta,
       children: [
         {
           path: '',
           name: 'knowledge_bases_settings',
-          component: Index,
-          meta: { permissions: ['administrator'] },
+          component: EmptyRoute,
+          meta,
         },
         {
-          path: 'new',
-          name: 'knowledge_base_new',
-          component: KnowledgeBaseEditorPage,
-          meta: { permissions: ['administrator'] },
+          path: ':knowledgeBaseId(\\d+)',
+          name: 'knowledge_base_detail',
+          component: KnowledgeBaseDetailRoute,
+          props: true,
+          meta,
         },
+        // Old bookmarks: creating happens in a modal now and editing is the detail itself.
+        { path: 'new', redirect: { name: 'knowledge_bases_settings' } },
         {
-          path: ':knowledgeBaseId/edit',
-          name: 'knowledge_base_edit',
-          component: KnowledgeBaseEditorPage,
-          meta: { permissions: ['administrator'] },
+          path: ':knowledgeBaseId(\\d+)/edit',
+          redirect: to => ({
+            name: 'knowledge_base_detail',
+            params: to.params,
+          }),
         },
       ],
     },
