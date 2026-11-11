@@ -609,7 +609,11 @@ const menuItems = computed(() => {
                       : 'voice',
                   }
                 ),
-                activeOn: ['ai_agents_settings', 'saas_ai_settings'],
+                activeOn: [
+                  'ai_agents_settings',
+                  'ai_agent_detail',
+                  'saas_ai_settings',
+                ],
               },
               ...(currentAccount.value.features.text_ai
                 ? [
@@ -617,7 +621,11 @@ const menuItems = computed(() => {
                       name: 'Tools',
                       label: t('AI_HUB.TOOLS'),
                       to: accountScopedRoute('ai_tools_settings'),
-                      activeOn: ['ai_tools_settings'],
+                      activeOn: [
+                        'ai_tools_settings',
+                        'ai_tool_detail',
+                        'ai_tool_logs',
+                      ],
                     },
                     {
                       name: 'Knowledge bases',

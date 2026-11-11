@@ -145,7 +145,11 @@ onMounted(load);
     >
       <div class="flex items-start min-w-0 gap-3">
         <RouterLink
-          :to="{ name: 'ai_agents_settings', query: { type: 'text' } }"
+          :to="{
+            name: 'ai_agent_detail',
+            params: { agentId: route.params.agentId },
+            query: { type: 'text' },
+          }"
           class="mt-1 text-sm text-n-blue-11 hover:underline"
         >
           {{ t('AI_PLAYGROUND.BACK') }}

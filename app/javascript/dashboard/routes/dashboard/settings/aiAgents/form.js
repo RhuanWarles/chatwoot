@@ -119,3 +119,17 @@ export const validAgent = agent =>
       validGroupBlacklist(agent.group_response_blacklist ?? []) &&
       (agent.handoff_conditions || '').length <= HANDOFF_CONDITIONS_MAX_LENGTH
   );
+
+// Fills the optional fields the API may omit so the list and the editor see the same shape.
+export const normalizeAgent = agent => ({
+  ...agent,
+  handoff_conditions: agent?.handoff_conditions ?? '',
+  timezone: agent?.timezone || DEFAULT_TIMEZONE,
+  customer_memory_enabled: agent?.customer_memory_enabled === true,
+  group_response_blacklist: agent?.group_response_blacklist ?? [],
+  audio_enabled: agent?.audio_enabled === true,
+  attachment_interpretation_enabled:
+    agent?.attachment_interpretation_enabled === true,
+  split_response_messages: agent?.split_response_messages !== false,
+  inboxes: Array.isArray(agent?.inboxes) ? agent.inboxes : [],
+});
