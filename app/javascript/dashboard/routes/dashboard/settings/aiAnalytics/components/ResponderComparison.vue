@@ -1,20 +1,35 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLocale } from 'shared/composables/useLocale';
 import Select from 'dashboard/components-next/select/Select.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import aiAnalyticsAPI from 'dashboard/api/aiAnalytics';
+import {
+  EMPTY,
+  formatMonth,
+  formatNumber,
+  formatPercent,
+} from '../analyticsFormat';
+import { monthlyAverages, percentOf } from '../analyticsMetrics';
+import AnalyticsCard from './AnalyticsCard.vue';
+import StackedMonthBars from './StackedMonthBars.vue';
+import StatTile from './StatTile.vue';
 
+// "AI vs people": month by month, how many public replies came from the AI and how many from people. It has its own
+// period (the last N months) and its own filters, apart from the ones at the top of the screen.
 const MONTH_CHOICES = [3, 6, 12, 24];
 const { t } = useI18n();
 const { resolvedLocale } = useLocale();
+const locale = computed(() => resolvedLocale.value);
+const filtersId = useId();
 
 const data = ref(null);
 const people = ref([]);
 const segments = ref([]);
 const loading = ref(true);
 const error = ref('');
+const showFilters = ref(false);
 const filters = ref({
   months: 6,
   owner_ids: [],
@@ -23,17 +38,8 @@ const filters = ref({
 });
 let requestId = 0;
 
-const number = value =>
-  Number(value || 0).toLocaleString(resolvedLocale.value, {
-    maximumFractionDigits: 2,
-  });
-const percent = value => `${number(value)}%`;
-const monthLabel = month =>
-  new Intl.DateTimeFormat(resolvedLocale.value, {
-    month: 'short',
-    year: '2-digit',
-    timeZone: 'UTC',
-  }).format(new Date(`${month}-01T00:00:00Z`));
+const number = value => formatNumber(value, locale.value, 2);
+const percent = value => formatPercent(value, locale.value);
 
 const monthOptions = computed(() =>
   MONTH_CHOICES.map(value => ({
@@ -53,19 +59,59 @@ const segmentOptions = computed(() => [
   ...segments.value.map(({ id, name }) => ({ value: id, label: name })),
   { value: 'none', label: t('CRM.NO_SEGMENT') },
 ]);
+const activeFilters = computed(
+  () =>
+    filters.value.owner_ids.length +
+    filters.value.answered_by.length +
+    filters.value.segment_ids.length
+);
+const filtersLabel = computed(() =>
+  activeFilters.value
+    ? t('CRM.RESPONDER_REPORT.FILTERS_ACTIVE', { count: activeFilters.value })
+    : t('CRM.RESPONDER_REPORT.FILTERS')
+);
+const periodLabel = computed(() =>
+  t('CRM.RESPONDER_REPORT.MONTHS', { count: filters.value.months })
+);
 
 const rows = computed(() => data.value?.months ?? []);
 const totals = computed(() => data.value?.totals);
-const hasReplies = computed(
-  () => (totals.value?.ai_replies ?? 0) + (totals.value?.human_replies ?? 0) > 0
+const replies = computed(
+  () => (totals.value?.ai_replies ?? 0) + (totals.value?.human_replies ?? 0)
 );
-const highest = computed(() =>
-  Math.max(1, ...rows.value.map(row => row.ai_replies + row.human_replies))
+// With nothing to divide there is no share: "—", never a 0% that reads as "the AI answered nothing".
+const aiShare = computed(() => (replies.value ? totals.value.ai_share : null));
+const aiOnlyShare = computed(() =>
+  totals.value?.conversations ? totals.value.ai_only_share : null
 );
-const barHeight = row => {
-  const total = row.ai_replies + row.human_replies;
-  return total ? `${Math.max(2, (total / highest.value) * 100)}%` : '0%';
-};
+const averages = computed(() => monthlyAverages(rows.value));
+const changeText = computed(() => {
+  const { change } = averages.value;
+  if (change == null) return '';
+  const value = percent(Math.abs(change));
+  return t(
+    change >= 0
+      ? 'CRM.RESPONDER_REPORT.CHANGE_UP'
+      : 'CRM.RESPONDER_REPORT.CHANGE_DOWN',
+    { value }
+  );
+});
+const legend = computed(() => [
+  {
+    key: 'ai',
+    label: t('CRM.RESPONDER_REPORT.LEGEND_AI'),
+    color: 'var(--an-ai)',
+    count: totals.value?.ai_replies,
+    share: percentOf(totals.value?.ai_replies, replies.value),
+  },
+  {
+    key: 'human',
+    label: t('CRM.RESPONDER_REPORT.LEGEND_HUMAN'),
+    color: 'var(--an-people)',
+    count: totals.value?.human_replies,
+    share: percentOf(totals.value?.human_replies, replies.value),
+  },
+]);
 
 const load = async () => {
   requestId += 1;
@@ -89,187 +135,237 @@ onMounted(load);
 </script>
 
 <template>
-  <section
-    class="flex min-w-0 flex-col gap-4 rounded-xl border border-n-weak bg-n-solid-1 p-4"
+  <AnalyticsCard
+    :title="t('CRM.RESPONDER_REPORT.TITLE')"
+    :period="periodLabel"
+    :loading="loading && !data"
+    :error="!!error"
+    :error-text="error"
     data-test="responder-report"
+    @retry="load"
   >
-    <header>
-      <h2 class="text-sm font-semibold">
-        {{ t('CRM.RESPONDER_REPORT.TITLE') }}
-      </h2>
-      <p class="mt-1 text-sm text-n-slate-11">
-        {{ t('CRM.RESPONDER_REPORT.SUBTITLE') }}
-      </p>
-    </header>
+    <template #actions>
+      <Select
+        v-model="filters.months"
+        :options="monthOptions"
+        :aria-label="t('CRM.RESPONDER_REPORT.FILTER_MONTHS')"
+        class="[&_select]:min-h-11"
+        data-test="months-select"
+        @update:model-value="load"
+      />
+      <button
+        type="button"
+        class="flex min-h-11 items-center gap-1.5 rounded-lg border border-n-weak px-3 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand"
+        :aria-expanded="showFilters"
+        :aria-controls="filtersId"
+        data-test="filters-button"
+        @click="showFilters = !showFilters"
+      >
+        <span class="i-lucide-list-filter size-4" aria-hidden="true" />
+        {{ filtersLabel }}
+      </button>
+    </template>
 
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <label class="min-w-0 text-xs font-medium text-n-slate-11">
-        {{ t('CRM.RESPONDER_REPORT.FILTER_MONTHS') }}
-        <Select
-          v-model="filters.months"
-          :options="monthOptions"
-          class="mt-1 !w-full [&_select]:w-full"
-          @update:model-value="load"
-        />
-      </label>
-      <div class="min-w-0 text-xs font-medium text-n-slate-11">
-        <span class="mb-1 block">{{ t('CRM.OWNER') }}</span>
-        <TagMultiSelectComboBox
-          v-model="filters.owner_ids"
-          :options="ownerOptions"
-          :placeholder="t('CRM.RESPONDER_REPORT.ALL')"
-          @update:model-value="load"
-        />
+    <template #toolbar>
+      <div
+        v-if="showFilters"
+        :id="filtersId"
+        class="mt-4 grid grid-cols-1 gap-3 rounded-lg bg-n-alpha-1 p-3 sm:grid-cols-3"
+        data-test="filters-panel"
+      >
+        <div class="min-w-0 text-xs font-medium text-n-slate-11">
+          <span class="mb-1 block">{{ t('CRM.OWNER') }}</span>
+          <TagMultiSelectComboBox
+            v-model="filters.owner_ids"
+            :options="ownerOptions"
+            :placeholder="t('CRM.RESPONDER_REPORT.ALL')"
+            @update:model-value="load"
+          />
+        </div>
+        <div class="min-w-0 text-xs font-medium text-n-slate-11">
+          <span class="mb-1 block">{{ t('CRM.FILTER_ANSWERED_BY') }}</span>
+          <TagMultiSelectComboBox
+            v-model="filters.answered_by"
+            :options="answeredByOptions"
+            :placeholder="t('CRM.RESPONDER_REPORT.ALL')"
+            @update:model-value="load"
+          />
+        </div>
+        <div class="min-w-0 text-xs font-medium text-n-slate-11">
+          <span class="mb-1 block">{{ t('CRM.FILTER_SEGMENT') }}</span>
+          <TagMultiSelectComboBox
+            v-model="filters.segment_ids"
+            :options="segmentOptions"
+            :placeholder="t('CRM.RESPONDER_REPORT.ALL')"
+            @update:model-value="load"
+          />
+        </div>
       </div>
-      <div class="min-w-0 text-xs font-medium text-n-slate-11">
-        <span class="mb-1 block">{{ t('CRM.FILTER_ANSWERED_BY') }}</span>
-        <TagMultiSelectComboBox
-          v-model="filters.answered_by"
-          :options="answeredByOptions"
-          :placeholder="t('CRM.RESPONDER_REPORT.ALL')"
-          @update:model-value="load"
-        />
-      </div>
-      <div class="min-w-0 text-xs font-medium text-n-slate-11">
-        <span class="mb-1 block">{{ t('CRM.FILTER_SEGMENT') }}</span>
-        <TagMultiSelectComboBox
-          v-model="filters.segment_ids"
-          :options="segmentOptions"
-          :placeholder="t('CRM.RESPONDER_REPORT.ALL')"
-          @update:model-value="load"
-        />
-      </div>
-    </div>
+    </template>
 
-    <p
-      v-if="error"
-      role="alert"
-      class="rounded-lg bg-n-ruby-3 px-3 py-2 text-sm text-n-ruby-11"
+    <div
+      v-if="data"
+      class="flex flex-col gap-4 transition-opacity"
+      :class="loading ? 'opacity-60' : ''"
+      :aria-busy="loading"
     >
-      {{ error }}
-    </p>
-
-    <p v-else-if="loading && !data" class="py-8 text-sm text-n-slate-11">
-      {{ t('CRM.RESPONDER_REPORT.LOADING') }}
-    </p>
-
-    <template v-else-if="data">
-      <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div class="rounded-lg bg-n-alpha-2 p-3">
-          <dt class="text-xs text-n-slate-11">
-            {{ t('CRM.RESPONDER_REPORT.SHARE_AI') }}
-          </dt>
-          <dd class="m-0 text-xl font-semibold" data-test="total-share">
-            {{ percent(totals.ai_share) }}
-          </dd>
-        </div>
-        <div class="rounded-lg bg-n-alpha-2 p-3">
-          <dt class="text-xs text-n-slate-11">
-            {{ t('CRM.RESPONDER_REPORT.SHARE_AI_ONLY') }}
-          </dt>
-          <dd class="m-0 text-xl font-semibold">
-            {{ percent(totals.ai_only_share) }}
-          </dd>
-        </div>
-        <div class="rounded-lg bg-n-alpha-2 p-3">
-          <dt class="text-xs text-n-slate-11">
-            {{ t('CRM.RESPONDER_REPORT.REPLIES') }}
-          </dt>
-          <dd class="m-0 text-xl font-semibold">
-            {{ number(totals.ai_replies + totals.human_replies) }}
-          </dd>
-        </div>
+      <dl class="m-0 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatTile
+          :label="t('CRM.RESPONDER_REPORT.SHARE_AI')"
+          :info="t('CRM.RESPONDER_REPORT.SHARE_AI_INFO')"
+          :value="percent(aiShare)"
+          :tone="aiShare == null ? 'muted' : 'neutral'"
+          data-test="total-share"
+        />
+        <StatTile
+          :label="t('CRM.RESPONDER_REPORT.SHARE_AI_ONLY')"
+          :info="t('CRM.RESPONDER_REPORT.SHARE_AI_ONLY_INFO')"
+          :value="percent(aiOnlyShare)"
+          :tone="aiOnlyShare == null ? 'muted' : 'neutral'"
+          data-test="ai-only-share"
+        />
+        <StatTile
+          :label="t('CRM.RESPONDER_REPORT.REPLIES')"
+          :info="t('CRM.RESPONDER_REPORT.REPLIES_INFO')"
+          :value="number(replies)"
+          data-test="replies-total"
+        />
       </dl>
 
-      <p v-if="!hasReplies" class="py-6 text-sm text-n-slate-11">
+      <p
+        v-if="!replies"
+        class="m-0 text-sm text-n-slate-11"
+        data-test="responder-empty"
+      >
         {{ t('CRM.RESPONDER_REPORT.EMPTY') }}
       </p>
 
       <template v-else>
-        <div
-          class="flex h-52 items-stretch gap-3"
-          role="img"
-          :aria-label="t('CRM.RESPONDER_REPORT.TITLE')"
-        >
-          <div
-            v-for="row in rows"
-            :key="row.month"
-            class="flex min-w-0 flex-1 flex-col items-center gap-1"
-            data-test="month-bar"
-          >
-            <span class="text-xs font-medium">{{ percent(row.ai_share) }}</span>
-            <div class="flex w-full flex-1 items-end justify-center">
-              <div
-                class="flex w-full max-w-12 flex-col justify-end overflow-hidden rounded-t"
-                :style="{ height: barHeight(row) }"
-              >
-                <div
-                  class="bg-n-blue-9"
-                  :style="{ flexGrow: row.human_replies }"
-                />
-                <div
-                  class="bg-n-teal-9"
-                  :style="{ flexGrow: row.ai_replies }"
-                />
-              </div>
-            </div>
-            <span class="text-xs text-n-slate-11">{{
-              monthLabel(row.month)
-            }}</span>
-          </div>
-        </div>
+        <StackedMonthBars :rows="rows" :locale="locale" />
 
-        <ul class="m-0 flex list-none gap-4 p-0 text-xs text-n-slate-11">
-          <li class="flex items-center gap-1.5">
-            <span class="size-2.5 rounded-sm bg-n-teal-9" aria-hidden="true" />
-            {{ t('CRM.RESPONDER_REPORT.LEGEND_AI') }}
-          </li>
-          <li class="flex items-center gap-1.5">
-            <span class="size-2.5 rounded-sm bg-n-blue-9" aria-hidden="true" />
-            {{ t('CRM.RESPONDER_REPORT.LEGEND_HUMAN') }}
+        <ul
+          class="m-0 flex list-none flex-wrap gap-x-5 gap-y-1.5 p-0 text-xs text-n-slate-11"
+          data-test="responder-legend"
+        >
+          <li
+            v-for="item in legend"
+            :key="item.key"
+            class="flex items-center gap-1.5"
+          >
+            <span
+              class="size-2.5 rounded-sm"
+              :style="{ background: item.color }"
+              aria-hidden="true"
+            />
+            {{ item.label }}
+            <strong class="font-semibold tabular-nums text-n-slate-12">
+              {{ number(item.count) }} ({{ percent(item.share) }})
+            </strong>
           </li>
         </ul>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-start text-xs">
-            <thead class="text-n-slate-11">
-              <tr>
-                <th class="py-1 pe-3 text-start font-medium">
-                  {{ t('CRM.RESPONDER_REPORT.COL_MONTH') }}
-                </th>
-                <th class="py-1 pe-3 text-end font-medium">
-                  {{ t('CRM.RESPONDER_REPORT.LEGEND_AI') }}
-                </th>
-                <th class="py-1 pe-3 text-end font-medium">
-                  {{ t('CRM.RESPONDER_REPORT.LEGEND_HUMAN') }}
-                </th>
-                <th class="py-1 pe-3 text-end font-medium">
-                  {{ t('CRM.RESPONDER_REPORT.COL_SHARE') }}
-                </th>
-                <th class="py-1 text-end font-medium">
-                  {{ t('CRM.RESPONDER_REPORT.COL_AI_ONLY') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in rows"
-                :key="row.month"
-                class="border-t border-n-weak"
-                data-test="month-row"
-              >
-                <td class="py-1 pe-3">{{ monthLabel(row.month) }}</td>
-                <td class="py-1 pe-3 text-end">{{ number(row.ai_replies) }}</td>
-                <td class="py-1 pe-3 text-end">
-                  {{ number(row.human_replies) }}
-                </td>
-                <td class="py-1 pe-3 text-end">{{ percent(row.ai_share) }}</td>
-                <td class="py-1 text-end">{{ percent(row.ai_only_share) }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div
+          class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-n-weak pt-3 text-sm"
+          data-test="average-per-day"
+        >
+          <span class="text-n-slate-11">
+            {{ t('CRM.RESPONDER_REPORT.AVERAGE_PER_DAY') }}:
+          </span>
+          <span class="tabular-nums text-n-slate-12">
+            <strong class="font-semibold">{{
+              t('CRM.RESPONDER_REPORT.AVERAGE_CURRENT', {
+                value: formatNumber(averages.current, locale, 1),
+              })
+            }}</strong>
+            ·
+            {{
+              t('CRM.RESPONDER_REPORT.AVERAGE_PREVIOUS', {
+                value: formatNumber(averages.previous, locale, 1),
+              })
+            }}
+          </span>
+          <span
+            v-if="averages.change != null"
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums"
+            :class="
+              averages.change >= 0
+                ? 'bg-n-teal-3 text-n-teal-11'
+                : 'bg-n-ruby-3 text-n-ruby-11'
+            "
+            :aria-label="changeText"
+            data-test="average-change"
+          >
+            <span aria-hidden="true">{{
+              averages.change >= 0 ? '▲' : '▼'
+            }}</span>
+            {{ percent(Math.abs(averages.change)) }}
+          </span>
         </div>
+
+        <details class="text-xs" data-test="month-details">
+          <summary
+            class="min-h-11 cursor-pointer py-3 font-medium text-n-slate-11 hover:text-n-slate-12"
+          >
+            {{ t('CRM.RESPONDER_REPORT.VIEW_BY_MONTH') }}
+          </summary>
+          <div class="overflow-x-auto">
+            <table class="w-full text-start text-xs tabular-nums">
+              <thead class="text-n-slate-11">
+                <tr>
+                  <th scope="col" class="py-1 pe-3 text-start font-medium">
+                    {{ t('CRM.RESPONDER_REPORT.COL_MONTH') }}
+                  </th>
+                  <th scope="col" class="py-1 pe-3 text-end font-medium">
+                    {{ t('CRM.RESPONDER_REPORT.LEGEND_AI') }}
+                  </th>
+                  <th scope="col" class="py-1 pe-3 text-end font-medium">
+                    {{ t('CRM.RESPONDER_REPORT.LEGEND_HUMAN') }}
+                  </th>
+                  <th scope="col" class="py-1 pe-3 text-end font-medium">
+                    {{ t('CRM.RESPONDER_REPORT.COL_SHARE') }}
+                  </th>
+                  <th scope="col" class="py-1 text-end font-medium">
+                    {{ t('CRM.RESPONDER_REPORT.COL_AI_ONLY') }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in rows"
+                  :key="row.month"
+                  class="border-t border-n-weak"
+                  data-test="month-row"
+                >
+                  <th scope="row" class="py-1 pe-3 text-start font-normal">
+                    {{ formatMonth(row.month, locale) }}
+                  </th>
+                  <template v-if="row.ai_replies + row.human_replies">
+                    <td class="py-1 pe-3 text-end">
+                      {{ number(row.ai_replies) }}
+                    </td>
+                    <td class="py-1 pe-3 text-end">
+                      {{ number(row.human_replies) }}
+                    </td>
+                    <td class="py-1 pe-3 text-end">
+                      {{ percent(row.ai_share) }}
+                    </td>
+                    <td class="py-1 text-end">
+                      {{
+                        percent(
+                          row.conversations.total ? row.ai_only_share : null
+                        )
+                      }}
+                    </td>
+                  </template>
+                  <td v-else colspan="4" class="py-1 text-end text-n-slate-10">
+                    {{ EMPTY }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
       </template>
-    </template>
-  </section>
+    </div>
+  </AnalyticsCard>
 </template>
