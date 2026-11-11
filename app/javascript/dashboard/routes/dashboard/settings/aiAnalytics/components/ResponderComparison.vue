@@ -11,7 +11,11 @@ import {
   formatNumber,
   formatPercent,
 } from '../analyticsFormat';
-import { monthlyAverages, percentOf } from '../analyticsMetrics';
+import {
+  isCurrentMonth,
+  monthlyAverages,
+  percentOf,
+} from '../analyticsMetrics';
 import AnalyticsCard from './AnalyticsCard.vue';
 import StackedMonthBars from './StackedMonthBars.vue';
 import StatTile from './StatTile.vue';
@@ -96,6 +100,9 @@ const changeText = computed(() => {
     { value }
   );
 });
+const hasMonthInProgress = computed(() =>
+  rows.value.some(row => isCurrentMonth(row.month))
+);
 const legend = computed(() => [
   {
     key: 'ai',
@@ -261,6 +268,17 @@ onMounted(load);
             <strong class="font-semibold tabular-nums text-n-slate-12">
               {{ number(item.count) }} ({{ percent(item.share) }})
             </strong>
+          </li>
+          <li
+            v-if="hasMonthInProgress"
+            class="flex items-center gap-1.5"
+            data-test="in-progress-legend"
+          >
+            <span
+              class="hatched size-2.5 rounded-sm bg-[var(--an-ai)]"
+              aria-hidden="true"
+            />
+            {{ t('CRM.RESPONDER_REPORT.IN_PROGRESS') }}
           </li>
         </ul>
 

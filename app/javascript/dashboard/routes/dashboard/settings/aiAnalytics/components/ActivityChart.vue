@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, useId } from 'vue';
+import { computed, nextTick, onMounted, ref, useId, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import {
   areaPath,
@@ -29,6 +29,8 @@ const props = defineProps({
 const HEIGHT = 280;
 const MIN_WIDTH = 560;
 const MARGIN = { top: 20, right: 150, bottom: 30, left: 40 };
+const TIP_WIDTH = 208;
+const TIP_GAP = 14;
 const chartId = useId();
 
 const container = ref(null);
@@ -112,14 +114,35 @@ const yLabels = computed(() =>
   }))
 );
 
-const tipOnTheLeft = computed(() => x(active.value) > width.value * 0.55);
+// The tooltip sits beside the chosen day, on the side that has room, and never leaves the part of the chart that is
+// on screen: on a phone the chart scrolls inside its box and a tooltip at the edge of the whole chart would be cut.
+const scrolled = ref(0);
+const visibleWidth = computed(() => measured.value || width.value);
+const tipLeft = computed(() => {
+  const position = x(active.value);
+  const fitsRight =
+    position + TIP_GAP + TIP_WIDTH <= scrolled.value + visibleWidth.value;
+  const wanted = fitsRight
+    ? position + TIP_GAP
+    : position - TIP_GAP - TIP_WIDTH;
+  const most = scrolled.value + visibleWidth.value - TIP_WIDTH - 4;
+  return Math.max(scrolled.value + 4, Math.min(wanted, most));
+});
 const tipStyle = computed(() => ({
-  left: `${x(active.value)}px`,
+  left: `${tipLeft.value}px`,
   top: `${MARGIN.top}px`,
-  transform: tipOnTheLeft.value
-    ? 'translateX(calc(-100% - 14px))'
-    : 'translateX(14px)',
 }));
+
+// Opens with the busiest day in view, also when the chart is wider than its box.
+const centerOnPeak = () => {
+  const box = container.value;
+  if (!box) return;
+  const index = peak.value?.index ?? props.points.length - 1;
+  box.scrollLeft = Math.max(0, x(index) - box.clientWidth / 2);
+  scrolled.value = box.scrollLeft;
+};
+onMounted(() => nextTick(centerOnPeak));
+watch([() => props.points, measured], () => nextTick(centerOnPeak));
 const tipRows = computed(() => [
   ...props.series.map(item => ({
     key: item.key,
@@ -188,6 +211,7 @@ const onKey = event => {
       data-test="activity-scroll"
       @keydown="onKey"
       @blur="hovered = null"
+      @scroll.passive="scrolled = $event.target.scrollLeft"
     >
       <div
         class="relative"
@@ -334,7 +358,7 @@ const onKey = event => {
 
         <div
           v-if="activePoint"
-          class="pointer-events-none absolute z-10 w-44 rounded-lg border border-n-weak bg-n-solid-3 p-2.5 text-xs shadow-lg"
+          class="pointer-events-none absolute z-10 w-52 rounded-lg border border-n-weak bg-n-solid-3 p-2.5 text-xs shadow-lg"
           :style="tipStyle"
           aria-hidden="true"
           data-test="activity-tooltip"

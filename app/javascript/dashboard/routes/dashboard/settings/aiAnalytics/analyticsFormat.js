@@ -64,13 +64,17 @@ export const formatDayMonth = (value, locale = DEFAULT_LOCALE) =>
     timeZone: 'UTC',
   }).format(utcDate(value));
 
-// "2026-10" -> "out/26"
-export const formatMonth = (month, locale = DEFAULT_LOCALE) =>
-  new Intl.DateTimeFormat(locale, {
+// "2026-10" -> "out/26": short enough to stay on one line above a narrow column.
+export const formatMonth = (month, locale = DEFAULT_LOCALE) => {
+  const date = new Date(`${month}-01T00:00:00Z`);
+  const name = new Intl.DateTimeFormat(locale, {
     month: 'short',
-    year: '2-digit',
     timeZone: 'UTC',
-  }).format(new Date(`${month}-01T00:00:00Z`));
+  })
+    .format(date)
+    .replace(/\./g, '');
+  return `${name}/${String(date.getUTCFullYear()).slice(-2)}`;
+};
 
 export const formatTime = (date, locale = DEFAULT_LOCALE) =>
   new Intl.DateTimeFormat(locale, {

@@ -164,8 +164,14 @@ describe('ResponderComparison', () => {
 
     const [september, october] = wrapper.findAll('[data-test="month-bar"]');
     expect(october.find('.hatched').exists()).toBe(true);
-    expect(october.text()).toContain('em andamento');
+    expect(october.attributes('aria-label')).toContain('em andamento');
+    expect(october.find('[data-test="month-tooltip"]').text()).toContain(
+      'em andamento'
+    );
     expect(september.find('.hatched').exists()).toBe(false);
+    expect(wrapper.find('[data-test="in-progress-legend"]').text()).toBe(
+      'em andamento'
+    );
   });
 
   it('puts the percentages in the tooltip of each month', async () => {

@@ -493,6 +493,15 @@ onMounted(load);
   --an-neutral: #71717a;
 }
 
+/* The month in progress: diagonal stripes of the card color over the series color. */
+.analytics-root .hatched {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    rgb(var(--solid-1) / 0.55) 5px 9px
+  );
+}
+
 .dark .analytics-root {
   --an-ai: #34d399;
   --an-people: #a78bfa;

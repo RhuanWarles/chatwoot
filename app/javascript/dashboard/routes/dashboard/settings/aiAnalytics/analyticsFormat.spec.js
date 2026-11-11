@@ -85,7 +85,8 @@ describe('dates', () => {
   });
 
   it('abbreviates a month and formats a time of day', () => {
-    expect(formatMonth('2026-10')).toMatch(/out/i);
+    expect(formatMonth('2026-10')).toBe('out/26');
+    expect(formatMonth('2026-10', 'en')).toBe('Oct/26');
     expect(formatTime(new Date(2026, 10, 11, 9, 5))).toBe('09:05');
   });
 });

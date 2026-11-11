@@ -39,22 +39,24 @@ const columns = computed(() =>
     };
   })
 );
+const progress = column =>
+  column.inProgress ? ` (${t('CRM.RESPONDER_REPORT.IN_PROGRESS')})` : '';
 const describe = column =>
   column.total
-    ? `${column.label}: ${t('CRM.RESPONDER_REPORT.LEGEND_AI')} ${formatNumber(column.ai_replies, props.locale)} (${formatPercent(column.aiShare, props.locale)}), ${t('CRM.RESPONDER_REPORT.LEGEND_HUMAN')} ${formatNumber(column.human_replies, props.locale)} (${formatPercent(column.humanShare, props.locale)})`
+    ? `${column.label}${progress(column)}:${t('CRM.RESPONDER_REPORT.LEGEND_AI')} ${formatNumber(column.ai_replies, props.locale)} (${formatPercent(column.aiShare, props.locale)}), ${t('CRM.RESPONDER_REPORT.LEGEND_HUMAN')} ${formatNumber(column.human_replies, props.locale)} (${formatPercent(column.humanShare, props.locale)})`
     : `${column.label}: ${t('CRM.RESPONDER_REPORT.NO_DATA_MONTH')}`;
 </script>
 
 <template>
-  <div class="overflow-x-auto pb-1" data-test="month-scroll">
+  <div class="overflow-x-auto overflow-y-hidden pb-1" data-test="month-scroll">
     <ul
-      class="m-0 flex min-w-[17rem] list-none items-end gap-2 p-0 sm:gap-3"
+      class="m-0 flex list-none items-end gap-1.5 p-0 sm:gap-3"
       :aria-label="t('CRM.RESPONDER_REPORT.TITLE')"
     >
       <li
         v-for="(column, index) in columns"
         :key="column.month"
-        class="group relative flex min-w-9 flex-1 flex-col items-center gap-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
+        class="group relative flex min-w-8 flex-1 flex-col items-center gap-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-n-brand"
         tabindex="0"
         :aria-label="describe(column)"
         data-test="month-bar"
@@ -92,13 +94,9 @@ const describe = column =>
             data-test="no-data-month"
           />
         </div>
-        <span class="text-xs text-n-slate-11">{{ column.label }}</span>
-        <span
-          class="h-4 text-xs leading-4 text-n-slate-11"
-          :class="{ invisible: !column.inProgress }"
-        >
-          {{ t('CRM.RESPONDER_REPORT.IN_PROGRESS') }}
-        </span>
+        <span class="whitespace-nowrap text-xs text-n-slate-11">{{
+          column.label
+        }}</span>
 
         <div
           class="pointer-events-none absolute top-7 z-10 hidden w-44 rounded-lg border border-n-weak bg-n-solid-3 p-2.5 text-xs shadow-lg group-hover:block group-focus-visible:block"
@@ -152,14 +150,3 @@ const describe = column =>
     </ul>
   </div>
 </template>
-
-<style scoped>
-/* The month in progress: diagonal stripes of the card color over the series color. */
-.hatched {
-  background-image: repeating-linear-gradient(
-    135deg,
-    transparent 0 5px,
-    rgb(var(--solid-1) / 0.55) 5px 9px
-  ) !important;
-}
-</style>
