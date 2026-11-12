@@ -1,14 +1,23 @@
 class Saas::AiAnalytics
-  PERIODS = { 'today' => 1.day, '7d' => 7.days, '30d' => 30.days }.freeze
   UNANSWERED_LIMIT = 5
 
   def initialize(account, params)
     @account = account
     @params = params
-    @range = period_range
+    @agent_id = scoped_id(:ai_agent_id, @account.saas_ai_agents)
+    @inbox_id = scoped_id(:inbox_id, @account.inboxes)
+    @period = AnalyticsPeriod.new(account, params)
+    @range = @period.range
   end
 
+  # Days are the account's days (the time zone of its reports), the same as in the general dashboard.
   def perform
+    Time.use_zone(@period.zone) { build }
+  end
+
+  private
+
+  def build
     messages = ai_messages
     conversations = messages.distinct.pluck(:conversation_id)
     usage = runtime_usage
@@ -17,7 +26,8 @@ class Saas::AiAnalytics
     handoffs = handoff_count(conversations)
 
     {
-      filters: { start_at: @range.begin.iso8601, end_at: @range.end.iso8601, agent_id: @agent_id, inbox_id: @inbox_id },
+      filters: { start_at: @range.begin.iso8601, end_at: @range.end.iso8601, agent_id: @agent_id, inbox_id: @inbox_id,
+                 timezone: @period.zone.tzinfo.name },
       billing: billing_data(usage),
       summary: {
         conversations: conversations.length,
@@ -34,25 +44,6 @@ class Saas::AiAnalytics
       agents: @account.saas_ai_agents.order(:name).map { |agent| { id: agent.id, name: agent.name } },
       inboxes: @account.inboxes.order(:name).map { |inbox| { id: inbox.id, name: inbox.name } }
     }
-  end
-
-  private
-
-  def period_range
-    @agent_id = scoped_id(:ai_agent_id, @account.saas_ai_agents)
-    @inbox_id = scoped_id(:inbox_id, @account.inboxes)
-    start_at = case @params[:period].to_s
-               when 'today' then Time.current.beginning_of_day
-               when 'month' then Time.current.beginning_of_month
-               else PERIODS.fetch(@params[:period].to_s, 7.days).ago
-               end
-    start_at = Time.zone.parse(@params[:start_at].to_s) if @params[:start_at].present?
-    end_at = @params[:end_at].present? ? Time.zone.parse(@params[:end_at].to_s) : Time.current
-    raise ArgumentError, 'invalid_period' if start_at.blank? || end_at.blank? || start_at >= end_at
-
-    start_at..end_at
-  rescue ArgumentError, TypeError
-    raise ArgumentError, 'invalid_period'
   end
 
   def scoped_id(key, relation)
