@@ -373,6 +373,13 @@ const reportRoutes = computed(() => newReportRoutes());
 const menuItems = computed(() => {
   return [
     {
+      name: 'Dashboard',
+      label: t('GENERAL_DASHBOARD.MENU'),
+      icon: 'i-lucide-layout-dashboard',
+      to: accountScopedRoute('general_dashboard'),
+      activeOn: ['general_dashboard'],
+    },
+    {
       name: 'Inbox',
       label: t('SIDEBAR.INBOX'),
       icon: 'i-lucide-inbox',
@@ -961,9 +968,24 @@ const menuItems = computed(() => {
   ];
 });
 
-const orderedMenuItems = computed(() =>
-  sortByMenuOrder(menuItems.value, uiSettings.value.sidebar_menu_order)
+// The reports tab is hidden: the dashboard is the way in, and each of its blocks links to the full report.
+const HIDDEN_MENU_TABS = ['Reports'];
+const PINNED_MENU_TAB = 'Dashboard';
+
+const reorderableMenuItems = computed(() =>
+  sortByMenuOrder(
+    menuItems.value.filter(
+      item =>
+        item.name !== PINNED_MENU_TAB && !HIDDEN_MENU_TABS.includes(item.name)
+    ),
+    uiSettings.value.sidebar_menu_order
+  )
 );
+// The dashboard is always the first tab, whatever order the person saved.
+const orderedMenuItems = computed(() => [
+  ...menuItems.value.filter(item => item.name === PINNED_MENU_TAB),
+  ...reorderableMenuItems.value,
+]);
 </script>
 
 <template>
@@ -1108,7 +1130,7 @@ const orderedMenuItems = computed(() =>
     >
       <SidebarMenuOrderEditor
         v-if="isOrganizingMenu && !isEffectivelyCollapsed"
-        :items="orderedMenuItems"
+        :items="reorderableMenuItems"
         @change="saveMenuOrder"
         @reset="saveMenuOrder(null)"
         @done="isOrganizingMenu = false"

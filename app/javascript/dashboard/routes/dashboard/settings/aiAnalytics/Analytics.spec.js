@@ -244,7 +244,7 @@ describe('filters', () => {
     ]);
   });
 
-  it('sends a custom period as whole UTC days, the same days the table is made of', async () => {
+  it('sends a custom period as whole days of the account, which the server puts in its time zone', async () => {
     const wrapper = await mountPage();
     await wrapper.find('[data-test="period-select"]').setValue('custom');
     expect(aiAnalyticsAPI.show).toHaveBeenCalledTimes(1);
@@ -259,8 +259,8 @@ describe('filters', () => {
       period: 'custom',
       ai_agent_id: '',
       inbox_id: '',
-      start_at: '2026-11-01T00:00:00.000Z',
-      end_at: '2026-11-11T23:59:59.999Z',
+      start_date: '2026-11-01',
+      end_date: '2026-11-11',
     });
     expect(wrapper.find('[data-test="period-interval"]').text()).toBe(
       'Personalizado · 01/11 a 11/11'

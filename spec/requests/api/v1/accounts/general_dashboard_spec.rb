@@ -161,6 +161,7 @@ RSpec.describe 'General dashboard API', type: :request do
 
       expect(data['summary']).to include('conversations' => 0, 'handoffs' => 0)
       expect(data['billing']).to include('models' => [])
+      expect(data).to include('tools', 'knowledge')
     end
   end
 

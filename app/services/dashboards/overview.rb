@@ -32,7 +32,8 @@ class Dashboards::Overview
     return nil unless @account.feature_enabled?('text_ai')
 
     data = Saas::AiAnalytics.new(@account, ai_params).perform
-    { summary: data[:summary], billing: data[:billing] }
+    { summary: data[:summary], billing: data[:billing], tools: data[:tools].slice(:executions, :success_rate),
+      knowledge: data[:knowledge].slice(:queries, :hits, :hit_rate) }
   end
 
   def ai_params

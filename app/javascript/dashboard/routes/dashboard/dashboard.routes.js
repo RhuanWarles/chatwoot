@@ -5,6 +5,7 @@ import { routes as callRoutes } from './calls/routes';
 import { routes as contactRoutes } from './contacts/routes';
 import { routes as companyRoutes } from './companies/routes';
 import { routes as crmRoutes } from './crm/routes';
+import { routes as generalDashboardRoutes } from './generalDashboard/routes';
 import { routes as whatsappRoutes } from './whatsapp/routes';
 import { routes as inboxRoutes } from './inbox/routes';
 import { frontendURL } from '../../helper/URLHelper';
@@ -31,6 +32,7 @@ export default {
         ...contactRoutes,
         ...companyRoutes,
         ...crmRoutes,
+        ...generalDashboardRoutes,
         ...whatsappRoutes,
         ...searchRoutes,
         ...helpcenterRoutes.routes,

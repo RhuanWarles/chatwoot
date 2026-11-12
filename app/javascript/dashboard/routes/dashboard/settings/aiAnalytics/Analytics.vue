@@ -30,6 +30,7 @@ import OutcomeCard from './components/OutcomeCard.vue';
 import ResponderComparison from './components/ResponderComparison.vue';
 import TokensCard from './components/TokensCard.vue';
 import ToolsCard from './components/ToolsCard.vue';
+import './analyticsTheme.css';
 
 const { t } = useI18n();
 const { resolvedLocale } = useLocale();
@@ -222,9 +223,9 @@ const load = async () => {
   try {
     const params = { ...filters.value };
     if (params.period === 'custom') {
-      // Days are UTC days on this screen, as in the table and in the monthly report, so the typed dates are too.
-      params.start_at = `${start.value}T00:00:00.000Z`;
-      params.end_at = `${end.value}T23:59:59.999Z`;
+      // Whole days of the account: the server puts them in its own time zone (the one chosen for the reports).
+      params.start_date = start.value;
+      params.end_date = end.value;
     }
     const response = await aiAnalyticsAPI.show(params);
     if (currentRequest === requestId) {
@@ -485,36 +486,3 @@ onMounted(load);
     </div>
   </main>
 </template>
-
-<style>
-/* Colors of the series. The same data is always the same color on this screen. They are the bright tones on the dark
-   theme and the same hues one step darker on the light theme, so lines and bars keep their contrast on white. */
-.analytics-root {
-  --an-ai: #059669;
-  --an-people: #7c3aed;
-  --an-conversations: #2563eb;
-  --an-turns: #db2777;
-  --an-tokens: #0891b2;
-  --an-attention: #d97706;
-  --an-neutral: #71717a;
-}
-
-/* The month in progress: diagonal stripes of the card color over the series color. */
-.analytics-root .hatched {
-  background-image: repeating-linear-gradient(
-    135deg,
-    transparent 0 5px,
-    rgb(var(--solid-1) / 0.55) 5px 9px
-  );
-}
-
-.dark .analytics-root {
-  --an-ai: #34d399;
-  --an-people: #a78bfa;
-  --an-conversations: #60a5fa;
-  --an-turns: #f472b6;
-  --an-tokens: #22d3ee;
-  --an-attention: #fbbf24;
-  --an-neutral: #e4e4e7;
-}
-</style>
