@@ -11,6 +11,11 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  // Segmented control: the tabs share one rounded track and the active one is a raised pill.
+  pill: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['change']);
@@ -67,7 +72,7 @@ watch(
   <div
     ref="tabsContainer"
     class="flex"
-    :class="[border && 'border-b border-b-n-weak']"
+    :class="[border && !pill && 'border-b border-b-n-weak']"
   >
     <button
       v-if="hasScroll"
@@ -78,10 +83,11 @@ watch(
     </button>
     <ul
       ref="tabsList"
-      class="border-r-0 border-l-0 border-t-0 flex min-w-[6.25rem] py-0 px-4 list-none mb-0"
-      :class="
-        hasScroll ? 'overflow-hidden py-0 px-1 max-w-[calc(100%-64px)]' : ''
-      "
+      class="border-r-0 border-l-0 border-t-0 flex min-w-[6.25rem] list-none mb-0"
+      :class="[
+        pill ? 'w-full gap-1 p-1 rounded-xl bg-n-alpha-1' : 'py-0 px-4',
+        hasScroll ? 'overflow-hidden py-0 px-1 max-w-[calc(100%-64px)]' : '',
+      ]"
     >
       <slot />
     </ul>

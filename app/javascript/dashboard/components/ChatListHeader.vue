@@ -75,7 +75,7 @@ const toggleConversationLayout = () => {
 
 <template>
   <div
-    class="flex items-center justify-between gap-2 px-3 h-[3.25rem]"
+    class="flex items-center justify-between gap-2 px-4 h-14"
     :class="{
       'border-b border-n-strong': hasAppliedFiltersOrActiveFolders,
     }"
@@ -92,7 +92,7 @@ const toggleConversationLayout = () => {
         ghost
         @click="emit('resetFilters')"
       />
-      <h1 class="text-base font-medium truncate text-n-slate-12" :title="title">
+      <h1 class="text-lg font-medium truncate text-n-slate-12" :title="title">
         {{ title }}
       </h1>
       <span
