@@ -36,7 +36,7 @@ const showEmptyLine = computed(
 <template>
   <section
     v-if="showEmptyLine"
-    class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-n-weak bg-n-solid-1 px-4 py-3 sm:px-5"
+    class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 self-start rounded-xl border border-n-weak bg-n-solid-1 px-4 py-3 sm:px-5"
     data-test="tools-empty"
   >
     <h2
