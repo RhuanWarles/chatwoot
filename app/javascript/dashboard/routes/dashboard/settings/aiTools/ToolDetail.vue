@@ -1,22 +1,42 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
-import aiAgentsAPI from 'dashboard/api/aiAgents';
 import aiToolsAPI from 'dashboard/api/aiTools';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import Popover from 'dashboard/components-next/popover/Popover.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
+import { useAlert } from 'dashboard/composables';
+import CollapsibleSection from '../aiShared/CollapsibleSection.vue';
+import CopyIdButton from '../aiShared/CopyIdButton.vue';
+import UnsavedChangesDialog from '../aiShared/UnsavedChangesDialog.vue';
+import { useUnsavedChangesGuard } from '../aiShared/useUnsavedChangesGuard';
+import Logs from './Logs.vue';
+import ToolTestDialog from './ToolTestDialog.vue';
+import { METHOD_OPTIONS, newTool, validHttpUrl } from './form';
+import { TOOLS_WORKSPACE } from './workspace';
+
+const props = defineProps({
+  tool: {
+    type: Object,
+    required: true,
+  },
+});
 
 const { t } = useI18n();
-const route = useRoute();
-const router = useRouter();
-const loading = ref(true);
+const workspace = inject(TOOLS_WORKSPACE);
+
+const leaveDialog = ref(null);
+const testDialog = ref(null);
+const deletion = ref(null);
 const busy = ref(false);
+const removed = ref(false);
 const error = ref('');
-const activeTab = ref('general');
+const actionError = ref('');
 const parameterMode = ref('visual');
 const editingParameter = ref(null);
 const parameterEditorOpen = ref(false);
@@ -24,28 +44,9 @@ const parametersJson = ref('[]');
 const headerRows = ref([]);
 const initialSecretHeaderNames = ref([]);
 const initialSnapshot = ref('');
-const testArguments = ref('{}');
-const testConversationId = ref('');
-const testAgentId = ref(null);
-const testResult = ref(null);
-const agents = ref([]);
-const form = ref({
-  name: '',
-  description: '',
-  active: false,
-  allow_in_playground: false,
-  slug: '',
-  secret_headers: {},
-  configuration: {
-    method: 'GET',
-    url: '',
-    timeout_seconds: 10,
-    parameters: [],
-    headers: {},
-    query_params: {},
-    body: {},
-  },
-});
+// Last version saved on the server: what "Discard" goes back to.
+const savedTool = ref(props.tool);
+const form = ref(newTool());
 const parameterDraft = ref({
   name: '',
   type: 'string',
@@ -57,10 +58,6 @@ const parameterDraft = ref({
 });
 
 const SECRET_HEADER_MASK = '••••••••';
-const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(value => ({
-  value,
-  label: value,
-}));
 const typeOptions = ['string', 'number', 'integer', 'boolean', 'enum'].map(
   value => ({ value, label: value })
 );
@@ -75,12 +72,6 @@ const valueSourceOptions = [
   ['account_id', 'AI_TOOLS.SOURCE_ACCOUNT_ID'],
   ['agent_id', 'AI_TOOLS.SOURCE_AGENT_ID'],
 ].map(([value, label]) => ({ value, label }));
-const tabs = [
-  ['general', 'AI_TOOLS.TAB_GENERAL'],
-  ['parameters', 'AI_TOOLS.TAB_PARAMETERS'],
-  ['request', 'AI_TOOLS.TAB_REQUEST'],
-  ['test', 'AI_TOOLS.TAB_TEST'],
-];
 const responseExample = '{\n  "success": true,\n  "result": "..."\n}';
 const parseJson = (value, fallback) => {
   try {
@@ -90,10 +81,7 @@ const parseJson = (value, fallback) => {
   }
 };
 
-const isEdit = computed(() => Boolean(route.params.toolId));
-const agentOptions = computed(() =>
-  agents.value.map(agent => ({ value: agent.id, label: agent.name }))
-);
+const usedBy = computed(() => workspace.linkedAgents(props.tool));
 const hasContextParameters = computed(() =>
   form.value.configuration.parameters.some(
     parameter => (parameter.value_source || 'ai') !== 'ai'
@@ -107,23 +95,15 @@ const validationError = computed(() => {
   if (!String(form.value.description || '').trim())
     return t('AI_TOOLS.DESCRIPTION_REQUIRED');
   if (
-    !methodOptions.some(
+    !METHOD_OPTIONS.some(
       option => option.value === form.value.configuration.method
     )
   )
     return t('AI_TOOLS.METHOD_REQUIRED');
   if (!String(form.value.configuration.url || '').trim())
     return t('AI_TOOLS.URL_REQUIRED');
-  try {
-    if (
-      !['http:', 'https:'].includes(
-        new URL(form.value.configuration.url).protocol
-      )
-    )
-      return t('AI_TOOLS.URL_INVALID');
-  } catch {
+  if (!validHttpUrl(form.value.configuration.url))
     return t('AI_TOOLS.URL_INVALID');
-  }
   const timeout = Number(form.value.configuration.timeout_seconds);
   if (!Number.isInteger(timeout) || timeout < 1 || timeout > 30)
     return t('AI_TOOLS.TIMEOUT_INVALID');
@@ -142,14 +122,18 @@ const validationError = computed(() => {
   return '';
 });
 
-const snapshot = () =>
-  JSON.stringify({
-    form: form.value,
+// `active` is saved the moment it is toggled in the header, so it is not an unsaved change.
+const snapshot = () => {
+  const current = { ...form.value };
+  delete current.active;
+  return JSON.stringify({
+    form: current,
     parametersJson: parametersJson.value,
     headerRows: headerRows.value,
   });
+};
 const isDirty = computed(
-  () => !loading.value && snapshot() !== initialSnapshot.value
+  () => !removed.value && snapshot() !== initialSnapshot.value
 );
 const sourceLabel = source =>
   valueSourceOptions.find(option => option.value === (source || 'ai'))?.label ||
@@ -261,49 +245,30 @@ const removeParameter = parameter => {
 const addEnumValue = () => parameterDraft.value.enum_values.push('');
 const removeEnumValue = index =>
   parameterDraft.value.enum_values.splice(index, 1);
-const selectTab = tab => {
-  if (tab === 'parameters' && parameterMode.value === 'json') syncJsonVisual();
-  activeTab.value = tab;
-};
 
-const load = async () => {
-  try {
-    const [agentsResponse, toolResponse] = await Promise.all([
-      aiAgentsAPI.get(),
-      isEdit.value
-        ? aiToolsAPI.show(route.params.toolId)
-        : Promise.resolve({ data: null }),
-    ]);
-    agents.value = agentsResponse.data.agents || [];
-    testAgentId.value = agentOptions.value[0]?.value || null;
-    if (toolResponse.data) {
-      const tool = toolResponse.data;
-      form.value = {
-        ...form.value,
-        ...tool,
-        name: tool.name || '',
-        description: tool.description || '',
-        configuration: {
-          ...form.value.configuration,
-          ...(tool.configuration || {}),
-        },
-      };
-      form.value.configuration.parameters ||= [];
-      initialSecretHeaderNames.value = [
-        ...(tool.configuration?.secret_header_names || []),
-      ];
-    }
-    syncVisualJson();
-    initialSnapshot.value = snapshot();
-  } catch {
-    error.value = t('AI_TOOLS.LOAD_ERROR');
-  } finally {
-    loading.value = false;
-  }
+const initialize = tool => {
+  const defaults = newTool();
+  form.value = {
+    ...defaults,
+    ...tool,
+    name: tool.name || '',
+    description: tool.description || '',
+    configuration: {
+      ...defaults.configuration,
+      ...(tool.configuration || {}),
+    },
+  };
+  form.value.configuration.parameters ||= [];
+  initialSecretHeaderNames.value = [
+    ...(tool.configuration?.secret_header_names || []),
+  ];
+  syncVisualJson();
+  initialSnapshot.value = snapshot();
 };
+initialize(props.tool);
 
 const save = async () => {
-  if (loading.value || busy.value || validationError.value) return;
+  if (!isDirty.value || busy.value || validationError.value) return;
   busy.value = true;
   error.value = '';
   try {
@@ -325,9 +290,11 @@ const save = async () => {
       },
     };
     if (secretHeadersChanged) payload.ai_tool.secret_headers = secretHeaders;
-    if (isEdit.value) await aiToolsAPI.update(route.params.toolId, payload);
-    else await aiToolsAPI.create(payload);
-    router.push({ name: 'ai_tools_settings' });
+    const { data } = await aiToolsAPI.update(props.tool.id, payload);
+    workspace.upsert(data);
+    savedTool.value = data;
+    initialize(data);
+    useAlert(t('AI_TOOLS.SAVED'));
   } catch (saveError) {
     error.value = saveError.response?.data?.message || t('AI_TOOLS.SAVE_ERROR');
   } finally {
@@ -335,145 +302,168 @@ const save = async () => {
   }
 };
 
-const runTest = async () => {
-  if (!isEdit.value || !testAgentId.value || busy.value) return;
-  busy.value = true;
+const discard = () => {
   error.value = '';
-  testResult.value = null;
+  initialize({ ...savedTool.value, active: form.value.active });
+};
+
+// Activating or deactivating is saved right away, like the toggle of the old list cards.
+const toggleActive = async () => {
+  if (busy.value) return;
+  busy.value = true;
+  const previous = form.value.active;
+  form.value.active = !previous;
   try {
-    const argumentsPayload = parseJson(testArguments.value, null);
-    if (argumentsPayload === null) {
-      error.value = t('AI_TOOLS.JSON_INVALID');
-      return;
-    }
-    const response = await aiToolsAPI.test(
-      route.params.toolId,
-      testAgentId.value,
-      argumentsPayload,
-      testConversationId.value || null
-    );
-    testResult.value = response.data;
-  } catch (testError) {
-    error.value =
-      testError.response?.status === 404
-        ? t('AI_TOOLS.TEST_NOT_FOUND')
-        : testError.response?.data?.error || t('AI_TOOLS.TEST_ERROR');
+    const { data } = await aiToolsAPI.update(props.tool.id, {
+      ai_tool: { active: !previous },
+    });
+    workspace.upsert(data);
+    savedTool.value = data;
+  } catch {
+    form.value.active = previous;
+    useAlert(t('AI_TOOLS.SAVE_ERROR'));
   } finally {
     busy.value = false;
   }
 };
 
-const resultBody = result =>
-  result?.body ||
-  result?.response_body ||
-  result?.result ||
-  result?.error ||
-  result;
-const formatResult = result =>
-  typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+const remove = async () => {
+  if (busy.value) return;
+  busy.value = true;
+  actionError.value = '';
+  try {
+    await aiToolsAPI.delete(props.tool.id);
+    removed.value = true;
+    deletion.value.close();
+    await workspace.removeTool(props.tool.id);
+  } catch {
+    actionError.value = t('AI_TOOLS.DELETE_ERROR');
+  } finally {
+    busy.value = false;
+  }
+};
 
-onMounted(load);
+const actionMenuItems = computed(() => [
+  { action: 'delete', icon: 'i-lucide-trash-2', label: t('AI_TOOLS.DELETE') },
+]);
+const handleMenuAction = ({ action }, hide) => {
+  hide();
+  if (action === 'delete') {
+    actionError.value = '';
+    deletion.value.open();
+  }
+};
+
+useUnsavedChangesGuard(isDirty, leaveDialog);
 </script>
 
 <template>
-  <main class="flex flex-col w-full max-w-5xl gap-5 mx-auto pb-8">
+  <div class="flex flex-col w-full">
     <header
-      class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 py-3 -mx-2 px-2 border-b border-n-weak bg-n-solid-1/95 backdrop-blur-sm"
+      class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-n-weak bg-n-surface-1"
     >
-      <div class="min-w-0">
-        <p
-          class="mb-1 text-xs font-medium tracking-wide uppercase text-n-slate-11"
-        >
-          {{ t('AI_TOOLS.TITLE') }}
-        </p>
-        <h1 class="text-xl font-semibold text-n-slate-12">
-          {{ isEdit ? t('AI_TOOLS.EDIT') : t('AI_TOOLS.NEW') }}
-        </h1>
-        <p class="mt-1 text-sm text-n-slate-11">
-          {{ isDirty ? t('AI_TOOLS.UNSAVED') : t('AI_TOOLS.PAGE_HELP') }}
-        </p>
+      <div class="flex items-start min-w-0 gap-2">
+        <Button
+          class="md:hidden"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-arrow-left"
+          :aria-label="t('AI_HUB.BACK_TO_LIST')"
+          @click="workspace.goToList()"
+        />
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 class="text-heading-1 text-n-slate-12 break-words">
+              {{ form.name || tool.name }}
+            </h2>
+            <label
+              :title="t('AI_TOOLS.ACTIVE_HELP')"
+              class="flex items-center gap-2 text-sm text-n-slate-12"
+            >
+              <Switch
+                :model-value="form.active"
+                :disabled="busy"
+                @update:model-value="toggleActive"
+              />
+              {{ form.active ? t('AI_TOOLS.ACTIVE') : t('AI_TOOLS.INACTIVE') }}
+            </label>
+            <CopyIdButton :id="tool.id" />
+          </div>
+          <p class="text-sm text-n-slate-11">
+            {{ t('AI_TOOLS.ASSISTANTS_COUNT', { count: usedBy.length }) }}
+          </p>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <span v-if="isDirty" class="text-xs text-n-amber-11">{{
+          t('AI_TOOLS.UNSAVED')
+        }}</span>
+        <Button
+          variant="ghost"
+          :label="t('AI_HUB.DISCARD')"
+          :disabled="!isDirty || busy"
+          @click="discard"
+        />
         <Button
           variant="faded"
-          :label="t('AI_TOOLS.CANCEL')"
+          icon="i-lucide-play"
+          :label="t('AI_TOOLS.TEST')"
           :disabled="busy"
-          @click="router.push({ name: 'ai_tools_settings' })"
+          @click="testDialog.open()"
         />
         <Button
           :label="t('AI_TOOLS.SAVE')"
-          :disabled="loading || busy || Boolean(validationError)"
           :is-loading="busy"
+          :disabled="!isDirty || busy || Boolean(validationError)"
           @click="save"
         />
+        <Popover align="end">
+          <Button
+            icon="i-lucide-ellipsis-vertical"
+            variant="ghost"
+            size="sm"
+            :disabled="busy"
+            :aria-label="t('AI_TOOLS.MORE')"
+          />
+          <template #content="{ hide }">
+            <DropdownMenu
+              class="!relative w-56 max-w-[calc(100vw-2rem)]"
+              :menu-items="actionMenuItems"
+              @action="handleMenuAction($event, hide)"
+            />
+          </template>
+        </Popover>
       </div>
     </header>
 
-    <p
-      v-if="error"
-      role="alert"
-      class="p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
-    >
-      {{ error }}
-    </p>
-    <p
-      v-if="validationError"
-      role="alert"
-      class="p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
-    >
-      {{ validationError }}
-    </p>
-
-    <nav
-      class="flex gap-1 p-1 overflow-x-auto rounded-xl bg-n-solid-2"
-      :aria-label="t('AI_TOOLS.EDITOR_NAVIGATION')"
-    >
-      <Button
-        v-for="[value, label] in tabs"
-        :key="value"
-        :variant="activeTab === value ? 'faded' : 'ghost'"
-        :label="t(label)"
-        @click="selectTab(value)"
-      />
-    </nav>
-
-    <p v-if="loading" role="status" class="text-sm text-n-slate-11">
-      {{ t('AI_TOOLS.LOADING') }}
-    </p>
-
-    <template v-else>
-      <section
-        v-if="activeTab === 'general'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+    <div class="flex flex-col gap-5 p-6">
+      <p
+        v-if="error"
+        role="alert"
+        class="p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
       >
-        <div>
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ t('AI_TOOLS.BASIC_INFO') }}
-          </h2>
-          <p class="mt-1 text-sm text-n-slate-11">
-            {{ t('AI_TOOLS.BASIC_INFO_HELP') }}
-          </p>
-        </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
-            v-model="form.name"
-            :label="t('AI_TOOLS.NAME')"
-            :placeholder="t('AI_TOOLS.NAME_PLACEHOLDER')"
-            :message="t('AI_TOOLS.NAME_HELP')"
-          />
-          <div
-            class="flex flex-col justify-center gap-2 p-4 rounded-lg bg-n-solid-1"
-          >
-            <span class="text-sm font-medium text-n-slate-12">{{
-              t('AI_TOOLS.STATUS')
-            }}</span>
-            <span class="text-sm text-n-slate-11">{{
-              form.active ? t('AI_TOOLS.ACTIVE') : t('AI_TOOLS.INACTIVE')
-            }}</span>
-          </div>
-        </div>
+        {{ error }}
+      </p>
+      <p
+        v-if="validationError"
+        role="alert"
+        class="p-3 text-sm rounded-lg text-n-ruby-9 bg-n-ruby-2"
+      >
+        {{ validationError }}
+      </p>
+
+      <CollapsibleSection
+        :title="t('AI_TOOLS.BASIC_INFO')"
+        :description="t('AI_TOOLS.BASIC_INFO_HELP')"
+      >
         <Input
-          v-if="isEdit && form.slug"
+          v-model="form.name"
+          :label="t('AI_TOOLS.NAME')"
+          :placeholder="t('AI_TOOLS.NAME_PLACEHOLDER')"
+          :message="t('AI_TOOLS.NAME_HELP')"
+        />
+        <Input
+          v-if="form.slug"
           :model-value="form.slug"
           disabled
           :label="t('AI_TOOLS.SLUG')"
@@ -493,17 +483,6 @@ onMounted(load);
             class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
           >
             <span
-              >{{ t('AI_TOOLS.ACTIVE')
-              }}<small class="block mt-1 text-xs text-n-slate-11">{{
-                t('AI_TOOLS.ACTIVE_HELP')
-              }}</small></span
-            >
-            <Switch v-model="form.active" />
-          </label>
-          <label
-            class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
-          >
-            <span
               >{{ t('AI_TOOLS.PLAYGROUND')
               }}<small class="block mt-1 text-xs text-n-slate-11">{{
                 t('AI_TOOLS.PLAYGROUND_HELP')
@@ -512,21 +491,13 @@ onMounted(load);
             <Switch v-model="form.allow_in_playground" />
           </label>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section
-        v-if="activeTab === 'parameters'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+      <CollapsibleSection
+        :title="t('AI_TOOLS.PARAMETERS_SECTION')"
+        :description="t('AI_TOOLS.PARAMETERS_HELP')"
       >
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 class="text-base font-semibold text-n-slate-12">
-              {{ t('AI_TOOLS.PARAMETERS_SECTION') }}
-            </h2>
-            <p class="mt-1 text-sm text-n-slate-11">
-              {{ t('AI_TOOLS.PARAMETERS_HELP') }}
-            </p>
-          </div>
+        <div class="flex justify-end">
           <div class="flex gap-1 p-1 rounded-lg bg-n-solid-1">
             <Button
               variant="ghost"
@@ -690,25 +661,17 @@ onMounted(load);
             <Button :label="t('AI_TOOLS.APPLY')" @click="applyParameter" />
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section
-        v-if="activeTab === 'request'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+      <CollapsibleSection
+        :title="t('AI_TOOLS.REQUEST')"
+        :description="t('AI_TOOLS.REQUEST_HELP')"
       >
-        <div>
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ t('AI_TOOLS.REQUEST') }}
-          </h2>
-          <p class="mt-1 text-sm text-n-slate-11">
-            {{ t('AI_TOOLS.REQUEST_HELP') }}
-          </p>
-        </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-[10rem_1fr]">
           <ComboBox
             v-model="form.configuration.method"
             :label="t('AI_TOOLS.METHOD')"
-            :options="methodOptions"
+            :options="METHOD_OPTIONS"
           />
           <Input
             v-model="form.configuration.url"
@@ -786,125 +749,62 @@ onMounted(load);
             {{ t('AI_TOOLS.RESPONSE_CONTRACT_NOTE') }}
           </p>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section
-        v-if="activeTab === 'test'"
-        class="flex flex-col gap-5 p-5 rounded-xl bg-n-solid-2"
+      <CollapsibleSection
+        :title="t('AI_TOOLS.USAGE_SECTION')"
+        :description="t('AI_TOOLS.USAGE_HELP')"
       >
-        <div>
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ t('AI_TOOLS.TEST') }}
-          </h2>
-          <p class="mt-1 text-sm text-n-slate-11">
-            {{ t('AI_TOOLS.TEST_HELP') }}
-          </p>
-        </div>
-        <div
-          v-if="!isEdit"
-          class="p-4 text-sm rounded-lg text-n-slate-11 bg-n-solid-1"
-        >
-          {{ t('AI_TOOLS.TEST_SAVE_FIRST') }}
-        </div>
-        <template v-else>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <ComboBox
-              v-model="testAgentId"
-              :label="t('AI_TOOLS.TEST_AGENT')"
-              :options="agentOptions"
-              :disabled="busy || !agentOptions.length"
-            />
-            <Input
-              v-if="hasContextParameters"
-              v-model="testConversationId"
-              :label="t('AI_TOOLS.TEST_CONVERSATION_ID')"
-              :message="t('AI_TOOLS.TEST_CONVERSATION_HELP')"
-              type="number"
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <TextArea
-              v-model="testArguments"
-              :label="t('AI_TOOLS.TEST_ARGUMENTS')"
-              auto-height
-            />
-            <p class="m-0 text-xs text-n-amber-11">
-              {{ t('AI_TOOLS.REAL_REQUEST_WARNING') }}
-            </p>
-          </div>
-          <Button
-            class="self-start"
-            :label="busy ? t('AI_TOOLS.TEST_LOADING') : t('AI_TOOLS.RUN_TEST')"
-            :disabled="busy || !testAgentId"
-            :is-loading="busy"
-            @click="runTest"
-          />
-          <div
-            v-if="testResult"
-            class="flex flex-col gap-4 p-4 rounded-lg bg-n-solid-1"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h3 class="font-medium text-n-slate-12">
-                {{ t('AI_TOOLS.TEST_RESULT') }}
-              </h3>
-              <span class="text-sm text-n-slate-11">{{
-                testResult.duration_ms
-                  ? t('AI_TOOLS.TEST_DURATION', {
-                      duration: testResult.duration_ms,
-                    })
-                  : ''
-              }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-              <div>
-                <p class="m-0 text-xs text-n-slate-11">
-                  {{ t('AI_TOOLS.HTTP_CHECK') }}
-                </p>
-                <strong>{{ testResult.status || '—' }}</strong>
-              </div>
-              <div>
-                <p class="m-0 text-xs text-n-slate-11">
-                  {{ t('AI_TOOLS.JSON_CHECK') }}
-                </p>
-                <strong>{{
-                  testResult.response_contract_valid
-                    ? t('AI_TOOLS.VALID')
-                    : t('AI_TOOLS.INVALID')
-                }}</strong>
-              </div>
-              <div>
-                <p class="m-0 text-xs text-n-slate-11">
-                  {{ t('AI_TOOLS.SUCCESS_CHECK') }}
-                </p>
-                <strong>{{
-                  testResult.success === true
-                    ? t('AI_TOOLS.VALID')
-                    : t('AI_TOOLS.INVALID')
-                }}</strong>
-              </div>
-              <div>
-                <p class="m-0 text-xs text-n-slate-11">
-                  {{ t('AI_TOOLS.RESULT_CHECK') }}
-                </p>
-                <strong>{{
-                  testResult.result
-                    ? t('AI_TOOLS.PRESENT')
-                    : t('AI_TOOLS.MISSING')
-                }}</strong>
-              </div>
-            </div>
-            <div>
-              <p class="mb-1 text-xs text-n-slate-11">
-                {{ t('AI_TOOLS.TEST_BODY') }}
-              </p>
-              <pre
-                class="p-3 overflow-x-auto text-xs whitespace-pre-wrap rounded-lg bg-n-solid-2 text-n-slate-12"
-                >{{ formatResult(resultBody(testResult)) }}</pre
-              >
-            </div>
-          </div>
-        </template>
-      </section>
-    </template>
-  </main>
+        <p v-if="!usedBy.length" class="text-sm text-n-slate-11">
+          {{ t('AI_TOOLS.NO_ASSISTANTS') }}
+        </p>
+        <ul v-else class="flex flex-wrap gap-2 p-0 m-0 list-none">
+          <li v-for="agent in usedBy" :key="agent.id">
+            <RouterLink
+              :to="{
+                name: 'ai_agent_detail',
+                params: { agentId: agent.id },
+                query: { type: 'text' },
+              }"
+              class="inline-flex px-3 py-1 text-sm rounded-full bg-n-alpha-2 text-n-slate-12 hover:bg-n-alpha-3"
+            >
+              {{ agent.name }}
+            </RouterLink>
+          </li>
+        </ul>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        :title="t('AI_TOOLS.LOGS_TAB')"
+        :description="t('AI_TOOLS.LOGS_SECTION_HELP')"
+        :default-open="false"
+        lazy
+      >
+        <Logs :tool-id="tool.id" />
+      </CollapsibleSection>
+    </div>
+    <UnsavedChangesDialog ref="leaveDialog" />
+    <ToolTestDialog
+      ref="testDialog"
+      :tool-id="tool.id"
+      :agents="workspace.agents.value"
+      :has-context-parameters="hasContextParameters"
+      :unsaved="isDirty"
+    />
+    <Dialog
+      ref="deletion"
+      type="alert"
+      :title="t('AI_TOOLS.DELETE')"
+      :description="t('AI_TOOLS.DELETE_CONFIRM', { name: tool.name })"
+      :is-loading="busy"
+      :disable-confirm-button="busy"
+      :confirm-button-label="t('AI_TOOLS.DELETE')"
+      :cancel-button-label="t('AI_TOOLS.CANCEL')"
+      @confirm="remove"
+    >
+      <p v-if="actionError" role="alert" class="text-sm text-n-ruby-9">
+        {{ actionError }}
+      </p>
+    </Dialog>
+  </div>
 </template>

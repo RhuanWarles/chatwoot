@@ -18,6 +18,11 @@
       "CONNECTIONS": "Conexões"
     },
     "NEW": "Novo assistente",
+    "CREATE": "Criar assistente",
+    "CREATE_CONFIRM": "Criar",
+    "CREATE_HELP": "Comece com um nome e as instruções. O restante você ajusta depois de criar.",
+    "SAVED": "Assistente salvo.",
+    "LIST_LABEL": "Assistentes",
     "TEST": "Testar assistente",
     "SEARCH": "Buscar assistentes",
     "MORE_ACTIONS": "Mais ações",
@@ -209,6 +214,16 @@
     ,"TITLE": "Ferramentas"
     ,"SUBTITLE": "Gerencie as ferramentas HTTP disponíveis para seus assistentes de texto."
     ,"NEW": "Nova ferramenta"
+    ,"CREATE": "Criar ferramenta"
+    ,"CREATE_CONFIRM": "Criar"
+    ,"CREATE_HELP": "Comece pelo básico. Parâmetros, cabeçalhos e testes ficam disponíveis depois de criar a ferramenta."
+    ,"SAVED": "Ferramenta salva."
+    ,"LIST_LABEL": "Ferramentas"
+    ,"USAGE_SECTION": "Assistentes que usam esta ferramenta"
+    ,"USAGE_HELP": "Assistentes que têm esta ferramenta ativada."
+    ,"NO_ASSISTANTS": "Nenhum assistente usa esta ferramenta ainda."
+    ,"LOGS_SECTION_HELP": "Execuções recentes desta ferramenta."
+    ,"TEST_UNSAVED_NOTE": "O teste roda a versão salva da ferramenta. Salve as alterações antes para incluí-las."
     ,"EDIT": "Editar ferramenta"
     ,"SAVE": "Salvar"
     ,"CANCEL": "Cancelar"
@@ -374,6 +389,19 @@
     "VOICE": "Voz",
     "NEW_TEXT": "Novo assistente",
     "NEW_VOICE": "Novo assistente de voz",
+    "CREATE_VOICE": "Criar assistente de voz",
+    "LOADING": "Carregando...",
+    "TYPE_LABEL": "Tipo de assistente",
+    "ID": "ID",
+    "COPY_ID": "Copiar ID",
+    "ID_COPIED": "ID copiado.",
+    "ID_COPY_ERROR": "Não foi possível copiar o ID.",
+    "BACK_TO_LIST": "Voltar para a lista",
+    "DISCARD": "Descartar",
+    "UNSAVED_TITLE": "Descartar alterações não salvas?",
+    "UNSAVED_CONFIRM": "Você tem alterações que não foram salvas. Se sair agora, elas serão perdidas.",
+    "UNSAVED_LEAVE": "Descartar e sair",
+    "UNSAVED_STAY": "Continuar editando",
     "USAGE": "Uso de IA",
     "VOICE_CONFIG_ONLY": "Configuração apenas. Ativar um assistente de voz ainda não inicia nem atende chamadas.",
     "VOICE_EMPTY": "Nenhum assistente de voz encontrado.",

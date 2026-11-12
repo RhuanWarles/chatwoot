@@ -8,8 +8,17 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 import ToolExecutionDetailsDialog from 'dashboard/components-next/ai-tools/ToolExecutionDetailsDialog.vue';
 
+const props = defineProps({
+  // When set, only this tool's executions are listed and the page header and tool filter are hidden.
+  toolId: {
+    type: [String, Number],
+    default: null,
+  },
+});
+
 const { t } = useI18n();
 const router = useRouter();
+const embedded = computed(() => props.toolId !== null);
 const executions = ref([]);
 const agents = ref([]);
 const tools = ref([]);
@@ -20,7 +29,7 @@ const page = ref(1);
 const total = ref(0);
 const filters = ref({
   ai_agent_id: '',
-  ai_tool_id: '',
+  ai_tool_id: props.toolId ?? '',
   status: '',
   source: '',
   period: '7d',
@@ -63,7 +72,7 @@ const load = async () => {
       agents.value.length
         ? Promise.resolve({ data: { agents: agents.value } })
         : aiAgentsAPI.get(),
-      tools.value.length
+      embedded.value || tools.value.length
         ? Promise.resolve({ data: { tools: tools.value } })
         : aiToolsAPI.get(),
     ]);
@@ -96,8 +105,14 @@ onMounted(load);
 </script>
 
 <template>
-  <main class="flex flex-col w-full min-w-0 gap-6">
-    <header class="flex flex-wrap items-center justify-between gap-4">
+  <main
+    class="flex flex-col w-full min-w-0 gap-6"
+    :class="{ 'p-6': !embedded }"
+  >
+    <header
+      v-if="!embedded"
+      class="flex flex-wrap items-center justify-between gap-4"
+    >
       <div>
         <h1 class="text-xl font-semibold text-n-slate-12">
           {{ t('AI_TOOLS.LOGS_TITLE') }}
@@ -125,7 +140,7 @@ onMounted(load);
           </option>
         </select>
       </div>
-      <div class="flex flex-col gap-1 text-sm text-n-slate-12">
+      <div v-if="!embedded" class="flex flex-col gap-1 text-sm text-n-slate-12">
         <p class="mb-0">{{ t('AI_TOOLS.LOGS_TOOL') }}</p>
         <select
           v-model="filters.ai_tool_id"
@@ -210,7 +225,7 @@ onMounted(load);
           <tr class="text-left text-n-slate-11 border-b border-n-weak">
             <th class="p-3">{{ t('AI_TOOLS.LOGS_DATE') }}</th>
             <th class="p-3">{{ t('AI_TOOLS.LOGS_AGENT') }}</th>
-            <th class="p-3">{{ t('AI_TOOLS.LOGS_TOOL') }}</th>
+            <th v-if="!embedded" class="p-3">{{ t('AI_TOOLS.LOGS_TOOL') }}</th>
             <th class="p-3">{{ t('AI_TOOLS.LOGS_STATUS') }}</th>
             <th class="p-3">{{ t('AI_TOOLS.LOGS_HTTP') }}</th>
             <th class="p-3">{{ t('AI_TOOLS.LOGS_DURATION') }}</th>
@@ -229,7 +244,7 @@ onMounted(load);
               {{ formatDate(item.created_at) }}
             </td>
             <td class="p-3">{{ item.agent.name }}</td>
-            <td class="p-3">{{ item.tool.name }}</td>
+            <td v-if="!embedded" class="p-3">{{ item.tool.name }}</td>
             <td class="p-3">
               <div
                 :class="

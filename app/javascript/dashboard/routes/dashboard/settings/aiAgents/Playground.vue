@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import aiAgentsAPI from 'dashboard/api/aiAgents';
@@ -18,6 +18,15 @@ const loading = ref(true);
 const sending = ref(false);
 const error = ref(null);
 const messagesRef = ref(null);
+const promptRef = ref(null);
+
+// The field is disabled while a message is sent, which takes the focus away from it: give it back
+// when it is enabled again so the next message can be typed right away.
+watch(sending, async isSending => {
+  if (isSending) return;
+  await nextTick();
+  promptRef.value?.$el?.querySelector('textarea')?.focus();
+});
 const hasLiveTools = computed(
   () =>
     agent.value?.tools?.some(
@@ -145,7 +154,11 @@ onMounted(load);
     >
       <div class="flex items-start min-w-0 gap-3">
         <RouterLink
-          :to="{ name: 'ai_agents_settings', query: { type: 'text' } }"
+          :to="{
+            name: 'ai_agent_detail',
+            params: { agentId: route.params.agentId },
+            query: { type: 'text' },
+          }"
           class="mt-1 text-sm text-n-blue-11 hover:underline"
         >
           {{ t('AI_PLAYGROUND.BACK') }}
@@ -319,6 +332,7 @@ onMounted(load);
       @submit.prevent="send"
     >
       <TextArea
+        ref="promptRef"
         v-model="prompt"
         class="flex-1"
         :placeholder="t('AI_PLAYGROUND.PLACEHOLDER')"
