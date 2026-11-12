@@ -202,4 +202,50 @@ RSpec.describe 'AI analytics API', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body.dig('summary', 'messages')).to eq(0)
   end
+
+  describe 'days of the account' do
+    # 01:30 UTC of the 12th is 22:30 of the 11th in São Paulo.
+    around { |example| travel_to(Time.utc(2026, 11, 12, 1, 30)) { example.run } }
+
+    def late_reply
+      Message.create!(account: account, inbox: inbox, conversation: conversation, message_type: :outgoing, content: 'Late',
+                      created_at: Time.utc(2026, 11, 12, 1, 0),
+                      content_attributes: { generated_by_ai: true, ai_agent_id: agent.id, ai_response_batch_id: 'late' })
+    end
+
+    it 'puts a late-night reply on the day the account lived it, once the account has a reporting time zone' do
+      account.update!(reporting_timezone: 'America/Sao_Paulo')
+      late_reply
+
+      get "/api/v1/accounts/#{account.id}/ai_analytics", params: { period: '7d' }, headers: headers
+
+      data = response.parsed_body
+      expect(data.dig('filters', 'timezone')).to eq('America/Sao_Paulo')
+      expect(data['timeseries'].find { |day| day['messages'] == 1 }['date']).to eq('2026-11-11')
+    end
+
+    it 'keeps using UTC days when the account has no reporting time zone' do
+      late_reply
+
+      get "/api/v1/accounts/#{account.id}/ai_analytics", params: { period: '7d' }, headers: headers
+
+      expect(response.parsed_body['timeseries'].find { |day| day['messages'] == 1 }['date']).to eq('2026-11-12')
+    end
+
+    it 'takes a custom period as whole days of the account' do
+      account.update!(reporting_timezone: 'America/Sao_Paulo')
+      late_reply
+
+      get "/api/v1/accounts/#{account.id}/ai_analytics", params: { start_date: '2026-11-11', end_date: '2026-11-11' }, headers: headers
+
+      expect(response.parsed_body.dig('summary', 'messages')).to eq(1)
+    end
+
+    it 'refuses a custom day that is not a day' do
+      get "/api/v1/accounts/#{account.id}/ai_analytics", params: { start_date: 'ontem' }, headers: headers
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('invalid_period')
+    end
+  end
 end
