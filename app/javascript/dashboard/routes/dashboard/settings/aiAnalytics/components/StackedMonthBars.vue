@@ -50,7 +50,7 @@ const describe = column =>
 <template>
   <div class="overflow-x-auto overflow-y-hidden pb-1" data-test="month-scroll">
     <ul
-      class="m-0 flex list-none items-end gap-1.5 p-0 sm:gap-3"
+      class="m-0 flex list-none items-end gap-0.5 p-0 sm:gap-3"
       :aria-label="t('CRM.RESPONDER_REPORT.TITLE')"
     >
       <li
