@@ -236,7 +236,7 @@
         "SENT_ON": "Enviada em {date}",
         "PAGE_INFO": "Exibindo {startItem} - {endItem} de {totalItems} contatos",
         "BREADCRUMB": {
-          "CAMPAIGNS": "Campanhas",
+          "CAMPAIGNS": "Disparos",
           "WHATSAPP": "WhatsApp"
         },
         "FILTERS": {
