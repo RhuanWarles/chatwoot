@@ -54,4 +54,19 @@ RSpec.describe 'AI analytics replies API', type: :request do
 
     expect(response).not_to have_http_status(:ok)
   end
+
+  it 'groups the months by the time zone of the account' do
+    account.update!(reporting_timezone: 'America/Sao_Paulo')
+    travel_to(Time.utc(2026, 12, 3, 12)) do
+      # 01:30 UTC of December 1st is 22:30 of November 30th in São Paulo.
+      create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :outgoing,
+                       created_at: Time.utc(2026, 12, 1, 1, 30), content_attributes: { generated_by_ai: true })
+
+      get url, params: { months: 2 }, headers: admin.create_new_auth_token
+    end
+
+    months = response.parsed_body['months'].index_by { |row| row['month'] }
+    expect(months['2026-11']['ai_replies']).to eq(1)
+    expect(months['2026-12']['ai_replies']).to eq(0)
+  end
 end

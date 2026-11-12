@@ -1,8 +1,10 @@
 # Who answered the customers: the humans who sent public replies and the AI. A person who owns a deal is not
 # necessarily the one who answers its conversations, so this is a different question from the deal owner.
 module Crm::Responders
-  AI_CONDITION = "(messages.content_attributes #>> '{}')::json ->> 'generated_by_ai' = 'true' " \
-                 "OR messages.sender_type IN ('AgentBot', 'Captain::Assistant', 'Saas::AiAgent')".freeze
+  # A message from a person has no "generated_by_ai" key at all. Without the COALESCEs the condition is NULL for it (not
+  # false), and NOT (NULL) is NULL too, so no person's reply would ever match "by humans" and every reply would look AI.
+  AI_CONDITION = "COALESCE((messages.content_attributes #>> '{}')::json ->> 'generated_by_ai', '') = 'true' " \
+                 "OR COALESCE(messages.sender_type, '') IN ('AgentBot', 'Captain::Assistant', 'Saas::AiAgent')".freeze
 
   # Public replies written for the customer, from any conversation of the account.
   def self.replies(account)

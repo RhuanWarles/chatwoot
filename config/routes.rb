@@ -65,6 +65,7 @@ Rails.application.routes.draw do
           resources :ai_tools, only: [:index, :show, :create, :update, :destroy], controller: 'ai_tools' do
             post :test, on: :member
           end
+          get 'general_dashboard', to: 'general_dashboard#show'
           get 'ai_analytics', to: 'ai_analytics#show'
           get 'ai_analytics/replies', to: 'ai_analytics#replies'
           resources :ai_tool_executions, only: [:index, :show], controller: 'ai_tool_executions'

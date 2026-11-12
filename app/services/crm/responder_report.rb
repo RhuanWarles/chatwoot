@@ -8,7 +8,6 @@ class Crm::ResponderReport
   AI = 'ai'.freeze
   AI_SQL = "(#{Crm::Responders::AI_CONDITION})".freeze
   HUMAN_SQL = "(messages.sender_type = 'User' AND NOT #{AI_SQL})".freeze
-  MONTH_SQL = "to_char(messages.created_at, 'YYYY-MM')".freeze
 
   def initialize(account, params)
     @account = account
@@ -16,9 +15,17 @@ class Crm::ResponderReport
     @owner_ids = list_param(params[:owner_ids], :owner_ids)
     @segment_ids = list_param(params[:segment_ids], :segment_ids)
     @answered_by = list_param(params[:answered_by], :answered_by, extra: [AI])
+    @zone = AnalyticsPeriod.zone_for(account)
   end
 
+  # Months are the account's months (the time zone of its reports), like the days of the analytics screens.
   def perform
+    Time.use_zone(@zone) { build }
+  end
+
+  private
+
+  def build
     months = monthly_rows
     {
       filters: { months: @months, owner_ids: @owner_ids, segment_ids: @segment_ids, answered_by: @answered_by },
@@ -29,7 +36,10 @@ class Crm::ResponderReport
     }
   end
 
-  private
+  def month_sql
+    zone = ActiveRecord::Base.connection.quote(@zone.tzinfo.name)
+    "to_char((messages.created_at AT TIME ZONE 'UTC') AT TIME ZONE #{zone}, 'YYYY-MM')"
+  end
 
   def months_param(value)
     return DEFAULT_MONTHS if value.blank?
@@ -95,7 +105,7 @@ class Crm::ResponderReport
   end
 
   def counts
-    replies.reorder(nil).group(Arel.sql(MONTH_SQL), :conversation_id, Arel.sql(AI_SQL), Arel.sql(HUMAN_SQL)).count
+    replies.reorder(nil).group(Arel.sql(month_sql), :conversation_id, Arel.sql(AI_SQL), Arel.sql(HUMAN_SQL)).count
   end
 
   def monthly_rows
