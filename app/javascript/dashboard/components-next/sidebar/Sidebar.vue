@@ -968,8 +968,9 @@ const menuItems = computed(() => {
   ];
 });
 
-// The reports tab is hidden: the dashboard is the way in, and each of its blocks links to the full report.
-const HIDDEN_MENU_TABS = ['Reports'];
+// Tabs this installation does not show: the reports (the dashboard is the way in, and each of its blocks links to the
+// full report), the calls and the help center. Their screens still exist and open by their address.
+const HIDDEN_MENU_TABS = ['Reports', 'Calls', 'Portals'];
 const PINNED_MENU_TAB = 'Dashboard';
 
 const reorderableMenuItems = computed(() =>
