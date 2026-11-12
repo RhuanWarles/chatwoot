@@ -380,16 +380,6 @@ const menuItems = computed(() => {
       activeOn: ['general_dashboard'],
     },
     {
-      name: 'Inbox',
-      label: t('SIDEBAR.INBOX'),
-      icon: 'i-lucide-inbox',
-      to: accountScopedRoute('inbox_view'),
-      activeOn: ['inbox_view', 'inbox_view_conversation'],
-      getterKeys: {
-        count: 'notifications/getUnreadCount',
-      },
-    },
-    {
       name: 'Conversation',
       label: t('SIDEBAR.CONVERSATIONS'),
       icon: 'i-lucide-message-circle',
@@ -658,7 +648,7 @@ const menuItems = computed(() => {
     {
       name: 'Automation',
       label: t('SIDEBAR.AUTOMATION'),
-      icon: 'i-lucide-kanban-square',
+      icon: 'i-lucide-workflow',
       to: accountScopedRoute('automation_list'),
       activeOn: [
         'automation_list',

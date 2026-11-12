@@ -51,7 +51,7 @@ const onTabClick = event => {
     class="my-0 hover:text-n-slate-12"
     :class="
       pill
-        ? 'flex-auto min-w-0 mx-0'
+        ? 'flex-auto shrink-0 mx-0'
         : 'flex-shrink-0 mx-2 ltr:first:ml-0 rtl:first:mr-0 ltr:last:mr-0 rtl:last:ml-0'
     "
   >
@@ -59,7 +59,7 @@ const onTabClick = event => {
       class="flex items-center flex-row select-none cursor-pointer relative"
       :class="[
         pill
-          ? 'justify-center gap-1 min-w-0 px-1 py-1.5 rounded-lg whitespace-nowrap text-[0.8125rem] font-medium leading-5 transition-all duration-200'
+          ? 'justify-center gap-1 px-1 py-1.5 rounded-lg whitespace-nowrap text-[0.8125rem] font-medium leading-5 transition-all duration-200'
           : 'text-button after:absolute after:bottom-px after:left-0 after:right-0 after:h-[2px] after:rounded-full after:transition-all after:duration-200',
         pill && active
           ? 'bg-n-surface-1 dark:bg-n-solid-3 text-n-slate-12 shadow-sm outline outline-1 outline-n-weak'
@@ -76,7 +76,7 @@ const onTabClick = event => {
       ]"
       @click="onTabClick"
     >
-      <span :class="pill ? 'truncate' : ''">{{ name }}</span>
+      <span>{{ name }}</span>
       <div
         v-if="showBadge && (!pill || getItemCount > 0)"
         class="rounded-full flex shrink-0 items-center justify-center font-medium my-0 py-0"

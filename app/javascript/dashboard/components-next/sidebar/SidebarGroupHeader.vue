@@ -17,6 +17,9 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle']);
 
+// The items are shown while the group is expanded or the open screen is one of them.
+const isOpen = computed(() => props.isExpanded || props.hasActiveChild);
+
 const router = useRouter();
 const showBadge = useMapGetter(props.getterKeys.badge);
 const dynamicCount = useMapGetter(props.getterKeys.count);
@@ -40,6 +43,7 @@ const onClick = event => {
     :is="to ? 'a' : 'div'"
     class="flex items-center gap-2 px-1.5 py-1 rounded-lg h-8 min-w-0 transition-all duration-200"
     role="button"
+    :aria-expanded="expandable ? isOpen : undefined"
     draggable="false"
     :href="href"
     :title="label"
@@ -77,10 +81,14 @@ const onClick = event => {
         {{ count }}
       </span>
     </div>
+    <!-- Every group that holds items shows it, so a tab with something inside is told apart from a plain link.
+         It points down when closed and turns up when open. -->
     <span
       v-if="expandable"
-      v-show="isExpanded"
-      class="i-lucide-chevron-up size-3"
+      class="i-lucide-chevron-down size-3.5 flex-shrink-0 transition-transform duration-200"
+      :class="isOpen ? 'rotate-180' : ''"
+      data-test="group-chevron"
+      aria-hidden="true"
       @click.stop.prevent="emit('toggle')"
     />
   </component>
