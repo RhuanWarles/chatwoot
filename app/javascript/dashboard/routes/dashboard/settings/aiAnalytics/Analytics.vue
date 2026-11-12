@@ -269,196 +269,213 @@ onMounted(load);
 </script>
 
 <template>
+  <!-- The scroller is the whole area (so its scrollbar sits at the edge of the window). It is `relative` so nothing
+       absolutely positioned inside, like the hidden table caption, can reach out and make the page itself scroll. -->
   <main
-    class="analytics-root mx-auto flex h-full min-h-0 w-full max-w-[1280px] min-w-0 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-8 text-n-slate-12 sm:px-6"
+    class="analytics-root relative h-full min-h-0 w-full overflow-y-auto overscroll-contain text-n-slate-12"
   >
-    <header
-      class="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-4"
-    >
-      <div class="min-w-0">
-        <h1 class="m-0 text-xl font-semibold tracking-tight">
-          {{ key('TITLE') }}
-        </h1>
-        <p class="m-0 mt-1 text-sm text-n-slate-11">{{ key('SUBTITLE') }}</p>
-      </div>
-      <div class="flex flex-wrap items-end gap-3" data-test="filters">
-        <label class="min-w-0 text-xs font-medium text-n-slate-11">
-          {{ key('PERIOD') }}
-          <Select
-            v-model="filters.period"
-            :options="periodOptions"
-            :aria-label="key('PERIOD')"
-            class="mt-1 [&_select]:min-h-11"
-            data-test="period-select"
-            @update:model-value="load"
-          />
-          <span
-            v-if="interval"
-            class="mt-1 block text-xs tabular-nums text-n-slate-11"
-            data-test="period-interval"
-            >{{ periodCaption }}</span
-          >
-        </label>
-        <label class="min-w-0 text-xs font-medium text-n-slate-11">
-          {{ key('AGENT') }}
-          <Select
-            v-model="filters.ai_agent_id"
-            :options="agentOptions"
-            :aria-label="key('AGENT')"
-            class="mt-1 [&_select]:min-h-11"
-            @update:model-value="load"
-          />
-        </label>
-        <label class="min-w-0 text-xs font-medium text-n-slate-11">
-          {{ key('INBOX') }}
-          <Select
-            v-model="filters.inbox_id"
-            :options="inboxOptions"
-            :aria-label="key('INBOX')"
-            class="mt-1 [&_select]:min-h-11"
-            @update:model-value="load"
-          />
-        </label>
-        <div class="flex flex-col items-start gap-1">
-          <button
-            type="button"
-            class="flex min-h-11 items-center gap-2 rounded-lg border border-n-weak px-4 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="!data || loading"
-            data-test="export-csv"
-            @click="exportCsv"
-          >
-            <span class="i-lucide-download size-4" aria-hidden="true" />
-            {{ key('EXPORT_CSV') }}
-          </button>
-          <span
-            v-if="updatedText"
-            class="text-xs tabular-nums text-n-slate-11"
-            data-test="updated-at"
-            >{{ updatedText }}</span
-          >
-        </div>
-      </div>
-    </header>
-
     <div
-      v-if="filters.period === 'custom'"
-      class="flex shrink-0 flex-wrap items-end gap-3"
-      data-test="custom-range"
+      class="mx-auto flex w-full min-w-0 max-w-[120rem] flex-col gap-4 px-4 pb-8 sm:px-6"
     >
-      <label class="text-xs text-n-slate-11"
-        >{{ key('START')
-        }}<input
-          v-model="start"
-          type="date"
-          :max="end || undefined"
-          class="!mb-0 mt-1 min-h-11 !w-auto"
-      /></label>
-      <label class="text-xs text-n-slate-11"
-        >{{ key('END')
-        }}<input
-          v-model="end"
-          type="date"
-          :min="start || undefined"
-          class="!mb-0 mt-1 min-h-11 !w-auto"
-      /></label>
-      <button
-        type="button"
-        class="min-h-11 rounded-lg bg-n-blue-9 px-4 text-sm text-white disabled:opacity-50"
-        :disabled="!start || !end || start > end"
-        @click="load"
+      <header
+        class="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-4"
       >
-        {{ key('APPLY') }}
-      </button>
-    </div>
+        <div class="min-w-0">
+          <h1 class="m-0 text-xl font-semibold tracking-tight">
+            {{ key('TITLE') }}
+          </h1>
+          <p class="m-0 mt-1 text-sm text-n-slate-11">{{ key('SUBTITLE') }}</p>
+        </div>
+        <div class="flex flex-wrap items-end gap-3" data-test="filters">
+          <label class="min-w-0 text-xs font-medium text-n-slate-11">
+            {{ key('PERIOD') }}
+            <Select
+              v-model="filters.period"
+              :options="periodOptions"
+              :aria-label="key('PERIOD')"
+              class="mt-1 [&_select]:min-h-11"
+              data-test="period-select"
+              @update:model-value="load"
+            />
+            <span
+              v-if="interval"
+              class="mt-1 block text-xs tabular-nums text-n-slate-11"
+              data-test="period-interval"
+              >{{ periodCaption }}</span
+            >
+          </label>
+          <label class="min-w-0 text-xs font-medium text-n-slate-11">
+            {{ key('AGENT') }}
+            <Select
+              v-model="filters.ai_agent_id"
+              :options="agentOptions"
+              :aria-label="key('AGENT')"
+              class="mt-1 [&_select]:min-h-11"
+              @update:model-value="load"
+            />
+          </label>
+          <label class="min-w-0 text-xs font-medium text-n-slate-11">
+            {{ key('INBOX') }}
+            <Select
+              v-model="filters.inbox_id"
+              :options="inboxOptions"
+              :aria-label="key('INBOX')"
+              class="mt-1 [&_select]:min-h-11"
+              @update:model-value="load"
+            />
+          </label>
+          <div class="flex flex-col items-start gap-1">
+            <button
+              type="button"
+              class="flex min-h-11 items-center gap-2 rounded-lg border border-n-weak px-4 text-sm font-medium text-n-slate-12 outline-none hover:bg-n-alpha-2 focus-visible:ring-2 focus-visible:ring-n-brand disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="!data || loading"
+              data-test="export-csv"
+              @click="exportCsv"
+            >
+              <span class="i-lucide-download size-4" aria-hidden="true" />
+              {{ key('EXPORT_CSV') }}
+            </button>
+            <span
+              v-if="updatedText"
+              class="text-xs tabular-nums text-n-slate-11"
+              data-test="updated-at"
+              >{{ updatedText }}</span
+            >
+          </div>
+        </div>
+      </header>
 
-    <section
-      class="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      :aria-label="key('TITLE')"
-      data-test="kpis"
-    >
-      <KpiCard
-        v-for="kpi in kpis"
-        :key="kpi.key"
-        :label="kpi.label"
-        :info="kpi.info"
-        :color="kpi.color"
-        :value="kpi.value"
-        :context="kpi.context"
-        :spark="kpi.spark"
-        :bar="kpi.bar"
-        :loading="loading"
-        :data-test="`kpi-${kpi.key}`"
-      />
-    </section>
-
-    <div class="flex flex-wrap gap-4">
-      <AnalyticsCard
-        class="min-w-0 flex-[2_1_30rem]"
-        :title="key('TIMESERIES')"
-        :info="key('TIMESERIES_INFO')"
-        :period="periodCaption"
-        :loading="loading"
-        :error="failed"
-        :empty="!hasActivity"
-        :empty-text="key('EMPTY')"
-        data-test="activity-card"
-        @retry="load"
+      <div
+        v-if="filters.period === 'custom'"
+        class="flex shrink-0 flex-wrap items-end gap-3"
+        data-test="custom-range"
       >
-        <ActivityChart
-          :points="days"
-          :series="activitySeries"
-          :totals="{
-            messages: summary?.messages,
-            turns: summary?.turns,
-            conversations: summary?.conversations,
-          }"
-          :tokens-label="key('TOKENS')"
-          :aria-label="key('TIMESERIES_ARIA')"
-          :scroll-label="key('TIMESERIES_SCROLL')"
-          :locale="locale"
+        <label class="text-xs text-n-slate-11"
+          >{{ key('START')
+          }}<input
+            v-model="start"
+            type="date"
+            :max="end || undefined"
+            class="!mb-0 mt-1 min-h-11 !w-auto"
+        /></label>
+        <label class="text-xs text-n-slate-11"
+          >{{ key('END')
+          }}<input
+            v-model="end"
+            type="date"
+            :min="start || undefined"
+            class="!mb-0 mt-1 min-h-11 !w-auto"
+        /></label>
+        <button
+          type="button"
+          class="min-h-11 rounded-lg bg-n-blue-9 px-4 text-sm text-white disabled:opacity-50"
+          :disabled="!start || !end || start > end"
+          @click="load"
+        >
+          {{ key('APPLY') }}
+        </button>
+      </div>
+
+      <section
+        class="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        :aria-label="key('TITLE')"
+        data-test="kpis"
+      >
+        <KpiCard
+          v-for="kpi in kpis"
+          :key="kpi.key"
+          :label="kpi.label"
+          :info="kpi.info"
+          :color="kpi.color"
+          :value="kpi.value"
+          :context="kpi.context"
+          :spark="kpi.spark"
+          :bar="kpi.bar"
+          :loading="loading"
+          :data-test="`kpi-${kpi.key}`"
         />
-      </AnalyticsCard>
-      <OutcomeCard
-        class="min-w-0 flex-[1_1_18rem]"
-        :summary="summary"
-        :timeseries="days"
-        :period="periodCaption"
-        :locale="locale"
-        :loading="loading"
-        :error="failed"
-        @retry="load"
-      />
-    </div>
+      </section>
 
-    <div class="flex flex-wrap gap-4">
-      <TokensCard
-        class="min-w-0 flex-[3_1_30rem]"
+      <div class="flex flex-wrap gap-4">
+        <AnalyticsCard
+          class="min-w-0 flex-[2_1_30rem]"
+          :title="key('TIMESERIES')"
+          :info="key('TIMESERIES_INFO')"
+          :period="periodCaption"
+          :loading="loading"
+          :error="failed"
+          :empty="!hasActivity"
+          :empty-text="key('EMPTY')"
+          data-test="activity-card"
+          @retry="load"
+        >
+          <ActivityChart
+            :points="days"
+            :series="activitySeries"
+            :totals="{
+              messages: summary?.messages,
+              turns: summary?.turns,
+              conversations: summary?.conversations,
+            }"
+            :tokens-label="key('TOKENS')"
+            :aria-label="key('TIMESERIES_ARIA')"
+            :scroll-label="key('TIMESERIES_SCROLL')"
+            :locale="locale"
+          />
+        </AnalyticsCard>
+        <OutcomeCard
+          class="min-w-0 flex-[1_1_18rem]"
+          :summary="summary"
+          :timeseries="days"
+          :period="periodCaption"
+          :locale="locale"
+          :loading="loading"
+          :error="failed"
+          @retry="load"
+        />
+      </div>
+
+      <div class="flex flex-wrap gap-4">
+        <TokensCard
+          class="min-w-0 flex-[3_1_30rem]"
+          :billing="billing"
+          :summary="summary"
+          :timeseries="days"
+          :period="periodCaption"
+          :locale="locale"
+          :loading="loading"
+          :error="failed"
+          @retry="load"
+        />
+        <ResponderComparison class="min-w-0 flex-[2_1_22rem]" />
+      </div>
+
+      <div class="flex flex-wrap gap-4">
+        <ToolsCard
+          class="min-w-0 flex-[1_1_26rem]"
+          :tools="data?.tools"
+          :period="periodCaption"
+          :locale="locale"
+          :loading="loading"
+          :error="failed"
+          @retry="load"
+        />
+        <KnowledgeCard
+          class="min-w-0 flex-[1_1_26rem]"
+          :knowledge="data?.knowledge"
+          :summary="summary"
+          :period="periodCaption"
+          :locale="locale"
+          :loading="loading"
+          :error="failed"
+          @retry="load"
+        />
+      </div>
+
+      <DetailTable
+        :timeseries="days"
+        :summary="summary"
         :billing="billing"
-        :summary="summary"
-        :timeseries="days"
-        :period="periodCaption"
-        :locale="locale"
-        :loading="loading"
-        :error="failed"
-        @retry="load"
-      />
-      <ResponderComparison class="min-w-0 flex-[2_1_22rem]" />
-    </div>
-
-    <div class="flex flex-wrap gap-4">
-      <ToolsCard
-        class="min-w-0 flex-[1_1_26rem]"
-        :tools="data?.tools"
-        :period="periodCaption"
-        :locale="locale"
-        :loading="loading"
-        :error="failed"
-        @retry="load"
-      />
-      <KnowledgeCard
-        class="min-w-0 flex-[1_1_26rem]"
-        :knowledge="data?.knowledge"
-        :summary="summary"
         :period="periodCaption"
         :locale="locale"
         :loading="loading"
@@ -466,17 +483,6 @@ onMounted(load);
         @retry="load"
       />
     </div>
-
-    <DetailTable
-      :timeseries="days"
-      :summary="summary"
-      :billing="billing"
-      :period="periodCaption"
-      :locale="locale"
-      :loading="loading"
-      :error="failed"
-      @retry="load"
-    />
   </main>
 </template>
 
